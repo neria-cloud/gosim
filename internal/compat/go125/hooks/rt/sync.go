@@ -6,6 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 func Sync_runtime_Semacquire(addr *uint32) {
@@ -88,11 +89,11 @@ func Sync_runtime_randn(n uint32) uint32 {
 }
 
 func Sync_throw(str string) {
-	panic(str)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "Sync_throw", Message: str})
 }
 
 func Sync_fatal(str string) {
-	panic(str)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "Sync_fatal", Message: str})
 }
 
 func Sync_runtime_SemacquireWaitGroup(addr *uint32, synctestDurable bool) {
@@ -124,9 +125,9 @@ func InternalSync_runtime_rand() uint64 {
 }
 
 func InternalSync_throw(str string) {
-	panic(str)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "InternalSync_throw", Message: str})
 }
 
 func InternalSync_fatal(str string) {
-	panic(str)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "InternalSync_fatal", Message: str})
 }

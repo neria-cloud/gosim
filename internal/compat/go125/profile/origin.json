@@ -2,6 +2,18 @@
   "toolchain": "go1.25.14",
   "files": [
     {
+      "path": "src/crypto/rand/rand.go",
+      "digest": "c2074b598435ca2bb8dce2bb62e7f4b11744a3e36b4746f352a4f2dd3a7bd13a"
+    },
+    {
+      "path": "src/crypto/rand/text.go",
+      "digest": "c2c7d3bc9f093676f362b9e22772b6ab2d48acd6c06ca85fea0fef4741c17ce4"
+    },
+    {
+      "path": "src/crypto/rand/util.go",
+      "digest": "1404ae196db293493f755275fce7baa3d4cafebee57e46c0a30199c31a16ae67"
+    },
+    {
       "path": "src/hash/maphash/maphash_runtime.go",
       "digest": "b52d2db3fbbde2abcbf5484d0807ed99f0b297eab97d60c0b174b059bda9a872"
     },
@@ -18,6 +30,10 @@
       "digest": "e3445cf3a17f6b322cb3136e30a28eab7a70c0f37fac44ba5dc7912a19930a17"
     },
     {
+      "path": "src/internal/synctest/synctest.go",
+      "digest": "3291fd3debb2430be3017c9a3cd783ad4d1a2791d8b4133b473a11a29e250449"
+    },
+    {
       "path": "src/maps/maps.go",
       "digest": "0f69acac135baa8b644e2479e514835b4d991bcc894916c2e34b8739a171fce2"
     },
@@ -28,6 +44,38 @@
     {
       "path": "src/math/rand/v2/rand.go",
       "digest": "a0b0f516652e66ee56de089ec01457f5f786e0463cd08b2453eb025cd6ad6f58"
+    },
+    {
+      "path": "src/reflect/deepequal.go",
+      "digest": "e4615c50434192fa65a53c6ccaaa060da744f67baad2778153015d9f4cb26cbe"
+    },
+    {
+      "path": "src/reflect/iter.go",
+      "digest": "78128c2b362102626bcdd579a553543f3e5a7be6ab6a02d04e0662a3fcbd71f0"
+    },
+    {
+      "path": "src/reflect/makefunc.go",
+      "digest": "82f100e7ecfada602ee241ac569152ded34121099c02143486ed4326b62cb708"
+    },
+    {
+      "path": "src/reflect/map_swiss.go",
+      "digest": "e25cccc85c23b30e6ea4bd88034582e13e9cadb76ad40fcf4e51b740199c07f0"
+    },
+    {
+      "path": "src/reflect/swapper.go",
+      "digest": "5d8467c8475770fac34d48536e36e40d4251612af2d5a7d96f19fff1c7d4ba99"
+    },
+    {
+      "path": "src/reflect/type.go",
+      "digest": "56d4ab619a5ef53e359d89a73d02bc6cd4051c40b8fbf1d5a3ab081a369eb59d"
+    },
+    {
+      "path": "src/reflect/value.go",
+      "digest": "0e3b931177452ccbbdeb85f39d8c0efd6873bdbd66352bf18a1b1fc6aec0558f"
+    },
+    {
+      "path": "src/reflect/visiblefields.go",
+      "digest": "287edc70dd44cb440aa267eb9ca3164c89c80b25af69abc1589728fbf82ad810"
     },
     {
       "path": "src/runtime/coro.go",
@@ -151,6 +199,30 @@
     {
       "path": "src/sync/runtime.go",
       "digest": "a2be85512b59e11270b099f264581343cc1589bb782e03a476102406defd5f33"
+    },
+    {
+      "path": "src/testing/allocs.go",
+      "digest": "4fa935b51bd22e94d35d285234c4fb42329708348901915565990e64e8864a72"
+    },
+    {
+      "path": "src/testing/benchmark.go",
+      "digest": "eb44c74738080f053ea1b08f321b54c5af968ca2b4d564f75e25f0786381817e"
+    },
+    {
+      "path": "src/testing/cover.go",
+      "digest": "18dbd25f782023cb72e2b1847e960313ff6eeb62b749433752e51c51dca2d4ec"
+    },
+    {
+      "path": "src/testing/example.go",
+      "digest": "52e4417a3bec0e28c77e8009c06984fca5158226abf559ff08857e389c1f374e"
+    },
+    {
+      "path": "src/testing/newcover.go",
+      "digest": "2c9331c056e707a8d6fc527108f1f3ec835e8fd2b9841c39637e2113275a3f43"
+    },
+    {
+      "path": "src/testing/testing.go",
+      "digest": "7ea0bc471a7d22b6757c68eca689efa0561a0610052545242d866d8039dd1781"
     },
     {
       "path": "src/time/sleep.go",

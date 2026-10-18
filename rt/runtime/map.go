@@ -446,6 +446,10 @@ func (m *mapImpl[K, V]) UnsafePointer() unsafe.Pointer {
 }
 
 func (m *mapImpl[K, V]) SetIndex(key, value reflect.Value) {
+	if !value.IsValid() {
+		m.outer().Delete(key.Interface().(K))
+		return
+	}
 	m.outer().Set(key.Interface().(K), value.Interface().(V))
 }
 

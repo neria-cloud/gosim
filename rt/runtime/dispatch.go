@@ -73,3 +73,19 @@ func (e *Engine) WriteDiagnostic(token MachineToken, goroutineID uint64, fd int,
 		e.invariant("diagnostic output outside active engine")
 	}
 }
+
+// Abort fails the current simulation from a translated version adapter. Only
+// primitive diagnostic fields cross the native boundary; application recovery
+// cannot turn a fatal runtime condition into a successful run.
+//
+//go:norace
+func Abort(diagnostic abi.Diagnostic) {
+	g := getg()
+	g.upcall(func() {
+		scheduler := gs.get()
+		if scheduler.abortErr == nil {
+			scheduler.abortErr = &AbortError{Diagnostic: diagnostic}
+		}
+	})
+	g.park(false)
+}

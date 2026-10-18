@@ -169,3 +169,19 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 		t.Fatal("adapter move did not change identity")
 	}
 }
+
+func TestGo125ShimBindings(t *testing.T) {
+	shims := p125.ShimManifest()
+	if err := spec.VerifyShimBindings("../../..", shims); err != nil {
+		t.Fatal(err)
+	}
+	shims[0].Signature = "func()"
+	if err := spec.VerifyShimBindings("../../..", shims); err == nil {
+		t.Fatal("changed shim signature accepted")
+	}
+	if runtime.Version() == "go1.25.14" {
+		if err := spec.VerifyHooks(currentToolchain(), p125.ShimManifest()); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

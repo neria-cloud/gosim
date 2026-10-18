@@ -10,7 +10,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed hooks.json tuples.json policies.json origin.json
+//go:embed hooks.json tuples.json policies.json origin.json shims.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
@@ -32,11 +32,22 @@ func VerificationOrigin() spec.Origin {
 	return origin
 }
 
+// ShimManifest is separate from callable hooks: the translator substitutes
+// these packages as complete type universes, rather than individual functions.
+func ShimManifest() []spec.Hook {
+	var shims []spec.Hook
+	decode("shims.json", &shims)
+	return shims
+}
+
 func Verify(tc buildspec.Toolchain) error {
 	if err := spec.VerifyOrigin(tc, VerificationOrigin()); err != nil {
 		return err
 	}
-	return spec.VerifyHooks(tc, Descriptor().Hooks)
+	if err := spec.VerifyHooks(tc, Descriptor().Hooks); err != nil {
+		return err
+	}
+	return spec.VerifyHooks(tc, ShimManifest())
 }
 
 func decode(name string, result any) {
