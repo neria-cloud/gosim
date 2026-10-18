@@ -132,17 +132,17 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§3; T§5 / all contracts; T§7 / typed service/control signatures; I for moved ABI consumers.  
 **Budget:** 1,000–2,000 changed lines. **Dependency:** 2–3.
 
-- [ ] Implement exact feature/identity/epoch/call records, stop/close reasons, readiness/event/wait types and diagnostics. Implement canonical `ParseFeatures`, `Has`, `Names` for the four valid sets.
-- [ ] Declare Clock, Random (including Uint64N), Events, ReadinessSink, Trace and Ports. Preserve the native/translated value boundary; contracts import ABI only, never provider/kernel/public packages.
-- [ ] Declare Provider, ProviderSession, PreparedMachine, MachineInstance, Bindings and ControlBindings with Controls at session scope. Declare Resource/Readable/Writable/Pollable/DescriptorTable and all FileOps/SocketOps/FSControl/NetControl methods verbatim from T§5/7.
-- [ ] Add validation of provider ownership, duplicate bindings and invalid value records. Provide test-only fake ports/providers that record ordering and injected failures without becoming runtime fallbacks.
+- [x] Implement exact feature/identity/epoch/call records, stop/close reasons, readiness/event/wait types and diagnostics. Implement canonical `ParseFeatures`, `Has`, `Names` for the four valid sets.
+- [x] Declare Clock, Random (including Uint64N), Events, ReadinessSink, Trace and Ports. Preserve the native/translated value boundary; contracts import ABI only, never provider/kernel/public packages.
+- [x] Declare Provider, ProviderSession, PreparedMachine, MachineInstance, Bindings and ControlBindings with Controls at session scope. Declare Resource/Readable/Writable/Pollable/DescriptorTable and all FileOps/SocketOps/FSControl/NetControl methods verbatim from T§5/7.
+- [x] Add validation of provider ownership, duplicate bindings and invalid value records. Provide test-only fake ports/providers that record ordering and injected failures without becoming runtime fallbacks.
 
 **Target lifecycle signatures:** `Provider.Open(Ports)(ProviderSession,error)`; session `Controls() ControlBindings`, `Prepare(StartSpec,DescriptorTable)(PreparedMachine,error)`, `Destroy(MachineRef)`, `Close()`; staged `Bindings() Bindings`, `Publish() MachineInstance`, `Abort()`; instance `Quiesce()`, `Settle(StopKind) error`, `Detach()`.
 
 #### Verification
 
-- [ ] Dependency/import checks, value copying, ownership and duplicate-binding tests pass; all target interfaces type-check against test fakes.
-- [ ] Run common commit gate; no product entry point treats an unfinished provider as supported.
+- [x] Dependency/import checks, value copying, ownership and duplicate-binding tests pass; all target interfaces type-check against test fakes.
+- [x] Run common commit gate; no product entry point treats an unfinished provider as supported.
 
 ### Task 5: Implement kernel machine registry and lifecycle transactions
 

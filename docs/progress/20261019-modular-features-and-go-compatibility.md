@@ -269,3 +269,18 @@ Notes / migration ledger
 - Initial race tests caught missing release edges at run entry and publication; each boundary now explicitly publishes captured state. A later lifecycle audit caught premature coroutine pooling and supervisor cancellation; regression tests now enforce both ownership requirements.
 - All changes are within Task 3 runtime scope; no tests were waived or compatibility tuples promoted.
 - Final Task 3 size: 1,049 changed lines (1,016 additions + 33 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 4 — Translated provider and control contracts
+Date: 2026-10-19. Previous task commit: `b0bc40c`. Commit: the Task 4 implementation commit containing this entry.
+
+Implemented
+- Exact feature/identity/epoch/call records, lifecycle and memory-view service interfaces, session controls, ports and descriptor capabilities from T§5/7. Contracts depend only on native ABI among Gosim packages.
+- Canonical feature parsing and validation, exact provider set/order/ownership checks, duplicate-binding rejection, and finite/valid filesystem and network configuration validation.
+- Test-only recording lifecycle/port/descriptor fakes and complete service fakes that explicitly reject unexercised calls; no product implementation or fallback is selected.
+
+Verified
+- Focused contracts tests passed: all target interfaces compile against fakes; canonical sets, dependency graph, provider ordering/ownership, no partial duplicate-binding result, lifecycle ordering/failure injection, copied trace fields, descriptor memory views/readiness and invalid value records.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including ordinary and race suites. Log `.gosim/task4-gate.log`.
+- Initial gate found three formatting differences after the first formatting pass; a second formatter pass and standalone check resolved them before the full rerun.
+- No migration stubs or production wiring were introduced. All remaining tasks and exact-patch certification remain required.
+- Final Task 4 size: 1,027 changed lines including checklist/log; staged whitespace check passed.
