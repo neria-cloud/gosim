@@ -496,8 +496,10 @@ func (t *packageTranslator) markSyncFuncsNorace(c *dstutil.Cursor) {
 		return
 	}
 
-	if t.pkgPath == "sync" {
-		// XXX: jank mark all funcs norace in "sync" package
+	if t.pkgPath == "sync" || t.pkgPath == "internal/sync" {
+		// These packages implement synchronization using their own race hooks.
+		// Instrumenting their mutex state also reports races between simulated
+		// goroutines that the scheduler runs one at a time.
 		decl.Decs.Start = append(decl.Decs.Start, "//go:norace")
 	}
 }
