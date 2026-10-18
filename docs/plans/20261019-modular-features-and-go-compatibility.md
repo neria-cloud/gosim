@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–10 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–11 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -251,16 +251,16 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§4 net APIs; T§5 lifecycle/descriptors; T§7 SocketOps/NetControl and provider table.  
 **Budget:** 2,500–4,500 changed lines. **Dependency:** 5–6, 10.
 
-- [ ] Implement Provider/Session/Prepared/Instance with staged address/stack publication and session Controls. Bind SocketOps only for active epochs. Keep topology/configuration in Session and kernel unaware of Stack.
-- [ ] Implement SocketOps Socket/Bind/Listen/Accept/Connect/LocalAddress/PeerAddress/SetOption/GetOption/FcntlInt and socket Resource/Readable/Writable/Pollable methods. Preserve nonblocking EAGAIN plus poll behavior.
-- [ ] Implement exact NetConfig/NetLink/NetLinkPolicy and NetControl Configure/ConfigureMachine/Address/SetLinkPolicy/ResetLinkPolicy/SetConnectivity. Validate IPv4, durations, finite probabilities and initial-state restrictions; nil public policy groups leave existing overrides unchanged.
-- [ ] Wire readiness to kernel with epoch/connection/poll generations. Reject unsupported address families/options with documented capability outcomes, not truncation or silent native forwarding.
-- [ ] Exercise full FS-then-Net preparation so a Net failure aborts staged FS work without flushing disk, leaking descriptors or consuming the fs/scheduler random streams.
+- [x] Implement Provider/Session/Prepared/Instance with staged address/stack publication and session Controls. Bind SocketOps only for active epochs. Keep topology/configuration in Session and kernel unaware of Stack.
+- [x] Implement SocketOps Socket/Bind/Listen/Accept/Connect/LocalAddress/PeerAddress/SetOption/GetOption/FcntlInt and socket Resource/Readable/Writable/Pollable methods. Preserve nonblocking EAGAIN plus poll behavior.
+- [x] Implement exact NetConfig/NetLink/NetLinkPolicy and NetControl Configure/ConfigureMachine/Address/SetLinkPolicy/ResetLinkPolicy/SetConnectivity. Validate IPv4, durations, finite probabilities and initial-state restrictions; nil public policy groups leave existing overrides unchanged.
+- [x] Wire readiness to kernel with epoch/connection/poll generations. Reject unsupported address families/options with documented capability outcomes, not truncation or silent native forwarding.
+- [x] Exercise full FS-then-Net preparation so a Net failure aborts staged FS work without flushing disk, leaking descriptors or consuming the fs/scheduler random streams.
 
 #### Verification
 
-- [ ] Socket ownership/poll/readiness/deadline, connection recycling, second-provider failure, before-start controls and copied-policy tests pass using real kernel/engine integration.
-- [ ] Run common commit gate; provider close leaves no addresses, packets, callbacks, descriptors or surviving goroutines.
+- [x] Socket ownership/poll/readiness/deadline, connection recycling, second-provider failure, before-start controls and copied-policy tests pass using real kernel/engine integration.
+- [x] Run common commit gate; provider close leaves no addresses, packets, callbacks, descriptors or surviving goroutines.
 
 ### Task 12: Isolate native host ABI and Go 1.25 runtime hooks
 
@@ -793,6 +793,22 @@ Task 10 updates `internal/tests/behavior/log_meta_test.go` because removing the 
 ```
 
 These are required effects/fixes of Task 10 ownership changes, not a target architecture revision. Real Forward behavior replaces the old EOPNOTSUPP assertions as explicitly planned.
+
+Task 11 includes kernel network service/control boundaries and a temporary typed syscall decoder (generated replacement remains Task 14), matching Task 9's filesystem integration. `internal/net/model/stack.go` adds reason-aware listener finalization after quiescence and reuses it for ordinary listener close. The provider reports actual bound listener addresses instead of the former dummy port; unsupported IPv6/UDP/unknown options are explicit errors, known option success stubs remain labeled, and SO_ERROR bytes use Linux numeric values on every host.
+
+The full gate exposed an intermittent pre-existing stderr-forwarding failure in `TestScript/metatestlogs`: the intentional race was detected but its warning could be lost when the parent test exited without waiting for the worker. `metatesting/metatest.go` now tracks test owners, serializes protocol access and reaps the worker after its last owner, joining stderr copying. `rt/runtime/testmain.go` treats EOF as normal worker shutdown. The relevant diff is:
+
+```diff
++ t.Cleanup(func() { /* drop test owner; last owner closes stdin and waits */ })
++ r.mu.Lock(); defer r.mu.Unlock() // Run/ListTests protocol serialization
++ closeErr := r.stdin.Close()
++ timer := time.AfterFunc(5*time.Second, func() { _ = r.cmd.Process.Kill() })
++ waitErr := r.cmd.Wait() // joins stderr copier; expected race exit 66 is classified
++ timer.Stop()
++ if err == io.EOF { return } // worker request loop
+```
+
+`metatesting/ownership_test.go` verifies shared parent/child ownership, duplicate acquisition and actual process reaping. The existing stderr script passed three consecutive reruns. Owner keys use `any` so the legacy translator's testing type rewrite does not break its existing simulated-use rejection fixture. Task 23 still owns identity-keyed metatesting replacement; its migration marker remains. No target architecture change was made.
 
 ## Execution log
 

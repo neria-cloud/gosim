@@ -297,25 +297,7 @@ func (n *Stack) CloseListener(listener *Listener) error {
 		return ErrListenerClosed
 	}
 
-	l.closed = true
-
-	for l.incomingCount > 0 {
-		if stream := l.incoming[l.incomingPos]; !stream.closed {
-			n.closeStream(stream, !n.quiesced)
-		}
-		l.incoming[l.incomingPos] = nil
-		l.incomingPos++
-		if l.incomingPos == len(l.incoming) {
-			l.incomingPos = 0
-		}
-		l.incomingCount--
-	}
-
-	delete(n.listeners, l.port)
-
-	n.updateListenerPollers(l)
-
-	return nil
+	return n.ReleaseListener(listener, contracts.CloseExplicit)
 }
 
 func (n *Stack) closeStream(stream *Stream, sendClose bool) error {
@@ -709,4 +691,30 @@ func (n *Stack) ReleaseStream(stream *Stream, reason contracts.CloseReason) erro
 		return nil
 	}
 	return n.closeStream(stream, reason == contracts.CloseExplicit || reason == contracts.CloseGraceful)
+}
+
+// ReleaseListener is the bounded descriptor-finalization path after Quiesce.
+func (n *Stack) ReleaseListener(listener *Listener, reason contracts.CloseReason) error {
+	if listener.owner != n {
+		panic("foreign listener")
+	}
+	if listener.closed {
+		return nil
+	}
+	if reason > contracts.CloseAbort {
+		return contracts.ErrInvalidConfig
+	}
+	listener.closed = true
+	for listener.incomingCount > 0 {
+		stream := listener.incoming[listener.incomingPos]
+		if !stream.closed {
+			n.closeStream(stream, reason == contracts.CloseExplicit || reason == contracts.CloseGraceful)
+		}
+		listener.incoming[listener.incomingPos] = nil
+		listener.incomingPos = (listener.incomingPos + 1) % len(listener.incoming)
+		listener.incomingCount--
+	}
+	delete(n.listeners, listener.port)
+	n.updateListenerPollers(listener)
+	return nil
 }

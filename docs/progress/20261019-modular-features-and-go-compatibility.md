@@ -416,3 +416,25 @@ Notes / migration ledger
 - Final review added duplicate-owner reservation rejection, quiescence on detach, and validation-before-tracing for symmetric updates. A transient syntax error in that edit was fixed before rerunning the final passing focused/full gates.
 - New provider/session/socket/control ownership is Task 11; current-simulation adapters remain only until Task 22. No compatibility tuple is certified by this development-toolchain gate.
 - Final Task 10 size: 2,792 changed lines (1,858 additions + 934 deletions) with rename detection, including checklist/log.
+
+## Task 11 — Network provider, socket capabilities and kernel controls
+Date: 2026-10-19. Previous task commit: `a329b8b`. Commit: the Task 11 implementation commit containing this entry.
+
+Implemented
+- Network Provider/Session/Prepared/Instance lifecycle with staged address/stack publication, stable session configuration, abort rollback, restart identity, deterministic cleanup and active-epoch-only SocketOps. Kernel remains unaware of the concrete network/model.
+- Socket/Bind/Listen/Accept/Connect/address/options/fcntl services on the shared descriptor table. Socket implements owned Resource/Readable/Writable/Pollable; failed allocation/accept disposes untransferred resources, release is once-only and retains its reason, graceful/explicit close notifies peers, crash/abort are silent.
+- Readiness bridges carry socket binding generation and epoch, map notifications to the actual fd, retire subscriptions on unsubscribe/close/quiesce, and preserve polling registered before connect/listen. Model listener finalization permits bounded cleanup after quiescence without duplicating its backlog algorithm.
+- Exact NetControl values/methods with complete validation/copy semantics, before-first-start address configuration, retained addresses across stop/restart, directional policy/reset/connectivity and kernel run/state/caller guards. Added explicit manual typed network syscall routes until Task 14's generator.
+- Capability evidence explicitly states IPv4-only protocol-0 TCP/nonblocking flags, fixed listen backlog, unsupported ephemeral listeners/client binds, bounded known option stubs, SO_ERROR-only reads, ENOSYS fcntl, and existing closed-read EPIPE semantics. Unknown options/families/protocols fail; no host fallback. Listener addresses report their real bound port, and SO_ERROR payloads encode Linux constants.
+
+Verified
+- Real kernel/engine provider tests cover reservations/preparation/abort/collision/retry, before-start and cross-run/stale-epoch controls, duplicate cleanup, descriptor allocation/accept failure, nonblocking data flow, peer addresses/options/unsupported arguments, readiness retirement, deadline replacement, graceful versus crash peer outcomes, and endpoint tuple reuse after restart without connection reuse.
+- Real application calls traverse the dispatcher for socket creation/bind/listen/connect/accept/options/address/read/write/fcntl/close and polling. Pending connection/data waits and deadlines wake real blocked callers; malformed payloads and disabled net calls fail the run. Closed kernel retains no epochs, events, poll registrations or invocation leases.
+- Real FS-then-Net address collision aborts filesystem preparation without publication or dirty peer-disk flush. Comparing equivalent engine runs with/without failed preparation verifies filesystem, network and scheduler random streams are unchanged. An initial test incorrectly copied native scheduler-owned RNG memory; replaced that inspection with the native stream API, preserving the race oracle.
+- Focused race suites passed: `.gosim/task11-focused.log`. Final complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including all ordinary/race suites: `.gosim/task11-gate.log`. Production import audit shows net imports only contracts/model/native ABI among Gosim packages; no fs/kernel implementation dependency.
+- The gate exposed a pre-existing metatest stderr lifecycle race. Added last-test-owner cleanup, serialized protocol access, bounded worker reaping and normal EOF shutdown. Ownership regression verifies a child owner cannot reap its parent's worker and the final owner waits for process/stderr completion. `TestScript/metatestlogs` passed three consecutive runs: `.gosim/task11-stderr-regression.log`. Read-only process audit found zero orphaned metatest workers in this checkout.
+
+Notes / migration ledger
+- Documented the metatest harness fix, actual bound address correction and listener finalization helper in NOT PLANNED CHANGES. Metatesting's build-identity replacement remains Task 23; its package-keyed cache is not final architecture. Existing simulated-use rejection coverage still passes.
+- Ordinary CLI integration still uses the authorized intermediate simulation path. Task 14 replaces manual routes; Task 22 connects public APIs and removes temporary adapters. No target document or compatibility certification was changed.
+- Final Task 11 size: 1,958 changed lines (1,913 additions + 45 deletions), including checklist/log; staged whitespace check passed.

@@ -3,7 +3,9 @@ package metatesting
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"os"
@@ -12,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 
@@ -47,7 +50,11 @@ type RunResult struct {
 //
 // Behind the scenes a MetaT executes and controls a gosim test binary.
 type MetaT struct {
-	cmd *exec.Cmd
+	cmd       *exec.Cmd
+	mu        sync.Mutex
+	stdin     io.Closer
+	owners    map[any]bool
+	failedRun bool
 
 	w *json.Encoder
 	r *json.Decoder
@@ -101,7 +108,9 @@ func newRunner(path string) (*MetaT, error) {
 	r := json.NewDecoder(stdout)
 
 	return &MetaT{
-		cmd: cmd,
+		cmd:    cmd,
+		stdin:  stdin,
+		owners: make(map[any]bool),
 
 		w: w,
 		r: r,
@@ -110,6 +119,8 @@ func newRunner(path string) (*MetaT, error) {
 
 // TODO: Support match expressions?
 func (r *MetaT) ListTests() ([]string, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if err := r.w.Encode(&RunConfig{
 		Test: "listtests",
 	}); err != nil {
@@ -124,12 +135,22 @@ func (r *MetaT) ListTests() ([]string, error) {
 	return tests, nil
 }
 
-/*
-func (r *Runner) Close() {
-	r.cmd.Process.Kill()
-	r.cmd.Wait()
+// TODO(migration): replace package-keyed ownership with build-identity ownership in Task 23.
+// Reap the child only after its last owning test finishes. Wait also joins the
+// stderr copier, so a fast failing test cannot lose its race diagnostic.
+func (r *MetaT) close() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	closeErr := r.stdin.Close()
+	timer := time.AfterFunc(5*time.Second, func() { _ = r.cmd.Process.Kill() })
+	waitErr := r.cmd.Wait()
+	var exitErr *exec.ExitError
+	if r.failedRun && errors.As(waitErr, &exitErr) && exitErr.ExitCode() == 66 {
+		waitErr = nil
+	} // Go race detector exit after an already-reported failure.
+	timer.Stop()
+	return errors.Join(closeErr, waitErr)
 }
-*/
 
 func (r *MetaT) RunAllTests(t *testing.T) {
 	// TODO: Parallel tests for multiple seeds/tests?
@@ -158,8 +179,9 @@ func (r *MetaT) RunAllTests(t *testing.T) {
 func (r *MetaT) Run(t *testing.T, config *RunConfig) (*RunResult, error) {
 	t.Helper()
 
-	// TODO: Handle concurrent runs (lock?)
-	// TODO: Stop or restart process on error?
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	// TODO: Stop or restart process on protocol error?
 
 	b := new(bytes.Buffer)
 
@@ -176,6 +198,7 @@ func (r *MetaT) Run(t *testing.T, config *RunConfig) (*RunResult, error) {
 		return nil, err
 	}
 
+	r.failedRun = r.failedRun || result.Failed
 	w := prettylog.NewWriter(b)
 
 	out := result.LogOutput
@@ -207,17 +230,33 @@ func ForOtherPackage(t *testing.T, pkg string) *MetaT {
 	runnerMapMu.Lock()
 	defer runnerMapMu.Unlock()
 
-	runner, ok := runnerMap[pkg]
-	if ok {
-		return runner
+	runner := runnerMap[pkg]
+	if runner == nil {
+		path := gosimtool.GetPathForPrecompiledTestBinary(t, pkg)
+		var err error
+		runner, err = newRunner(path)
+		if err != nil {
+			t.Fatalf("failed to run test binary: %s", err)
+		}
+		runnerMap[pkg] = runner
 	}
-
-	path := gosimtool.GetPathForPrecompiledTestBinary(t, pkg)
-	runner, err := newRunner(path)
-	if err != nil {
-		t.Fatalf("failed to run test binary: %s", err)
+	if !runner.owners[t] {
+		runner.owners[t] = true
+		t.Cleanup(func() {
+			runnerMapMu.Lock()
+			delete(runner.owners, t)
+			last := len(runner.owners) == 0
+			if last {
+				delete(runnerMap, pkg)
+			}
+			runnerMapMu.Unlock()
+			if last {
+				if err := runner.close(); err != nil {
+					t.Errorf("metatest worker cleanup: %v", err)
+				}
+			}
+		})
 	}
-	runnerMap[pkg] = runner
 	return runner
 }
 

@@ -200,6 +200,9 @@ func TestMain(rt Runtime) {
 	for {
 		var req RunConfig
 		if err := in.Decode(&req); err != nil {
+			if err == io.EOF {
+				return
+			}
 			log.Fatal(err)
 		}
 

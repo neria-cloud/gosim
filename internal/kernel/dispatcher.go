@@ -65,6 +65,15 @@ const (
 	RouteMap
 	RouteUnmap
 	RouteAdvise
+	RouteSocket
+	RouteBind
+	RouteListen
+	RouteAccept
+	RouteConnect
+	RouteLocalAddress
+	RoutePeerAddress
+	RouteSetOption
+	RouteGetOption
 )
 
 type invocationLease struct {
@@ -203,6 +212,9 @@ func (d *Dispatcher) DispatchOne(inv *Invocation) {
 
 //go:norace
 func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
+	if inv.Route >= RouteSocket && inv.Route <= RouteGetOption {
+		return d.decodeSockets(inv)
+	}
 	if inv.Route >= RouteOpenat && inv.Route <= RouteAdvise {
 		return d.decodeFiles(inv)
 	}
