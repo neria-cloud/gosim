@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–13 (including children 13.1/13.2) implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–13 (including children 13.1/13.2) and child 14.1 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -335,6 +335,35 @@ The existing shim sources total 2,855 lines. Adding exact-source signature/capab
 
 - [ ] Regeneration is byte-identical; missing symbols, wrong pointer layouts, forged payloads and unknown RouteIDs fail. amd64 wrappers build on an amd64 worker/container, with executed route probes when available; compile-only evidence is labeled.
 - [ ] Run common commit gate; new wrappers import contracts/kernel but no concrete fs/net models.
+
+### Task 14.1: Establish versioned route inventory and reproducible generation
+
+**Parent:** Task 14; all parent requirements remain in force. **Dependency:** 13. **Budget:** 2,000–3,500 changed lines.
+**References:** T§5 Invocation/Result; T§7 complete route ownership; T§8/9 source verification and GenerateProfile.
+
+The original generator is 892 lines, existing temporary decoders are approximately 400 lines, and the target adds all lifecycle/fs/net/runtime controls plus version/architecture adapters, source manifests and negative tests. Generated output counts toward the cap. Split before implementation at buildable boundaries; each child runs the common gate and commits separately.
+
+- [x] Establish the complete stable versioned route inventory, typed input/result schemas, ownership/capability and legacy-route dispositions. Generate route IDs and typed payload codecs reproducibly from that inventory.
+- [x] Add cmd/gosim-gen with explicit exact toolchain/family/architecture/output inputs, verified source/module dependencies and scoped deterministic output. Retain the original generator solely for the still-active legacy path until Task 26; this avoids changing existing generated ABI during the staged cutover.
+- [x] Verify inventory coverage, wrong family/patch/architecture rejection, malformed/duplicate routes and deterministic generation; run the common gate and commit. New payload wiring is completed by child 14.2; selected Linux adapter output by child 14.3.
+
+### Task 14.2: Wire generated dispatch and control transport
+
+**Parent:** Task 14. **Dependency:** 14.1. **Budget:** 3,000–4,800 changed lines.
+**References:** T§5 dispatcher/lifecycle; T§7 services and internal/control transport.
+
+- [ ] Replace temporary handwritten route decoders with generated checked payload decoding and implement all target lifecycle/fs/net/runtime control routes.
+- [ ] Implement CurrentRef/Submit/Bind with per-run binding, supervisor-only harness installation, checked epoch/admission and no application trampoline. Preserve blocking wait/poll, cancellation and borrowed-view cleanup.
+- [ ] Verify real transported calls, forged/wrong/stale payloads, unknown routes, feature gates and cleanup; run the common gate and commit.
+
+### Task 14.3: Generate Go 1.25 amd64 adapters and initialization responses
+
+**Parent:** Task 14; completes remaining parent requirements and verification. **Dependency:** 14.2. **Budget:** 3,000–4,900 changed lines.
+**References:** T§7 Stat/Lock/Address/routing; T§8/9 exact source ABI generation; Task 13.2 named initialization audit.
+
+- [ ] Generate complete go125 amd64 kernel/fs/net wrappers from exact Go/x/sys sources, with real Linux layouts, pointer/integer fcntl separation, memory/race annotations, explicit capabilities and no concrete provider imports.
+- [ ] Implement source-audited runtime/kernel initialization responses, environment/debug behavior and the IPv4 TCP capability probe identified by Task 13.2, without blanket success or host fallback.
+- [ ] Verify byte-identical regeneration, missing/signature/layout drift failures, amd64 build/executed probes as available, and common gate; finish parent Task 14 checks, log and commit before Task 15.
 
 ### Task 15: Generate and verify Go 1.25 arm64 adapters
 

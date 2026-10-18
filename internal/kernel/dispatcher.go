@@ -28,54 +28,6 @@ type (
 	}
 )
 
-// TODO(migration): generate the complete typed route manifest/decoders in Task
-// 14. These core routes are explicit; every unlisted route fails the run.
-const (
-	RouteRead RouteID = iota + 1
-	RouteWrite
-	RouteClose
-	RouteFcntlInt
-	RouteGetrandom
-	RouteGetpid
-	RouteUname
-	RoutePollOpen
-	RoutePollClose
-	RoutePollWait
-	RoutePollReset
-	RoutePollDeadline
-	RoutePollUnblock
-	RouteWait
-	RouteOpenat
-	RouteRenameat
-	RouteGetdents64
-	RouteFallocate
-	RouteSeek
-	RoutePwrite
-	RoutePread
-	RouteSync
-	RouteFstat
-	RouteStatat
-	RouteUnlinkat
-	RouteTruncate
-	RouteChdir
-	RouteGetcwd
-	RouteMkdirat
-	RouteFlock
-	RouteFcntlLock
-	RouteMap
-	RouteUnmap
-	RouteAdvise
-	RouteSocket
-	RouteBind
-	RouteListen
-	RouteAccept
-	RouteConnect
-	RouteLocalAddress
-	RoutePeerAddress
-	RouteSetOption
-	RouteGetOption
-)
-
 type invocationLease struct {
 	epoch      contracts.EpochRef
 	invocation *Invocation

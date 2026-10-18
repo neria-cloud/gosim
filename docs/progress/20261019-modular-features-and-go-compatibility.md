@@ -507,3 +507,21 @@ Notes / migration ledger
 - Task 14 must implement the classified os initialization responses, machine-local argv/environment/debug callbacks and bounded diagnostic writes. net's IPv4 capability probe passes IPPROTO_TCP=6, whereas the new provider currently accepts only protocol 0; its adapter/provider boundary must reconcile this explicitly. IPv6 remains EAFNOSUPPORT. These are adapter work already assigned to Task 14, not successful runtime behavior claimed by policy metadata.
 - Later translation wiring must validate assembly/private hook requirements for translated math/big, hash and third-party packages rather than inherit broad legacy assembly exemptions. Native engine/ABI are explicit bridge islands; direct generated imports of internal/hostabi are rejected. No target edits or newly certified tuple.
 - Final Task 13.2 size: 1,417 changed lines (1,311 additions + 106 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 14.1 — Stable route inventory and reproducible generator
+Date: 2026-10-19. Previous task commit: `6dff8c1`. Commit: the Task 14.1 implementation commit containing this entry.
+
+Implemented
+- Recorded children 14.1/14.2/14.3 before implementation to keep generated transport/control/architecture changes within the 5,000-line cap. Original 892-line generator remains solely for the intermediate legacy ABI until Task 26, rather than rewriting live legacy output during the new-path construction.
+- Added a 69-route schema covering current syscalls, shared fd ownership, polling, lifecycle, every FSControl/NetControl method, runtime timeout and run information. Explicit IDs preserve all 43 existing temporary route numbers. Legacy names have migration dispositions, not accepted aliases: partial-disk restart and auto-boot recovery become the target's separate controls/snapshots.
+- Added cmd/gosim-gen and host routegen GenerateProfile with required exact toolchain/family/architecture/output inputs. Before writing, it verifies actual pinned Go executable/source declarations and selected module contents, renders all outputs, then writes atomically per file. Unchanged files keep their mtimes. Only requested architecture records and common architecture-neutral transport are written; other families/architectures are untouched.
+- Generated stable route constants and typed request/result codecs in kernel. Exact payload types, empty legacy scalar slots, empty extra argument slots and typed responses are checked. Generic callbacks/pointers/any are rejected by the schema; only Create/SetMain accept the prescribed Main func(). Runtime contracts remain translated; generated source imports no concrete providers or host metadata.
+- Generated amd64 source/provenance record includes transport and manifest digests, exact source-origin digest and external module pins; embedded for script-module copying and included in adapter fingerprints. The record explicitly says transport-schema, not completed adapters or certification. Child 14.2 wires typed payloads; child 14.3 generates selected Linux layouts/wrappers.
+
+Verified
+- Inventory audit checks both existing generated syscall interfaces, manual Sys* methods and every fs/net control interface method. Stable original IDs, malformed/duplicate schema/field/callback rejection, trailing/unknown JSON rejection, current-output comparison and scoped/repeated generation checks pass.
+- Typed payload/result tests reject wrong route types, pointer instead of value payload, arbitrary callback, unused scalar/argument slots, missing payload, unknown route and mixed errno/result forms. Request value copies and representative fd/poll/fs/net/lifecycle/runtime payloads pass. Existing live kernel dispatcher semantics remain covered until the next child replaces the decoders.
+- Exact go1.25.14 ordinary/race generator, kernel and compatibility suites passed: `.gosim/task14/schema-ordinary125.log`, `.gosim/task14/schema-race125.log`.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task14.1-gate.log`. Source revision check and whitespace check pass. No architecture-native adapter execution is claimed by this transport-schema step.
+- Final Task 14.1 size: 2,530 changed lines (2,479 additions + 51 deletions), including checklist/log; staged whitespace check passed.

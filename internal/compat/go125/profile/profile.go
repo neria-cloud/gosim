@@ -10,7 +10,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed hooks.json tuples.json policies.json origin.json shims.json bridges.json probes.json modules.json capabilities.json native_imports.json
+//go:embed hooks.json tuples.json policies.json origin.json shims.json bridges.json probes.json modules.json capabilities.json native_imports.json routes_*.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
