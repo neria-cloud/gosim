@@ -33,7 +33,7 @@ func pollFixture(t *testing.T, k *Kernel) (contracts.CallContext, *dataResource,
 }
 
 func dispatchPollWait(k *Kernel, ctx contracts.CallContext, id uint64, mode uint8) *Invocation {
-	inv := &Invocation{Context: ctx, Route: RoutePollWait, Scalars: [6]uintptr{uintptr(id), uintptr(mode)}}
+	inv := &Invocation{Context: ctx, Route: RoutePollWait, Args: [5]any{PollWaitRequest{Handle: id, Mode: mode}}}
 	k.dispatcher.DispatchOne(inv)
 	return inv
 }
@@ -53,7 +53,7 @@ func TestPollReadinessResetUnblockAndRegistrationGeneration(t *testing.T) {
 			t.Fatal("poll did not retain pending invocation")
 		}
 		r.notify(contracts.ReadReady)
-		if len(k.dispatcher.live) != 0 || inv.Sema != 1 || inv.Result.R0 != 0 {
+		if len(k.dispatcher.live) != 0 || inv.Sema != 1 || inv.Result.Value.(PollWaitResult).Code != 0 {
 			t.Fatal("readiness did not complete wait")
 		}
 		if err := k.PollReset(ctx, id, 'r'); err != nil {
@@ -63,7 +63,7 @@ func TestPollReadinessResetUnblockAndRegistrationGeneration(t *testing.T) {
 		if err := k.PollUnblock(ctx, id); err != nil {
 			t.Fatal(err)
 		}
-		if inv.Result.R0 != 1 || inv.Sema != 1 {
+		if inv.Result.Value.(PollWaitResult).Code != 1 || inv.Sema != 1 {
 			t.Fatal("unblock did not wake with closing")
 		}
 		if err := k.PollReset(ctx, id, 'r'); !errors.Is(err, ErrPollClosing) {
@@ -116,7 +116,7 @@ func TestPollDeadlineGenerationAndCanceledEpoch(t *testing.T) {
 			t.Fatal("canceled deadline fired")
 		}
 		simrt.Sleep(60)
-		if inv.Sema != 1 || inv.Result.R0 != 2 {
+		if inv.Sema != 1 || inv.Result.Value.(PollWaitResult).Code != 2 {
 			t.Fatal("replacement deadline did not wake")
 		}
 		if err := k.PollReset(ctx, id, 'r'); !errors.Is(err, ErrPollTimeout) {

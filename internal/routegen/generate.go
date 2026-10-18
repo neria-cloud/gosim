@@ -88,7 +88,11 @@ func renderOutputs(toolchain, profile string, arches []string, m Manifest, origi
 	if err != nil {
 		return nil, err
 	}
-	outputs := map[string][]byte{"internal/kernel/routes_gen.go": code}
+	dispatch, err := renderDispatch(m)
+	if err != nil {
+		return nil, err
+	}
+	outputs := map[string][]byte{"internal/kernel/routes_gen.go": code, "internal/kernel/dispatch_gen.go": dispatch}
 	source, err := json.Marshal(origin)
 	if err != nil {
 		return nil, err
@@ -96,7 +100,7 @@ func renderOutputs(toolchain, profile string, arches []string, m Manifest, origi
 	for _, arch := range arches {
 		// TODO(migration): Task 14.3 adds amd64 selected-source adapter generation;
 		// Task 15 adds arm64. This record certifies neither wrappers nor execution.
-		record := GenerationRecord{TransportDigest: buildspec.Hash(code), Schema: m.Schema, Toolchain: toolchain, Profile: profile, Architecture: arch, RouteDigest: m.Digest(), OriginDigest: buildspec.Hash(source), Modules: pins, Stage: "transport-schema"}
+		record := GenerationRecord{TransportDigest: buildspec.Hash(append(append([]byte(nil), code...), dispatch...)), Schema: m.Schema, Toolchain: toolchain, Profile: profile, Architecture: arch, RouteDigest: m.Digest(), OriginDigest: buildspec.Hash(source), Modules: pins, Stage: "transport-schema"}
 		data, err := json.MarshalIndent(record, "", "  ")
 		if err != nil {
 			return nil, err

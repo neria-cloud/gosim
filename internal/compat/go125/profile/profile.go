@@ -10,7 +10,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed hooks.json tuples.json policies.json origin.json shims.json bridges.json probes.json modules.json capabilities.json native_imports.json routes_*.json
+//go:embed hooks.json tuples.json policies.json origin.json shims.json bridges.json probes.json modules.json capabilities.json native_imports.json routes_*.json shared_globals.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
@@ -78,6 +78,7 @@ func decode(name string, result any) {
 // into adapters; Task 21 activates this profile only after complete composition.
 func PolicyManifest() spec.PolicyManifest {
 	var manifest spec.PolicyManifest
+	decode("shared_globals.json", &manifest.SharedGlobals)
 	decode("bridges.json", &manifest.Bridges)
 	decode("probes.json", &manifest.Probes)
 	decode("modules.json", &manifest.Modules)

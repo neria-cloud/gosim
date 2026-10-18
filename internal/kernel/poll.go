@@ -300,21 +300,23 @@ func (k *Kernel) completePollWaiters(p *pollRegistration, d *pollDirection, err 
 	for _, id := range ids {
 		delete(d.waiters, id)
 		if k.Accepts(p.epoch) {
-			_ = k.dispatcher.Complete(id, pollResult(err))
+			code, resultErr := pollCode(err)
+			result, _, _ := controlRouteResult(PollWaitResult{Code: code}, resultErr)
+			_ = k.dispatcher.Complete(id, result)
 		}
 	}
 }
 
-func pollResult(err error) Result {
+func pollCode(err error) (int, error) {
 	switch err {
 	case nil:
-		return Result{}
+		return 0, nil
 	case ErrPollClosing:
-		return Result{R0: 1}
+		return 1, nil
 	case ErrPollTimeout:
-		return Result{R0: 2}
+		return 2, nil
 	case ErrNotPollable:
-		return Result{R0: 3}
+		return 3, nil
 	}
-	return Result{Value: err}
+	return 0, err
 }

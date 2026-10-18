@@ -14,6 +14,8 @@ import (
 )
 
 type Config struct {
+	RuntimeRevision string
+	Certified       bool
 	// Composition supplies the normalized runtime identity and the digest of
 	// the complete host build identity; host compiler/config packages stay out
 	// of the translated dependency graph.

@@ -1330,304 +1330,309 @@ func decodeRouteResult[T any](r Result, route RouteID) (T, error) {
 	return value, nil
 }
 
+//go:norace
+func invalidRoutePayload(inv *Invocation) error {
+	return &contracts.Failure{Code: contracts.InvalidABI, Diagnostic: contracts.Diagnostic{Operation: "decode", Epoch: inv.Context.Epoch, Message: fmt.Sprintf("invalid typed payload for route %d", inv.Route)}}
+}
+
 func invalidRouteResult(route RouteID) error {
 	return &contracts.Failure{Code: contracts.InvalidABI, Diagnostic: contracts.Diagnostic{Operation: "result-decode", Message: fmt.Sprintf("invalid typed result for route %d", route)}}
 }
 
 // validateRoutePayload admits only this schema's generated value types. All
 // integer fields live in the typed request; the legacy scalar envelope is empty.
-// TODO(migration): Task 14.2 replaces legacy decoding with this checked schema.
+//
+//go:norace
 func validateRoutePayload(inv *Invocation) error {
 	if inv == nil {
 		return contracts.ErrInvalidConfig
 	}
-	invalid := func() error {
-		return &contracts.Failure{Code: contracts.InvalidABI, Diagnostic: contracts.Diagnostic{Operation: "decode", Epoch: inv.Context.Epoch, Message: fmt.Sprintf("invalid typed payload for route %d", inv.Route)}}
-	}
-	if inv.Scalars != ([6]uintptr{}) {
-		return invalid()
+	for _, scalar := range inv.Scalars {
+		if scalar != 0 {
+			return invalidRoutePayload(inv)
+		}
 	}
 	for _, arg := range inv.Args[1:] {
 		if arg != nil {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	}
 	switch inv.Route {
 	case RouteRead:
 		if _, ok := inv.Args[0].(ReadRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteWrite:
 		if _, ok := inv.Args[0].(WriteRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteClose:
 		if _, ok := inv.Args[0].(CloseRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFcntlInt:
 		if _, ok := inv.Args[0].(FcntlIntRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteGetrandom:
 		if _, ok := inv.Args[0].(GetrandomRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteGetpid:
 		if _, ok := inv.Args[0].(GetpidRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteUname:
 		if _, ok := inv.Args[0].(UnameRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RoutePollOpen:
 		if _, ok := inv.Args[0].(PollOpenRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RoutePollClose:
 		if _, ok := inv.Args[0].(PollCloseRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RoutePollWait:
 		if _, ok := inv.Args[0].(PollWaitRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RoutePollReset:
 		if _, ok := inv.Args[0].(PollResetRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RoutePollDeadline:
 		if _, ok := inv.Args[0].(PollDeadlineRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RoutePollUnblock:
 		if _, ok := inv.Args[0].(PollUnblockRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteWait:
 		if _, ok := inv.Args[0].(WaitRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteOpenat:
 		if _, ok := inv.Args[0].(OpenatRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteRenameat:
 		if _, ok := inv.Args[0].(RenameatRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteGetdents64:
 		if _, ok := inv.Args[0].(Getdents64Request); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFallocate:
 		if _, ok := inv.Args[0].(FallocateRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteSeek:
 		if _, ok := inv.Args[0].(SeekRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RoutePwrite:
 		if _, ok := inv.Args[0].(PwriteRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RoutePread:
 		if _, ok := inv.Args[0].(PreadRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteSync:
 		if _, ok := inv.Args[0].(SyncRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFstat:
 		if _, ok := inv.Args[0].(FstatRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteStatat:
 		if _, ok := inv.Args[0].(StatatRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteUnlinkat:
 		if _, ok := inv.Args[0].(UnlinkatRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteTruncate:
 		if _, ok := inv.Args[0].(TruncateRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteChdir:
 		if _, ok := inv.Args[0].(ChdirRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteGetcwd:
 		if _, ok := inv.Args[0].(GetcwdRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteMkdirat:
 		if _, ok := inv.Args[0].(MkdiratRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFlock:
 		if _, ok := inv.Args[0].(FlockRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFcntlLock:
 		if _, ok := inv.Args[0].(FcntlLockRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteMap:
 		if _, ok := inv.Args[0].(MapRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteUnmap:
 		if _, ok := inv.Args[0].(UnmapRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteAdvise:
 		if _, ok := inv.Args[0].(AdviseRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteSocket:
 		if _, ok := inv.Args[0].(SocketRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteBind:
 		if _, ok := inv.Args[0].(BindRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteListen:
 		if _, ok := inv.Args[0].(ListenRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteAccept:
 		if _, ok := inv.Args[0].(AcceptRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteConnect:
 		if _, ok := inv.Args[0].(ConnectRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteLocalAddress:
 		if _, ok := inv.Args[0].(LocalAddressRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RoutePeerAddress:
 		if _, ok := inv.Args[0].(PeerAddressRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteSetOption:
 		if _, ok := inv.Args[0].(SetOptionRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteGetOption:
 		if _, ok := inv.Args[0].(GetOptionRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteCreate:
 		if _, ok := inv.Args[0].(CreateRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteLabel:
 		if _, ok := inv.Args[0].(LabelRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteState:
 		if _, ok := inv.Args[0].(StateRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteStart:
 		if _, ok := inv.Args[0].(StartRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteStop:
 		if _, ok := inv.Args[0].(StopRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteRestart:
 		if _, ok := inv.Args[0].(RestartRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteSetMain:
 		if _, ok := inv.Args[0].(SetMainRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteDestroy:
 		if _, ok := inv.Args[0].(DestroyRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteExitSelf:
 		if _, ok := inv.Args[0].(ExitSelfRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFSConfigureMachine:
 		if _, ok := inv.Args[0].(FSConfigureMachineRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFSSetCrashMode:
 		if _, ok := inv.Args[0].(FSSetCrashModeRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFSSetSyncFault:
 		if _, ok := inv.Args[0].(FSSetSyncFaultRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFSInspectInode:
 		if _, ok := inv.Args[0].(FSInspectInodeRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFSEnumerate:
 		if _, ok := inv.Args[0].(FSEnumerateRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFSNextSnapshot:
 		if _, ok := inv.Args[0].(FSNextSnapshotRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFSCloseIterator:
 		if _, ok := inv.Args[0].(FSCloseIteratorRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFSRestore:
 		if _, ok := inv.Args[0].(FSRestoreRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteFSCloseSnapshot:
 		if _, ok := inv.Args[0].(FSCloseSnapshotRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteNetConfigure:
 		if _, ok := inv.Args[0].(NetConfigureRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteNetConfigureMachine:
 		if _, ok := inv.Args[0].(NetConfigureMachineRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteNetAddress:
 		if _, ok := inv.Args[0].(NetAddressRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteNetSetLinkPolicy:
 		if _, ok := inv.Args[0].(NetSetLinkPolicyRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteNetResetLinkPolicy:
 		if _, ok := inv.Args[0].(NetResetLinkPolicyRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteNetSetConnectivity:
 		if _, ok := inv.Args[0].(NetSetConnectivityRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteSetTimeout:
 		if _, ok := inv.Args[0].(SetTimeoutRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	case RouteInfo:
 		if _, ok := inv.Args[0].(InfoRequest); !ok {
-			return invalid()
+			return invalidRoutePayload(inv)
 		}
 	default:
 		return &contracts.Failure{Code: contracts.UnsupportedOperation, Diagnostic: contracts.Diagnostic{Operation: "dispatch", Epoch: inv.Context.Epoch, Message: fmt.Sprintf("unlisted route %d", inv.Route)}}

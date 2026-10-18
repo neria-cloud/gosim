@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–13 (including children 13.1/13.2) and child 14.1 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–13 (including children 13.1/13.2) and children 14.1/14.2 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -352,9 +352,9 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **Parent:** Task 14. **Dependency:** 14.1. **Budget:** 3,000–4,800 changed lines.
 **References:** T§5 dispatcher/lifecycle; T§7 services and internal/control transport.
 
-- [ ] Replace temporary handwritten route decoders with generated checked payload decoding and implement all target lifecycle/fs/net/runtime control routes.
-- [ ] Implement CurrentRef/Submit/Bind with per-run binding, supervisor-only harness installation, checked epoch/admission and no application trampoline. Preserve blocking wait/poll, cancellation and borrowed-view cleanup.
-- [ ] Verify real transported calls, forged/wrong/stale payloads, unknown routes, feature gates and cleanup; run the common gate and commit.
+- [x] Replace temporary handwritten route decoders with generated checked payload decoding and implement all target lifecycle/fs/net/runtime control routes.
+- [x] Implement CurrentRef/Submit/Bind with per-run binding, supervisor-only harness installation, checked epoch/admission and no application trampoline. Preserve blocking wait/poll, cancellation and borrowed-view cleanup.
+- [x] Verify real transported calls, forged/wrong/stale payloads, unknown routes, feature gates and cleanup; run the common gate and commit.
 
 ### Task 14.3: Generate Go 1.25 amd64 adapters and initialization responses
 

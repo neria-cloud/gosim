@@ -31,38 +31,22 @@ func TestDispatcherRealApplicationRoundTripAndEventWake(t *testing.T) {
 		done := simrt.NewChan[bool](0)
 		var fd int
 		ref := createFor(t, k, "round-trip", func() {
-			call := func(route RouteID, scalars [6]uintptr, args [5]any) Result {
-				inv := &Invocation{Context: currentContext(k), Route: route, Scalars: scalars, Args: args}
-				if err := k.dispatcher.Submit(inv); err != nil {
-					t.Fatal(err)
-				}
-				if inv.Args != ([5]any{}) {
-					t.Fatal("completion retained borrowed arguments")
-				}
-				result := inv.TakeResult()
-				if inv.Result != (Result{}) {
-					t.Fatal("result retained after extraction")
-				}
-				return result
-			}
-			if result := call(RouteGetpid, [6]uintptr{}, [5]any{}); result.R0 != 42 || result.Errno != 0 {
+			if result := fsCall(t, k, GetpidRequest{}, DecodeGetpidResult); result.PID != 42 {
 				t.Fatal(result)
 			}
 			bytes := []byte("hi\n")
-			if result := call(RouteWrite, [6]uintptr{1}, [5]any{abi.ByteView{Ptr: bytes}}); result.R0 != 3 || result.Errno != 0 {
+			if result := fsCall(t, k, WriteRequest{FD: 1, From: abi.ByteView{Ptr: bytes}}, DecodeWriteResult); result.Count != 3 {
 				t.Fatal(result)
 			}
-			if result := call(RouteRead, [6]uintptr{999}, [5]any{abi.ByteView{Ptr: bytes}}); result.Errno != uintptr(syscall.EBADF) {
-				t.Fatal("unknown fd was not EBADF", result)
-			}
-			poll := call(RoutePollOpen, [6]uintptr{uintptr(fd)}, [5]any{})
-			if poll.R0 != 0 || poll.R1 == 0 {
+			netCall(t, k, ReadRequest{FD: 999, Into: abi.ByteView{Ptr: bytes}}, syscall.EBADF, DecodeReadResult)
+			poll := fsCall(t, k, PollOpenRequest{FD: fd}, DecodePollOpenResult)
+			if poll.Code != 0 || poll.Handle == 0 {
 				t.Fatal("poll open", poll)
 			}
-			if result := call(RoutePollWait, [6]uintptr{poll.R1, 'r'}, [5]any{}); result.R0 != 0 || result.Errno != 0 {
+			if result := fsCall(t, k, PollWaitRequest{Handle: poll.Handle, Mode: 'r'}, DecodePollWaitResult); result.Code != 0 {
 				t.Fatal("event wake", result)
 			}
-			if result := call(RoutePollClose, [6]uintptr{poll.R1}, [5]any{}); result.R0 != 0 {
+			if result := fsCall(t, k, PollCloseRequest{Handle: poll.Handle}, DecodePollCloseResult); result.Code != 0 {
 				t.Fatal(result)
 			}
 			completed.Store(true)
@@ -111,7 +95,7 @@ func TestDispatcherWaitWakesSurvivingRoot(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := k.Run(func() {
-			inv := &Invocation{Context: currentContext(k), Route: RouteWait, Scalars: [6]uintptr{uintptr(ref.RunID), uintptr(ref.ID)}}
+			inv := &Invocation{Context: currentContext(k), Route: RouteWait, Args: [5]any{WaitRequest{Machine: ref}}}
 			if err := k.dispatcher.Submit(inv); err != nil {
 				t.Fatal(err)
 			}
@@ -132,7 +116,7 @@ func TestDispatcherWaitWakesSurvivingRoot(t *testing.T) {
 // Generated result decoders copy typed values before exposing them to callers.
 //
 //go:norace
-func takeExit(inv *Invocation) ExitRecord { return inv.TakeResult().Value.(ExitRecord) }
+func takeExit(inv *Invocation) ExitRecord { return inv.TakeResult().Value.(WaitResult).Exit }
 
 func TestCanceledInvocationDropsMemoryBeforeLateCompletion(t *testing.T) {
 	_, err := fixture(t, contracts.FeatureSet(contracts.RT), nil, func(k *Kernel) {
@@ -183,7 +167,7 @@ func TestDispatcherRejectsDuplicateCompletionUnknownRoutesAndPayloads(t *testing
 					t.Fatal(err)
 				}
 				ctx := contracts.CallContext{Epoch: k.machineByID[ref.ID].current.ref}
-				inv := &Invocation{Context: ctx, Route: RouteGetpid}
+				inv := &Invocation{Context: ctx, Route: RouteGetpid, Args: [5]any{GetpidRequest{}}}
 				switch failure {
 				case "duplicate":
 					k.dispatcher.DispatchOne(inv)
@@ -197,7 +181,7 @@ func TestDispatcherRejectsDuplicateCompletionUnknownRoutesAndPayloads(t *testing
 				case "exhaustion":
 					k.dispatcher.nextID = math.MaxUint64
 					k.dispatcher.DispatchOne(inv)
-					k.dispatcher.DispatchOne(&Invocation{Context: ctx, Route: RouteGetpid})
+					k.dispatcher.DispatchOne(&Invocation{Context: ctx, Route: RouteGetpid, Args: [5]any{GetpidRequest{}}})
 				case "mode":
 					inv.Route, inv.Scalars[1] = RoutePollWait, 256+'r'
 					k.dispatcher.DispatchOne(inv)
@@ -207,7 +191,7 @@ func TestDispatcherRejectsDuplicateCompletionUnknownRoutesAndPayloads(t *testing
 					if err != nil {
 						t.Fatal(err)
 					}
-					inv.Route, inv.Scalars[0], inv.Args[0] = RouteRead, uintptr(fd), abi.ByteView{}
+					inv.Route, inv.Args[0] = RouteRead, ReadRequest{FD: fd}
 					k.dispatcher.DispatchOne(inv)
 				}
 				t.Error("invalid dispatcher operation returned to application")
@@ -233,7 +217,7 @@ func TestDispatcherRejectsWrongCaller(t *testing.T) {
 		if err := k.Run(func() {
 			ctx := currentContext(k)
 			ctx.Epoch.Epoch++
-			if err := k.dispatcher.Submit(&Invocation{Context: ctx, Route: RouteGetpid}); !errors.Is(err, contracts.ErrInvalidState) {
+			if err := k.dispatcher.Submit(&Invocation{Context: ctx, Route: RouteGetpid, Args: [5]any{GetpidRequest{}}}); !errors.Is(err, contracts.ErrInvalidState) {
 				t.Error("wrong epoch admitted", err)
 			}
 		}); err != nil {
@@ -257,12 +241,12 @@ func TestCrashCancelsRealBlockedPollWithoutWake(t *testing.T) {
 		var fd int
 		ref := createFor(t, k, "blocked", func() {
 			defer deferred.Store(true)
-			inv := &Invocation{Context: currentContext(k), Route: RoutePollOpen, Scalars: [6]uintptr{uintptr(fd)}}
+			inv := &Invocation{Context: currentContext(k), Route: RoutePollOpen, Args: [5]any{PollOpenRequest{FD: fd}}}
 			if err := k.dispatcher.Submit(inv); err != nil {
 				t.Fatal(err)
 			}
-			id := inv.TakeResult().R1
-			inv.Route, inv.Scalars = RoutePollWait, [6]uintptr{id, 'r'}
+			id := inv.TakeResult().Value.(PollOpenResult).Handle
+			inv.Route, inv.Args = RoutePollWait, [5]any{PollWaitRequest{Handle: id, Mode: 'r'}}
 			if err := k.dispatcher.Submit(inv); err != nil {
 				t.Fatal(err)
 			}

@@ -13,17 +13,8 @@ import (
 )
 
 func word(n int) uintptr { return uintptr(n) }
-func fsCall(t *testing.T, k *Kernel, route RouteID, scalars [6]uintptr, args [5]any) Result {
-	t.Helper()
-	inv := &Invocation{Context: currentContext(k), Route: route, Scalars: scalars, Args: args}
-	if err := k.dispatcher.Submit(inv); err != nil {
-		t.Fatal(err)
-	}
-	result := inv.TakeResult()
-	if result.Errno != 0 {
-		t.Fatalf("route %d: errno %d", route, result.Errno)
-	}
-	return result
+func fsCall[T any](t *testing.T, k *Kernel, request interface{ Invocation() Invocation }, decode func(Result) (T, error)) T {
+	return netCall(t, k, request, 0, decode)
 }
 
 func TestFilesystemApplicationDispatch(t *testing.T) {
@@ -35,50 +26,50 @@ func TestFilesystemApplicationDispatch(t *testing.T) {
 			t.Fatal(err)
 		}
 		err = k.Run(func() {
-			fd := fsCall(t, k, RouteOpenat, [6]uintptr{word(-100), 0x40 | 2, 0o600}, [5]any{"file"}).R0
-			if n := fsCall(t, k, RouteWrite, [6]uintptr{fd}, [5]any{abi.ByteView{Ptr: []byte("data")}}).R0; n != 4 {
+			fd := fsCall(t, k, OpenatRequest{DirFD: int(-100), Path: "file", Flags: int(0x40 | 2), Mode: uint32(0o600)}, DecodeOpenatResult).FD
+			if n := fsCall(t, k, WriteRequest{FD: int(fd), From: abi.ByteView{Ptr: []byte("data")}}, DecodeWriteResult).Count; n != 4 {
 				t.Fatal(n)
 			}
-			fsCall(t, k, RouteSeek, [6]uintptr{fd, 0, 0}, [5]any{})
+			fsCall(t, k, SeekRequest{FD: int(fd), Offset: int64(0), Whence: int(0)}, DecodeSeekResult)
 			buffer := make([]byte, 4)
-			if n := fsCall(t, k, RouteRead, [6]uintptr{fd}, [5]any{abi.ByteView{Ptr: buffer}}).R0; n != 4 || string(buffer) != "data" {
+			if n := fsCall(t, k, ReadRequest{FD: int(fd), Into: abi.ByteView{Ptr: buffer}}, DecodeReadResult).Count; n != 4 || string(buffer) != "data" {
 				t.Fatal(n, string(buffer))
 			}
-			fsCall(t, k, RoutePwrite, [6]uintptr{fd, 1}, [5]any{abi.ByteView{Ptr: []byte("X")}})
-			fsCall(t, k, RoutePread, [6]uintptr{fd, 0}, [5]any{abi.ByteView{Ptr: buffer}})
+			fsCall(t, k, PwriteRequest{FD: int(fd), From: abi.ByteView{Ptr: []byte("X")}, Offset: int64(1)}, DecodePwriteResult)
+			fsCall(t, k, PreadRequest{FD: int(fd), Into: abi.ByteView{Ptr: buffer}, Offset: int64(0)}, DecodePreadResult)
 			if string(buffer) != "dXta" {
 				t.Fatal(string(buffer))
 			}
-			fsCall(t, k, RouteSync, [6]uintptr{fd, 1}, [5]any{})
-			stat := fsCall(t, k, RouteFstat, [6]uintptr{fd}, [5]any{}).Value.(contracts.Stat)
+			fsCall(t, k, SyncRequest{FD: int(fd), DataOnly: true}, DecodeSyncResult)
+			stat := fsCall(t, k, FstatRequest{FD: int(fd)}, DecodeFstatResult).Stat
 			if stat.Size != 4 || stat.Mode != 0o100000 {
 				t.Fatal(stat)
 			}
-			fsCall(t, k, RouteRenameat, [6]uintptr{word(-100), word(-100)}, [5]any{"file", "renamed"})
-			fsCall(t, k, RouteStatat, [6]uintptr{word(-100)}, [5]any{"renamed"})
-			address := fsCall(t, k, RouteMap, [6]uintptr{0, 4, 1, 1, fd, 0}, [5]any{}).R0
-			fsCall(t, k, RouteUnmap, [6]uintptr{address, 4}, [5]any{})
+			fsCall(t, k, RenameatRequest{OldDirFD: int(-100), OldPath: "file", NewDirFD: int(-100), NewPath: "renamed"}, DecodeRenameatResult)
+			fsCall(t, k, StatatRequest{DirFD: int(-100), Path: "renamed", Flags: int(0)}, DecodeStatatResult)
+			address := fsCall(t, k, MapRequest{Address: uintptr(0), Length: uintptr(4), Protection: int(1), Flags: int(1), FD: int(fd), Offset: int64(0)}, DecodeMapResult).Address
+			fsCall(t, k, UnmapRequest{Address: uintptr(address), Length: uintptr(4)}, DecodeUnmapResult)
 			lock := contracts.Lock{Type: 1, PID: 17}
-			fsCall(t, k, RouteFcntlLock, [6]uintptr{fd, 37}, [5]any{abi.NewValueView(&lock)})
+			fsCall(t, k, FcntlLockRequest{FD: int(fd), Command: int(37), Lock: abi.NewValueView(&lock)}, DecodeFcntlLockResult)
 			if lock.PID != 17 {
 				t.Fatal("lock stub changed payload")
 			}
-			fsCall(t, k, RouteClose, [6]uintptr{fd}, [5]any{})
-			fsCall(t, k, RouteUnlinkat, [6]uintptr{word(-100), 0}, [5]any{"renamed"})
-			fsCall(t, k, RouteMkdirat, [6]uintptr{word(-100), 0o700}, [5]any{"sub"})
-			fsCall(t, k, RouteChdir, [6]uintptr{}, [5]any{"sub"})
+			fsCall(t, k, CloseRequest{FD: int(fd)}, DecodeCloseResult)
+			fsCall(t, k, UnlinkatRequest{DirFD: int(-100), Path: "renamed", Flags: int(0)}, DecodeUnlinkatResult)
+			fsCall(t, k, MkdiratRequest{DirFD: int(-100), Path: "sub", Mode: uint32(0o700)}, DecodeMkdiratResult)
+			fsCall(t, k, ChdirRequest{Path: "sub"}, DecodeChdirResult)
 			cwd := make([]byte, 64)
-			n := fsCall(t, k, RouteGetcwd, [6]uintptr{}, [5]any{abi.ByteView{Ptr: cwd}}).R0
+			n := fsCall(t, k, GetcwdRequest{Into: abi.ByteView{Ptr: cwd}}, DecodeGetcwdResult).Count
 			if string(cwd[:n]) != "/app/sub\x00" {
 				t.Fatal(string(cwd[:n]))
 			}
-			other := fsCall(t, k, RouteOpenat, [6]uintptr{word(-100), 0x40 | 2, 0o600}, [5]any{"size"}).R0
-			fsCall(t, k, RouteFallocate, [6]uintptr{other, 0, 0, 16}, [5]any{})
-			fsCall(t, k, RouteTruncate, [6]uintptr{other, 8}, [5]any{})
-			fsCall(t, k, RouteFlock, [6]uintptr{other, 2}, [5]any{})
-			fsCall(t, k, RouteAdvise, [6]uintptr{1}, [5]any{abi.ByteView{Ptr: cwd}})
-			directory := fsCall(t, k, RouteOpenat, [6]uintptr{word(-100), 0, 0}, [5]any{"."}).R0
-			n = fsCall(t, k, RouteGetdents64, [6]uintptr{directory}, [5]any{abi.ByteView{Ptr: cwd}}).R0
+			other := fsCall(t, k, OpenatRequest{DirFD: int(-100), Path: "size", Flags: int(0x40 | 2), Mode: uint32(0o600)}, DecodeOpenatResult).FD
+			fsCall(t, k, FallocateRequest{FD: int(other), Mode: uint32(0), Offset: int64(0), Length: int64(16)}, DecodeFallocateResult)
+			fsCall(t, k, TruncateRequest{FD: int(other), Length: int64(8)}, DecodeTruncateResult)
+			fsCall(t, k, FlockRequest{FD: int(other), How: int(2)}, DecodeFlockResult)
+			fsCall(t, k, AdviseRequest{Data: abi.ByteView{Ptr: cwd}, Advice: int(1)}, DecodeAdviseResult)
+			directory := fsCall(t, k, OpenatRequest{DirFD: int(-100), Path: ".", Flags: int(0), Mode: uint32(0)}, DecodeOpenatResult).FD
+			n = fsCall(t, k, Getdents64Request{FD: int(directory), Into: abi.ByteView{Ptr: cwd}}, DecodeGetdents64Result).Count
 			if n == 0 {
 				t.Fatal("directory syscall returned no entry")
 			}
@@ -105,7 +96,7 @@ func TestSyncFaultCancelsRealCallerBeforeOrAfterDurability(t *testing.T) {
 				ref := createFor(t, k, "sync-fault", func() {
 					defer deferred.Store(true)
 					fd := ready.Recv()
-					fsCall(t, k, RouteSync, [6]uintptr{uintptr(fd)}, [5]any{})
+					fsCall(t, k, SyncRequest{FD: int(uintptr(fd)), DataOnly: false}, DecodeSyncResult)
 					returned.Store(true)
 				})
 				if err := k.Start(ref); err != nil {
@@ -215,8 +206,8 @@ func TestRootSyncFaultTerminatesRunWithoutResuming(t *testing.T) {
 		}
 		err = k.Run(func() {
 			defer deferred.Store(true)
-			fd := fsCall(t, k, RouteOpenat, [6]uintptr{word(-100), 0x40 | 2, 0o600}, [5]any{"file"}).R0
-			fsCall(t, k, RouteSync, [6]uintptr{fd}, [5]any{})
+			fd := fsCall(t, k, OpenatRequest{DirFD: int(-100), Path: "file", Flags: int(0x40 | 2), Mode: uint32(0o600)}, DecodeOpenatResult).FD
+			fsCall(t, k, SyncRequest{FD: int(fd), DataOnly: false}, DecodeSyncResult)
 			returned.Store(true)
 		})
 		if err != nil {
@@ -245,8 +236,8 @@ func TestFilesystemMalformedPayloadsAndDisabledFeature(t *testing.T) {
 	}{
 		{name: "callable", features: contracts.FeatureSet(contracts.RT | contracts.FS), route: RouteOpenat, args: [5]any{func() {}}, want: "InvalidABI"},
 		{name: "extra", features: contracts.FeatureSet(contracts.RT | contracts.FS), route: RouteFstat, args: [5]any{"extra"}, want: "InvalidABI"},
-		{name: "boolean", features: contracts.FeatureSet(contracts.RT | contracts.FS), route: RouteSync, scalar: [6]uintptr{1, 2}, want: "not boolean"},
-		{name: "disabled", features: contracts.FeatureSet(contracts.RT), route: RouteGetcwd, args: [5]any{abi.ByteView{}}, want: "FeatureDisabled"},
+		{name: "boolean", features: contracts.FeatureSet(contracts.RT | contracts.FS), route: RouteSync, scalar: [6]uintptr{1, 2}, want: "InvalidABI"},
+		{name: "disabled", features: contracts.FeatureSet(contracts.RT), route: RouteGetcwd, args: [5]any{GetcwdRequest{}}, want: "FeatureDisabled"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var providers []contracts.Provider

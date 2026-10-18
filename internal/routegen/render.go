@@ -72,22 +72,26 @@ func decodeRouteResult[T any](r Result, route RouteID) (T,error) {
  return value,nil
 }
 
+//go:norace
+func invalidRoutePayload(inv *Invocation) error {
+ return &contracts.Failure{Code:contracts.InvalidABI, Diagnostic:contracts.Diagnostic{Operation:"decode", Epoch:inv.Context.Epoch, Message:fmt.Sprintf("invalid typed payload for route %d",inv.Route)}}
+}
+
 func invalidRouteResult(route RouteID) error {
  return &contracts.Failure{Code: contracts.InvalidABI, Diagnostic: contracts.Diagnostic{Operation:"result-decode", Message:fmt.Sprintf("invalid typed result for route %d",route)}}
 }
 
 // validateRoutePayload admits only this schema's generated value types. All
 // integer fields live in the typed request; the legacy scalar envelope is empty.
-// TODO(migration): Task 14.2 replaces legacy decoding with this checked schema.
+//go:norace
 func validateRoutePayload(inv *Invocation) error {
  if inv==nil { return contracts.ErrInvalidConfig }
- invalid:=func() error { return &contracts.Failure{Code:contracts.InvalidABI, Diagnostic:contracts.Diagnostic{Operation:"decode", Epoch:inv.Context.Epoch, Message:fmt.Sprintf("invalid typed payload for route %d",inv.Route)}} }
- if inv.Scalars != ([6]uintptr{}) { return invalid() }
- for _,arg:=range inv.Args[1:] { if arg!=nil { return invalid() } }
+ for _,scalar:=range inv.Scalars { if scalar!=0 {return invalidRoutePayload(inv)} }
+ for _,arg:=range inv.Args[1:] { if arg!=nil { return invalidRoutePayload(inv) } }
  switch inv.Route {
 `)
 	for _, r := range m.Routes {
-		fmt.Fprintf(&b, "case Route%s:\n if _,ok:=inv.Args[0].(%sRequest); !ok { return invalid() }\n", r.Name, r.Name)
+		fmt.Fprintf(&b, "case Route%s:\n if _,ok:=inv.Args[0].(%sRequest); !ok { return invalidRoutePayload(inv) }\n", r.Name, r.Name)
 	}
 	b.WriteString(`default:
  return &contracts.Failure{Code:contracts.UnsupportedOperation,Diagnostic:contracts.Diagnostic{Operation:"dispatch",Epoch:inv.Context.Epoch,Message:fmt.Sprintf("unlisted route %d",inv.Route)}}

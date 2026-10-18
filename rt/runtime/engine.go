@@ -50,6 +50,7 @@ type randomKey struct {
 // Engine owns one scheduler and all native machine allocations in a run.
 // Its methods run on the serialized supervisor (or through a native upcall).
 type Engine struct {
+	timeoutTimer    *Timer
 	config          EngineConfig
 	scheduler       *scheduler
 	machines        map[uint64]*engineMachine
@@ -383,7 +384,7 @@ func (e *Engine) Run(supervise func()) (result error) {
 		e.scheduler.cleanup()
 		return fmt.Errorf("simulation timeout overflows virtual time")
 	}
-	NewTimer(func(*Timer) { e.scheduler.abortErr = ErrTimeout }, nil, e.supervisor, now+e.config.TimeoutNS)
+	e.timeoutTimer = NewTimer(func(*Timer) { e.scheduler.abortErr = ErrTimeout }, nil, e.supervisor, now+e.config.TimeoutNS)
 	return e.scheduler.Run()
 }
 
@@ -414,6 +415,28 @@ func (e *Engine) Close() error {
 	}
 	e.machines, e.events, e.random, e.lastEpoch = nil, nil, nil, nil
 	e.scheduler.clock.heap = newTimerHeap()
+	e.timeoutTimer = nil
 	e.closed = true
 	return e.result
+}
+
+// SetTimeout replaces the run deadline relative to current virtual time. It
+// mutates only the supervisor timer and never consults or creates a host timer.
+//
+//go:norace
+func (e *Engine) SetTimeout(ns int64) error {
+	if ns <= 0 {
+		return fmt.Errorf("simulation timeout must be positive")
+	}
+	var result error
+	err := e.onSupervisor(func() {
+		now := e.scheduler.clock.now
+		if e.timeoutTimer == nil || ns > math.MaxInt64-now {
+			result = fmt.Errorf("simulation timeout overflows virtual time")
+			return
+		}
+		e.timeoutTimer.Reset(now + ns)
+		e.config.TimeoutNS = ns
+	})
+	return errors.Join(err, result)
 }

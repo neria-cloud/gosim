@@ -321,7 +321,7 @@ func (k *Kernel) finishWaits(epoch contracts.EpochRef, exit ExitRecord) {
 		if wait.target == epoch && !wait.exit.Valid {
 			wait.exit = exit
 			if wait.invocation != 0 {
-				_ = k.dispatcher.Complete(wait.invocation, Result{Value: exit})
+				_ = k.dispatcher.Complete(wait.invocation, Result{Value: WaitResult{Exit: exit}})
 				delete(k.waits, id)
 			}
 		}

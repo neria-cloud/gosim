@@ -28,7 +28,7 @@ func TestSyscallTransportDoesNotHideApplicationRace(t *testing.T) {
 				t.Fatal(err)
 			}
 			call := func() {
-				if err := k.dispatcher.Submit(&Invocation{Context: currentContext(k), Route: RouteGetpid}); err != nil {
+				if err := k.dispatcher.Submit(&Invocation{Context: currentContext(k), Route: RouteGetpid, Args: [5]any{GetpidRequest{}}}); err != nil {
 					t.Fatal(err)
 				}
 			}

@@ -525,3 +525,22 @@ Verified
 - Exact go1.25.14 ordinary/race generator, kernel and compatibility suites passed: `.gosim/task14/schema-ordinary125.log`, `.gosim/task14/schema-race125.log`.
 - Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task14.1-gate.log`. Source revision check and whitespace check pass. No architecture-native adapter execution is claimed by this transport-schema step.
 - Final Task 14.1 size: 2,530 changed lines (2,479 additions + 51 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 14.2 — Generated dispatch and per-run control transport
+Date: 2026-10-19. Previous task commit: `fd98a6b`. Commit: the Task 14.2 implementation commit containing this entry.
+
+Implemented
+- Replaced temporary core/fs/net decoders with generated dispatch for all 69 typed routes. Inputs/results use the same manifest as codecs; scalar/extra slots are rejected. Filesystem and socket methods resolve guarded typed services; lock views copy neutral Lock values in/out, and unknown/non-errno syscall errors remain fatal invariants.
+- Added all lifecycle/fs/net/runtime control routes, including epoch-capturing machine waits, non-returning root/child self-exit, retained recovery handles and separate run checks for restored snapshots. Pending poll and machine completions now return their generated result types. Crash-on-sync still cancels the invocation without waking the caller.
+- Added internal/control CurrentRef/Submit/Bind. Supervisor-only installation occurs before root startup; transport replaces caller-supplied context with the current run/epoch and relies on dispatcher admission. Teardown releases the binding, subsequent runs get fresh identities, and application rebinding cannot mutate it. No provider imports or supplied trampoline.
+- Added reviewed SharedGlobals metadata for the single translated control binding only. Task 21 will apply this selected-profile record during actual translation; the binding is not stored in native engine state. Existing translator selection remains unchanged until the planned cutover.
+- Added copied run information, kernel label/state lookups, and real virtual timeout replacement. Engine owns/resets/releases its timeout timer; invalid/overflow deadlines fail without changing the active deadline. Composition will supply runtime revision and certification metadata with the existing identity.
+
+Verified
+- Existing kernel filesystem/network/race/wait/cancellation tests now construct generated typed requests and decode typed results; previous assertions remain. No test-only production compatibility decoder was retained. The intentionally racing child fixture was also moved to the new Getpid payload.
+- Control tests exercise create/configure/start/stop/crash/restart/set-main/wait/destroy, every fs/net control route, retained snapshots, wrong-run/stale handles, context stamping, run-info copy isolation, failed application rebind, cleanup and repeated runs. Root and child self-exit skip caller defers/continuations; child exit preserves its controller. Ignored errors/recovery cannot evade disabled-feature, forged-payload or unknown-route aborts.
+- Focused development race suite passes, including the application-race oracle. Initial races identified instrumented envelope validation, compiler-generated array comparison and copied run-info backing arrays, plus a native upcall result variable. Used bounded metadata-only norace handling, scalar iteration and kernel-owned copy construction; application memory views and the oracle remain instrumented. The virtual timeout test verifies extension beyond the original deadline, rejection of invalid resets and a shorter subsequent deadline.
+- Exact go1.25.14 ordinary/race transport, kernel, runtime, generator and compatibility suites passed: `.gosim/task14/transport-ordinary125.log`, `.gosim/task14/transport-race125.log`. Repeated generation/source checks pass.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed with ordinary/race/script suites: `.gosim/task14.2-gate.log`. No target architecture edits or new certification. Child 14.3 still owns Linux adapter layouts and initialization responses.
+- Final Task 14.2 size: 2,111 changed lines (1,592 additions + 519 deletions), including checklist/log; staged whitespace check passed.

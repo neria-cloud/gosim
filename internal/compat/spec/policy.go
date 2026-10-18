@@ -89,7 +89,14 @@ type NativeImport struct {
 	Reason  string `json:"reason"`
 }
 
+type SharedGlobal struct {
+	Package string `json:"package"`
+	Symbol  string `json:"symbol"`
+	Reason  string `json:"reason"`
+}
+
 type PolicyManifest struct {
+	SharedGlobals []SharedGlobal
 	NativeImports []NativeImport
 	Bridges       []Bridge
 	Probes        []InitProbe
@@ -98,6 +105,15 @@ type PolicyManifest struct {
 }
 
 func (m PolicyManifest) Validate(p Profile) error {
+	shared := make(map[string]bool)
+	for _, global := range m.SharedGlobals {
+		key := global.Package + "." + global.Symbol
+		if global.Package != module+"/internal/control" || global.Symbol != "binding" || global.Reason == "" || shared[key] {
+			return fmt.Errorf("invalid shared translated global %s", key)
+		}
+		shared[key] = true
+	}
+
 	native := make(map[string]bool)
 	for _, entry := range m.NativeImports {
 		key := entry.From + ":" + entry.Package

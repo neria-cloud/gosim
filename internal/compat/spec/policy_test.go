@@ -255,6 +255,7 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 func TestPolicyManifestRejectsInvalidOwnership(t *testing.T) {
 	p := p125.Descriptor()
 	cases := []func(*spec.PolicyManifest){
+		func(m *spec.PolicyManifest) { m.SharedGlobals[0].Package = "example.test/application" },
 		func(m *spec.PolicyManifest) {
 			m.Bridges[0].Replacement = "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect"
 		},
