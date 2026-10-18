@@ -285,9 +285,9 @@ func TestInvalidAndStaleLifecycle(t *testing.T) {
 	}
 	i := p.Publish().(*Instance)
 	p.Abort() // no double ownership transfer
-	var failure *contracts.Failure
-	if _, err := i.Getcwd(contracts.CallContext{Epoch: i.ref}, abi.ByteView{}); !errors.As(err, &failure) {
-		t.Fatal("unfinished method did not fail explicitly", err)
+	buffer := make([]byte, 32)
+	if _, err := i.Getcwd(contracts.CallContext{Epoch: i.ref}, abi.ByteView{Ptr: buffer}); err != nil {
+		t.Fatal("published binding failed", err)
 	}
 	stop(t, i, contracts.StopGraceful)
 	if _, err := i.Getcwd(contracts.CallContext{Epoch: i.ref}, abi.ByteView{}); !errors.Is(err, contracts.ErrInvalidState) {

@@ -36,3 +36,12 @@ func (failure *Failure) Error() string {
 	d := failure.Diagnostic
 	return fmt.Sprintf("%s: feature=%s operation=%s machine=%d epoch=%d pc=%#x: %s", failure.Code, d.Feature, d.Operation, d.Epoch.Machine.ID, d.Epoch.Epoch, d.PC, d.Message)
 }
+
+// CrashRequest is an internal provider outcome consumed by the kernel before
+// syscall completion. It is never an application errno or a recoverable panic.
+type CrashRequest struct {
+	Epoch     EpochRef
+	Operation string
+}
+
+func (r *CrashRequest) Error() string { return "injected machine crash during " + r.Operation }

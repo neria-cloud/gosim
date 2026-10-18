@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–8 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–9 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -218,15 +218,15 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§5 descriptors; T§7 / FileOps, Stat, Lock and routing; gquorum report storage inventory; I and existing `os_linux.go`.  
 **Budget:** 2,000–3,500 changed lines. **Dependency:** 6–8.
 
-- [ ] Implement every FileOps method listed in T§7: path/open/rename/dir entries, allocate/seek/read-at/write-at, sync/data-sync, stat, unlink/truncate/chdir/getcwd/mkdir, flock/fcntl, map/unmap/advise. Move existing semantics; do not silently upgrade lock, permission, or mapping capability claims.
-- [ ] Implement File Owner/Release/Read/Write against the shared descriptor table. Use ABI memory views and invocation lifetime; do not retain caller buffers. Release distinguishes explicit/graceful/crash/abort and transfers ownership once.
-- [ ] Use the version-neutral Stat/Lock transport records; defer architecture-specific struct marshalling to generated adapters. Unknown operations fail according to the target policy; inherited no-ops remain explicitly classified as stubs.
-- [ ] Connect provider bindings to these real implementations; complete any deliberate Task 8 unfinished method. Cross-check every storage syscall in the report against its route/capability entry.
+- [x] Implement every FileOps method listed in T§7: path/open/rename/dir entries, allocate/seek/read-at/write-at, sync/data-sync, stat, unlink/truncate/chdir/getcwd/mkdir, flock/fcntl, map/unmap/advise. Move existing semantics; do not silently upgrade lock, permission, or mapping capability claims.
+- [x] Implement File Owner/Release/Read/Write against the shared descriptor table. Use ABI memory views and invocation lifetime; do not retain caller buffers. Release distinguishes explicit/graceful/crash/abort and transfers ownership once.
+- [x] Use the version-neutral Stat/Lock transport records; defer architecture-specific struct marshalling to generated adapters. Unknown operations fail according to the target policy; inherited no-ops remain explicitly classified as stubs.
+- [x] Connect provider bindings to these real implementations; complete any deliberate Task 8 unfinished method. Cross-check every storage syscall in the report against its route/capability entry.
 
 #### Verification
 
-- [ ] Existing storage semantics plus descriptor-owner mistakes, failed open cleanup, mmap lifetime, crash during sync and memory-view/race cases pass through provider+kernel integration.
-- [ ] Run common commit gate; no provider imports the network model or kernel implementation.
+- [x] Existing storage semantics plus descriptor-owner mistakes, failed open cleanup, mmap lifetime, crash during sync and memory-view/race cases pass through provider+kernel integration.
+- [x] Run common commit gate; no provider imports the network model or kernel implementation.
 
 ### Task 10: Move the network model and isolate events, randomness and directed links
 
@@ -771,6 +771,19 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 ## NOT PLANNED CHANGES
 
 Task 1 uses small additional files inside the declared packages for shared canonicalization/command policy, archive verification, and hook-source inspection. This avoids the spec/buildcfg import cycle and keeps archive verification independently testable. Pinned distribution metadata is stored in `internal/buildcfg/distributions.json`; these hashes are trust anchors, not certification evidence. The plan is tracked in the actual checkout, despite the planning notice describing it as ignored. No behavioral changes outside Task 1 were needed. See its implementation commit and progress record for validation and size.
+
+Task 9 also fixes two model errors required by the strict syscall boundary and mapping-lifetime tests in `internal/fs/model/filesystem.go`: duplicate mkdir/exclusive-open return `syscall.EEXIST` instead of generic Go errors; mappings retain an inode reference until unmap so closing an unlinked descriptor cannot invalidate them. These do not add permissions, locking, or larger/writable mapping support. The corresponding diff is:
+
+```diff
+- return errors.New("help already exists")
++ return syscall.EEXIST
+- return 0, errors.New("file already existed")
++ return 0, syscall.EEXIST
+  file.mmaps = append(file.mmaps, m)
++ fs.openCountByInode[inode]++
+  file.mmaps = slices.Delete(file.mmaps, idx, idx+1)
++ if err := fs.CloseFile(m.Inode); err != nil { panic(err) }
+```
 
 ## Execution log
 

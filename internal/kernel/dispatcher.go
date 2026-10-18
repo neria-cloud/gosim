@@ -45,6 +45,26 @@ const (
 	RoutePollDeadline
 	RoutePollUnblock
 	RouteWait
+	RouteOpenat
+	RouteRenameat
+	RouteGetdents64
+	RouteFallocate
+	RouteSeek
+	RoutePwrite
+	RoutePread
+	RouteSync
+	RouteFstat
+	RouteStatat
+	RouteUnlinkat
+	RouteTruncate
+	RouteChdir
+	RouteGetcwd
+	RouteMkdirat
+	RouteFlock
+	RouteFcntlLock
+	RouteMap
+	RouteUnmap
+	RouteAdvise
 )
 
 type invocationLease struct {
@@ -149,6 +169,29 @@ func (d *Dispatcher) DispatchOne(inv *Invocation) {
 		result, pending, err = d.decode(inv)
 		return err
 	})
+	if request, ok := err.(*contracts.CrashRequest); ok {
+		if inv.Route != RouteSync || request.Epoch != inv.Context.Epoch || !k.Accepts(request.Epoch) {
+			k.invariant("invalid provider crash request")
+			return
+		}
+		var stopErr error
+		if request.Epoch.Machine.ID == k.root {
+			k.closeKind = contracts.StopCrash
+			stopErr = k.Close()
+		} else {
+			stopErr = k.stop(k.machineByID[request.Epoch.Machine.ID], contracts.StopCrash)
+		}
+		if stopErr != nil {
+			k.cleanupFailure("sync fault cleanup", stopErr)
+		}
+		return // cancellation removed this invocation; never wake the caller
+	}
+	if failure, ok := err.(*contracts.Failure); ok {
+		diagnostic := failure.Diagnostic
+		diagnostic.Kind = string(failure.Code)
+		k.AbortRun(diagnostic)
+		return
+	}
 	if err != nil {
 		k.cleanupFailure("syscall dispatch", err)
 		return
@@ -160,6 +203,9 @@ func (d *Dispatcher) DispatchOne(inv *Invocation) {
 
 //go:norace
 func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
+	if inv.Route >= RouteOpenat && inv.Route <= RouteAdvise {
+		return d.decodeFiles(inv)
+	}
 	k, ctx, a := d.kernel, inv.Context, inv.Scalars
 	usesView := inv.Route == RouteRead || inv.Route == RouteWrite || inv.Route == RouteGetrandom
 	var view abi.ByteView

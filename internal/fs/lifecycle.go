@@ -18,6 +18,8 @@ type Instance struct {
 	workingDir                             int
 	published, quiesced, settled, detached bool
 	settleErr                              error
+	mappings                               map[uintptr]*model.Mmap
+	mappingOrder                           []uintptr
 }
 
 func (p *Prepared) Bindings() contracts.Bindings { return contracts.Bindings{Files: p.instance} }
@@ -109,6 +111,13 @@ func (i *Instance) Detach() {
 		i.machine.active = nil
 	}
 	if i.model != nil {
+		for _, address := range i.mappingOrder {
+			if mapping := i.mappings[address]; mapping != nil {
+				i.model.Munmap(mapping)
+				delete(i.mappings, address)
+			}
+		}
+		i.mappings, i.mappingOrder = nil, nil
 		i.model.Release()
 		i.model = nil
 	}

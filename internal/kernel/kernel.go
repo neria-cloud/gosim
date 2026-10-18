@@ -135,6 +135,9 @@ func (k *Kernel) Run(main func()) (result error) {
 		index, payload, _ := simrt.Select(k.exits.RecvSelector(), k.dispatcher.incoming.RecvSelector())
 		if index == 1 {
 			k.dispatcher.DispatchOne(payload.(*Invocation))
+			if k.closed {
+				return k.closeErr
+			}
 			continue
 		}
 		request := payload.([3]uint64)

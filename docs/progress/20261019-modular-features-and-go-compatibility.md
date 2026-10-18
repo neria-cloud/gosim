@@ -371,3 +371,25 @@ Notes / migration ledger
 - Task 9 explicitly owns every FileOps syscall body. ops_pending.go supplies the complete interface with explicit invariant failures for unfinished calls, never success or host fallback; Task 9 removes it. Session fault settings are implemented here; their Sync syscall behavior is Task 9. Normal CLI composition still uses the authorized intermediate integration path.
 - The user briefly paused implementation to discuss directory moves, then requested continuation of the original source plan/architecture. No target-architecture/layout revision was made.
 - Final Task 8 size: 1,541 changed lines (1,533 additions + 8 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 9 — Filesystem syscall services and descriptor capabilities
+Date: 2026-10-19. Previous task commit: `7ac3390`. Commit: the Task 9 implementation commit containing this entry.
+
+Implemented
+- Replaced every Task 8 FileOps placeholder with path/open/rename/directory entries, allocation/offset/positional I/O, synchronization, stat, remove/truncate/cwd/mkdir, lock/fcntl and mapping/advice methods. File implements Resource/Readable/Writable against the shared epoch descriptor table; failed allocation closes the inode reference, and Release transfers ownership only once with the original CloseReason.
+- Linux flag values are explicit at the provider boundary, then converted to the host-compiled model's os flags. Stat/Lock use version-neutral contracts. Directory bytes retain the common little-endian Linux dirent64 layout and the existing one-batch/dummy-metadata limitation; no architecture-specific Go struct enters the model.
+- Kernel typed route decoding for every filesystem service, explicit payload/boolean/narrowed-field validation, feature checks and current-epoch service selection. Existing shared read/write/close/fcntl continue routing by descriptor ownership. Generated family-specific marshalling/manifest replacement remains Task 14.
+- Typed internal contracts.CrashRequest lets Sync report a before/after fault without importing kernel or widening Ports. Dispatcher consumes it before completion, cancels the real blocked caller and performs ordinary crash cleanup. Root sync faults end the run through root-last Close. Default zero fault probability consumes no fault stream.
+- Mapping references keep unlinked inodes alive through descriptor close, unmap drops that reference, and Detach releases remaining mappings in creation order. Duplicate mkdir/exclusive-open now produce modeled EEXIST instead of generic errors. Unsupported arguments and negative/overflowing offsets fail explicitly.
+- Capabilities inventory covers all 26 audited storage syscall names, plus fstatat/chdir/getcwd. Locks and advice remain labeled stubs; permissions/procfs routes remain missing; mappings retain the read-only/shared/zero-offset/16 MiB limit. Directory iteration and full-mapping unmap limitations are stated explicitly.
+
+Verified
+- Provider tests cover offsets and positional independence, copied write buffers, file-versus-directory durability, version-neutral stat fields, directory records, rename/unlink/open-file lifetime, permissions/flag limitations, wrong descriptor ownership, failed-open cleanup, repeated close reasons, mapping updates/unlinked lifetime/epoch cleanup, and all audited capability names.
+- Real application invocations traverse the kernel dispatcher for file/path/directory/stat/allocation/locking/mapping/advice operations. Real Sync faults before and after durability preserve the expected recovered bytes, never resume the canceled caller, and never execute application defers. Root faults terminate the run and drain all invocation ownership.
+- Malformed callable/extra payloads, invalid booleans and disabled filesystem calls abort explicitly. The race detector identified a test's unsynchronized fd handoff; it was fixed with an ordinary simulated channel, preserving the syscall transport's intentional absence of application happens-before edges.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task9-gate.log`. Focused race tests passed: `.gosim/task9-focused.log`. Production import audit confirms fs imports only contracts, its model and native ABI among Gosim packages; no network/kernel implementation import.
+
+Notes / migration ledger
+- Removed ops_pending.go and its Task 9 unfinished-method marker. The remaining manual decoder marker is owned by Task 14. Existing LinuxOS source remains only for the authorized intermediate full-suite entry path until Tasks 22/28; normal optional composition is not yet selected.
+- CrashRequest is an implementation-local typed outcome through the already prescribed error return; it is never serialized as errno or exposed as a public control API. No target architecture or public signature was changed.
+- Final Task 9 size: 1,481 changed lines (1,369 additions + 112 deletions), including checklist/log; staged whitespace check passed.

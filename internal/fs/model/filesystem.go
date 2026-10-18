@@ -2,7 +2,6 @@ package model
 
 import (
 	"cmp"
-	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -607,7 +606,7 @@ func (fs *Filesystem) Mkdir(dirInode int, path string) error {
 	}
 
 	if _, ok := dir.entries[name]; ok {
-		return errors.New("help already exists")
+		return syscall.EEXIST
 	}
 
 	inode := fs.mem.next
@@ -853,7 +852,7 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 	}
 
 	if ok && flag&os.O_EXCL != 0 {
-		return 0, errors.New("file already existed")
+		return 0, syscall.EEXIST
 	}
 	if ok && flag&os.O_TRUNC != 0 {
 		file := fs.mem.getFile(inode)
@@ -999,6 +998,7 @@ func (fs *Filesystem) Mmap(inode int, len int) *Mmap {
 	}
 
 	file.mmaps = append(file.mmaps, m)
+	fs.openCountByInode[inode]++ // Mapping keeps an unlinked inode alive after fd close.
 	return m
 }
 
@@ -1010,4 +1010,7 @@ func (fs *Filesystem) Munmap(m *Mmap) {
 		panic("not found")
 	}
 	file.mmaps = slices.Delete(file.mmaps, idx, idx+1)
+	if err := fs.CloseFile(m.Inode); err != nil {
+		panic(err)
+	}
 }
