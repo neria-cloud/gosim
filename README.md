@@ -99,6 +99,60 @@ ok  	translated/github.com/neria-cloud/gosim/examples	0.254s
 If running `gosim` fails with errors about missing `go.sum` entries, run
 `go mod tidy` to update your `go.sum` file.
 
+### Network latency and faults
+
+Every simulation starts with 0–100 ms of capped exponential network latency
+(lambda 5), failure probability 0, and repair probability 1. Configure the
+network from the test body. Addresses are IPv4 strings; machine labels and
+hostnames are not accepted by these controls.
+
+```go
+config := gosim.DefaultNetworkConfig()
+config.Latency.Max = 50 * time.Millisecond
+if err := gosim.ConfigureNetwork(config); err != nil {
+    t.Fatal(err)
+}
+
+// In a five-host cluster, impair only h2 ↔ h5. Other pairs retain global policy.
+for _, err := range []error{
+    gosim.SetLinkLatency("10.0.0.2", "10.0.0.5", 200*time.Millisecond),
+    gosim.SetLinkMaxMessageLatency("10.0.0.2", "10.0.0.5", time.Second),
+    gosim.SetLinkFailRate("10.0.0.2", "10.0.0.5", 0.15),
+    gosim.SetLinkRepairRate("10.0.0.2", "10.0.0.5", 0.5),
+} {
+    if err != nil {
+        t.Fatal(err)
+    }
+}
+```
+
+A link's first latency override snapshots the complete global latency group
+(minimum, maximum, and curve). Its first loss override independently snapshots
+both failure and repair probabilities. Later global updates leave those local
+groups intact. `ResetLinkLatency` and `ResetLinkLoss` restore inheritance from
+the current global groups. Updates affect future sends, including packets on
+existing connections. Synchronize senders when applying several controls.
+
+Failure and repair are **traffic-triggered**. A send can randomly partition a
+pair; subsequent sends can repair it. Idle time alone does neither. Probabilities
+apply to every stream packet kind, including opens and acknowledgements, rather
+than just application writes. A partition discards queued packets in both
+directions. Gosim has no TCP retransmission, so applications may need to reconnect
+after repair.
+
+`Partition(a, b)` and `Repair(a, b)` explicitly control both directions, as do
+`SetConnected(a, b, false/true)`. Explicit partitions require manual repair.
+Policy resets do not repair a link, and repair never resurrects dropped packets.
+`PartitionOneWay` and `RepairOneWay` reserve directional APIs for future support;
+valid calls currently return `syscall.EOPNOTSUPP` without changing either direction.
+
+`SetDelay(a, b, 0)` sets an explicit zero delay; use `ResetLinkLatency` to restore
+global latency. Delivery remains ordered in each direction. A backlog can delay
+packets beyond a newly lowered maximum until earlier packets drain. Use
+`-simtrace=network` for configuration, transition, and packet metadata without
+application payloads. Mutating controls return errors matching `syscall.EINVAL`
+for invalid inputs and `syscall.ENOSYS` outside simulation.
+
 ### Simulation
 
 Tests running in Gosim run inside Gosim's simulation environment. In the

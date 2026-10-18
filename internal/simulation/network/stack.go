@@ -31,6 +31,7 @@ type Packet struct {
 	InBuffer, OutBuffer *circularBuffer
 	Offset, Count       int
 	ArrivalTime         timeIndex // used by delayQueue
+	Generation          uint64
 }
 
 var packetPool = &sync.Pool{
@@ -41,19 +42,12 @@ var packetPool = &sync.Pool{
 
 func allocPacket(kind PacketKind, id ConnId) *Packet {
 	p := packetPool.Get().(*Packet)
-	p.Kind = kind
-	p.ConnId = id
+	*p = Packet{Kind: kind, ConnId: id}
 	return p
 }
 
 func freePacket(p *Packet) {
-	// XXX: poison values so we catch reuse?
-	p.ConnId = ConnId{}
-	p.Kind = 255
-	p.InBuffer = nil
-	p.OutBuffer = nil
-	p.Offset = -1
-	p.Count = -1
+	*p = Packet{Kind: 255, Offset: -1, Count: -1}
 	packetPool.Put(p)
 }
 

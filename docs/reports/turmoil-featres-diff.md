@@ -2,7 +2,7 @@
 
 ## Scope and reading guide
 
-This matrix compares Gosim at `2e3c047` with turmoil at `4899894`, using the checked-out implementation and public APIs. **Main Sim** means the `turmoil` crate's `Builder`/`Sim` harness. **Separate crate** means a capability in `turmoil-net`, `turmoil-fs`, or `turmoil-io-uring`; that capability is not necessarily available through Main Sim. “Not exposed” means no corresponding public operation was found in the inspected API, rather than proof that no workaround exists. Feature flags and shims must be enabled or imported where stated.
+This matrix originally compared Gosim at `2e3c047` with turmoil at `4899894`. The network-control rows were updated on 2026-10-18 for the implemented latency/fault controls in the current Gosim worktree; other rows retain the original comparison baseline. **Main Sim** means the `turmoil` crate's `Builder`/`Sim` harness. **Separate crate** means a capability in `turmoil-net`, `turmoil-fs`, or `turmoil-io-uring`; that capability is not necessarily available through Main Sim. “Not exposed” means no corresponding public operation was found in the inspected API, rather than proof that no workaround exists. Feature flags and shims must be enabled or imported where stated.
 
 ## Test execution and control
 
@@ -16,7 +16,7 @@ This matrix compares Gosim at `2e3c047` with turmoil at `4899894`, using the che
 | Scheduling variation | Seeded cooperative goroutine selection; translated map iteration and `math/rand` use simulator-controlled randomness. [G-runtime] [G-design] | Optional random host order. Tokio runtime scheduler seeding is conditional on `tokio_unstable`; no Go-like map transformation. [T-builder] [T-rt] |
 | Determinism checking | Event checksum/trace and metatesting helpers `CheckDeterministic` and `CheckSeeds`. [G-meta] [G-test] | Seeded reruns and `tracing` output; no comparable automatic checksum/metatesting API found in Main Sim. [T-builder] [T-lib] |
 | Race detector | `gosim test -race` builds with Go's race detector hooks. [G-test] | No built-in race detector in Main Sim; Rust's normal compiler and ecosystem checks remain available outside this API. [T-cargo] |
-| Logs and packet diagnostics | `-simtrace`, simulator logs, and trace checksums. [G-test] [G-runtime] | `tracing` events; `turmoil=trace` emits packet-level trace. Main Sim exposes in-flight messages via `links`. [T-lib] [T-sim] |
+| Logs and packet diagnostics | `-simtrace=network` adds payload-free policy, fault, and packet scheduling metadata; simulator logs and trace checksums support repeatable runs. [G-test] [G-runtime] [G-network-trace] | `tracing` events; `turmoil=trace` emits packet-level trace. Main Sim exposes in-flight messages via `links`. [T-lib] [T-sim] |
 
 ## Machines, network, and faults
 
@@ -26,10 +26,11 @@ This matrix compares Gosim at `2e3c047` with turmoil at `4899894`, using the che
 | IPv4 and IPv6 | Machine API says IPv4 only; simulated `SysSocket` accepts `AF_INET` stream sockets only. [G-machine] [G-socket] | Main Sim `Builder::ip_version` supports IP version selection; UDP API includes IPv4 and IPv6 multicast methods. [T-builder] [T-udp] |
 | TCP streams/listeners | Simulated `SOCK_STREAM` socket stack behind Go's translated networking path. [G-socket] [G-net] | Main Sim supplies `TcpStream` and `TcpListener` shims. `turmoil-net` has a separate TCP kernel. [T-net] [T-netcrate] |
 | UDP datagrams | Not supported by the inspected Linux socket path: `SysSocket` rejects `SOCK_DGRAM`. [G-socket] | Main Sim supplies `UdpSocket`, including send/receive and broadcast/multicast methods. [T-udp] |
-| TCP packet loss recovery | Gosim models a stream with ack/keepalive timers; exact TCP fidelity should be checked for the workload. [G-net] | Main Sim's `fail_rate` documentation says dropped TCP messages break connections because it has no retransmission. The separate `turmoil-net` crate models retransmission. [T-builder] [T-netcrate] |
+| TCP packet loss recovery | Stream ack/keepalive timers, without TCP retransmission. Dropped packets can break streams; link repair may require application reconnection. [G-net] [G-network-api] | Main Sim's `fail_rate` documentation says dropped TCP messages break connections because it has no retransmission. The separate `turmoil-net` crate models retransmission. [T-builder] [T-netcrate] |
 | Host naming / resolution | Machine labels become hostnames; addresses can be assigned or allocated. [G-machine] | Main Sim has hostname lookup/reverse lookup; `turmoil-net` has an in-memory DNS table. [T-sim] [T-netcrate] |
-| Partition and repair | `SetConnected` toggles connectivity for a host pair. [G-sim] [G-net] | Main Sim has two-way and one-way partition/repair, plus hold/release of in-flight messages. [T-sim] |
-| Latency and loss | `SetDelay` sets a host-pair delay. No public probabilistic loss control found. [G-sim] | Main Sim sets global/per-link latency, latency curve, failure and repair rates; builder supplies initial values. [T-sim] [T-builder] |
+| Partition and repair | `Partition`/`Repair` and legacy `SetConnected` operate on both directions and discard queued pair packets on partition. Explicit partitions require manual repair. `PartitionOneWay`/`RepairOneWay` are staged APIs returning `EOPNOTSUPP`; no hold/release. [G-sim] [G-network-api] [G-network-policy] | Main Sim has two-way and one-way partition/repair, plus hold/release of in-flight messages. [T-sim] |
+| Latency and loss | Global/per-pair capped exponential latency and traffic-triggered failure/repair probabilities, configured from tests. Automatic defaults: 0–100 ms, lambda 5, fail 0, repair 1. Local changes snapshot the complete latency or loss group; resets restore global inheritance. `SetDelay(...,0)` means fixed zero latency. [G-network-api] [G-network-policy] | Builder supplies initial latency, failure, and repair values. Main Sim changes global/per-link latency and failure rate, plus the global curve; no runtime repair-rate setter in the inspected version. [T-sim] [T-builder] |
+| Delivery ordering and policy extensions | Preserves ordered delivery per source/destination pair. Adds runtime repair-rate setters, per-link curve setters, group resets, and validated errors. Pair generations reject stale packets after partition/repair. [G-network-api] [G-network-policy] | Main Sim samples latency per message and can reorder delivery. Gosim intentionally retains ordered delivery; matching a numeric seed does not imply identical Rust/Go packet schedules. [T-top] |
 | Packet inspection and custom rules | No public packet iterator or rule installation API found; network implementation is internal. [G-net] | Main Sim `links` inspects and can deliver held packets. Separate `turmoil-net` supports packet `Rule`/`Verdict` chains and reusable latency rules. [T-sim] [T-netcrate] |
 | Network capacities | Internal stream buffers exist; no public capacity setting found. [G-net] | Main Sim configures TCP/UDP capacity and ephemeral port range. Separate `turmoil-net` configures MTU, send/receive buffers, backlog, retransmission thresholds. [T-builder] [T-netcrate] |
 
@@ -63,6 +64,9 @@ Turmoil's Main Sim and `turmoil-net` are distinct network implementations. The M
 [G-simulation]: ../../internal/simulation/simulation.go
 [G-socket]: ../../internal/simulation/os_linux.go
 [G-net]: ../../internal/simulation/network/stack.go
+[G-network-api]: ../../network.go
+[G-network-policy]: ../../internal/simulation/network/net.go
+[G-network-trace]: ../../internal/simulation/network/trace.go
 [G-fs]: ../../internal/simulation/fs/filesystem.go
 [G-translate]: ../../internal/translate/main.go
 
@@ -78,3 +82,5 @@ Turmoil's Main Sim and `turmoil-net` are distinct network implementations. The M
 [T-fs-shim]: https://github.com/tokio-rs/turmoil/blob/489989469b83d1fbe96c49847a30e57f098ecf22/crates/turmoil-fs/src/shim/std/fs/mod.rs
 [T-uring]: https://github.com/tokio-rs/turmoil/blob/489989469b83d1fbe96c49847a30e57f098ecf22/crates/turmoil-io-uring/src/opcode.rs
 [T-barriers]: https://github.com/tokio-rs/turmoil/blob/489989469b83d1fbe96c49847a30e57f098ecf22/crates/turmoil/src/barriers.rs
+
+[T-top]: https://github.com/tokio-rs/turmoil/blob/489989469b83d1fbe96c49847a30e57f098ecf22/crates/turmoil/src/top.rs

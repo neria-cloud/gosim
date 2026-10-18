@@ -373,6 +373,55 @@ and gets formatted as
     1 main/4     14:10:03.000 INF behavior/log_gosim_test.go:53 > hello info foo=bar
 ```
 
+## Network policy, faults, and ordered delivery
+
+Each simulation owns one network with global latency/loss groups and records
+keyed by an unordered IPv4 host pair. A local override snapshots its entire
+group; latency and loss inherit independently. Resetting a group restores live
+global inheritance without changing fault state. A typed syscall copies each
+configuration request into the OS, which validates the full candidate and
+installs it atomically under the network mutex. Invalid requests leave policy,
+queues, generations, and network randomness untouched.
+
+The automatic profile is 0–100 ms of latency, exponential lambda 5, failure
+probability 0, and repair probability 1. Each eligible send evaluates failure
+first. A healthy link that fails becomes randomly partitioned and drops the
+triggering packet. A randomly partitioned link also evaluates repair; successful
+repair lets that send proceed. Explicitly partitioned links reject sends without
+random trials. Absent endpoints also consume no network randomness. No timer
+repairs an idle link.
+
+Surviving packets consume an exponential sample, including fixed-delay packets.
+The variable range is quantized to whole milliseconds, scaled by the sample
+and inverse lambda, then capped at the maximum. The fractional minimum is
+preserved. Arrival timestamps saturate rather than overflow, and each source's
+arrival watermark for a destination preserves directional ordering. A unique
+network enqueue sequence breaks equal-time ties, including after queue purges.
+Consequently, an ordered backlog can exceed a newly lowered latency maximum.
+
+Partitioning increments the pair generation, purges both directions from the
+shared delay heap, and clears only that pair's arrival watermarks. Purging is
+O(Q). Packets already dequeued carry their original generation and are checked
+at delivery admission under the network mutex. Repair keeps the generation;
+it cannot revive stale packets. An admitted packet precedes a later partition
+in event order. The runner releases the network lock before calling the stream
+stack, preserving the stack → network → queue lock order. Every dropped packet
+is freed exactly once; emptied queue slots release buffer references.
+
+The public `Partition`/`Repair` operations and legacy `SetConnected` support
+two-way control. Requests preserve source/destination order and carry an internal
+direction field. The staged `PartitionOneWay`/`RepairOneWay` operations return
+`EOPNOTSUPP` before state mutation. Enabling them later requires directional
+status, generations, queue purging, and admission; the present pair-wide state
+must not be used to silently implement them symmetrically.
+
+`-simtrace=network` emits policy snapshots, inheritance flags, transitions, drops,
+and scheduling metadata. It does not inspect payloads or sample randomness.
+Replay compares the same code, seed, and trace options; this implementation does
+not promise identical traces to older zero-latency defaults or Rust turmoil.
+Link policy survives host restart. Generations cover partition/repair staleness;
+host-incarnation tagging and TCP retransmission remain separate transport work.
+
 ## Metatesting
 
 A larger module might want to run Gosim tests as parts of its normal `go test`

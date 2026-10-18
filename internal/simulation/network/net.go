@@ -1,8 +1,10 @@
 package network
 
 import (
+	"math"
 	"net/netip"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -62,95 +64,110 @@ func (e *Endpoint) Addr() netip.Addr {
 	return e.addr
 }
 
+// Send owns packet and either frees it or transfers it to the delay queue.
 func (e *Endpoint) Send(packet *Packet) {
 	if packet.ConnId.Hosts.SourceHost != e.addr {
 		panic("bad packet")
 	}
-
-	e.net.mu.Lock()
-	defer e.net.mu.Unlock()
-
+	n := e.net
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	drop := func(reason string) {
+		traceNetwork("drop", "from", e.addr, "to", packet.ConnId.Hosts.DestHost, "kind", packet.Kind, "reason", reason)
+		freePacket(packet)
+	}
 	if e.closed {
+		drop("source_closed")
 		return
-		// log.Printf("closed")
-		// return errors.New("closed")
 	}
-
-	_, ok := e.net.endpoints[packet.ConnId.Hosts.DestHost]
-	if !ok {
+	dst := packet.ConnId.Hosts.DestHost
+	if n.endpoints[dst] == nil {
+		drop("destination_absent")
 		return
-		// log.Printf("no such dest")
-		// return errors.New("no such dest")
 	}
-
-	if e.net.disconnected[packet.ConnId.Hosts] {
+	key := canonicalPair(packet.ConnId.Hosts)
+	state := n.getOrCreateLinkLocked(key)
+	config := n.effectiveConfigLocked(state)
+	if !n.advanceLinkLocked(key, state, config.Loss) {
+		if state.Status == linkExplicitPartition {
+			drop("explicit_partition")
+		} else {
+			drop("random_partition")
+		}
 		return
-		// XXX: silently fail -- but maybe fail loudly optionally? ENOPATH or something?
-		// return nil
-		// return errors.New("disconnected")
 	}
-
-	arrival := timeIndex{
-		time:  time.Now().Add(e.net.delay[packet.ConnId.Hosts]).UnixNano(),
-		index: 0,
+	sampled := sampleLatency(n.rng, config.Latency)
+	arrival, saturated := saturatingArrival(time.Now().UnixNano(), sampled)
+	if last, exists := e.last[dst]; exists && last.time > arrival {
+		arrival = last.time
 	}
-	if last := e.last[packet.ConnId.Hosts.DestHost]; last.time >= arrival.time {
-		arrival.time = last.time
-		arrival.index = last.index + 1
+	if n.nextSequence == math.MaxUint64 {
+		panic("network sequence exhausted")
 	}
-	e.last[packet.ConnId.Hosts.DestHost] = arrival
-
-	packet.ArrivalTime = arrival
-	e.net.queue.enqueue(packet)
+	n.nextSequence++
+	packet.ArrivalTime = timeIndex{time: arrival, index: n.nextSequence}
+	packet.Generation = state.Generation
+	e.last[dst] = packet.ArrivalTime
+	traceNetwork("enqueue", "from", e.addr, "to", dst, "kind", packet.Kind, "sampled", sampled, "arrival", arrival, "sequence", n.nextSequence, "generation", state.Generation, "saturated", saturated)
+	n.queue.enqueue(packet)
 }
 
 type Network struct {
-	mu        sync.Mutex
-	endpoints map[netip.Addr]*Endpoint
-	nextIp    netip.Addr
-
-	disconnected map[HostPair]bool
-	delay        map[HostPair]time.Duration
-
-	queue *delayQueue
+	mu           sync.Mutex
+	endpoints    map[netip.Addr]*Endpoint
+	nextIp       netip.Addr
+	config       Config
+	links        map[linkKey]*linkState
+	rng          randomSource
+	nextSequence uint64
+	queue        *delayQueue
 }
 
-func NewNetwork() *Network {
+func NewNetwork() *Network { return newNetwork(runtimeRandom{}) }
+
+func newNetwork(rng randomSource) *Network {
+	if rng == nil {
+		panic("nil network random source")
+	}
 	return &Network{
 		endpoints: make(map[netip.Addr]*Endpoint),
-		nextIp:    netip.AddrFrom4([4]byte{11, 0, 0, 1}), // XXX: randomize?
-
-		disconnected: make(map[HostPair]bool),
-		delay:        make(map[HostPair]time.Duration),
-
-		queue: newDelayQueue(),
+		nextIp:    netip.AddrFrom4([4]byte{11, 0, 0, 1}),
+		config:    DefaultConfig(), links: make(map[linkKey]*linkState),
+		rng: rng, queue: newDelayQueue(),
 	}
 }
 
-func (n *Network) SetConnected(p HostPair, connected bool) {
+func (n *Network) SetConnected(p HostPair, connected bool) error {
+	return n.SetConnectivity(p, connected, DirectionTwoWay)
+}
+
+func (n *Network) SetConnectivity(p HostPair, connected bool, direction ConnectivityDirection) error {
+	if !p.SourceHost.Is4() || !p.DestHost.Is4() {
+		return syscall.EINVAL
+	}
+	switch direction {
+	case DirectionTwoWay:
+	case DirectionOneWay:
+		// NotImplemented: requires directional state, generations and queue purging.
+		return syscall.EOPNOTSUPP
+	default:
+		return syscall.EINVAL
+	}
+	key := canonicalPair(p)
 	n.mu.Lock()
 	defer n.mu.Unlock()
-
+	state := n.getOrCreateLinkLocked(key)
 	if !connected {
-		n.disconnected[p] = true
-		n.disconnected[p.Flip()] = true
+		n.partitionLocked(key, state, linkExplicitPartition)
 	} else {
-		delete(n.disconnected, p)
-		delete(n.disconnected, p.Flip())
+		state.Status = linkHealthy
+		traceNetwork("manual_repair", "a", key.A, "b", key.B, "generation", state.Generation)
 	}
+	return nil
 }
 
-func (n *Network) SetDelay(p HostPair, delay time.Duration) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	if delay != 0 {
-		n.delay[p] = delay
-		n.delay[p.Flip()] = delay
-	} else {
-		delete(n.delay, p)
-		delete(n.delay, p.Flip())
-	}
+func (n *Network) SetDelay(p HostPair, delay time.Duration) error {
+	return n.ApplyControl(ControlRequest{Kind: SetPairLatency, A: p.SourceHost.String(), B: p.DestHost.String(), Duration: delay})
 }
 
 func (n *Network) NextIP() netip.Addr {
@@ -201,16 +218,18 @@ func (n *Network) getStack(packet *Packet) *Stack {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	endpoint, ok := n.endpoints[packet.ConnId.Hosts.DestHost]
-	if !ok {
-		// XXX: dropped, log?
+	state := n.links[canonicalPair(packet.ConnId.Hosts)]
+	if state == nil || state.Generation != packet.Generation || state.Status != linkHealthy {
+		traceNetwork("drop", "reason", "stale_or_partitioned", "from", packet.ConnId.Hosts.SourceHost, "to", packet.ConnId.Hosts.DestHost, "generation", packet.Generation)
 		return nil
 	}
-
-	if endpoint.stack == nil {
-		// XXX: dropped, log
+	endpoint := n.endpoints[packet.ConnId.Hosts.DestHost]
+	if endpoint == nil || endpoint.closed || endpoint.stack == nil {
+		traceNetwork("drop", "reason", "destination_absent", "to", packet.ConnId.Hosts.DestHost)
 		return nil
 	}
+	// Admission linearizes here. Never acquire a stack lock while holding n.mu.
+	traceNetwork("deliver_admitted", "from", packet.ConnId.Hosts.SourceHost, "to", packet.ConnId.Hosts.DestHost, "kind", packet.Kind, "sequence", packet.ArrivalTime.index, "generation", packet.Generation)
 
 	return endpoint.stack
 }

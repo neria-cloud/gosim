@@ -1,6 +1,7 @@
 package gosim
 
 import (
+	"syscall"
 	"time"
 
 	"github.com/neria-cloud/gosim/gosimruntime"
@@ -58,19 +59,20 @@ func (s Simulation) SetSimulationTimeout(timeout time.Duration) {
 }
 */
 
-// SetConnected configures the network connectivity between addresses a and b.
-//
-// TODO: How will this fail? Unrouteable or rejected
-// TODO: Support asymmetry
+// SetConnected controls both directions between IPv4 addresses a and b.
+// Disconnecting discards pending packets; reconnecting repairs the link without
+// reviving packets or closed connections. Policy settings remain in effect.
 func SetConnected(a, b string, connected bool) error {
-	return simulation.SyscallSetConnected(a, b, connected)
+	if !IsSim() {
+		return wrapNetworkError("SetConnected", syscall.ENOSYS)
+	}
+	return wrapNetworkError("SetConnected", simulation.SyscallSetConnected(a, b, connected))
 }
 
-// SetDelay configures the network latency between addresses a and b.
-//
-// TODO: Support asymmetry
+// SetDelay sets fixed latency in both directions between IPv4 addresses a and b.
+// Zero explicitly disables latency; ResetLinkLatency restores global inheritance.
 func SetDelay(a, b string, delay time.Duration) error {
-	return simulation.SyscallSetDelay(a, b, delay)
+	return SetLinkLatency(a, b, delay)
 }
 
 // SetSimulationTimeout resets the simulation timeout to the given duration.

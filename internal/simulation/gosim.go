@@ -189,18 +189,22 @@ func (g *GosimOS) MachineSetSometimesCrashOnSync(machineID int, value bool, invo
 	return nil
 }
 
-func mustHostPair(a, b string) network.HostPair {
-	return network.HostPair{
-		SourceHost: netip.MustParseAddr(a), DestHost: netip.MustParseAddr(b),
-	}
+func (g *GosimOS) ConfigureNetwork(request syscallabi.ValueView[network.ControlRequest], invocation *syscallabi.Syscall) error {
+	return g.simulation.network.ApplyControl(request.Get())
 }
 
 func (g *GosimOS) SetConnected(a, b string, connected bool, invocation *syscallabi.Syscall) error {
-	g.simulation.network.SetConnected(mustHostPair(a, b), connected)
-	return nil
+	pair, err := network.ParseHostPair(a, b)
+	if err != nil {
+		return err
+	}
+	return g.simulation.network.SetConnected(pair, connected)
 }
 
 func (g *GosimOS) SetDelay(a, b string, delay time.Duration, invocation *syscallabi.Syscall) error {
-	g.simulation.network.SetDelay(mustHostPair(a, b), delay)
-	return nil
+	pair, err := network.ParseHostPair(a, b)
+	if err != nil {
+		return err
+	}
+	return g.simulation.network.SetDelay(pair, delay)
 }

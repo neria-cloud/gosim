@@ -195,13 +195,20 @@ func TestNetTcpDisconnectBasic(t *testing.T) {
 				t.Fatal(respStr)
 			}
 
-			// do write, don't read yet
-			if _, err := conn.Write([]byte("hello")); err != nil {
+			// Read a marker from the echoed packet to establish that the remaining
+			// bytes are buffered before partitioning. A fixed sleep does not
+			// establish this with sampled network latency.
+			if _, err := conn.Write([]byte("xhello")); err != nil {
 				t.Fatal(err)
 			}
-			time.Sleep(10 * time.Millisecond)
+			marker := make([]byte, 1)
+			if _, err := io.ReadFull(conn, marker); err != nil || marker[0] != 'x' {
+				t.Fatal(marker, err)
+			}
 
-			gosim.SetConnected(aAddr, bAddr, false)
+			if err := gosim.SetConnected(aAddr, bAddr, false); err != nil {
+				t.Fatal(err)
+			}
 
 			// reading buffered data works
 			resp = make([]byte, 5)

@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"cmp"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"go/format"
 	"io"
@@ -623,6 +624,10 @@ func writeSyscalls(outputPath string, syscalls []syscallInfo, sysnums map[string
 	if !isMachine {
 		output += "//go:build linux\n"
 	}
+	networkImport := ""
+	if isMachine {
+		networkImport = strconv.Quote(gosimtool.Module + "/internal/simulation/network")
+	}
 	output += fmt.Sprintf(`package simulation
 
 import (
@@ -634,6 +639,7 @@ import (
 
 	"`+gosimtool.Module+`/gosimruntime"
 	"`+gosimtool.Module+`/internal/simulation/fs"
+ `+networkImport+`
 	"`+gosimtool.Module+`/internal/simulation/syscallabi"
 )
 
@@ -688,6 +694,7 @@ func IsHandledSyscall(trap uintptr) bool {
 }
 
 var machineCalls = []syscallInfo{
+	{sysName: "CONFIGURE_NETWORK", inputsStr: "request *network.ControlRequest", outputsStr: "err error", synthetic: true},
 	{
 		sysName:    "SET_SIMULATION_TIMEOUT",
 		inputsStr:  "timeout time.Duration",
@@ -831,9 +838,16 @@ func SyscallName(trap uintptr) string {
 }
 
 func main() {
+	machineOnly := flag.Bool("machine-only", false, "generate only machine syscall wrappers")
+	flag.Parse()
 	rootDir, err := gosimtool.FindGoModDir()
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if *machineOnly {
+		writeSyscalls(path.Join(rootDir, "internal/simulation/gosim_gen.go"), machineCalls, nil, true)
+		return
 	}
 
 	for _, arch := range []string{"arm64", "amd64"} {

@@ -28,12 +28,14 @@ var traceflags map[string]*TraceFlag
 var (
 	TraceSyscall TraceFlag
 	TraceStack   TraceFlag
+	TraceNetwork TraceFlag
 )
 
 func init() {
 	traceflags = map[string]*TraceFlag{
 		"syscall": &TraceSyscall,
 		"stack":   &TraceStack,
+		"network": &TraceNetwork,
 	}
 }
 

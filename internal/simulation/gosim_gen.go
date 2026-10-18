@@ -10,6 +10,7 @@ import (
 
 	"github.com/neria-cloud/gosim/gosimruntime"
 	"github.com/neria-cloud/gosim/internal/simulation/fs"
+	"github.com/neria-cloud/gosim/internal/simulation/network"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 )
 
@@ -28,6 +29,7 @@ var (
 // with HandleSyscall. The interface is not used but helpful for implementing
 // new syscalls.
 type gosimOSIface interface {
+	ConfigureNetwork(request syscallabi.ValueView[network.ControlRequest], invocation *syscallabi.Syscall) (err error)
 	MachineGetLabel(machineID int, invocation *syscallabi.Syscall) (label string, err error)
 	MachineInodeInfo(machineID int, inodeID int, info syscallabi.ValueView[fs.InodeInfo], invocation *syscallabi.Syscall)
 	MachineNew(label string, addr string, program any, invocation *syscallabi.Syscall) (machineID int)
@@ -54,6 +56,26 @@ func (os *GosimOS) dispatchSyscall(s *syscallabi.Syscall) {
 		return
 	}
 	os.dispatcher.Dispatch(s)
+}
+
+//go:norace
+func SyscallConfigureNetwork(request *network.ControlRequest) (err error) {
+	syscall := syscallabi.GetGoroutineLocalSyscall()
+	syscall.Trampoline = trampolineConfigureNetwork
+	syscall.OS = gosimOS
+	syscall.Ptr0 = request
+	gosimOS.dispatchSyscall(syscall)
+	err = syscallabi.ErrnoErr(syscall.Errno)
+	syscall.Ptr0 = nil
+	return
+}
+
+//go:norace
+func trampolineConfigureNetwork(syscall *syscallabi.Syscall) {
+	request := syscallabi.NewValueView(syscall.Ptr0.(*network.ControlRequest))
+	err := syscall.OS.(*GosimOS).ConfigureNetwork(request, syscall)
+	syscall.Errno = syscallabi.ErrErrno(err)
+	syscall.Complete()
 }
 
 //go:norace

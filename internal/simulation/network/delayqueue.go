@@ -9,7 +9,7 @@ import (
 type timeIndex struct {
 	// XXX: can we pack these together somehow?
 	time  int64
-	index int
+	index uint64
 }
 
 func (ti timeIndex) Less(other timeIndex) bool {
@@ -100,12 +100,37 @@ func (q *delayQueue) dequeue() *Packet {
 			next := q.items[0]
 			n := len(q.items) - 1
 			q.items[0] = q.items[n]
+			q.items[n] = nil
 			q.items = q.items[:n]
-			heap.Fix(&q.items, 0)
+			if n > 0 {
+				heap.Fix(&q.items, 0)
+			}
 
 			q.updateTimerLocked()
 			return next
 		}
 		q.cond.Wait()
 	}
+}
+
+// dropPair compacts the heap without changing surviving packets' sequence order.
+// The caller may hold Network.mu; the queue never acquires it.
+func (q *delayQueue) dropPair(key linkKey) int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	oldLen, write := len(q.items), 0
+	for read := 0; read < oldLen; read++ {
+		p := q.items[read]
+		if canonicalPair(p.ConnId.Hosts) == key {
+			freePacket(p)
+		} else {
+			q.items[write] = p
+			write++
+		}
+	}
+	clear(q.items[write:oldLen])
+	q.items = q.items[:write]
+	heap.Init(&q.items)
+	q.updateTimerLocked()
+	return oldLen - write
 }
