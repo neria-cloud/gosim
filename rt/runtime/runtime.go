@@ -12,6 +12,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -55,8 +56,16 @@ var (
 )
 
 func setgs(newgs *scheduler) func() {
+	release, err := trySetGS(newgs)
+	if err != nil {
+		panic(err)
+	}
+	return release
+}
+
+func trySetGS(newgs *scheduler) (func(), error) {
 	if !insideGosimRun.CompareAndSwap(false, true) {
-		panic("gosimruntime already running; only support one per process")
+		return nil, ErrEngineBusy
 	}
 	gs.set(newgs)
 	if newgs.current.get() != nil {
@@ -70,7 +79,7 @@ func setgs(newgs *scheduler) func() {
 		if !insideGosimRun.CompareAndSwap(true, false) {
 			panic("gosimruntime already stopped!!!???")
 		}
-	}
+	}, nil
 }
 
 func getg() *goroutine {
@@ -80,6 +89,7 @@ func getg() *goroutine {
 type Machine struct {
 	label   string
 	globals unsafe.Pointer
+	token   MachineToken
 }
 
 func newMachine(label string) *Machine {
@@ -90,7 +100,8 @@ func newMachine(label string) *Machine {
 }
 
 type scheduler struct {
-	seed int64
+	seed   int64
+	engine *Engine
 
 	goroutines      intrusiveList[*goroutine]
 	runnable        intrusiveList[*goroutine]
@@ -231,7 +242,16 @@ func (s *scheduler) Go(fun func(), machine *Machine, token RaceToken) *goroutine
 	return newg
 }
 
-func (s *scheduler) Run() error {
+func (s *scheduler) Run() (result error) {
+	defer func() {
+		previous := s.abortErr
+		s.cleanup()
+		if result == previous {
+			result = s.abortErr
+		} else if s.abortErr != previous {
+			result = errors.Join(result, s.abortErr)
+		}
+	}()
 	// TODO: add a wall-clock timeout for running any given step. If the step
 	// hangs for too long, it probably is doing something weird (using
 	// uninstrumented sync or some spin.) Call out the stuck goroutine as the
@@ -239,7 +259,7 @@ func (s *scheduler) Run() error {
 
 	// TODO: move scheduler deterministic seed/state initialization here?
 
-	for len(s.goroutines) > 0 && s.abortErr == nil {
+	for (len(s.goroutines) > 0 || s.engine != nil && len(s.engine.events) > 0) && s.abortErr == nil {
 		// XXX: can we make the scheduler itself run in the goroutines? so we
 		// don't have to ping-pong another goroutine switch
 
@@ -252,6 +272,12 @@ func (s *scheduler) Run() error {
 				handler.handler(handler)
 				// s.firetimer(handler)
 			}
+			if s.abortErr != nil {
+				break
+			}
+		}
+		if s.abortErr != nil || (len(s.goroutines) == 0 && (s.engine == nil || len(s.engine.events) == 0)) {
+			break
 		}
 
 		if len(s.runnable) == 0 && s.clock.anyWaiting() {
@@ -289,19 +315,47 @@ func (s *scheduler) Run() error {
 		}
 	}
 
-	// TODO: log exit reason? log that we're killing a bunch of goroutines?
-
-	for _, pick := range s.goroutines {
-		pick.abort()
-		freeGoroutine(pick)
-	}
-	s.goroutines = nil
-
 	// TODO: Test abortErr?
 	return s.abortErr
 }
 
+func (s *scheduler) cleanup() {
+	if s.engine != nil {
+		s.engine.cleaning = true
+		defer func() { s.engine.cleaning = false }()
+	}
+	// Also run on deadlock/error returns, which must not leave parked coroutines.
+	doomed := slices.Clone(s.goroutines)
+	slices.SortFunc(doomed, func(a, b *goroutine) int { return a.ID - b.ID })
+	var supervisor *goroutine
+	for _, g := range doomed {
+		if s.engine != nil && g.machine == s.engine.supervisor {
+			supervisor = g
+			continue
+		}
+		g.abort()
+		s.removeGoroutine(g)
+		if s.engine != nil {
+			if m := s.engine.lookup(g.machine.token); m != nil {
+				m.retired = append(m.retired, g)
+				continue
+			}
+		}
+		freeGoroutine(g)
+	}
+	if supervisor != nil {
+		// Only trusted harness defers may run during abort. Application machine
+		// coroutines above are canceled without executing any of their defers.
+		supervisor.finishSupervisor()
+		s.removeGoroutine(supervisor)
+		freeGoroutine(supervisor)
+	}
+	s.goroutines, s.runnable = nil, nil
+	s.clock.heap = newTimerHeap()
+}
+
 var (
+	// TODO(migration): remove the legacy Runtime.Run integration in Task 22.
 	globalRuntime      func(func())
 	runtimeInitialized bool
 )
@@ -461,6 +515,7 @@ const (
 	corotaskAbort
 	corotaskStep
 	corotaskBacktrace
+	corotaskCleanup
 )
 
 type goroutine struct {
@@ -509,7 +564,9 @@ func newGoroutine(id int, parent *goroutine, spawnEventID int, fun func(), machi
 	gs := gs.get()
 
 	g := allocGoroutine()
-	g.syscallCache = syscallAllocator(id) //  &Syscall{} // XXX: doing this rn because of reused sema
+	if syscallAllocator != nil {
+		g.syscallCache = syscallAllocator(id)
+	}
 	g.ID = id
 	g.parent = parent
 	g.spawnEventID = spawnEventID
@@ -704,6 +761,28 @@ func (g *goroutine) abort() {
 	}
 }
 
+func (g *goroutine) finishSupervisor() {
+	s := gs.get()
+	if s.engine == nil || g.machine != s.engine.supervisor || getg() == g {
+		panic("invalid supervisor cleanup")
+	}
+	if g.waiters != nil && g.selected == nil {
+		for sg := g.waiters; sg != nil; sg = sg.waitersNext {
+			sg.queue.remove(sg)
+		}
+	}
+	g.releaseWaiters()
+	previous, globals := getg(), globalPtr.get()
+	s.current.set(g)
+	globalPtr.set(g.machine.globals)
+	defer func() { s.current.set(previous); globalPtr.set(globals) }()
+	g.corotask = corotaskCleanup
+	g.coro.Next()
+	if !g.finished {
+		panic("supervisor cleanup yielded")
+	}
+}
+
 func (g *goroutine) backtrace(pc []uintptr) int {
 	if getg() == g {
 		panic("backtrace self")
@@ -797,6 +876,8 @@ func (g *goroutine) park(wait bool) {
 		}
 
 		switch g.corotask {
+		case corotaskCleanup:
+			runtime.Goexit() // trusted supervisor cleanup defers, then exitpoint
 		case corotaskAbort:
 			g.finished = true
 			g.coro.Finish()

@@ -246,3 +246,26 @@ Notes
 - Initial isolated generation probe needed the generator's `internal/translate` output directory; after creating it, the only differences were import grouping. The real generator was then run against the checkout and all suites rerun.
 - Core Task 2 implementation size before checklist/log: 796 changed lines with rename detection; unchanged runtime moves were reviewed by content comparison. Final size is recorded below.
 - Final Task 2 size: 834 changed lines (495 additions + 339 deletions), including checklist/log, with 22 runtime renames; staged whitespace check passed.
+
+## Task 3 — Engine lifecycle and owned deterministic random streams
+Date: 2026-10-19. Previous task commit: `3d1bf1d`. Commit: the Task 3 implementation commit containing this entry.
+
+Implemented
+- Engine/EngineConfig/MachineToken and every target lifecycle/event method, using the existing coroutine scheduler with a single-active-run guard. Preparation allocates globals without running boot; publication queues boot; cancellation removes waits/timers without application defers; disposal releases retained coroutine/global state after borrowing ends.
+- Native run abort records primitive diagnostics before parking application execution. The trusted supervisor survives long enough to run harness cleanup inside the active scheduler. Cleanup failures preserve original diagnostics and cannot prevent later cleanup. Provider events run with supervisor globals and verify their original machine epoch.
+- Versioned SHA-256 length-delimited random derivation (`gosim-rng-v2`), existing 64-bit update algorithm, unbiased rejection sampling, Float64/ExpFloat64, fixed domain/machine ownership, and stable streams across restart. New engine scheduler and application streams are separate; legacy integration retains its existing sequence until cutover.
+- Exported RunConfig/RunResult (including build/replay metadata) and the Driver contract. Actual generated Driver and TestMain cutover remain assigned to Tasks 21–22.
+- Scheduler cleanup now runs on deadlock/error returns as well as normal completion; previously the deadlock branch could retain parked coroutines.
+
+Verified
+- Native engine and ABI tests passed with the race detector. Coverage includes failed/aborted preparation, consumed epochs, no boot inside publication, blocked-call cancellation, retained globals/coroutines until disposal, stale events after restart, canceled timers, event/epoch exhaustion, application and provider panic, timeout/deadlock, repeated/invalid lifecycle operations, and single-active-run rejection.
+- Application recovery/defer cannot hide abort; supervisor defers still clean up and original plus cleanup diagnostics survive.
+- Independent known RNG vector computed with Python SHA-256 and integer multiplication matches Go; bounded/float draws, independent domain streams, restart ownership, logical-machine application randomness, and repeated-seed runs pass.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed after final executable changes, including format/build/ordinary/race suites. Final log `.gosim/task3-final-gate.log`; focused race log `.gosim/task3-runtime-race.log`.
+
+Notes / migration ledger
+- New-engine replay revision is `gosim-replay-v2`; existing integration replay goldens did not change.
+- Remove old Runtime/Setup/TestMain wiring, globalRuntime/initializeRuntime/run integration, and exported random-hook legacy fallbacks in Task 22. Their source carries TODO(migration) markers. They remain solely to keep the authorized intermediate full-suite path runnable; no profile selects the unfinished new composition.
+- Initial race tests caught missing release edges at run entry and publication; each boundary now explicitly publishes captured state. A later lifecycle audit caught premature coroutine pooling and supervisor cancellation; regression tests now enforce both ownership requirements.
+- All changes are within Task 3 runtime scope; no tests were waived or compatibility tuples promoted.
+- Final Task 3 size: 1,049 changed lines (1,016 additions + 33 deletions), including checklist/log; staged whitespace check passed.

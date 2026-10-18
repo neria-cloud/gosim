@@ -34,7 +34,7 @@ func SetAllTests(tests []Test) {
 var metatest = flag.Bool("metatest", false, "")
 
 // Copied in metatesting.RunConfig. Keep in sync.
-type runConfig struct {
+type RunConfig struct {
 	Test     string
 	Seed     int64
 	ExtraEnv []string
@@ -42,14 +42,22 @@ type runConfig struct {
 }
 
 // Copied in metatesting.RunResult. Keep in sync.
-type runResult struct {
-	Seed      int64
-	Checksum  []byte
-	Failed    bool
-	LogOutput []byte
-	Err       string // TODO: reconsider this type?
+type RunResult struct {
+	Seed           int64
+	Checksum       []byte
+	Failed         bool
+	LogOutput      []byte
+	Err            string // TODO: reconsider this type?
+	BuildDigest    string
+	ReplayRevision string
 }
 
+type Driver interface {
+	Run(config RunConfig, main func()) RunResult
+	TestEntrypoint(match, skip string, tests []Test) bool
+}
+
+// TODO(migration): remove Runtime and switch TestMain to Driver in Task 22.
 type Runtime interface {
 	Run(fn func())
 	Setup()
@@ -190,7 +198,7 @@ func TestMain(rt Runtime) {
 	out := json.NewEncoder(os.Stdout)
 
 	for {
-		var req runConfig
+		var req RunConfig
 		if err := in.Decode(&req); err != nil {
 			log.Fatal(err)
 		}
@@ -209,7 +217,7 @@ func TestMain(rt Runtime) {
 		logLevelOverride := "INFO"
 
 		if err := parseTraceflagsConfig(req.Simtrace); err != nil {
-			metaResult := runResult{
+			metaResult := RunResult{
 				Err: err.Error(),
 			}
 			if err := out.Encode(metaResult); err != nil {
@@ -232,7 +240,7 @@ func TestMain(rt Runtime) {
 			}
 		}, seed, enableTracer, captureLog, logLevelOverride, io.Discard, req.ExtraEnv)
 
-		metaResult := runResult{
+		metaResult := RunResult{
 			Seed:      result.Seed,
 			Checksum:  result.Checksum,
 			Failed:    result.Failed,

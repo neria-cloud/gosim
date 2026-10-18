@@ -5,16 +5,81 @@
 package gosimruntime
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
+	"math"
 	"math/bits"
 )
 
+//go:norace
 func Fastrand64() uint64 {
+	if inControlledNondeterminism() {
+		return 0
+	}
+	if e := gs.get().engine; e != nil {
+		return e.RandomFor("application", getg().machine.token.ID).Uint64()
+	}
+	// TODO(migration): remove legacy integration fallback in Task 22.
 	return fastrand64()
 }
 
+//go:norace
 func Fastrandn(n uint32) uint32 {
+	if inControlledNondeterminism() {
+		return 0
+	}
+	if e := gs.get().engine; e != nil {
+		return uint32(e.RandomFor("application", getg().machine.token.ID).Uint64N(uint64(n)))
+	}
+	// TODO(migration): remove legacy integration fallback in Task 22.
 	return fastrandn(n)
 }
+
+// Random is an owned domain stream. Its initial state and update algorithm are
+// versioned independently from the host Go standard library's random package.
+type Random struct{ state uint64 }
+
+const RandomRevision = "gosim-rng-v2"
+
+func NewDomainRandom(seed int64, domain string, machineID uint64) *Random {
+	if domain != "scheduler" && domain != "application" && domain != "fs" && domain != "net" {
+		panic("unknown random domain: " + domain)
+	}
+	var seedBytes, machineBytes [8]byte
+	binary.LittleEndian.PutUint64(seedBytes[:], uint64(seed))
+	binary.LittleEndian.PutUint64(machineBytes[:], machineID)
+	h := sha256.New()
+	for _, part := range [][]byte{[]byte(RandomRevision), seedBytes[:], []byte(domain), machineBytes[:]} {
+		var length [8]byte
+		binary.LittleEndian.PutUint64(length[:], uint64(len(part)))
+		h.Write(length[:])
+		h.Write(part)
+	}
+	return &Random{state: binary.LittleEndian.Uint64(h.Sum(nil)[:8])}
+}
+
+//go:norace
+func (r *Random) Uint64() uint64 {
+	r.state += 0xa0761d6478bd642f
+	hi, lo := bits.Mul64(r.state, r.state^0xe7037ed1a0b428db)
+	return hi ^ lo
+}
+
+func (r *Random) Uint64N(n uint64) uint64 {
+	if n == 0 {
+		panic("random bound must be positive")
+	}
+	threshold := -n % n
+	for {
+		x := r.Uint64()
+		if x >= threshold {
+			return x % n
+		}
+	}
+}
+
+func (r *Random) Float64() float64    { return float64(r.Uint64()>>11) / (1 << 53) }
+func (r *Random) ExpFloat64() float64 { return -math.Log1p(-r.Float64()) }
 
 type fastrander struct {
 	state uint64

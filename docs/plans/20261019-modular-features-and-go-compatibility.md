@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–2 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–3 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -115,16 +115,16 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§5 / RuntimePrepared and identity; T§8 / Engine, random streams; T§9 / Driver; T§12 / NewDomainRandom.  
 **Budget:** 2,000–3,500 changed lines. **Dependency:** 2.
 
-- [ ] Implement `EngineConfig{Seed,TimeoutNS,ReplayRevision}`, `MachineToken{ID,Epoch}`, `NewEngine`, and Engine `PrepareMachine`, `PublishMachine`, `AbortMachine`, `CancelMachine`, `DisposeMachine`, `Schedule`, `CancelEvent`, `Abort`, `Run`, `Close` exactly as T§8. Preserve the process-wide single-active-run guard.
-- [ ] Separate allocation, publication, cancellation and disposal. Prepared machines cannot run globals/init; cancellation removes goroutines/timers/selects without executing defers or stopping the supervisor; disposal follows borrowed-memory release. Make Close/abort cleanup deterministic and safe on partial initialization.
-- [ ] Implement non-recoverable simulation abort through engine state, not an application panic. Preserve diagnostics and test failure even when application code recovers or ignores returned errors.
-- [ ] Implement `Random`, `NewDomainRandom`, `Uint64`, `Uint64N`, `Float64`, `ExpFloat64` with T§8/12's SHA-256 domain derivation, fastrander update, unbiased rejection sampling and fixed stream ownership. Do not use run ID in seeds/checksums; do not rewind streams on restart.
-- [ ] Introduce the T§9 `Driver` and exported ABI run records for new composition tests. Keep the old integration entry path only until Task 22, with no nested engine; identify its removal in the migration ledger.
+- [x] Implement `EngineConfig{Seed,TimeoutNS,ReplayRevision}`, `MachineToken{ID,Epoch}`, `NewEngine`, and Engine `PrepareMachine`, `PublishMachine`, `AbortMachine`, `CancelMachine`, `DisposeMachine`, `Schedule`, `CancelEvent`, `Abort`, `Run`, `Close` exactly as T§8. Preserve the process-wide single-active-run guard.
+- [x] Separate allocation, publication, cancellation and disposal. Prepared machines cannot run globals/init; cancellation removes goroutines/timers/selects without executing defers or stopping the supervisor; disposal follows borrowed-memory release. Make Close/abort cleanup deterministic and safe on partial initialization.
+- [x] Implement non-recoverable simulation abort through engine state, not an application panic. Preserve diagnostics and test failure even when application code recovers or ignores returned errors.
+- [x] Implement `Random`, `NewDomainRandom`, `Uint64`, `Uint64N`, `Float64`, `ExpFloat64` with T§8/12's SHA-256 domain derivation, fastrander update, unbiased rejection sampling and fixed stream ownership. Do not use run ID in seeds/checksums; do not rewind streams on restart.
+- [x] Introduce the T§9 `Driver` and exported ABI run records for new composition tests. Keep the old integration entry path only until Task 22, with no nested engine; identify its removal in the migration ledger.
 
 #### Verification
 
-- [ ] Exercise failed prepare, no init before publish, cancellation during blocked operations, event/epoch rejection, independent streams, repeated seed, zero bound rejection, run-ID exclusion and single-active-run rejection.
-- [ ] Existing scheduler/race tests and the common commit gate pass; replay goldens change only with an explicitly recorded replay revision.
+- [x] Exercise failed prepare, no init before publish, cancellation during blocked operations, event/epoch rejection, independent streams, repeated seed, zero bound rejection, run-ID exclusion and single-active-run rejection.
+- [x] Existing scheduler/race tests and the common commit gate pass; replay goldens change only with an explicitly recorded replay revision.
 
 ### Task 4: Declare translated provider, descriptor and control contracts
 
@@ -778,7 +778,8 @@ Task 1 uses small additional files inside the declared packages for shared canon
 | --- | --- | --- | --- | --- |
 | Planning only | Documentation | Source baseline e6122b1 | Repository/source/target review; no new compatibility tests executed | Initial plan |
 | Task 1 / 5757fc9 | See progress record | go1.26.0 / darwin-arm64 / existing full feature suite | Baseline and final `./test.sh --concurrency 1` passed, including race; focused rejection/identity/hook tests; real distribution verification for both target patches | No tuple certified |
-| Task 2 (commit containing this entry) | See progress record | go1.26.0 / darwin-arm64 / existing full suite | Full ordinary/race gate; external native ABI fixture; generator output; import audit | Runtime moved without behavior changes |
+| Task 2 / 3d1bf1d | See progress record | go1.26.0 / darwin-arm64 / existing full suite | Full ordinary/race gate; external native ABI fixture; generator output; import audit | Runtime moved without behavior changes |
+| Task 3 (commit containing this entry) | See progress record | go1.26.0 / darwin-arm64 / existing full suite | Native engine lifecycle and RNG tests under race; complete ordinary/race gate passed | New engine replay revision is gosim-replay-v2; legacy wiring removed in Task 22 |
 
 ## Planning verification
 
