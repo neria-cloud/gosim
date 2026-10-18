@@ -284,3 +284,27 @@ Verified
 - Initial gate found three formatting differences after the first formatting pass; a second formatter pass and standalone check resolved them before the full rerun.
 - No migration stubs or production wiring were introduced. All remaining tasks and exact-patch certification remain required.
 - Final Task 4 size: 1,027 changed lines including checklist/log; staged whitespace check passed.
+
+## Task 5 — Kernel registry and lifecycle transactions
+Date: 2026-10-19. Previous task commit: `47e80c6`. Commit: the Task 5 implementation commit containing this entry.
+
+Implemented
+- Kernel/Machine/Run/StartTxn/RuntimePrepared/ExitRecord structures and lifecycle methods, immutable feature selection, process-wide run IDs, non-reused machine/epoch/wait IDs, state validation and overflow failure.
+- Ordered provider opening/control installation, preparation and ownership validation, atomic publication, reverse rollback after descriptor finalization, retained terminal records, epoch-capturing waits, protected root and returning-self rejection.
+- Irreversible stop/crash cleanup, once-only settling, joined cleanup failures, root-last teardown, and primitive internal self-exit messages. Main return requests graceful termination; the trusted crash route skips application defers. Kernel.Run executes in Engine.Run's supervisor and leaves Engine.Close to its runner.
+- Owned clock/events/trace/random ports with epoch admission, canceled/fired event removal, copied trace fields, independent random streams and restart continuity. Disabled features abort through the native engine and cannot be recovered by application code.
+- Native process identity allocator, current-machine token and non-yielding lifecycle guard. Supervisor/event race synchronization applies only to supervisor state; an isolated deliberate application-race subprocess proves the race oracle remains effective.
+
+Verified
+- Real-engine ordinary/race lifecycle fixtures cover provider open/control failures, each provider preparation/binding boundary, runtime preparation failure, aborted/repeated commits, publication panic/nil instance/yield, rollback cleanup failures, consumed failed epochs, restart preservation, stale/wrong-run/destroyed handles, waits across restart, root protection, self crash, application panic, disabled feature abort, and ID exhaustion.
+- Cleanup tests verify reverse quiesce/detach, filesystem-first settling, remove-before-release descriptors, graceful failure switching remaining cleanup to crash, all joined error messages, and provider/session cleanup despite failures.
+- Ports tests verify no staging events, stale callback rejection after restart, live events, event bookkeeping, trace ownership and random independence. Import test permits only contracts/native runtime/ABI among Gosim kernel dependencies.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including formatting, CLI/build artifacts, ordinary suites and race suites. Final log `.gosim/task5-final-gate.log`; final focused race log `.gosim/task5-final-focused.log`.
+
+Findings and migration ledger
+- Controlled nondeterminism is not a publication barrier: it suppresses the initial coroutine park and can execute boot synchronously. A dedicated guard now rejects yields without changing startup parking or random draws; Sleep rejects before inserting a timer.
+- Provider events run on the scheduler stack while lifecycle code runs on the supervisor coroutine. An explicit supervisor-only synchronization token describes that serialized ownership without hiding application races.
+- State constants use StateNew/StateStarting/etc because Go cannot declare both constructor New and a package-level constant New. The required lifecycle states and method names are unchanged.
+- Config carries native HostIdentity, the canonical full build digest, features and timeout. Importing the host buildspec package would pull os/exec into the translated kernel; that dependency was removed before commit and a boundary regression check added.
+- Task 6 completes FDTable capabilities/polling and dispatcher invocation transport/wait completion. The minimal lifecycle descriptor table performs real ownership cleanup; the lifecycle-only dispatcher cancels observer records and validates drain, with no syscall fallback. Both carry Task 6 migration markers. No normal CLI composition selects the unfinished kernel yet.
+- Final Task 5 size: 2,095 changed lines (2,072 additions + 23 deletions), including checklist/log; staged whitespace check passed.

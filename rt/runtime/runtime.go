@@ -100,8 +100,9 @@ func newMachine(label string) *Machine {
 }
 
 type scheduler struct {
-	seed   int64
-	engine *Engine
+	seed            int64
+	engine          *Engine
+	transitionDepth int
 
 	goroutines      intrusiveList[*goroutine]
 	runnable        intrusiveList[*goroutine]
@@ -833,6 +834,7 @@ func (g *goroutine) exitpoint() {
 		g.parkPanicValue = fmt.Sprint(recovered)
 	}
 	g.finished = true
+	g.releaseSupervisor()
 	g.coro.Finish()
 }
 
@@ -850,6 +852,7 @@ func (g *goroutine) park(wait bool) {
 	// inform scheduler we're paused
 	// wait for us to resume
 	for {
+		g.releaseSupervisor()
 		if race.Enabled {
 			if wait {
 				g.parksynctoken.Release()
@@ -874,6 +877,7 @@ func (g *goroutine) park(wait bool) {
 				}
 			}
 		}
+		g.acquireSupervisor()
 
 		switch g.corotask {
 		case corotaskCleanup:
@@ -893,12 +897,14 @@ func (g *goroutine) park(wait bool) {
 }
 
 func (g *goroutine) yield() {
+	checkTransition()
 	// TODO: optimize by fast-pathing here to stay on the same goroutine before
 	// hitting the expensive coroutine switching in park?
 	g.park(false)
 }
 
 func (g *goroutine) wait() {
+	checkTransition()
 	g.park(true)
 }
 

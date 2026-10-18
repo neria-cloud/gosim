@@ -82,6 +82,7 @@ func Sleep(duration int64) {
 	if duration <= 0 {
 		return
 	}
+	checkTransition() // reject before inserting a timer owned by the supervisor
 	end := start + duration
 
 	// no sudog??? cool.

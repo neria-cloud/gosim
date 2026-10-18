@@ -150,16 +150,16 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§5 / Kernel, Machine, Run, StartTxn, RuntimePrepared, ExitRecord; T§6 all flows; T§12 / New, BeginStart, Commit, Abort, Stop, Restart, Require.  
 **Budget:** 2,500–4,000 changed lines. **Dependency:** 3–4.
 
-- [ ] Implement the exact T§5 registry/transaction structures and Kernel/Create/Lookup/Start/Restart/Stop/Destroy/SetMain/Wait/Accepts methods. Distinguish New, Starting, Running, Stopping, Stopped, Crashed and Destroyed; reserve non-reused machine/run/epoch IDs and fail on overflow.
-- [ ] Open providers in FS,Net order; install session controls; unwind reverse order on failures. Implement transaction preparation/publication/abort with a non-yielding supervisor barrier, validation before Publish and no init before commit. Use a minimal descriptor implementation only if needed for this task; replace it fully in Task 6.
-- [ ] Finalize staged descriptors before aborting providers; preserve prior disk/config/terminal state on startup failure. Implement irreversible stop/crash ordering, joined cleanup diagnostics, once-only Settle, root-last teardown and runner-owned Engine.Close.
-- [ ] Implement epoch-capturing Wait, self-transition errors, trusted non-returning self-exit routes, root protection, and retained terminal exit records. Returning from machine Main gracefully terminates its epoch.
-- [ ] Supply owned clock/events/trace/random ports; gate callbacks by epoch. Kernel.Require aborts disabled operations even if caught by application recovery. Driver/runtime test composition can exercise this kernel without making normal CLI selection switch yet.
+- [x] Implement the exact T§5 registry/transaction structures and Kernel/Create/Lookup/Start/Restart/Stop/Destroy/SetMain/Wait/Accepts methods. Distinguish New, Starting, Running, Stopping, Stopped, Crashed and Destroyed; reserve non-reused machine/run/epoch IDs and fail on overflow.
+- [x] Open providers in FS,Net order; install session controls; unwind reverse order on failures. Implement transaction preparation/publication/abort with a non-yielding supervisor barrier, validation before Publish and no init before commit. Use a minimal descriptor implementation only if needed for this task; replace it fully in Task 6.
+- [x] Finalize staged descriptors before aborting providers; preserve prior disk/config/terminal state on startup failure. Implement irreversible stop/crash ordering, joined cleanup diagnostics, once-only Settle, root-last teardown and runner-owned Engine.Close.
+- [x] Implement epoch-capturing Wait, self-transition errors, trusted non-returning self-exit routes, root protection, and retained terminal exit records. Returning from machine Main gracefully terminates its epoch.
+- [x] Supply owned clock/events/trace/random ports; gate callbacks by epoch. Kernel.Require aborts disabled operations even if caught by application recovery. Driver/runtime test composition can exercise this kernel without making normal CLI selection switch yet.
 
 #### Verification
 
-- [ ] Failure at every prepare/commit boundary, reverse abort, consumed failed epoch, double Commit, idempotent terminal stop, root/self handling, stale handles, Wait across restart and cleanup failure tests pass using recording providers.
-- [ ] Run common commit gate and a real-engine lifecycle fixture, not only fake-engine unit tests.
+- [x] Failure at every prepare/commit boundary, reverse abort, consumed failed epoch, double Commit, idempotent terminal stop, root/self handling, stale handles, Wait across restart and cleanup failure tests pass using recording providers.
+- [x] Run common commit gate and a real-engine lifecycle fixture, not only fake-engine unit tests.
 
 ### Task 6: Implement syscall dispatch, descriptor ownership, polling and process services
 

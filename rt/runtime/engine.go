@@ -50,19 +50,20 @@ type randomKey struct {
 // Engine owns one scheduler and all native machine allocations in a run.
 // Its methods run on the serialized supervisor (or through a native upcall).
 type Engine struct {
-	config     EngineConfig
-	scheduler  *scheduler
-	machines   map[uint64]*engineMachine
-	lastEpoch  map[uint64]uint64
-	events     map[uint64]engineEvent
-	nextEvent  uint64
-	random     map[randomKey]*Random
-	supervisor *Machine
-	running    bool
-	cleaning   bool
-	ran        bool
-	closed     bool
-	result     error
+	config          EngineConfig
+	scheduler       *scheduler
+	machines        map[uint64]*engineMachine
+	lastEpoch       map[uint64]uint64
+	events          map[uint64]engineEvent
+	nextEvent       uint64
+	random          map[randomKey]*Random
+	supervisor      *Machine
+	supervisorToken RaceToken
+	running         bool
+	cleaning        bool
+	ran             bool
+	closed          bool
+	result          error
 }
 
 func NewEngine(config EngineConfig) (*Engine, error) {
@@ -70,7 +71,7 @@ func NewEngine(config EngineConfig) (*Engine, error) {
 		return nil, fmt.Errorf("invalid engine timeout or replay revision")
 	}
 	e := &Engine{
-		config: config, machines: make(map[uint64]*engineMachine), lastEpoch: make(map[uint64]uint64),
+		config: config, machines: make(map[uint64]*engineMachine), lastEpoch: make(map[uint64]uint64), supervisorToken: MakeRaceToken(),
 		events: make(map[uint64]engineEvent), random: make(map[randomKey]*Random), nextEvent: 1,
 	}
 	e.scheduler = newScheduler(config.Seed, makeLogger(io.Discard, slog.LevelInfo), nil, nil)
@@ -268,6 +269,8 @@ func (e *Engine) Schedule(token MachineToken, when int64, callback func()) (uint
 		timer := NewTimer(func(*Timer) {
 			delete(e.events, id)
 			if current := e.lookup(token); current != nil && current.published && !current.canceled {
+				e.supervisorToken.Acquire()
+				defer e.supervisorToken.Release()
 				previous := globalPtr.get()
 				globalPtr.set(e.supervisor.globals)
 				defer globalPtr.set(previous)
