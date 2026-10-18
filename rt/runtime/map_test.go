@@ -5,7 +5,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func TestMapIterDeleteDuplicatesHappen(t *testing.T) {

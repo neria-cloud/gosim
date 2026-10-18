@@ -45,7 +45,7 @@ import (
 	testing_original "testing"
 	"translated/test/test"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 	"translated/github.com/neria-cloud/gosim/internal_/hooks/go123"
 )
 

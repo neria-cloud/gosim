@@ -15,8 +15,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/neria-cloud/gosim"
-	"github.com/neria-cloud/gosim/gosimruntime"
 	"github.com/neria-cloud/gosim/internal/gosimlog"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func TestLogSLog(t *testing.T) {

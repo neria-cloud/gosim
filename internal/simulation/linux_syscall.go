@@ -5,6 +5,8 @@ package simulation
 import (
 	"syscall"
 
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
+
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 )
 
@@ -37,7 +39,7 @@ func SyscallSysFcntlFlock(fd uintptr, cmd int, lk *Flock_t) (err error) {
 func trampolineSysFcntlFlock(syscall *syscallabi.Syscall) {
 	fd := uintptr(syscall.Int0)
 	cmd := int(syscall.Int1)
-	lk := syscallabi.NewValueView(syscall.Ptr2.(*Flock_t))
+	lk := abi.NewValueView(syscall.Ptr2.(*Flock_t))
 	err := syscall.OS.(*LinuxOS).SysFcntlFlock(fd, cmd, lk, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()

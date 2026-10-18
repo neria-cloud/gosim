@@ -1,6 +1,6 @@
 package go125
 
-import "github.com/neria-cloud/gosim/gosimruntime"
+import "github.com/neria-cloud/gosim/rt/runtime"
 
 func Os_runtime_args() []string {
 	// TODO: make this configurable / fetch this from the machine API?

@@ -4,7 +4,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 // A chunkedFile is the backing storage for files. It supports efficient reads
@@ -124,7 +124,7 @@ func requiredCount(chunkPos int, len int) int {
 	return count
 }
 
-func makeChunks(pos int, view syscallabi.ByteSliceView) []*refCountedChunk {
+func makeChunks(pos int, view abi.ByteView) []*refCountedChunk {
 	if view.Len() == 0 {
 		return nil
 	}
@@ -268,7 +268,7 @@ func (w *chunkedFile) Write(pos int, size int, chunks []*refCountedChunk) {
 	}
 }
 
-func (w *chunkedFile) Read(pos int, out syscallabi.ByteSliceView) {
+func (w *chunkedFile) Read(pos int, out abi.ByteView) {
 	// TODO: precondition that read fits in file?
 
 	chunkIdx := pos / chunkSize

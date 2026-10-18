@@ -10,16 +10,17 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
 	"github.com/neria-cloud/gosim/internal/simulation/fs"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 // prevent unused imports
 var (
 	_ unsafe.Pointer
 	_ time.Duration
-	_ syscallabi.ValueView[any]
+	_ abi.ValueView[any]
 	_ syscall.Errno
 	_ fs.InodeInfo
 	_ unix.Errno
@@ -30,9 +31,9 @@ var (
 // with HandleSyscall. The interface is not used but helpful for implementing
 // new syscalls.
 type linuxOSIface interface {
-	PollClose(fd int, desc syscallabi.ValueView[syscallabi.PollDesc], invocation *syscallabi.Syscall) (code int)
-	PollOpen(fd int, desc syscallabi.ValueView[syscallabi.PollDesc], invocation *syscallabi.Syscall) (code int)
-	SysAccept4(s int, rsa syscallabi.ValueView[RawSockaddrAny], addrlen syscallabi.ValueView[Socklen], flags int, invocation *syscallabi.Syscall) (fd int, err error)
+	PollClose(fd int, desc abi.ValueView[syscallabi.PollDesc], invocation *syscallabi.Syscall) (code int)
+	PollOpen(fd int, desc abi.ValueView[syscallabi.PollDesc], invocation *syscallabi.Syscall) (code int)
+	SysAccept4(s int, rsa abi.ValueView[RawSockaddrAny], addrlen abi.ValueView[Socklen], flags int, invocation *syscallabi.Syscall) (fd int, err error)
 	SysBind(s int, addr unsafe.Pointer, addrlen Socklen, invocation *syscallabi.Syscall) (err error)
 	SysChdir(path string, invocation *syscallabi.Syscall) (err error)
 	SysClose(fd int, invocation *syscallabi.Syscall) (err error)
@@ -41,33 +42,33 @@ type linuxOSIface interface {
 	SysFcntl(fd int, cmd int, arg int, invocation *syscallabi.Syscall) (val int, err error)
 	SysFdatasync(fd int, invocation *syscallabi.Syscall) (err error)
 	SysFlock(fd int, how int, invocation *syscallabi.Syscall) (err error)
-	SysFstat(fd int, stat syscallabi.ValueView[Stat_t], invocation *syscallabi.Syscall) (err error)
+	SysFstat(fd int, stat abi.ValueView[Stat_t], invocation *syscallabi.Syscall) (err error)
 	SysFsync(fd int, invocation *syscallabi.Syscall) (err error)
 	SysFtruncate(fd int, length int64, invocation *syscallabi.Syscall) (err error)
-	SysGetcwd(buf syscallabi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error)
-	SysGetdents64(fd int, buf syscallabi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error)
-	SysGetpeername(fd int, rsa syscallabi.ValueView[RawSockaddrAny], addrlen syscallabi.ValueView[Socklen], invocation *syscallabi.Syscall) (err error)
+	SysGetcwd(buf abi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error)
+	SysGetdents64(fd int, buf abi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error)
+	SysGetpeername(fd int, rsa abi.ValueView[RawSockaddrAny], addrlen abi.ValueView[Socklen], invocation *syscallabi.Syscall) (err error)
 	SysGetpid(invocation *syscallabi.Syscall) (pid int)
-	SysGetrandom(buf syscallabi.SliceView[byte], flags int, invocation *syscallabi.Syscall) (n int, err error)
-	SysGetsockname(fd int, rsa syscallabi.ValueView[RawSockaddrAny], addrlen syscallabi.ValueView[Socklen], invocation *syscallabi.Syscall) (err error)
-	SysGetsockopt(s int, level int, name int, val unsafe.Pointer, vallen syscallabi.ValueView[Socklen], invocation *syscallabi.Syscall) (err error)
+	SysGetrandom(buf abi.SliceView[byte], flags int, invocation *syscallabi.Syscall) (n int, err error)
+	SysGetsockname(fd int, rsa abi.ValueView[RawSockaddrAny], addrlen abi.ValueView[Socklen], invocation *syscallabi.Syscall) (err error)
+	SysGetsockopt(s int, level int, name int, val unsafe.Pointer, vallen abi.ValueView[Socklen], invocation *syscallabi.Syscall) (err error)
 	SysListen(s int, n int, invocation *syscallabi.Syscall) (err error)
 	SysLseek(fd int, offset int64, whence int, invocation *syscallabi.Syscall) (off int64, err error)
-	SysMadvise(b syscallabi.SliceView[byte], advice int, invocation *syscallabi.Syscall) (err error)
+	SysMadvise(b abi.SliceView[byte], advice int, invocation *syscallabi.Syscall) (err error)
 	SysMkdirat(dirfd int, path string, mode uint32, invocation *syscallabi.Syscall) (err error)
 	SysMmap(addr uintptr, length uintptr, prot int, flags int, fd int, offset int64, invocation *syscallabi.Syscall) (xaddr uintptr, err error)
 	SysMunmap(addr uintptr, length uintptr, invocation *syscallabi.Syscall) (err error)
-	SysNewfstatat(fd int, path string, stat syscallabi.ValueView[Stat_t], flags int, invocation *syscallabi.Syscall) (err error)
+	SysNewfstatat(fd int, path string, stat abi.ValueView[Stat_t], flags int, invocation *syscallabi.Syscall) (err error)
 	SysOpenat(dirfd int, path string, flags int, mode uint32, invocation *syscallabi.Syscall) (fd int, err error)
-	SysPread64(fd int, p syscallabi.SliceView[byte], offset int64, invocation *syscallabi.Syscall) (n int, err error)
-	SysPwrite64(fd int, p syscallabi.SliceView[byte], offset int64, invocation *syscallabi.Syscall) (n int, err error)
-	SysRead(fd int, p syscallabi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error)
+	SysPread64(fd int, p abi.SliceView[byte], offset int64, invocation *syscallabi.Syscall) (n int, err error)
+	SysPwrite64(fd int, p abi.SliceView[byte], offset int64, invocation *syscallabi.Syscall) (n int, err error)
+	SysRead(fd int, p abi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error)
 	SysRenameat(olddirfd int, oldpath string, newdirfd int, newpath string, invocation *syscallabi.Syscall) (err error)
 	SysSetsockopt(s int, level int, name int, val unsafe.Pointer, vallen uintptr, invocation *syscallabi.Syscall) (err error)
 	SysSocket(domain int, typ int, proto int, invocation *syscallabi.Syscall) (fd int, err error)
-	SysUname(buf syscallabi.ValueView[Utsname], invocation *syscallabi.Syscall) (err error)
+	SysUname(buf abi.ValueView[Utsname], invocation *syscallabi.Syscall) (err error)
 	SysUnlinkat(dirfd int, path string, flags int, invocation *syscallabi.Syscall) (err error)
-	SysWrite(fd int, p syscallabi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error)
+	SysWrite(fd int, p abi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error)
 }
 
 var _ linuxOSIface = &LinuxOS{}
@@ -105,7 +106,7 @@ func SyscallPollClose(fd int, desc *syscallabi.PollDesc) (code int) {
 //go:norace
 func trampolinePollClose(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	desc := syscallabi.NewValueView(syscall.Ptr1.(*syscallabi.PollDesc))
+	desc := abi.NewValueView(syscall.Ptr1.(*syscallabi.PollDesc))
 	code := syscall.OS.(*LinuxOS).PollClose(fd, desc, syscall)
 	syscall.R0 = uintptr(code)
 	syscall.Complete()
@@ -142,7 +143,7 @@ func SyscallPollOpen(fd int, desc *syscallabi.PollDesc) (code int) {
 //go:norace
 func trampolinePollOpen(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	desc := syscallabi.NewValueView(syscall.Ptr1.(*syscallabi.PollDesc))
+	desc := abi.NewValueView(syscall.Ptr1.(*syscallabi.PollDesc))
 	code := syscall.OS.(*LinuxOS).PollOpen(fd, desc, syscall)
 	syscall.R0 = uintptr(code)
 	syscall.Complete()
@@ -183,8 +184,8 @@ func SyscallSysAccept4(s int, rsa *RawSockaddrAny, addrlen *Socklen, flags int) 
 //go:norace
 func trampolineSysAccept4(syscall *syscallabi.Syscall) {
 	s := int(syscall.Int0)
-	rsa := syscallabi.NewValueView(syscall.Ptr1.(*RawSockaddrAny))
-	addrlen := syscallabi.NewValueView(syscall.Ptr2.(*Socklen))
+	rsa := abi.NewValueView(syscall.Ptr1.(*RawSockaddrAny))
+	addrlen := abi.NewValueView(syscall.Ptr2.(*Socklen))
 	flags := int(syscall.Int3)
 	fd, err := syscall.OS.(*LinuxOS).SysAccept4(s, rsa, addrlen, flags, syscall)
 	syscall.R0 = uintptr(fd)
@@ -520,7 +521,7 @@ func SyscallSysFstat(fd int, stat *Stat_t) (err error) {
 //go:norace
 func trampolineSysFstat(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	stat := syscallabi.NewValueView(syscall.Ptr1.(*Stat_t))
+	stat := abi.NewValueView(syscall.Ptr1.(*Stat_t))
 	err := syscall.OS.(*LinuxOS).SysFstat(fd, stat, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()
@@ -626,7 +627,7 @@ func SyscallSysGetcwd(buf []byte) (n int, err error) {
 
 //go:norace
 func trampolineSysGetcwd(syscall *syscallabi.Syscall) {
-	buf := syscallabi.NewSliceView(syscall.Ptr0.(*byte), syscall.Int0)
+	buf := abi.NewSliceView(syscall.Ptr0.(*byte), syscall.Int0)
 	n, err := syscall.OS.(*LinuxOS).SysGetcwd(buf, syscall)
 	syscall.R0 = uintptr(n)
 	syscall.Errno = syscallabi.ErrErrno(err)
@@ -665,7 +666,7 @@ func SyscallSysGetdents64(fd int, buf []byte) (n int, err error) {
 //go:norace
 func trampolineSysGetdents64(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	buf := syscallabi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
+	buf := abi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
 	n, err := syscall.OS.(*LinuxOS).SysGetdents64(fd, buf, syscall)
 	syscall.R0 = uintptr(n)
 	syscall.Errno = syscallabi.ErrErrno(err)
@@ -705,8 +706,8 @@ func SyscallSysGetpeername(fd int, rsa *RawSockaddrAny, addrlen *Socklen) (err e
 //go:norace
 func trampolineSysGetpeername(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	rsa := syscallabi.NewValueView(syscall.Ptr1.(*RawSockaddrAny))
-	addrlen := syscallabi.NewValueView(syscall.Ptr2.(*Socklen))
+	rsa := abi.NewValueView(syscall.Ptr1.(*RawSockaddrAny))
+	addrlen := abi.NewValueView(syscall.Ptr2.(*Socklen))
 	err := syscall.OS.(*LinuxOS).SysGetpeername(fd, rsa, addrlen, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()
@@ -775,7 +776,7 @@ func SyscallSysGetrandom(buf []byte, flags int) (n int, err error) {
 
 //go:norace
 func trampolineSysGetrandom(syscall *syscallabi.Syscall) {
-	buf := syscallabi.NewSliceView(syscall.Ptr0.(*byte), syscall.Int0)
+	buf := abi.NewSliceView(syscall.Ptr0.(*byte), syscall.Int0)
 	flags := int(syscall.Int1)
 	n, err := syscall.OS.(*LinuxOS).SysGetrandom(buf, flags, syscall)
 	syscall.R0 = uintptr(n)
@@ -816,8 +817,8 @@ func SyscallSysGetsockname(fd int, rsa *RawSockaddrAny, addrlen *Socklen) (err e
 //go:norace
 func trampolineSysGetsockname(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	rsa := syscallabi.NewValueView(syscall.Ptr1.(*RawSockaddrAny))
-	addrlen := syscallabi.NewValueView(syscall.Ptr2.(*Socklen))
+	rsa := abi.NewValueView(syscall.Ptr1.(*RawSockaddrAny))
+	addrlen := abi.NewValueView(syscall.Ptr2.(*Socklen))
 	err := syscall.OS.(*LinuxOS).SysGetsockname(fd, rsa, addrlen, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()
@@ -861,7 +862,7 @@ func trampolineSysGetsockopt(syscall *syscallabi.Syscall) {
 	level := int(syscall.Int1)
 	name := int(syscall.Int2)
 	val := syscall.Ptr3.(unsafe.Pointer)
-	vallen := syscallabi.NewValueView(syscall.Ptr4.(*Socklen))
+	vallen := abi.NewValueView(syscall.Ptr4.(*Socklen))
 	err := syscall.OS.(*LinuxOS).SysGetsockopt(s, level, name, val, vallen, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()
@@ -973,7 +974,7 @@ func SyscallSysMadvise(b []byte, advice int) (err error) {
 
 //go:norace
 func trampolineSysMadvise(syscall *syscallabi.Syscall) {
-	b := syscallabi.NewSliceView(syscall.Ptr0.(*byte), syscall.Int0)
+	b := abi.NewSliceView(syscall.Ptr0.(*byte), syscall.Int0)
 	advice := int(syscall.Int1)
 	err := syscall.OS.(*LinuxOS).SysMadvise(b, advice, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
@@ -1136,7 +1137,7 @@ func SyscallSysNewfstatat(fd int, path string, stat *Stat_t, flags int) (err err
 func trampolineSysNewfstatat(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
 	path := syscall.Ptr1.(string)
-	stat := syscallabi.NewValueView(syscall.Ptr2.(*Stat_t))
+	stat := abi.NewValueView(syscall.Ptr2.(*Stat_t))
 	flags := int(syscall.Int3)
 	err := syscall.OS.(*LinuxOS).SysNewfstatat(fd, path, stat, flags, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
@@ -1219,7 +1220,7 @@ func SyscallSysPread64(fd int, p []byte, offset int64) (n int, err error) {
 //go:norace
 func trampolineSysPread64(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	p := syscallabi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
+	p := abi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
 	offset := int64(syscall.Int2)
 	n, err := syscall.OS.(*LinuxOS).SysPread64(fd, p, offset, syscall)
 	syscall.R0 = uintptr(n)
@@ -1260,7 +1261,7 @@ func SyscallSysPwrite64(fd int, p []byte, offset int64) (n int, err error) {
 //go:norace
 func trampolineSysPwrite64(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	p := syscallabi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
+	p := abi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
 	offset := int64(syscall.Int2)
 	n, err := syscall.OS.(*LinuxOS).SysPwrite64(fd, p, offset, syscall)
 	syscall.R0 = uintptr(n)
@@ -1300,7 +1301,7 @@ func SyscallSysRead(fd int, p []byte) (n int, err error) {
 //go:norace
 func trampolineSysRead(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	p := syscallabi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
+	p := abi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
 	n, err := syscall.OS.(*LinuxOS).SysRead(fd, p, syscall)
 	syscall.R0 = uintptr(n)
 	syscall.Errno = syscallabi.ErrErrno(err)
@@ -1461,7 +1462,7 @@ func SyscallSysUname(buf *Utsname) (err error) {
 
 //go:norace
 func trampolineSysUname(syscall *syscallabi.Syscall) {
-	buf := syscallabi.NewValueView(syscall.Ptr0.(*Utsname))
+	buf := abi.NewValueView(syscall.Ptr0.(*Utsname))
 	err := syscall.OS.(*LinuxOS).SysUname(buf, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()
@@ -1538,7 +1539,7 @@ func SyscallSysWrite(fd int, p []byte) (n int, err error) {
 //go:norace
 func trampolineSysWrite(syscall *syscallabi.Syscall) {
 	fd := int(syscall.Int0)
-	p := syscallabi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
+	p := abi.NewSliceView(syscall.Ptr1.(*byte), syscall.Int1)
 	n, err := syscall.OS.(*LinuxOS).SysWrite(fd, p, syscall)
 	syscall.R0 = uintptr(n)
 	syscall.Errno = syscallabi.ErrErrno(err)

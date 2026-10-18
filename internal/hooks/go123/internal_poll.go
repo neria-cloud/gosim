@@ -3,9 +3,9 @@
 package go123
 
 import (
-	"github.com/neria-cloud/gosim/gosimruntime"
 	"github.com/neria-cloud/gosim/internal/simulation"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func InternalPoll_runtimeNano() int64 {

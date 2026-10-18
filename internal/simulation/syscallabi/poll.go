@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 // TODO: clean/change this API?

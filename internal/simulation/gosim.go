@@ -6,6 +6,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
+
 	"github.com/neria-cloud/gosim/internal/simulation/fs"
 	"github.com/neria-cloud/gosim/internal/simulation/network"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
@@ -110,7 +112,7 @@ func (g *GosimOS) MachineRecoverRelease(crashIterId int, invocation *syscallabi.
 	delete(g.crashItersById, crashIterId)
 }
 
-func (g *GosimOS) MachineInodeInfo(machineID int, inode int, info syscallabi.ValueView[fs.InodeInfo], invocation *syscallabi.Syscall) {
+func (g *GosimOS) MachineInodeInfo(machineID int, inode int, info abi.ValueView[fs.InodeInfo], invocation *syscallabi.Syscall) {
 	g.simulation.mu.Lock()
 	defer g.simulation.mu.Unlock()
 
@@ -189,7 +191,7 @@ func (g *GosimOS) MachineSetSometimesCrashOnSync(machineID int, value bool, invo
 	return nil
 }
 
-func (g *GosimOS) ConfigureNetwork(request syscallabi.ValueView[network.ControlRequest], invocation *syscallabi.Syscall) error {
+func (g *GosimOS) ConfigureNetwork(request abi.ValueView[network.ControlRequest], invocation *syscallabi.Syscall) error {
 	return g.simulation.network.ApplyControl(request.Get())
 }
 

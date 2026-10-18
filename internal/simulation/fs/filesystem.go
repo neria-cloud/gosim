@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 // A Mmap tracks an open mmap for a given file. Mmaps are implemented by keeping
@@ -22,7 +22,7 @@ import (
 // That is enough to make go.etcd.io/bbolt work.
 type Mmap struct {
 	Inode int
-	Data  syscallabi.ByteSliceView
+	Data  abi.ByteView
 }
 
 // next:
@@ -47,7 +47,7 @@ type backingFile struct {
 
 var zeroes = make([]byte, 1024)
 
-func (f *backingFile) read(pos int64, buffer syscallabi.ByteSliceView) int {
+func (f *backingFile) read(pos int64, buffer abi.ByteView) int {
 	if int(pos) < f.file.size {
 		n := min(buffer.Len(), f.file.size-int(pos))
 		f.file.Read(int(pos), buffer.Slice(0, n))
@@ -651,7 +651,7 @@ func (fs *Filesystem) maybeGC(inode int) {
 	}
 }
 
-func (fs *Filesystem) Read(inode int, pos int64, buffer syscallabi.ByteSliceView) int {
+func (fs *Filesystem) Read(inode int, pos int64, buffer abi.ByteView) int {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -659,7 +659,7 @@ func (fs *Filesystem) Read(inode int, pos int64, buffer syscallabi.ByteSliceView
 	return file.read(pos, buffer)
 }
 
-func (fs *Filesystem) Write(inode int, pos int64, buffer syscallabi.ByteSliceView) int {
+func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView) int {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -1154,7 +1154,7 @@ func (fs *Filesystem) Mmap(inode int, len int) *Mmap {
 	defer fs.mu.Unlock()
 
 	backingArray := make([]byte, len)
-	byteView := syscallabi.NewSliceView(unsafe.SliceData(backingArray), uintptr(len))
+	byteView := abi.NewSliceView(unsafe.SliceData(backingArray), uintptr(len))
 
 	file := fs.mem.getFile(inode)
 	file.read(0, byteView)

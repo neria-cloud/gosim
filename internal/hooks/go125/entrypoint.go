@@ -1,10 +1,10 @@
 package go125
 
 import (
-	"github.com/neria-cloud/gosim/gosimruntime"
 	"github.com/neria-cloud/gosim/internal/simulation"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 	"github.com/neria-cloud/gosim/internal/testing"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func Runtime() gosimruntime.Runtime {

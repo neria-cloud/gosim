@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/neria-cloud/gosim"
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func TestCrashTimer(t *testing.T) {

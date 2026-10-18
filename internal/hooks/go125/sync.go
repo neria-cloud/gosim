@@ -1,7 +1,7 @@
 package go125
 
 import (
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func Sync_runtime_Semacquire(addr *uint32) {

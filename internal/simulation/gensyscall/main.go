@@ -367,7 +367,7 @@ func toUintptr(val string, typ Param) string {
 		panic("help")
 	}
 	if typ.Type == "bool" {
-		return fmt.Sprintf("syscallabi.BoolToUintptr(%s)", val)
+		return fmt.Sprintf("abi.BoolToUintptr(%s)", val)
 	} else if typ.Type == "error" {
 		return fmt.Sprintf("syscallabi.ErrErrno(%s)", val)
 	} else {
@@ -380,7 +380,7 @@ func fromUintptr(val string, typ Param) string {
 		panic("help")
 	}
 	if typ.Type == "bool" {
-		return fmt.Sprintf("syscallabi.BoolFromUintptr(%s)", val)
+		return fmt.Sprintf("abi.BoolFromUintptr(%s)", val)
 	} else if typ.Type == "error" {
 		return fmt.Sprintf("syscallabi.ErrnoErr(%s)", val)
 	} else {
@@ -498,8 +498,8 @@ func writeSyscalls(outputPath string, syscalls []syscallInfo, sysnums map[string
 			if p.Kind == TypePointer {
 				prepareCaller += fmt.Sprintf("\tsyscall.Ptr%d = %s\n", i, p.Name)
 				cleanupCallerText += fmt.Sprintf("\tsyscall.Ptr%d = nil\n", i)
-				prepareDispatch += fmt.Sprintf("\t\t%s := syscallabi.NewValueView(syscall.Ptr%d.(%s%s))\n", p.Name, i, p.Kind, maybeMapType(Switch, p.Type))
-				ifaceArgs = append(ifaceArgs, fmt.Sprintf("%s syscallabi.ValueView[%s]", p.Name, maybeMapType(Iface, p.Type)))
+				prepareDispatch += fmt.Sprintf("\t\t%s := abi.NewValueView(syscall.Ptr%d.(%s%s))\n", p.Name, i, p.Kind, maybeMapType(Switch, p.Type))
+				ifaceArgs = append(ifaceArgs, fmt.Sprintf("%s abi.ValueView[%s]", p.Name, maybeMapType(Iface, p.Type)))
 			} else if p.Kind == TypePlain && (p.Type == "string" || p.Type == "unsafe.Pointer" || p.Type == "any") {
 				prepareCaller += fmt.Sprintf("\tsyscall.Ptr%d = %s\n", i, p.Name)
 				cleanupCallerText += fmt.Sprintf("\tsyscall.Ptr%d = nil\n", i)
@@ -508,8 +508,8 @@ func writeSyscalls(outputPath string, syscalls []syscallInfo, sysnums map[string
 			} else if p.Kind == TypeSlice {
 				prepareCaller += fmt.Sprintf("\tsyscall.Ptr%d, syscall.Int%d = unsafe.SliceData(%s), uintptr(len(%s))\n", i, i, p.Name, p.Name)
 				cleanupCallerText += fmt.Sprintf("\tsyscall.Ptr%d = nil\n", i)
-				prepareDispatch += fmt.Sprintf("\t\t%s := syscallabi.NewSliceView(syscall.Ptr%d.(*%s), syscall.Int%d)\n", p.Name, i, maybeMapType(Switch, p.Type), i)
-				ifaceArgs = append(ifaceArgs, fmt.Sprintf("%s syscallabi.SliceView[%s]", p.Name, maybeMapType(Iface, p.Type)))
+				prepareDispatch += fmt.Sprintf("\t\t%s := abi.NewSliceView(syscall.Ptr%d.(*%s), syscall.Int%d)\n", p.Name, i, maybeMapType(Switch, p.Type), i)
+				ifaceArgs = append(ifaceArgs, fmt.Sprintf("%s abi.SliceView[%s]", p.Name, maybeMapType(Iface, p.Type)))
 			} else {
 				prepareCaller += fmt.Sprintf("\tsyscall.Int%d = %s\n", i, toUintptr(p.Name, p))
 				prepareDispatch += fmt.Sprintf("\t\t%s := %s\n", p.Name, fromUintptr(fmt.Sprintf("syscall.Int%d", i), p))
@@ -626,7 +626,7 @@ func writeSyscalls(outputPath string, syscalls []syscallInfo, sysnums map[string
 	}
 	networkImport := ""
 	if isMachine {
-		networkImport = strconv.Quote(gosimtool.Module + "/internal/simulation/network")
+		networkImport = "\t" + strconv.Quote(gosimtool.Module+"/internal/simulation/network") + "\n"
 	}
 	output += fmt.Sprintf(`package simulation
 
@@ -637,17 +637,17 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"`+gosimtool.Module+`/gosimruntime"
 	"`+gosimtool.Module+`/internal/simulation/fs"
- `+networkImport+`
-	"`+gosimtool.Module+`/internal/simulation/syscallabi"
+`+networkImport+`	"`+gosimtool.Module+`/internal/simulation/syscallabi"
+	"`+gosimtool.Module+`/rt/runtime"
+	"`+gosimtool.Module+`/rt/runtime/abi"
 )
 
 // prevent unused imports
 var (
 	_ unsafe.Pointer
 	_ time.Duration
-	_ syscallabi.ValueView[any]
+	_ abi.ValueView[any]
 	_ syscall.Errno
 	_ fs.InodeInfo
 	_ unix.Errno

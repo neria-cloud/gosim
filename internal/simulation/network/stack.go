@@ -7,6 +7,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
+
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 )
 
@@ -368,7 +370,7 @@ func (c *circularBuffer) free() int {
 	return len(c.data) - c.used
 }
 
-func (c *circularBuffer) Write(data syscallabi.ByteSliceView) int {
+func (c *circularBuffer) Write(data abi.ByteView) int {
 	if free := c.free(); free < data.Len() {
 		data = data.Slice(0, free)
 	}
@@ -385,7 +387,7 @@ func (c *circularBuffer) Write(data syscallabi.ByteSliceView) int {
 	return n
 }
 
-func (c *circularBuffer) Read(data syscallabi.ByteSliceView) int {
+func (c *circularBuffer) Read(data abi.ByteView) int {
 	if c.used < data.Len() {
 		data = data.Slice(0, c.used)
 	}
@@ -602,7 +604,7 @@ func (n *Stack) updateStreamPollers(stream *Stream) {
 	stream.pollers.NotifyCanRead(stream.closed || stream.incomingAvailable > 0)
 }
 
-func (n *Stack) StreamSend(stream *Stream, data syscallabi.ByteSliceView) (int, error) {
+func (n *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -643,7 +645,7 @@ func (n *Stack) StreamSend(stream *Stream, data syscallabi.ByteSliceView) (int, 
 	return written, nil
 }
 
-func (n *Stack) StreamRecv(s *Stream, data syscallabi.ByteSliceView) (int, error) {
+func (n *Stack) StreamRecv(s *Stream, data abi.ByteView) (int, error) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 

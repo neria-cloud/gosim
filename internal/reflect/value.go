@@ -11,7 +11,7 @@ import (
 	"reflect" //gosim:notranslate
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 type wrapKind byte

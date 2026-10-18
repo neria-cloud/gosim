@@ -1,0 +1,34 @@
+# External modules can use the native engine and its ABI in generated code.
+exec gosim test -v .
+stdout 'native runtime and ABI boundary passed'
+
+exec gosim test -race -v .
+stdout 'native runtime and ABI boundary passed'
+
+-- runtimeabi_test.go --
+package boundary_test
+
+import (
+    "testing"
+
+    "github.com/neria-cloud/gosim/rt/runtime"
+    "github.com/neria-cloud/gosim/rt/runtime/abi"
+)
+
+func TestNativeBoundary(t *testing.T) {
+    source := []byte("native ABI")
+    view := abi.NewSliceView(&source[0], uintptr(len(source)))
+    into := make([]byte, len(source))
+    if n := view.Read(into); n != len(source) || string(into) != string(source) {
+        t.Fatalf("unexpected native view: %d %q", n, into)
+    }
+    var value uint64
+    abi.NewValueView(&value).Set(42)
+    if value != 42 || !abi.BoolFromUintptr(abi.BoolToUintptr(true)) {
+        t.Fatal("native value/boolean round trip failed")
+    }
+    if gosimruntime.GetGoroutine() <= 0 {
+        t.Fatal("engine was not active")
+    }
+    t.Log("native runtime and ABI boundary passed")
+}

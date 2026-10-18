@@ -8,17 +8,18 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
 	"github.com/neria-cloud/gosim/internal/simulation/fs"
 	"github.com/neria-cloud/gosim/internal/simulation/network"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 // prevent unused imports
 var (
 	_ unsafe.Pointer
 	_ time.Duration
-	_ syscallabi.ValueView[any]
+	_ abi.ValueView[any]
 	_ syscall.Errno
 	_ fs.InodeInfo
 	_ unix.Errno
@@ -29,9 +30,9 @@ var (
 // with HandleSyscall. The interface is not used but helpful for implementing
 // new syscalls.
 type gosimOSIface interface {
-	ConfigureNetwork(request syscallabi.ValueView[network.ControlRequest], invocation *syscallabi.Syscall) (err error)
+	ConfigureNetwork(request abi.ValueView[network.ControlRequest], invocation *syscallabi.Syscall) (err error)
 	MachineGetLabel(machineID int, invocation *syscallabi.Syscall) (label string, err error)
-	MachineInodeInfo(machineID int, inodeID int, info syscallabi.ValueView[fs.InodeInfo], invocation *syscallabi.Syscall)
+	MachineInodeInfo(machineID int, inodeID int, info abi.ValueView[fs.InodeInfo], invocation *syscallabi.Syscall)
 	MachineNew(label string, addr string, program any, invocation *syscallabi.Syscall) (machineID int)
 	MachineRecoverInit(machineID int, program any, invocation *syscallabi.Syscall) (iterID int)
 	MachineRecoverNext(iterID int, invocation *syscallabi.Syscall) (machineID int, ok bool)
@@ -72,7 +73,7 @@ func SyscallConfigureNetwork(request *network.ControlRequest) (err error) {
 
 //go:norace
 func trampolineConfigureNetwork(syscall *syscallabi.Syscall) {
-	request := syscallabi.NewValueView(syscall.Ptr0.(*network.ControlRequest))
+	request := abi.NewValueView(syscall.Ptr0.(*network.ControlRequest))
 	err := syscall.OS.(*GosimOS).ConfigureNetwork(request, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()
@@ -116,7 +117,7 @@ func SyscallMachineInodeInfo(machineID int, inodeID int, info *fs.InodeInfo) {
 func trampolineMachineInodeInfo(syscall *syscallabi.Syscall) {
 	machineID := int(syscall.Int0)
 	inodeID := int(syscall.Int1)
-	info := syscallabi.NewValueView(syscall.Ptr2.(*fs.InodeInfo))
+	info := abi.NewValueView(syscall.Ptr2.(*fs.InodeInfo))
 	syscall.OS.(*GosimOS).MachineInodeInfo(machineID, inodeID, info, syscall)
 	syscall.Complete()
 }
@@ -177,7 +178,7 @@ func SyscallMachineRecoverNext(iterID int) (machineID int, ok bool) {
 	syscall.Int0 = uintptr(iterID)
 	gosimOS.dispatchSyscall(syscall)
 	machineID = int(syscall.R0)
-	ok = syscallabi.BoolFromUintptr(syscall.R1)
+	ok = abi.BoolFromUintptr(syscall.R1)
 	return
 }
 
@@ -186,7 +187,7 @@ func trampolineMachineRecoverNext(syscall *syscallabi.Syscall) {
 	iterID := int(syscall.Int0)
 	machineID, ok := syscall.OS.(*GosimOS).MachineRecoverNext(iterID, syscall)
 	syscall.R0 = uintptr(machineID)
-	syscall.R1 = syscallabi.BoolToUintptr(ok)
+	syscall.R1 = abi.BoolToUintptr(ok)
 	syscall.Complete()
 }
 
@@ -213,7 +214,7 @@ func SyscallMachineRestart(machineID int, partialDisk bool) (err error) {
 	syscall.Trampoline = trampolineMachineRestart
 	syscall.OS = gosimOS
 	syscall.Int0 = uintptr(machineID)
-	syscall.Int1 = syscallabi.BoolToUintptr(partialDisk)
+	syscall.Int1 = abi.BoolToUintptr(partialDisk)
 	gosimOS.dispatchSyscall(syscall)
 	err = syscallabi.ErrnoErr(syscall.Errno)
 	return
@@ -222,7 +223,7 @@ func SyscallMachineRestart(machineID int, partialDisk bool) (err error) {
 //go:norace
 func trampolineMachineRestart(syscall *syscallabi.Syscall) {
 	machineID := int(syscall.Int0)
-	partialDisk := syscallabi.BoolFromUintptr(syscall.Int1)
+	partialDisk := abi.BoolFromUintptr(syscall.Int1)
 	err := syscall.OS.(*GosimOS).MachineRestart(machineID, partialDisk, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()
@@ -256,7 +257,7 @@ func SyscallMachineSetSometimesCrashOnSync(machineID int, crash bool) (err error
 	syscall.Trampoline = trampolineMachineSetSometimesCrashOnSync
 	syscall.OS = gosimOS
 	syscall.Int0 = uintptr(machineID)
-	syscall.Int1 = syscallabi.BoolToUintptr(crash)
+	syscall.Int1 = abi.BoolToUintptr(crash)
 	gosimOS.dispatchSyscall(syscall)
 	err = syscallabi.ErrnoErr(syscall.Errno)
 	return
@@ -265,7 +266,7 @@ func SyscallMachineSetSometimesCrashOnSync(machineID int, crash bool) (err error
 //go:norace
 func trampolineMachineSetSometimesCrashOnSync(syscall *syscallabi.Syscall) {
 	machineID := int(syscall.Int0)
-	crash := syscallabi.BoolFromUintptr(syscall.Int1)
+	crash := abi.BoolFromUintptr(syscall.Int1)
 	err := syscall.OS.(*GosimOS).MachineSetSometimesCrashOnSync(machineID, crash, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()
@@ -277,7 +278,7 @@ func SyscallMachineStop(machineID int, graceful bool) {
 	syscall.Trampoline = trampolineMachineStop
 	syscall.OS = gosimOS
 	syscall.Int0 = uintptr(machineID)
-	syscall.Int1 = syscallabi.BoolToUintptr(graceful)
+	syscall.Int1 = abi.BoolToUintptr(graceful)
 	gosimOS.dispatchSyscall(syscall)
 	return
 }
@@ -285,7 +286,7 @@ func SyscallMachineStop(machineID int, graceful bool) {
 //go:norace
 func trampolineMachineStop(syscall *syscallabi.Syscall) {
 	machineID := int(syscall.Int0)
-	graceful := syscallabi.BoolFromUintptr(syscall.Int1)
+	graceful := abi.BoolFromUintptr(syscall.Int1)
 	syscall.OS.(*GosimOS).MachineStop(machineID, graceful, syscall)
 	syscall.Complete()
 }
@@ -313,7 +314,7 @@ func SyscallSetConnected(a string, b string, connected bool) (err error) {
 	syscall.OS = gosimOS
 	syscall.Ptr0 = a
 	syscall.Ptr1 = b
-	syscall.Int2 = syscallabi.BoolToUintptr(connected)
+	syscall.Int2 = abi.BoolToUintptr(connected)
 	gosimOS.dispatchSyscall(syscall)
 	err = syscallabi.ErrnoErr(syscall.Errno)
 	syscall.Ptr0 = nil
@@ -325,7 +326,7 @@ func SyscallSetConnected(a string, b string, connected bool) (err error) {
 func trampolineSetConnected(syscall *syscallabi.Syscall) {
 	a := syscall.Ptr0.(string)
 	b := syscall.Ptr1.(string)
-	connected := syscallabi.BoolFromUintptr(syscall.Int2)
+	connected := abi.BoolFromUintptr(syscall.Int2)
 	err := syscall.OS.(*GosimOS).SetConnected(a, b, connected, syscall)
 	syscall.Errno = syscallabi.ErrErrno(err)
 	syscall.Complete()

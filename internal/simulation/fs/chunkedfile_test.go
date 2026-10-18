@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 func TestMakeChunks(t *testing.T) {
@@ -29,7 +29,7 @@ func TestMakeChunks(t *testing.T) {
 				continue
 			}
 			t.Run(fmt.Sprintf("%d-%d", start, end), func(t *testing.T) {
-				view := syscallabi.ByteSliceView{Ptr: data[start:end]}
+				view := abi.ByteView{Ptr: data[start:end]}
 				chunks := makeChunks(start, view)
 				if count := requiredCount(start%chunkSize, end-start); count != len(chunks) {
 					t.Errorf("calculated count %d but got %d", count, len(chunks))
@@ -96,7 +96,7 @@ func (c *checker) write(t *testing.T, from, to int) {
 		t.Fatal(err)
 	}
 
-	chunks := makeChunks(from, syscallabi.ByteSliceView{Ptr: c.b[from:to]})
+	chunks := makeChunks(from, abi.ByteView{Ptr: c.b[from:to]})
 	c.f.Write(from, to-from, chunks)
 	for _, chunk := range chunks {
 		chunk.decRef()
@@ -107,7 +107,7 @@ func (c *checker) read(t *testing.T, from, to int) {
 	t.Helper()
 
 	buf := make([]byte, to-from)
-	c.f.Read(from, syscallabi.ByteSliceView{Ptr: buf})
+	c.f.Read(from, abi.ByteView{Ptr: buf})
 	if !bytes.Equal(buf, c.b[from:to]) {
 		firstBad := 0
 		for buf[firstBad] == c.b[from+firstBad] {
@@ -154,7 +154,7 @@ func TestFileRead(t *testing.T) {
 	}
 
 	for _, size := range interesting {
-		chunks := makeChunks(0, syscallabi.ByteSliceView{Ptr: data})
+		chunks := makeChunks(0, abi.ByteView{Ptr: data})
 		file := &chunkedFile{size: size, chunks: chunks}
 		check(size, file)
 	}
@@ -163,7 +163,7 @@ func TestFileRead(t *testing.T) {
 	copy(data[chunkSize:chunkSize*2], make([]byte, chunkSize))
 
 	for _, size := range interesting {
-		chunks := makeChunks(0, syscallabi.ByteSliceView{Ptr: data})
+		chunks := makeChunks(0, abi.ByteView{Ptr: data})
 		if len(chunks) > 2 {
 			chunks[1] = nil
 		}

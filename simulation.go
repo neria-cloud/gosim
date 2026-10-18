@@ -4,8 +4,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
 	"github.com/neria-cloud/gosim/internal/simulation"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 // IsSim returns if the program is running inside of a gosim simulation.

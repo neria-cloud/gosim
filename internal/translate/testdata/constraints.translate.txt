@@ -20,7 +20,7 @@ package basicgosim_test
 import (
 	testing_original "testing"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 	"translated/github.com/neria-cloud/gosim/internal_/hooks/go123"
 )
 

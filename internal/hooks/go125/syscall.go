@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
 	"github.com/neria-cloud/gosim/internal/simulation"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func Syscall_runtime_BeforeFork() {

@@ -10,7 +10,7 @@ import (
 	"reflect" //gosim:notranslate
 	"sync"    //gosim:notranslate
 
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func makeMapType() reflect.Type {

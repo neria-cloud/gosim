@@ -17,11 +17,13 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
+
 	"github.com/neria-cloud/gosim/internal/gosimlog"
 	"github.com/neria-cloud/gosim/internal/simulation/fs"
 	"github.com/neria-cloud/gosim/internal/simulation/network"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 // LinuxOS implements gosim's versions of Linux system calls.
@@ -180,7 +182,7 @@ func (l *LinuxOS) allocFd() int {
 	return fd
 }
 
-func (l *LinuxOS) PollOpen(fd int, desc syscallabi.ValueView[syscallabi.PollDesc], invocation *syscallabi.Syscall) int {
+func (l *LinuxOS) PollOpen(fd int, desc abi.ValueView[syscallabi.PollDesc], invocation *syscallabi.Syscall) int {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -208,7 +210,7 @@ func (customSyscallLogger) LogExitPollOpen(fd int, desc *syscallabi.PollDesc, sy
 	// logSyscallExit("PollOpen", syscall, "code", code)
 }
 
-func (l *LinuxOS) PollClose(fd int, desc syscallabi.ValueView[syscallabi.PollDesc], invocation *syscallabi.Syscall) int {
+func (l *LinuxOS) PollClose(fd int, desc abi.ValueView[syscallabi.PollDesc], invocation *syscallabi.Syscall) int {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -442,7 +444,7 @@ func (customSyscallLogger) LogExitSysRenameat(diolddirfd int, oldpath string, ne
 	logSyscallExit("SysRenameat", syscall, "err", err)
 }
 
-func (l *LinuxOS) SysGetdents64(fd int, data syscallabi.ByteSliceView, invocation *syscallabi.Syscall) (int, error) {
+func (l *LinuxOS) SysGetdents64(fd int, data abi.ByteView, invocation *syscallabi.Syscall) (int, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -549,7 +551,7 @@ func (customSyscallLogger) LogExitSysGetdents64(fd int, buf []byte, syscall *sys
 	logSyscallExit("SysGetdents64", syscall, "n", n, "err", err, "entries", entries)
 }
 
-func (l *LinuxOS) SysWrite(fd int, data syscallabi.ByteSliceView, invocation *syscallabi.Syscall) (int, error) {
+func (l *LinuxOS) SysWrite(fd int, data abi.ByteView, invocation *syscallabi.Syscall) (int, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -625,7 +627,7 @@ func (customSyscallLogger) LogExitSysWrite(fd int, p []byte, syscall *syscallabi
 	logSyscallExit("SysWrite", syscall, "n", n, "err", err)
 }
 
-func (l *LinuxOS) SysRead(fd int, data syscallabi.ByteSliceView, invocation *syscallabi.Syscall) (int, error) {
+func (l *LinuxOS) SysRead(fd int, data abi.ByteView, invocation *syscallabi.Syscall) (int, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -784,7 +786,7 @@ func (customSyscallLogger) LogExitSysLseek(fd int, offset int64, whence int, sys
 	logSyscallExit("SysLseek", syscall, "off", off, "err", err)
 }
 
-func (l *LinuxOS) SysPwrite64(fd int, data syscallabi.ByteSliceView, offset int64, invocation *syscallabi.Syscall) (int, error) {
+func (l *LinuxOS) SysPwrite64(fd int, data abi.ByteView, offset int64, invocation *syscallabi.Syscall) (int, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -818,7 +820,7 @@ func (customSyscallLogger) LogExitSysPwrite64(fd int, p []byte, offset int64, sy
 	logSyscallExit("SysPwrite64", syscall, "n", n, "err", err)
 }
 
-func (l *LinuxOS) SysPread64(fd int, data syscallabi.ByteSliceView, offset int64, invocation *syscallabi.Syscall) (int, error) {
+func (l *LinuxOS) SysPread64(fd int, data abi.ByteView, offset int64, invocation *syscallabi.Syscall) (int, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -917,7 +919,7 @@ func (customSyscallLogger) LogExitSysFdatasync(fd int, syscall *syscallabi.Sysca
 	logSyscallExit("SysFdatasync", syscall, "err", err)
 }
 
-func fillStat(view syscallabi.ValueView[syscall.Stat_t], in fs.StatResp) {
+func fillStat(view abi.ValueView[syscall.Stat_t], in fs.StatResp) {
 	var out syscall.Stat_t
 	out.Ino = uint64(in.Inode)
 	if in.IsDir {
@@ -929,7 +931,7 @@ func fillStat(view syscallabi.ValueView[syscall.Stat_t], in fs.StatResp) {
 	view.Set(out)
 }
 
-func (l *LinuxOS) SysFstat(fd int, statBuf syscallabi.ValueView[syscall.Stat_t], invocation *syscallabi.Syscall) error {
+func (l *LinuxOS) SysFstat(fd int, statBuf abi.ValueView[syscall.Stat_t], invocation *syscallabi.Syscall) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -963,7 +965,7 @@ func (l *LinuxOS) SysFstat(fd int, statBuf syscallabi.ValueView[syscall.Stat_t],
 }
 
 // arm64
-func (l *LinuxOS) SysFstatat(dirfd int, path string, statBuf syscallabi.ValueView[syscall.Stat_t], flags int, invocation *syscallabi.Syscall) error {
+func (l *LinuxOS) SysFstatat(dirfd int, path string, statBuf abi.ValueView[syscall.Stat_t], flags int, invocation *syscallabi.Syscall) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -995,7 +997,7 @@ func (l *LinuxOS) SysFstatat(dirfd int, path string, statBuf syscallabi.ValueVie
 }
 
 // amd64
-func (l *LinuxOS) SysNewfstatat(dirfd int, path string, statBuf syscallabi.ValueView[syscall.Stat_t], flags int, invocation *syscallabi.Syscall) error {
+func (l *LinuxOS) SysNewfstatat(dirfd int, path string, statBuf abi.ValueView[syscall.Stat_t], flags int, invocation *syscallabi.Syscall) error {
 	return l.SysFstatat(dirfd, path, statBuf, flags, invocation)
 }
 
@@ -1286,7 +1288,7 @@ func (customSyscallLogger) LogExitSysListen(s int, n int, syscall *syscallabi.Sy
 }
 
 func readAddr(addr unsafe.Pointer, addrlen Socklen) (netip.AddrPort, syscall.Errno) {
-	rsa := syscallabi.NewValueView((*syscall.RawSockaddr)(addr))
+	rsa := abi.NewValueView((*syscall.RawSockaddr)(addr))
 
 	// XXX: check addrlen here?
 	switch rsa.Get().Family {
@@ -1295,7 +1297,7 @@ func readAddr(addr unsafe.Pointer, addrlen Socklen) (netip.AddrPort, syscall.Err
 		if addrlen != syscall.SizeofSockaddrInet4 {
 			return netip.AddrPort{}, syscall.EINVAL
 		}
-		rsa4 := syscallabi.NewValueView((*syscall.RawSockaddrInet4)(addr)).Get()
+		rsa4 := abi.NewValueView((*syscall.RawSockaddrInet4)(addr)).Get()
 		ip := netip.AddrFrom4(rsa4.Addr)
 		// XXX: HELP
 		portBytes := (*[2]byte)(unsafe.Pointer(&rsa4.Port))
@@ -1312,10 +1314,10 @@ func readAddr(addr unsafe.Pointer, addrlen Socklen) (netip.AddrPort, syscall.Err
 	}
 }
 
-func writeAddr(outbuf syscallabi.ValueView[RawSockaddrAny], outLen syscallabi.ValueView[Socklen], addr netip.AddrPort) syscall.Errno {
+func writeAddr(outbuf abi.ValueView[RawSockaddrAny], outLen abi.ValueView[Socklen], addr netip.AddrPort) syscall.Errno {
 	switch {
 	case addr.Addr().Is4():
-		outbuf := syscallabi.NewValueView((*syscall.RawSockaddrInet4)(outbuf.UnsafePointer()))
+		outbuf := abi.NewValueView((*syscall.RawSockaddrInet4)(outbuf.UnsafePointer()))
 		addrPort := addr.Port()
 		portBytes := (*[2]byte)(unsafe.Pointer(&addrPort))
 		port := uint16(int(portBytes[0])<<8 + int(portBytes[1]))
@@ -1332,7 +1334,7 @@ func writeAddr(outbuf syscallabi.ValueView[RawSockaddrAny], outLen syscallabi.Va
 	}
 }
 
-func (l *LinuxOS) SysAccept4(fd int, rsa syscallabi.ValueView[RawSockaddrAny], len syscallabi.ValueView[Socklen], flags int, invocation *syscallabi.Syscall) (int, error) {
+func (l *LinuxOS) SysAccept4(fd int, rsa abi.ValueView[RawSockaddrAny], len abi.ValueView[Socklen], flags int, invocation *syscallabi.Syscall) (int, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -1386,7 +1388,7 @@ func (customSyscallLogger) LogExitSysAccept4(s int, rsa *RawSockaddrAny, addrlen
 	logSyscallExit("SysAccept4", syscall, addrAttr(unsafe.Pointer(rsa), *addrlen), "err", err)
 }
 
-func (l *LinuxOS) SysGetsockopt(fd int, level int, name int, ptr unsafe.Pointer, outlen syscallabi.ValueView[Socklen], invocation *syscallabi.Syscall) error {
+func (l *LinuxOS) SysGetsockopt(fd int, level int, name int, ptr unsafe.Pointer, outlen abi.ValueView[Socklen], invocation *syscallabi.Syscall) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -1430,7 +1432,7 @@ func (l *LinuxOS) SysGetsockopt(fd int, level int, name int, ptr unsafe.Pointer,
 			// XXX: supposed to clear error afterwards
 			v = 0
 		}
-		syscallabi.NewValueView[uint32]((*uint32)(ptr)).Set(v)
+		abi.NewValueView[uint32]((*uint32)(ptr)).Set(v)
 		return nil
 
 	case sock.Listener != nil:
@@ -1453,7 +1455,7 @@ func (l *LinuxOS) SysSetsockopt(s int, level int, name int, val unsafe.Pointer, 
 	return nil
 }
 
-func (l *LinuxOS) SysGetsockname(fd int, rsa syscallabi.ValueView[RawSockaddrAny], len syscallabi.ValueView[Socklen], invocation *syscallabi.Syscall) error {
+func (l *LinuxOS) SysGetsockname(fd int, rsa abi.ValueView[RawSockaddrAny], len abi.ValueView[Socklen], invocation *syscallabi.Syscall) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -1520,7 +1522,7 @@ func (customSyscallLogger) LogExitSysChdir(path string, syscall *syscallabi.Sysc
 	logSyscallExit("SysChdir", syscall, "err", err)
 }
 
-func (l *LinuxOS) SysGetcwd(buf syscallabi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error) {
+func (l *LinuxOS) SysGetcwd(buf abi.SliceView[byte], invocation *syscallabi.Syscall) (n int, err error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -1574,7 +1576,7 @@ func (customSyscallLogger) LogExitSysMkdirat(dirfd int, path string, mode uint32
 	logSyscallExit("SysMkdirat", syscall, "err", err)
 }
 
-func (l *LinuxOS) SysGetpeername(fd int, rsa syscallabi.ValueView[RawSockaddrAny], len syscallabi.ValueView[Socklen], invocation *syscallabi.Syscall) error {
+func (l *LinuxOS) SysGetpeername(fd int, rsa abi.ValueView[RawSockaddrAny], len abi.ValueView[Socklen], invocation *syscallabi.Syscall) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -1628,7 +1630,7 @@ func (l *LinuxOS) SysFlock(fd int, how int, invocation *syscallabi.Syscall) (err
 	return nil
 }
 
-func (l *LinuxOS) SysFcntlFlock(fd uintptr, cmd int, lk syscallabi.ValueView[Flock_t], invocation *syscallabi.Syscall) (err error) {
+func (l *LinuxOS) SysFcntlFlock(fd uintptr, cmd int, lk abi.ValueView[Flock_t], invocation *syscallabi.Syscall) (err error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.shutdown {
@@ -1687,7 +1689,7 @@ func (customSyscallLogger) LogExitSysConnect(s int, addr unsafe.Pointer, addrlen
 	logSyscallExit("SysConnect", syscall, "err", err)
 }
 
-func (l *LinuxOS) SysGetrandom(ptr syscallabi.ByteSliceView, flags int, invocation *syscallabi.Syscall) (int, error) {
+func (l *LinuxOS) SysGetrandom(ptr abi.ByteView, flags int, invocation *syscallabi.Syscall) (int, error) {
 	// TODO: implement entirely in userspace?
 
 	l.mu.Lock()
@@ -1732,9 +1734,9 @@ func (customSyscallLogger) LogExitSysGetpid(syscall *syscallabi.Syscall, pid int
 	logSyscallExit("SysGetpid", syscall, "pid", pid)
 }
 
-func (l *LinuxOS) SysUname(buf syscallabi.ValueView[Utsname], invocation *syscallabi.Syscall) (err error) {
+func (l *LinuxOS) SysUname(buf abi.ValueView[Utsname], invocation *syscallabi.Syscall) (err error) {
 	ptr := (*Utsname)(buf.UnsafePointer())
-	name := syscallabi.NewSliceView(&ptr.Nodename[0], uintptr(len(ptr.Nodename)))
+	name := abi.NewSliceView(&ptr.Nodename[0], uintptr(len(ptr.Nodename)))
 	var nameArray [65]int8
 	n := min(len(l.machine.label), 64)
 	for i := 0; i < n; i++ {
@@ -1753,7 +1755,7 @@ func (customSyscallLogger) LogExitSysUname(buf *Utsname, syscall *syscallabi.Sys
 	logSyscallExit("SysUname", syscall, slog.Group("buf", int8ArrayToString("nodename", buf.Nodename[:])), "err", err)
 }
 
-func (l *LinuxOS) SysMadvise(b syscallabi.SliceView[byte], advice int, invocation *syscallabi.Syscall) (err error) {
+func (l *LinuxOS) SysMadvise(b abi.SliceView[byte], advice int, invocation *syscallabi.Syscall) (err error) {
 	l.logfFor(invocation, "madvise %d %d %d", uintptr(unsafe.Pointer(unsafe.SliceData(b.Ptr))), b.Len(), advice)
 	// ignore? check args for some sanity?
 	return nil

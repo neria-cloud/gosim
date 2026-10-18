@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Task 1 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–2 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -97,17 +97,17 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§3 diagram and translated/native boundary; T§8 / runtime and ABI; I: `gosimruntime/*`, `internal/simulation/syscallabi/*`.  
 **Budget:** 1,500–3,000 changed lines with rename detection; review the approximately 4,182-line moved runtime as well. **Dependency:** 1.
 
-- [ ] Move existing runtime production/tests as renames, preserving current computational behavior. Remove the old package path immediately, without aliases. Update generated golden imports and native exclusion policies in the same commit.
-- [ ] Extract `SliceView[T]`, `ValueView[T]`, Bool helpers, and the `ByteView` specialization to the externally importable untranslated ABI. Preserve bounded operations, `//go:norace` behavior and race annotations; update every consumer rather than aliasing syscallabi views.
-- [ ] Add primitive `HostIdentity`/`Diagnostic` and ID boundary records from T§8. Keep ABI independent of contracts/kernel/providers. Do not move the engine to a private internal package.
-- [ ] Add a tiny external-module translation fixture proving generated code can import the engine/ABI legally. Ensure compiler-path changes invalidate the old cache naturally until the explicit v2 format lands.
+- [x] Move existing runtime production/tests as renames, preserving current computational behavior. Remove the old package path immediately, without aliases. Update generated golden imports and native exclusion policies in the same commit.
+- [x] Extract `SliceView[T]`, `ValueView[T]`, Bool helpers, and the `ByteView` specialization to the externally importable untranslated ABI. Preserve bounded operations, `//go:norace` behavior and race annotations; update every consumer rather than aliasing syscallabi views.
+- [x] Add primitive `HostIdentity`/`Diagnostic` and ID boundary records from T§8. Keep ABI independent of contracts/kernel/providers. Do not move the engine to a private internal package.
+- [x] Add a tiny external-module translation fixture proving generated code can import the engine/ABI legally. Ensure compiler-path changes invalidate the old cache naturally until the explicit v2 format lands.
 
 **Target signatures:** preserve I's runtime primitives and ABI view methods; exported ABI additions are T§8's exact records. Engine lifecycle replacement is Task 3, not a duplicate old-path facade.
 
 #### Verification
 
-- [ ] External-module fixture, translation goldens, runtime/channel/map/global behavior and race annotations pass; search finds no live `gosimruntime` import path.
-- [ ] Run common commit gate using the moved runtime.
+- [x] External-module fixture, translation goldens, runtime/channel/map/global behavior and race annotations pass; search finds no live `gosimruntime` import path.
+- [x] Run common commit gate using the moved runtime.
 
 ### Task 3: Implement the engine lifecycle and independent deterministic random streams
 
@@ -777,7 +777,8 @@ Task 1 uses small additional files inside the declared packages for shared canon
 | Task / commit | Actual changed lines | Toolchain / host / features | Validation and evidence | Notes |
 | --- | --- | --- | --- | --- |
 | Planning only | Documentation | Source baseline e6122b1 | Repository/source/target review; no new compatibility tests executed | Initial plan |
-| Task 1 (commit containing this entry) | See progress record | go1.26.0 / darwin-arm64 / existing full feature suite | Baseline and final `./test.sh --concurrency 1` passed, including race; focused rejection/identity/hook tests; real distribution verification for both target patches | No tuple certified |
+| Task 1 / 5757fc9 | See progress record | go1.26.0 / darwin-arm64 / existing full feature suite | Baseline and final `./test.sh --concurrency 1` passed, including race; focused rejection/identity/hook tests; real distribution verification for both target patches | No tuple certified |
+| Task 2 (commit containing this entry) | See progress record | go1.26.0 / darwin-arm64 / existing full suite | Full ordinary/race gate; external native ABI fixture; generator output; import audit | Runtime moved without behavior changes |
 
 ## Planning verification
 

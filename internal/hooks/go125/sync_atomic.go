@@ -4,8 +4,8 @@ import (
 	"sync/atomic" //gosim:notranslate
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
 	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func maybeAtomicYield() {

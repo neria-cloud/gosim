@@ -174,6 +174,9 @@ var skippedPackagesGo123 = map[string]bool{
 	gosimruntimePackage:           true,
 	gosimruntimePackage + "_test": true, // eh
 	gosimruntimePackage + ".test": true, // eh
+	runtimeABIPackage:             true,
+	runtimeABIPackage + "_test":   true,
+	runtimeABIPackage + ".test":   true,
 	// reflectPackage: true,
 }
 
@@ -267,7 +270,8 @@ var replacements = map[packageSelector]packageSelector{
 const gosimModPath = gosimtool.Module
 
 const (
-	gosimruntimePackage = gosimModPath + "/gosimruntime"
+	gosimruntimePackage = gosimModPath + "/rt/runtime"
+	runtimeABIPackage   = gosimruntimePackage + "/abi"
 	hooksGo123Package   = gosimModPath + "/internal/hooks/go123"
 	reflectPackage      = gosimModPath + "/internal/reflect"
 	simulationPackage   = gosimModPath + "/internal/simulation"
@@ -600,6 +604,7 @@ func buildReplacePackagesAndPackageNames(convertPkgs, allPkgs []*packages.Packag
 
 	// not replaced, but need to know for rewrites
 	replacedPkgs[gosimruntimePackage] = gosimruntimePackage
+	replacedPkgs[runtimeABIPackage] = runtimeABIPackage
 	return
 }
 
