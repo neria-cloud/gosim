@@ -353,6 +353,7 @@ func (s *scheduler) cleanup() {
 	}
 	s.goroutines, s.runnable = nil, nil
 	s.clock.heap = newTimerHeap()
+	pruneSemaphores()
 }
 
 var (

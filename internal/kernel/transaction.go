@@ -73,7 +73,7 @@ func (k *Kernel) BeginStart(ref contracts.MachineRef, restart bool) (*StartTxn, 
 			return err
 		}
 		tx.runtimeStaged = &RuntimePrepared{RuntimeID: token.ID, Epoch: tx.run.ref}
-		if err := tx.run.descriptors.installDiagnostics(); err != nil {
+		if err := tx.run.descriptors.installDiagnostics(k); err != nil {
 			return err
 		}
 		for _, session := range k.providers {

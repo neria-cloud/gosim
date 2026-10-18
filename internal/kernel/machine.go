@@ -50,9 +50,10 @@ type ExitRecord struct {
 }
 
 type waitRecord struct {
-	caller contracts.EpochRef
-	target contracts.EpochRef
-	exit   ExitRecord
+	caller     contracts.EpochRef
+	target     contracts.EpochRef
+	exit       ExitRecord
+	invocation uint64
 }
 
 func (k *Kernel) Create(label string, main func()) (contracts.MachineRef, error) {
@@ -178,6 +179,10 @@ func (k *Kernel) stop(m *Machine, kind contracts.StopKind) error {
 			kind = contracts.StopCrash
 		}
 	}
+	if err := k.closePolls(run.ref, -1); err != nil {
+		failures = append(failures, err)
+		kind = contracts.StopCrash
+	}
 	for _, instance := range run.instances {
 		if err := k.protected(func() error { return instance.Settle(kind) }); err != nil {
 			failures = append(failures, err)
@@ -201,6 +206,7 @@ func (k *Kernel) stop(m *Machine, kind contracts.StopKind) error {
 			kind = contracts.StopCrash
 		}
 	}
+	k.dispatcher.releaseEpoch(run.ref)
 	k.engine.DisposeMachine(token(run))
 	m.current = nil
 	m.state = StateStopped
@@ -278,7 +284,7 @@ func (k *Kernel) Wait(ctx contracts.CallContext, ref contracts.MachineRef) (cont
 	if ref == ctx.Epoch.Machine {
 		return 0, contracts.ErrSelfTransition
 	}
-	wait := &waitRecord{caller: ctx.Epoch}
+	wait := &waitRecord{caller: ctx.Epoch, invocation: ctx.InvocationID}
 	switch m.state {
 	case StateRunning:
 		wait.target = m.current.ref
@@ -314,6 +320,10 @@ func (k *Kernel) finishWaits(epoch contracts.EpochRef, exit ExitRecord) {
 		}
 		if wait.target == epoch && !wait.exit.Valid {
 			wait.exit = exit
+			if wait.invocation != 0 {
+				_ = k.dispatcher.Complete(wait.invocation, Result{Value: exit})
+				delete(k.waits, id)
+			}
 		}
 	}
 }

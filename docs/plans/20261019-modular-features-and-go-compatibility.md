@@ -167,16 +167,16 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§5 / Invocation, Result, Dispatcher, descriptors; T§7 routing table/process; T§12 / Read, Complete; I: syscallabi/poll.  
 **Budget:** 2,500–4,500 changed lines. **Dependency:** 5.
 
-- [ ] Implement `Invocation{Context,Route,Scalars[6],Args[5],Result,Sema}`, RouteID, Result and Submit/DispatchOne/Complete/CancelEpoch/Drain. Generated decoders will restrict payload types in Task 14; kernel transport does not accept arbitrary trampolines or provider pointers.
-- [ ] Implement FDTable Allocate/Lookup/Remove/Finalize, monotonically assigned epoch-local fds, sorted remove-before-release teardown, capability-based Read/Write/CloseFD and ownership-based fcntl dispatch. Retain deterministic stdin EOF and log-backed stdout/stderr for rt-only.
-- [ ] Implement PollOpen/Close/Wait/Reset/Deadline/Unblock/Notify with epoch and poll-registration generation. Remove borrowed-memory leases before disposal; duplicate live completion fails, canceled-epoch completion is discarded and traced.
-- [ ] Implement Getrandom/Getpid/Uname with explicit process capability metadata; translate only modeled OS errors to errno. Do not turn an unsupported syscall into success or a host call.
-- [ ] Complete lifecycle descriptor cancellation and port readiness adapters from Task 5. Keep cancellation metadata only until possible owner callbacks have drained; IDs do not wrap or reuse.
+- [x] Implement `Invocation{Context,Route,Scalars[6],Args[5],Result,Sema}`, RouteID, Result and Submit/DispatchOne/Complete/CancelEpoch/Drain. Generated decoders will restrict payload types in Task 14; kernel transport does not accept arbitrary trampolines or provider pointers.
+- [x] Implement FDTable Allocate/Lookup/Remove/Finalize, monotonically assigned epoch-local fds, sorted remove-before-release teardown, capability-based Read/Write/CloseFD and ownership-based fcntl dispatch. Retain deterministic stdin EOF and log-backed stdout/stderr for rt-only.
+- [x] Implement PollOpen/Close/Wait/Reset/Deadline/Unblock/Notify with epoch and poll-registration generation. Remove borrowed-memory leases before disposal; duplicate live completion fails, canceled-epoch completion is discarded and traced.
+- [x] Implement Getrandom/Getpid/Uname with explicit process capability metadata; translate only modeled OS errors to errno. Do not turn an unsupported syscall into success or a host call.
+- [x] Complete lifecycle descriptor cancellation and port readiness adapters from Task 5. Keep cancellation metadata only until possible owner callbacks have drained; IDs do not wrap or reuse.
 
 #### Verification
 
-- [ ] Shared fs/socket descriptors, EBADF, diagnostics without fs, sorted teardown, partial close errors, poll fd reuse, stale timeout/packet completions, canceled invocation memory access and double completion tests pass.
-- [ ] Run common commit gate, including race-aware view/poll tests through the real engine.
+- [x] Shared fs/socket descriptors, EBADF, diagnostics without fs, sorted teardown, partial close errors, poll fd reuse, stale timeout/packet completions, canceled invocation memory access and double completion tests pass.
+- [x] Run common commit gate, including race-aware view/poll tests through the real engine.
 
 ### Task 7: Move filesystem algorithms and implement owned crash snapshots
 

@@ -225,6 +225,7 @@ func (e *Engine) cancel(m *engineMachine) {
 		e.scheduler.removeGoroutine(g)
 		m.retired = append(m.retired, g)
 	}
+	pruneSemaphores()
 	// Globals remain borrowed until the kernel has drained invocations and calls Dispose.
 }
 

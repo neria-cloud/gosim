@@ -85,9 +85,11 @@ func (sq *waitq) dequeue() *sudog {
 			panic("help")
 		}
 		g.selected = elem
-		getg().upcall(func() {
+		if gs.get().inupcall || getg() == nil {
 			elem.goroutine.setWaiting(false)
-		})
+		} else {
+			getg().upcall(func() { elem.goroutine.setWaiting(false) })
+		}
 		return elem
 	}
 	return nil

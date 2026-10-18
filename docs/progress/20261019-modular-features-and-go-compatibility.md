@@ -308,3 +308,25 @@ Findings and migration ledger
 - Config carries native HostIdentity, the canonical full build digest, features and timeout. Importing the host buildspec package would pull os/exec into the translated kernel; that dependency was removed before commit and a boundary regression check added.
 - Task 6 completes FDTable capabilities/polling and dispatcher invocation transport/wait completion. The minimal lifecycle descriptor table performs real ownership cleanup; the lifecycle-only dispatcher cancels observer records and validates drain, with no syscall fallback. Both carry Task 6 migration markers. No normal CLI composition selects the unfinished kernel yet.
 - Final Task 5 size: 2,095 changed lines (2,072 additions + 23 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 6 — Invocation, descriptor, polling and process services
+Date: 2026-10-19. Previous task commit: `9c8ef5d`. Commit: the Task 6 implementation commit containing this entry.
+
+Implemented
+- Exact Invocation/RouteID/Result transport and dispatcher admission/completion/cancellation/drain, non-reused IDs, bounded cancellation metadata, and supervisor processing through Kernel.Run. Envelopes accept explicit typed payloads, never callbacks or provider pointers; result extraction clears reusable envelopes.
+- Shared monotonically allocated descriptor table, capability-based read/write/close, owner-based fcntl dispatch, sorted remove-before-release finalization, deterministic stdin EOF, and copied stdout/stderr output through the native log sink without filesystem support.
+- Poll subscriptions, readiness/reset/unblock, relative deadlines, per-registration and deadline generations, failed-subscription rollback, and cancellation tied to invocation/epoch lifetime. Stale sinks/deadlines cannot target a reopened fd or restarted machine.
+- Getrandom uses the logical machine's application stream; flags retain existing validation. Getpid remains the historical fixed 42 and uname models only the bounded nodename. Explicit process capability records label the stub/missing fields instead of inventing process semantics.
+- Non-yielding native semaphore wake/retirement and diagnostic output adapters. Cancellation and scheduler teardown prune empty semaphore records so native tables do not retain disposed invocation/application addresses.
+
+Verified
+- Ordinary/race tests cover shared fs/socket descriptor ownership, fcntl selection, EBADF and missing capabilities, sorted teardown with multiple errors, fd/poll/invocation exhaustion, readiness/reset/unblock, stale registration/epoch/deadline delivery, failed subscription cleanup, and bounded cancellation metadata.
+- Real application calls traverse Submit → supervisor dispatch → native completion, including timer-driven poll wake and machine Wait completion. A machine crashed while blocked in a real poll does not resume or execute defers; borrowed arguments/results are cleared before disposal and late completion does not touch the envelope.
+- Unknown routes, callable payloads, overflowing mode values, duplicate completion and non-modeled/combined errors abort rather than becoming successful syscalls or errno fallbacks.
+- Native log-sink test verifies output attribution; semaphore test proves no canceled waiter address remains. Deliberate-race subprocesses prove both engine and syscall transport still report unrelated application races.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed after the final native wait-table fix. Final log `.gosim/task6-final-gate.log`; focused race log `.gosim/task6-final-focused.log`. No ordinary or race suite was waived.
+
+Notes / migration ledger
+- Task 5 descriptor/dispatcher migration markers are removed. Task 14 still generates the complete manifest and remaining route decoders; the current explicit core-route decoder carries that marker and rejects every unlisted route. Normal CLI selection still uses the authorized intermediate path.
+- Domain results remain in the translated envelope; ABI views and primitive semaphore cells cross native helper boundaries. Native generic channels preserve the translated envelope type rather than mixing original and translated contract types.
+- Final Task 6 size: 1,940 changed lines (1,913 additions + 27 deletions), including checklist/log; staged whitespace check passed.

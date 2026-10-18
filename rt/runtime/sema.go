@@ -25,6 +25,19 @@ var semas [semasSize]*sema
 // TODO: store these structs on g instead or something?
 var semaPool []*sema
 
+// pruneSemaphores releases addresses retained by empty queues after machine
+// cancellation. Waiting queues belonging to surviving machines remain intact.
+//
+//go:norace
+func pruneSemaphores() {
+	for i := range semas {
+		maybefree(&semas[i])
+		for current := semas[i]; current != nil; current = current.next {
+			maybefree(&current.next)
+		}
+	}
+}
+
 // TODO: clean up freeing code (no need to do two lookups)
 
 // cleanup/handle sema with empty sudog queue (can happen when crashing machines)
