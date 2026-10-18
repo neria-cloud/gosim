@@ -8,7 +8,7 @@ import (
 
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 
-	"github.com/neria-cloud/gosim/internal/simulation/fs"
+	fs "github.com/neria-cloud/gosim/internal/fs/model"
 	"github.com/neria-cloud/gosim/internal/simulation/network"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 )
@@ -25,8 +25,9 @@ type GosimOS struct {
 	// TODO: this is currently protected by simulation.mu.
 
 	// TODO: have a common by-ID scheme because I don't want infinite maps, please
-	nextCrashIterId int
-	crashItersById  map[int]func() (int, bool)
+	nextCrashIterId    int
+	crashItersById     map[int]func() (int, bool)
+	crashIterCloseByID map[int]func()
 }
 
 func NewGosimOS(s *Simulation, d syscallabi.Dispatcher) *GosimOS {
@@ -35,7 +36,8 @@ func NewGosimOS(s *Simulation, d syscallabi.Dispatcher) *GosimOS {
 
 		simulation: s,
 
-		crashItersById: make(map[int]func() (int, bool)),
+		crashItersById:     make(map[int]func() (int, bool)),
+		crashIterCloseByID: make(map[int]func()),
 	}
 }
 
@@ -68,17 +70,20 @@ func (g *GosimOS) MachineRecoverInit(machineID int, program any, invocation *sys
 	machine := g.simulation.machinesById[machineID]
 	fs := machine.filesystem
 
-	// TODO: clone the filesystem or somehow prevent modifications
-	iter := fs.IterCrashes()
+	// TODO(migration): remove this legacy adapter in Task 22.
+	image := fs.FreezeCrash()
+	iter := image.IterCrashes()
+	image.Release()
 	counter := 0
 
 	id := g.nextCrashIterId
 	g.nextCrashIterId++
+	g.crashIterCloseByID[id] = iter.Close
 
 	bootProgram := program.(func())
 
 	g.crashItersById[id] = func() (int, bool) {
-		fs, ok := iter()
+		fs, ok := iter.Next()
 		if !ok {
 			return 0, false
 		}
@@ -108,7 +113,10 @@ func (g *GosimOS) MachineRecoverRelease(crashIterId int, invocation *syscallabi.
 	g.simulation.mu.Lock()
 	defer g.simulation.mu.Unlock()
 
-	// XXX: jank
+	if close := g.crashIterCloseByID[crashIterId]; close != nil {
+		close()
+	}
+	delete(g.crashIterCloseByID, crashIterId)
 	delete(g.crashItersById, crashIterId)
 }
 
@@ -151,7 +159,11 @@ func (g *GosimOS) MachineRestart(machineID int, partialDisk bool, invocation *sy
 		return syscall.EALREADY
 	}
 
-	machine.filesystem = machine.filesystem.CrashClone(partialDisk)
+	// TODO(migration): session lifecycle replaces this adapter in Task 22.
+	image := machine.filesystem.FreezeCrash()
+	machine.filesystem.Release()
+	machine.filesystem = image.Clone(partialDisk, machine.filesystemRandom)
+	image.Release()
 	g.simulation.startMachine(machine)
 
 	// XXX: return a new machine ID?

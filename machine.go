@@ -4,8 +4,8 @@ import (
 	"iter"
 	"net/netip"
 
+	fs "github.com/neria-cloud/gosim/internal/fs/model"
 	"github.com/neria-cloud/gosim/internal/simulation"
-	"github.com/neria-cloud/gosim/internal/simulation/fs"
 )
 
 // A Machine represents a simulated machine. Each machine has its own disk,

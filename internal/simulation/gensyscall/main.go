@@ -637,7 +637,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"`+gosimtool.Module+`/internal/simulation/fs"
+	fs "`+gosimtool.Module+`/internal/fs/model"
 `+networkImport+`	"`+gosimtool.Module+`/internal/simulation/syscallabi"
 	"`+gosimtool.Module+`/rt/runtime"
 	"`+gosimtool.Module+`/rt/runtime/abi"

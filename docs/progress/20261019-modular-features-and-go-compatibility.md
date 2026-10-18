@@ -330,3 +330,23 @@ Notes / migration ledger
 - Task 5 descriptor/dispatcher migration markers are removed. Task 14 still generates the complete manifest and remaining route decoders; the current explicit core-route decoder carries that marker and rejects every unlisted route. Normal CLI selection still uses the authorized intermediate path.
 - Domain results remain in the translated envelope; ABI views and primitive semaphore cells cross native helper boundaries. Native generic channels preserve the translated envelope type rather than mixing original and translated contract types.
 - Final Task 6 size: 1,940 changed lines (1,913 additions + 27 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 7 — Filesystem model and owned crash snapshots
+Date: 2026-10-19. Previous task commit: `aba18c3`. Commit: the Task 7 implementation commit containing this entry.
+
+Implemented
+- Moved filesystem algorithms/tests to internal/fs/model, changed package name to model, updated temporary simulation/public imports and regenerated syscall wrappers from the updated generator.
+- Immutable CrashImage with separately retained durable chunks, pending write chunks, copied operations and dependency metadata. Clone/IterCrashes/Release and Next/Close have explicit ownership; releasing the source, image or iterator cannot invalidate another retained owner.
+- Exact plannedOp/crashPlan/crashFrame/crashPlanIterator representation and iterative inclusion-first DFS, checked unavailable-count overflow, stable operation order, copied results, empty-plan image and idempotent early/exhaustion cleanup. Removed the parked iterator goroutine and old CrashClone/closure API.
+- Filesystem.Release now frees model state, pending payloads and mapping references. FlushEverything releases superseded durable/pending storage. Copy-on-write now drops the old shared chunk reference when installing a writable copy; reference counts reject overflow.
+- Removed all model mutexes and global allocation pools. Fresh allocations belong to model/snapshot owners and do not carry mutable storage across runs. Random crash selection uses injected contracts.Random.Uint64N(3), preserving dependency-valid two-thirds selection.
+
+Verified
+- Existing pending-operation examples compare every intermediate graph against an independent copy of the former recursive order oracle. Tests cover 100,000 dependent operations, copied yields, empty plans, overflow, early/repeated Close and release, immutable pending payloads/directory metadata, snapshot survival after source flush/write/release, and zero chunk references after final owners release.
+- Mapping updates on writes/truncation remain intact; snapshots/clones do not retain source mappings. Independent application/network draws do not change filesystem selection; selected operations respect prerequisites and the expected two-thirds rate.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed with ordinary/race behavior, script, translation, runtime and model suites: `.gosim/task7-gate.log`. Final additional mapping/directory tests passed in focused race execution: `.gosim/task7-focused.log`. Regeneration: `GOTOOLCHAIN=go1.26.0 go generate ./internal/simulation`.
+
+Notes / migration ledger
+- Temporary legacy callers freeze immutable images, close iterators on explicit release/machine shutdown, release superseded filesystems on restart, and retain a per-logical-machine native fs random stream across restarts. Marked adapters are removed in Task 22. The current dispatcher already serializes these model calls; the new provider will own them through the supervisor.
+- Existing unsupported filesystem semantics, including unreachable inode retention in crash images, remain unchanged. No new compatibility tuple is certified by this development-toolchain gate.
+- Final Task 7 size: 1,044 changed lines (708 additions + 336 deletions) with rename detection, including checklist/log; staged whitespace check passed.

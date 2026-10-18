@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–3 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–7 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -184,16 +184,16 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§7 / FS model overrides; T§8 / Random; T§12 / crashPlanIterator.next; I: all filesystem model declarations.  
 **Budget:** 2,000–3,500 changed lines with rename detection. **Dependency:** 4, 6.
 
-- [ ] Move the model and tests; change view imports to ABI. Preserve established inode/chunk/mapping/durability behavior and its known capability limitations.
-- [ ] Implement `Filesystem.FreezeCrash() *CrashImage`, CrashImage `Clone(bool,contracts.Random) *Filesystem`, `IterCrashes() *CrashIterator`, `Release()`, and iterator `Next()(*Filesystem,bool)`/`Close()`. Replace the old CrashClone/closure iterator API and update its current callers in the same commit.
-- [ ] Implement the exact T§7 plannedOp/crashPlan/crashFrame/crashPlanIterator structures and T§12 iterative DFS: valid include branch before exclude, copied dependency metadata, restored unavailable counts, checked overflow, empty plan produces one image. No goroutine/channel iterator remains.
-- [ ] Inject the fs stream into random crash selection; retain two-thirds dependency-valid selection via Uint64N(3). Make image/block/pending-data retention explicit and Release real rather than a no-op.
-- [ ] Remove model locks/pools that violate supervisor ownership; replace cross-run pools with session-owned allocation state. Temporary current-simulation adapters may supply the same ports while the new provider is assembled; mark their Task 22 removal.
+- [x] Move the model and tests; change view imports to ABI. Preserve established inode/chunk/mapping/durability behavior and its known capability limitations.
+- [x] Implement `Filesystem.FreezeCrash() *CrashImage`, CrashImage `Clone(bool,contracts.Random) *Filesystem`, `IterCrashes() *CrashIterator`, `Release()`, and iterator `Next()(*Filesystem,bool)`/`Close()`. Replace the old CrashClone/closure iterator API and update its current callers in the same commit.
+- [x] Implement the exact T§7 plannedOp/crashPlan/crashFrame/crashPlanIterator structures and T§12 iterative DFS: valid include branch before exclude, copied dependency metadata, restored unavailable counts, checked overflow, empty plan produces one image. No goroutine/channel iterator remains.
+- [x] Inject the fs stream into random crash selection; retain two-thirds dependency-valid selection via Uint64N(3). Make image/block/pending-data retention explicit and Release real rather than a no-op.
+- [x] Remove model locks/pools that violate supervisor ownership; replace cross-run pools with session-owned allocation state. Temporary current-simulation adapters may supply the same ports while the new provider is assembled; mark their Task 22 removal.
 
 #### Verification
 
-- [ ] Compare enumerated recovery states/order to existing pending-op examples; exercise deep dependencies, empty plan, early Close, immutable retained data, repeated release and independent fault randomness.
-- [ ] Filesystem/model/race tests and common commit gate pass; no parked crash-iterator goroutine remains.
+- [x] Compare enumerated recovery states/order to existing pending-op examples; exercise deep dependencies, empty plan, early Close, immutable retained data, repeated release and independent fault randomness.
+- [x] Filesystem/model/race tests and common commit gate pass; no parked crash-iterator goroutine remains.
 
 ### Task 8: Implement filesystem session lifecycle and recovery controls
 

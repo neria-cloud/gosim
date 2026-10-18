@@ -1,4 +1,4 @@
-package fs
+package model
 
 import (
 	"cmp"
@@ -8,7 +8,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"sync"
 	"syscall"
 	"unsafe"
 
@@ -141,8 +140,6 @@ func (fss *filesystemState) clone() *filesystemState {
 // - add deps between renames/metadata ops to prevent cycles w/ crashes
 
 type Filesystem struct {
-	mu sync.Mutex
-
 	// for now: flat filesystem, only one directory
 
 	pendingOps *pendingOps
@@ -468,122 +465,6 @@ type nilgc struct{}
 
 func (nilgc) maybeGC(inode int) {}
 
-type crashIterator struct {
-	workCh chan bool
-	nextCh chan []fsOp
-}
-
-func (c *crashIterator) run(ops *pendingOps) {
-	c.workCh = make(chan bool)
-	c.nextCh = make(chan []fsOp)
-	go func() {
-		if !<-c.workCh {
-			return
-		}
-		ops.iterAllCrashes(func(ops []fsOp) bool {
-			c.nextCh <- ops
-			return <-c.workCh
-		})
-		close(c.nextCh)
-	}()
-}
-
-func (c *crashIterator) next() ([]fsOp, bool) {
-	c.workCh <- true
-	next, ok := <-c.nextCh
-	return next, ok
-}
-
-/*
-func (c *crashIterator) stop() {
-	c.workCh <- false
-	<-c.nextCh
-}
-*/
-
-func (fs *Filesystem) Release() {
-	// XXX: somehow free resources here.
-}
-
-func (fs *Filesystem) FlushEverything() {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
-	// XXX: these methods for handling stop/crash/restart are kinda janky...
-	// how do we free things? how do we not needlessly copy (eg. after a restart
-	// where we don't care about the old? etc.)
-
-	fs.persisted = fs.mem.clone()
-	fs.pendingOps = newPendingOps()
-	fs.pendingCountByInode = make(map[int]int)
-}
-
-func (fs *Filesystem) CrashClone(partialDisk bool) *Filesystem {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
-	// XXX: think about if we do the right thing with the next inode number
-
-	persisted := fs.persisted.clone()
-	if partialDisk {
-		pickedOps := fs.pendingOps.randomCrashSubset()
-		for _, op := range pickedOps {
-			op.apply(persisted, nilgc{}) // XXX: jank think about gc
-		}
-	}
-	mem := persisted.clone()
-
-	return &Filesystem{
-		persisted:           persisted,
-		mem:                 mem,
-		pendingOps:          newPendingOps(),
-		openCountByInode:    make(map[int]int),
-		pendingCountByInode: make(map[int]int),
-	}
-}
-
-func (fs *Filesystem) IterCrashes() func() (*Filesystem, bool) {
-	var iter crashIterator
-	iter.run(fs.pendingOps)
-
-	// XXX: handle leaking??
-
-	return func() (*Filesystem, bool) {
-		ops, ok := iter.next()
-		if !ok {
-			return nil, false
-		}
-
-		newPersisted := fs.persisted.clone()
-		for _, op := range ops {
-			op.apply(newPersisted, nilgc{}) // XXX: jank think about gc
-		}
-		// XXX: find zero-ref files and delete them
-		return &Filesystem{
-			persisted:           newPersisted,
-			mem:                 newPersisted.clone(),
-			pendingOps:          newPendingOps(),
-			openCountByInode:    make(map[int]int),
-			pendingCountByInode: make(map[int]int),
-		}, true
-	}
-}
-
-/*
-func simCrash(fs *filesystem) {
-	// XXX: return a new *filesystem instead?
-	// not entirely necessary in this case and maybe less efficient since we'd have to clone persisted
-
-	ops := fs.pendingOps.randomCrashSubset()
-	for _, op := range ops {
-		op.apply(fs.persisted)
-	}
-
-	fs.mem = fs.persisted.clone()
-	fs.pendingOps = newPendingOps()
-}
-*/
-
 func tryGetLinkCount(s *filesystemState, inode int) (int, bool) {
 	switch file := s.objects[inode].(type) {
 	case *backingFile:
@@ -601,7 +482,7 @@ type InodeInfo struct {
 	Ops        int
 }
 
-func (fs *Filesystem) getInodeInfoLocked(inode int) InodeInfo {
+func (fs *Filesystem) getInodeInfo(inode int) InodeInfo {
 	mem, memOk := tryGetLinkCount(fs.mem, inode)
 	disk, diskOk := tryGetLinkCount(fs.persisted, inode)
 	return InodeInfo{
@@ -617,7 +498,7 @@ func (fs *Filesystem) getInodeInfoLocked(inode int) InodeInfo {
 
 func (fs *Filesystem) maybeGC(inode int) {
 	if inode == 2 {
-		// slog.Info("considering gc", "inode", inode, "info", fs.getInodeInfoLocked(inode))
+		// slog.Info("considering gc", "inode", inode, "info", fs.getInodeInfo(inode))
 	}
 
 	// haha take taht!!!
@@ -652,17 +533,11 @@ func (fs *Filesystem) maybeGC(inode int) {
 }
 
 func (fs *Filesystem) Read(inode int, pos int64, buffer abi.ByteView) int {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	file := fs.mem.getFile(inode)
 	return file.read(pos, buffer)
 }
 
 func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView) int {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	file := fs.mem.getFile(inode)
 
 	if int(pos)+buffer.Len() > file.len() {
@@ -690,9 +565,6 @@ func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView) int {
 }
 
 func (fs *Filesystem) Truncate(inode, pos int) {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	file := fs.mem.getFile(inode)
 
 	if pos != file.len() {
@@ -705,17 +577,11 @@ func (fs *Filesystem) Truncate(inode, pos int) {
 }
 
 func (fs *Filesystem) Sync(inode int) {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	fs.flushInode(inode)
 }
 
 func (fs *Filesystem) Getdirinode(dirInode int, path string) (int, error) {
 	// For chdir
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	dirInode, _, err := fs.walkpath(dirInode, path, false)
 	if err != nil {
 		return 0, err
@@ -730,9 +596,6 @@ func (fs *Filesystem) Getdirinode(dirInode int, path string) (int, error) {
 }
 
 func (fs *Filesystem) Mkdir(dirInode int, path string) error {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	dirInode, name, err := fs.walkpath(dirInode, path, true)
 	if err != nil {
 		return err
@@ -796,9 +659,6 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 }
 
 func (fs *Filesystem) Stat(dirInode int, path string) (StatResp, error) {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	dirInode, name, err := fs.walkpath(dirInode, path, true)
 	if err != nil {
 		return StatResp{}, err
@@ -823,17 +683,11 @@ func (fs *Filesystem) Stat(dirInode int, path string) (StatResp, error) {
 }
 
 func (fs *Filesystem) Statfd(inode int) (StatResp, error) {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	return fs.statLocked(inode)
 }
 
 // for getcwd
 func (fs *Filesystem) Getpath(dirInode int) (string, error) {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	var stack_ [16]string
 	s := stack_[:0]
 	for dirInode != RootInode {
@@ -856,9 +710,6 @@ func (fs *Filesystem) Getpath(dirInode int) (string, error) {
 }
 
 func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool) error {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	dirInode, name, err := fs.walkpath(dirInode, path, true)
 	if err != nil {
 		return err
@@ -907,9 +758,6 @@ func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool) error {
 }
 
 func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath string) error {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	fromInode, fromName, err := fs.walkpath(fromInode, fromPath, true)
 	if err != nil {
 		return err
@@ -958,9 +806,6 @@ func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath
 }
 
 func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error) {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	dirInode, name, err := fs.walkpath(dirInode, path, true)
 	if err != nil {
 		return 0, err
@@ -1026,9 +871,6 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 }
 
 func (fs *Filesystem) CloseFile(inode int) error {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	// XXX: make this API handle based so it's less brittle?
 	newCount := fs.openCountByInode[inode] - 1
 	if newCount == 0 {
@@ -1047,9 +889,6 @@ type ReadDirEntry struct {
 }
 
 func (fs *Filesystem) ReadDir(inode int) ([]ReadDirEntry, error) {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	dir, ok := fs.mem.getDir(inode)
 	if !ok {
 		return nil, syscall.ENOTDIR
@@ -1087,9 +926,7 @@ func (fs *Filesystem) ReadDir(inode int) ([]ReadDirEntry, error) {
 }
 
 func (fs *Filesystem) GetInodeInfo(inode int) InodeInfo {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-	return fs.getInodeInfoLocked(inode)
+	return fs.getInodeInfo(inode)
 }
 
 func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool) (inode int, entry string, err error) {
@@ -1150,9 +987,6 @@ func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool) (inode
 
 // Open a mmap for the given inode. Mmap starts at offset 0.
 func (fs *Filesystem) Mmap(inode int, len int) *Mmap {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	backingArray := make([]byte, len)
 	byteView := abi.NewSliceView(unsafe.SliceData(backingArray), uintptr(len))
 
@@ -1170,9 +1004,6 @@ func (fs *Filesystem) Mmap(inode int, len int) *Mmap {
 
 // Close the given mmap.
 func (fs *Filesystem) Munmap(m *Mmap) {
-	fs.mu.Lock()
-	defer fs.mu.Unlock()
-
 	file := fs.mem.getFile(m.Inode)
 	idx := slices.Index(file.mmaps, m)
 	if idx == -1 {

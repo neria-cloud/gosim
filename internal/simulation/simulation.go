@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neria-cloud/gosim/internal/simulation/fs"
+	fs "github.com/neria-cloud/gosim/internal/fs/model"
 	"github.com/neria-cloud/gosim/internal/simulation/network"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 	"github.com/neria-cloud/gosim/rt/runtime"
@@ -21,7 +21,9 @@ type Machine struct {
 
 	// TODO: decide how this is shared with LinuxOS exactly and how to lock it
 	filesystem *fs.Filesystem
-	netstack   *network.Stack
+	// TODO(migration): provider-owned stream replaces this field in Task 22.
+	filesystemRandom *gosimruntime.Random
+	netstack         *network.Stack
 
 	gosimOS *GosimOS
 	linuxOS *LinuxOS
@@ -69,8 +71,9 @@ func (s *Simulation) newMachine(label string, addr netip.Addr, filesystem *fs.Fi
 		addr:        addr,
 		bootProgram: bootProgram,
 
-		filesystem: filesystem,
-		netstack:   nil,
+		filesystem:       filesystem,
+		filesystemRandom: gosimruntime.NewDomainRandom(gosimruntime.Seed(), "fs", uint64(id)),
+		netstack:         nil,
 
 		runtimeMachine: nil,
 	}
@@ -118,7 +121,9 @@ func (s *Simulation) stopMachine(machine *Machine, graceful bool) {
 	machine.linuxOS.doShutdown()
 	machine.linuxOS = nil
 
-	// TODO: add shutdown? or share?
+	for _, close := range machine.gosimOS.crashIterCloseByID {
+		close()
+	}
 	machine.gosimOS = nil
 
 	// make sure the network stack won't do anything in the future

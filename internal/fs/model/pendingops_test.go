@@ -1,4 +1,4 @@
-package fs
+package model
 
 import (
 	"testing"
@@ -131,6 +131,7 @@ func TestPendingOps(t *testing.T) {
 			ops := newPendingOps()
 
 			for i, step := range testCase.steps {
+				compareCrashOrder(t, ops)
 				if step.addOp != 0 {
 					op := ops.addOpInternal()
 					op.fsOp = &allocOp{inode: step.addOp}
@@ -146,6 +147,7 @@ func TestPendingOps(t *testing.T) {
 
 				}
 
+				compareCrashOrder(t, ops)
 				if step.flushDeps != nil {
 					out := ops.buffer
 					for _, dep := range step.flushDeps {

@@ -19,8 +19,8 @@ import (
 
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 
+	fs "github.com/neria-cloud/gosim/internal/fs/model"
 	"github.com/neria-cloud/gosim/internal/gosimlog"
-	"github.com/neria-cloud/gosim/internal/simulation/fs"
 	"github.com/neria-cloud/gosim/internal/simulation/network"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 	"github.com/neria-cloud/gosim/rt/runtime"

@@ -1,11 +1,11 @@
-package fs
+package model
 
 import (
 	"cmp"
 	"fmt"
-	"math/rand"
 	"slices"
-	"sync"
+
+	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=depKind,depKeyKind
@@ -56,18 +56,6 @@ type pendingOp struct {
 	first *pendingDep
 	pos   int
 	fsOp  fsOp
-}
-
-var opPool = &sync.Pool{
-	New: func() any {
-		return &pendingOp{}
-	},
-}
-
-var depPool = &sync.Pool{
-	New: func() any {
-		return &pendingDep{}
-	},
 }
 
 var (
@@ -125,7 +113,7 @@ type pendingOps struct {
 
 func newPendingOps() *pendingOps {
 	return &pendingOps{
-		nextPos:       1, // must be > 0 for iterAllCrashes
+		nextPos:       1, // must be > 0 for allOps
 		lastDepForKey: make(map[depKey]*pendingDep),
 	}
 }
@@ -143,7 +131,7 @@ func (p *pendingOps) addDep(op *pendingOp, key depKey, kind depKind) {
 		return
 	}
 
-	dep := depPool.Get().(*pendingDep)
+	dep := new(pendingDep)
 	dep.key = key // XXX: make unnecessary?
 	dep.kind = kind
 	dep.op = op
@@ -162,8 +150,11 @@ func (p *pendingOps) addDep(op *pendingOp, key depKey, kind depKind) {
 }
 
 func (p *pendingOps) addOpInternal() *pendingOp {
-	op := opPool.Get().(*pendingOp)
+	op := new(pendingOp)
 
+	if p.nextPos == int(^uint(0)>>1) {
+		panic("pending operation position exhausted")
+	}
 	op.pos = p.nextPos
 	p.nextPos++
 
@@ -224,7 +215,6 @@ func (p *pendingOps) processOp(op *pendingOp, out []*pendingOp) []*pendingOp {
 
 		sibling := cur.sibling
 		cur.prev, cur.next, cur.sibling, cur.op = nil, nil, nil, nil
-		depPool.Put(cur)
 		cur = sibling
 	}
 	return out
@@ -267,7 +257,6 @@ func (p *pendingOps) releaseBuffer(ops []*pendingOp) {
 				panic("bad pool")
 			}
 		*/
-		opPool.Put(op)
 	}
 	p.buffer = ops[:0]
 }
@@ -303,115 +292,138 @@ func (p *pendingOps) allOps() []*pendingOp {
 	return allOps
 }
 
-func (p *pendingOps) iterAllCrashes(yield func([]fsOp) bool) {
-	// XXX: if anything gets modified while iterAllCrashes runs we have a
-	// problem. do a clone?
-
-	allOps := p.allOps()
-
-	// walk subsets:
-	// - if we ever skip an op, mark all its store dep keys unavailable
-	// - only allow adding a new op if key is available
-
-	unavailable := make(map[depKey]int)
-	var picked []fsOp
-
-	var search func(idx int) bool
-	search = func(idx int) bool {
-		if idx == len(allOps) {
-			return yield(picked)
-		}
-
-		op := allOps[idx]
-
-		// consider picking
-		cur := op.first
-		ok := true
-		for cur != nil {
-			if cur.kind.isDependsOn() && unavailable[cur.key] > 0 {
-				ok = false
-				break
-			}
-			cur = cur.sibling
-		}
-
-		// do pick
-		if ok {
-			// mark picked
-			picked = append(picked, op.fsOp)
-			if !search(idx + 1) {
-				return false
-			}
-			// unmark picked
-			picked = picked[:len(picked)-1]
-		}
-
-		// don't pick
-		// mark not picked
-		cur = op.first
-		for cur != nil {
-			if cur.kind.isStoreAs() {
-				unavailable[cur.key]++
-			}
-			cur = cur.sibling
-		}
-		if !search(idx + 1) {
-			return false
-		}
-		// unmark not picked
-		cur = op.first
-		for cur != nil {
-			if cur.kind.isStoreAs() {
-				unavailable[cur.key]--
-			}
-			cur = cur.sibling
-		}
-		return true
+type plannedOp struct {
+	op              fsOp
+	stores, depends []depKey
+}
+type (
+	crashPlan  struct{ ops []plannedOp }
+	crashFrame struct {
+		index  int
+		phase  uint8
+		picked bool
 	}
+)
 
-	search(0)
+type crashPlanIterator struct {
+	plan        *crashPlan
+	stack       []crashFrame
+	picked      []fsOp
+	unavailable map[depKey]uint32
+	closed      bool
 }
 
-func (p *pendingOps) randomCrashSubset() []fsOp {
-	allOps := p.allOps()
-
-	// similar to iterAllCrashes
-	// - if we ever skip an op, mark all its store dep keys unavailable
-	// - only allow adding a new op if key is available
-
-	unavailable := make(map[depKey]bool)
-	var picked []fsOp
-
-	for _, op := range allOps {
-		// consider picking
-		cur := op.first
-		ok := true
-		for cur != nil {
-			if cur.kind.isDependsOn() && unavailable[cur.key] {
-				ok = false
-				break
+func (p *pendingOps) snapshot() *crashPlan {
+	plan := &crashPlan{}
+	for _, op := range p.allOps() {
+		planned := plannedOp{op: retainOp(op.fsOp)}
+		for dep := op.first; dep != nil; dep = dep.sibling {
+			if dep.kind.isStoreAs() {
+				planned.stores = append(planned.stores, dep.key)
 			}
-			cur = cur.sibling
+			if dep.kind.isDependsOn() {
+				planned.depends = append(planned.depends, dep.key)
+			}
 		}
+		plan.ops = append(plan.ops, planned)
+	}
+	return plan
+}
 
-		// consider pick
-		// XXX: this could really benefit from fuzzing guideance
-		pick := ok && rand.Int31n(3) >= 1
+func (p *crashPlan) release() {
+	for _, op := range p.ops {
+		releaseOp(op.op)
+	}
+	p.ops = nil
+}
 
-		if pick {
-			// do pick
-			picked = append(picked, op.fsOp)
-		} else {
-			// mark unavailable
-			cur = op.first
-			for cur != nil {
-				if cur.kind.isStoreAs() {
-					unavailable[cur.key] = true
-				}
-				cur = cur.sibling
-			}
+func dependenciesAvailable(keys []depKey, unavailable map[depKey]uint32) bool {
+	for _, key := range keys {
+		if unavailable[key] != 0 {
+			return false
 		}
 	}
+	return true
+}
 
+func incrementUnavailable(keys []depKey, unavailable map[depKey]uint32) {
+	for _, key := range keys {
+		if unavailable[key] == ^uint32(0) {
+			panic("crash dependency count exhausted")
+		}
+		unavailable[key]++
+	}
+}
+
+func (p *crashPlan) randomCrashSubset(random contracts.Random) []fsOp {
+	if random == nil {
+		panic("missing filesystem random stream")
+	}
+	unavailable := make(map[depKey]uint32)
+	var picked []fsOp
+	for _, op := range p.ops {
+		if dependenciesAvailable(op.depends, unavailable) && random.Uint64N(3) >= 1 {
+			picked = append(picked, op.op)
+		} else {
+			incrementUnavailable(op.stores, unavailable)
+		}
+	}
 	return picked
+}
+
+func (p *crashPlan) iterator() *crashPlanIterator {
+	return &crashPlanIterator{plan: p, stack: []crashFrame{{}}, unavailable: make(map[depKey]uint32)}
+}
+
+func (it *crashPlanIterator) next() ([]fsOp, bool) {
+	if it.closed {
+		return nil, false
+	}
+	for len(it.stack) != 0 {
+		frame := &it.stack[len(it.stack)-1]
+		if frame.index == len(it.plan.ops) {
+			if frame.phase == 0 {
+				frame.phase = 1
+				return slices.Clone(it.picked), true
+			}
+			it.stack = it.stack[:len(it.stack)-1]
+			continue
+		}
+		op := it.plan.ops[frame.index]
+		switch frame.phase {
+		case 0:
+			frame.phase = 1
+			if dependenciesAvailable(op.depends, it.unavailable) {
+				frame.picked = true
+				it.picked = append(it.picked, op.op)
+				it.stack = append(it.stack, crashFrame{index: frame.index + 1})
+			}
+		case 1:
+			if frame.picked {
+				it.picked[len(it.picked)-1] = nil
+				it.picked = it.picked[:len(it.picked)-1]
+			}
+			incrementUnavailable(op.stores, it.unavailable)
+			frame.phase = 2
+			it.stack = append(it.stack, crashFrame{index: frame.index + 1})
+		case 2:
+			for _, key := range op.stores {
+				if it.unavailable[key] == 0 {
+					panic("unbalanced crash dependency count")
+				}
+				it.unavailable[key]--
+				if it.unavailable[key] == 0 {
+					delete(it.unavailable, key)
+				}
+			}
+			it.stack = it.stack[:len(it.stack)-1]
+		}
+	}
+	it.close()
+	return nil, false
+}
+
+func (it *crashPlanIterator) close() {
+	it.closed = true
+	it.plan, it.stack, it.picked, it.unavailable = nil, nil, nil, nil
 }

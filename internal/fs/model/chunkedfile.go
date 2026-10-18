@@ -1,8 +1,7 @@
-package fs
+package model
 
 import (
 	"slices"
-	"sync"
 
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
@@ -37,8 +36,8 @@ import (
 // chunks. In the happy case, that is the only time data is copied byte-by-byte
 // and afterwards we only move references to the chunk around.
 //
-// Chunks are referenced counted so we can re-use no longer needed chunks in a
-// sync.Pool and reduce the number of memory allocations.
+// Chunks belong to model instances and retained snapshots. No allocation pool
+// shares mutable storage across simulation runs.
 type chunkedFile struct {
 	// TODO: inline a fixed size array of chunks that covers most file sizes?
 	chunks []*refCountedChunk
@@ -51,15 +50,6 @@ type refCountedChunk struct {
 	// XXX: inline data to skip an object?
 	refs int
 	data []byte
-}
-
-var chunkPool = sync.Pool{
-	New: func() any {
-		return &refCountedChunk{
-			refs: 0,
-			data: make([]byte, chunkSize),
-		}
-	},
 }
 
 func chunkedFileFromBytes(data []byte) *chunkedFile {
@@ -79,16 +69,11 @@ func chunkedFileFromBytes(data []byte) *chunkedFile {
 }
 
 func allocRefCountedChunk() *refCountedChunk {
-	chunk := chunkPool.Get().(*refCountedChunk)
-	if chunk.refs != 0 {
-		panic("help")
-	}
-	chunk.refs++
-	return chunk
+	return &refCountedChunk{refs: 1, data: make([]byte, chunkSize)}
 }
 
 func (c *refCountedChunk) incRef() {
-	if c.refs <= 0 {
+	if c.refs <= 0 || c.refs == int(^uint(0)>>1) {
 		panic("help")
 	}
 	c.refs++
@@ -100,7 +85,7 @@ func (c *refCountedChunk) decRef() {
 	}
 	c.refs--
 	if c.refs == 0 {
-		chunkPool.Put(c)
+		c.data = nil
 	}
 }
 
@@ -197,10 +182,10 @@ func (w *chunkedFile) ensureWritableChunk(idx int) *refCountedChunk {
 	if chunk := w.chunks[idx]; chunk != nil && chunk.refs == 1 {
 		return chunk
 	}
-	// TODO: should we guarantee that chunks in pool are zeroed out?
 	oldChunk := w.getReadableChunk(idx)
 	newChunk := allocRefCountedChunk()
 	copy(newChunk.data, oldChunk.data)
+	w.releaseChunk(idx)
 	w.chunks[idx] = newChunk
 	return newChunk
 }
