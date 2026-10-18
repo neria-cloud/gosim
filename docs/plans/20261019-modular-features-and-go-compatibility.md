@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–11 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–12 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -268,18 +268,18 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§2 exact selection; T§8 / facade and family files; I: coro, race, legacy hooks; T§9 Profile/Hook/PackagePolicy.  
 **Budget:** 2,500–4,500 changed lines. **Dependency:** 1–6.
 
-- [ ] Implement Coro Start/Next/Yield/Finish, all needed Race* operations and Identity through the stable facade. Inspect actual pinned toolchain private symbols/layouts for both families; do not use runtime.Version branching to select executable ABI code.
-- [ ] Add bounded `go1.25 && !go1.26` / `go1.26 && !go1.27` selectors, race/norace variants and explicit unsupported-family compile failure. Ensure `go list ./...` on either supported family skips inactive executable packages cleanly; metadata can remain inspectable independently.
-- [ ] Add go125 Descriptor/Profile data, pending tuple records and hook ownership manifests. Implement synchronization, timers, runtime maps/random hooks against stable engine/kernel contracts using signatures extracted from go1.25.14. Keep native facade and translated stdlib race hooks distinct.
-- [ ] Include executable-source/policy fingerprints and verification origin. Do not certify go1.25.14 because hooks compile; keep the former translator selection until the new shims/routes are complete.
-- [ ] Point the engine at the facade and test both pinned native ABI families. The Go 1.26 translated hook inventory is completed in Task 16; Task 12's native 1.26 implementation must itself be real and validated.
+- [x] Implement Coro Start/Next/Yield/Finish, all needed Race* operations and Identity through the stable facade. Inspect actual pinned toolchain private symbols/layouts for both families; do not use runtime.Version branching to select executable ABI code.
+- [x] Add bounded `go1.25 && !go1.26` / `go1.26 && !go1.27` selectors, race/norace variants and explicit unsupported-family compile failure. Ensure `go list ./...` on either supported family skips inactive executable packages cleanly; metadata can remain inspectable independently.
+- [x] Add go125 Descriptor/Profile data, pending tuple records and hook ownership manifests. Implement synchronization, timers, runtime maps/random hooks against stable engine/kernel contracts using signatures extracted from go1.25.14. Keep native facade and translated stdlib race hooks distinct.
+- [x] Include executable-source/policy fingerprints and verification origin. Do not certify go1.25.14 because hooks compile; keep the former translator selection until the new shims/routes are complete.
+- [x] Point the engine at the facade and test both pinned native ABI families. The Go 1.26 translated hook inventory is completed in Task 16; Task 12's native 1.26 implementation must itself be real and validated.
 
 **Target declarations:** T§8 Coro/Race/HostIdentity, `Descriptor() spec.Profile`, `selected.Profile() spec.Profile`; hook ABI signatures come from the pinned toolchain, with manifest drift rejected by VerifyHooks.
 
 #### Verification
 
-- [ ] Native coroutine and race/norace tests run under both exact patches on the available host; unsupported release, wrong family/private symbol and modified source fixtures fail explicitly.
-- [ ] Run common commit gate and import checks showing no executable cross-family import.
+- [x] Native coroutine and race/norace tests run under both exact patches on the available host; unsupported release, wrong family/private symbol and modified source fixtures fail explicitly.
+- [x] Run common commit gate and import checks showing no executable cross-family import.
 
 ### Task 13: Implement Go 1.25 shims and audited package policies
 
@@ -826,3 +826,17 @@ The full gate exposed an intermittent pre-existing stderr-forwarding failure in 
 - The final task checks each subsystem and resolves recorded gaps; its last implementation subtask verifies live composition and entry-point reachability.
 - Only this plan is produced by this planning session. Implementation, source compatibility certification and target-document reconciliations are scheduled work, not already completed changes.
 - Structural verification passed: 33 consecutively numbered tasks, 220 unchecked implementation/verification items, per-task files/references/budgets/dependencies, balanced fenced blocks, existing local reference targets, complete numbered-target coverage, and a final live-wiring subtask. No new library tests were run for this documentation-only task.
+
+Task 12 also updates `cmd/gosim/selftest.go` to copy `packages.Package.EmbedFiles` and check copy errors: the extracted external-module fixture omitted the new embedded profile manifests. `internal/tests/script/testdata/{testbuilding,metatestlogs}.txtar` now uses the repository-required `-ldflags=-checklinkname=0 -tags=linkname` for native metatest builds; those fixtures had relied on the retired channel coroutine fallback. The final full gate passes with the intended native implementation. The relevant diff is:
+
+```diff
+- Mode: packages.NeedImports | packages.NeedFiles | packages.NeedDeps | packages.NeedName,
++ Mode: packages.NeedImports | packages.NeedFiles | packages.NeedDeps | packages.NeedName | packages.NeedEmbedFiles,
++ files = append(files, pkg.EmbedFiles...)
+- copyFileIfChanged(file, newP, 0o644)
++ if err := copyFileIfChanged(file, newP, 0o644); err != nil { log.Fatal(err) }
+- exec go test ...
++ exec go test -ldflags=-checklinkname=0 -tags=linkname ...
+```
+
+Task 12 extracts exact runtime-hook declarations from Go 1.25.14 instead of carrying four obsolete `sync` symbols (`runtime_SemacquireMutex`, `runtime_nanotime`, `runtime_canSpin`, `runtime_doSpin`); their actual `internal/sync` hooks remain. New non-race atomic AND/OR implementations return the prior value, matching Go's contract, and notify-list initialization checks the translated layout. Existing translator selection remains unchanged until Task 21. `internal/compat/genprofile` and spec provenance/fingerprint helpers support the task's source-identity requirement; they do not generate certification evidence.

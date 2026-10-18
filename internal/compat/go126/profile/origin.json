@@ -1,0 +1,108 @@
+{
+  "toolchain": "go1.26.9",
+  "files": [
+    {
+      "path": "src/runtime/coro.go",
+      "digest": "e510468afaaf06a14b515f6a51e2191fe1871c0655cbeef2c12268496a627c4a",
+      "hooks": [
+        {
+          "package": "runtime",
+          "symbol": "newcoro",
+          "signature": "func(func(*coro)) *coro",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.newcoro",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "coroexit",
+          "signature": "func(*coro)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.coroexit",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "coroswitch",
+          "signature": "func(*coro)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.coroswitch",
+          "owner": "rt"
+        }
+      ]
+    },
+    {
+      "path": "src/runtime/race.go",
+      "digest": "b4a356aa545dfd873b87ce0de264c15828d2ee1ff3507297afbb4a29d69a6479",
+      "hooks": [
+        {
+          "package": "runtime",
+          "symbol": "RaceRead",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceRead",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceWrite",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceWrite",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceReadRange",
+          "signature": "func(unsafe.Pointer, int)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceReadRange",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceWriteRange",
+          "signature": "func(unsafe.Pointer, int)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceWriteRange",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceErrors",
+          "signature": "func() int",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceErrors",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceAcquire",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceAcquire",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceRelease",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceRelease",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceReleaseMerge",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceReleaseMerge",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceDisable",
+          "signature": "func()",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceDisable",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceEnable",
+          "signature": "func()",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceEnable",
+          "owner": "rt"
+        }
+      ]
+    }
+  ]
+}

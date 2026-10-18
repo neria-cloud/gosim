@@ -1,0 +1,23 @@
+[
+  {
+    "package": "runtime",
+    "symbol": "coroexit",
+    "signature": "func(*coro)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.coroexit",
+    "owner": "rt"
+  },
+  {
+    "package": "runtime",
+    "symbol": "coroswitch",
+    "signature": "func(*coro)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.coroswitch",
+    "owner": "rt"
+  },
+  {
+    "package": "runtime",
+    "symbol": "newcoro",
+    "signature": "func(func(*coro)) *coro",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.newcoro",
+    "owner": "rt"
+  }
+]

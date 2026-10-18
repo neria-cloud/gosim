@@ -4,14 +4,14 @@ import (
 	"math"
 	"strings"
 
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 // SyscallEnter/Exit suppress synthetic synchronization from the transport.
 // Actual application I/O remains visible through the existing memory-view ABI.
-func SyscallEnter() { race.Disable() }
-func SyscallExit()  { race.Enable() }
+func SyscallEnter() { hostabi.RaceDisable() }
+func SyscallExit()  { hostabi.RaceEnable() }
 
 // WakeSemaphore is the non-yielding completion half used by the supervisor
 // and native event callbacks. Semacquire remains the application wait half.

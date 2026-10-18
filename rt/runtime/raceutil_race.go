@@ -5,7 +5,7 @@ package gosimruntime
 import (
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 const debugRaceToken = false
@@ -42,7 +42,7 @@ func (t RaceToken) Release() {
 	if debugRaceToken && t.elem == nil {
 		panic("nil token")
 	}
-	race.Release(unsafe.Pointer(t.elem))
+	hostabi.RaceRelease(unsafe.Pointer(t.elem))
 }
 
 //go:norace
@@ -50,7 +50,7 @@ func (t RaceToken) Acquire() {
 	if debugRaceToken && t.elem == nil {
 		panic("nil token")
 	}
-	race.Acquire(unsafe.Pointer(t.elem))
+	hostabi.RaceAcquire(unsafe.Pointer(t.elem))
 }
 
 // NoraceAppend appends to a slice without triggering the race detector.

@@ -17,8 +17,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/internal/coro"
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 type constErr struct {
@@ -531,7 +530,7 @@ type goroutine struct {
 
 	finished bool
 
-	coro coro.Upcallcoro
+	coro hostabi.Upcallcoro
 
 	corotask corotask
 
@@ -585,9 +584,9 @@ func newGoroutine(id int, parent *goroutine, spawnEventID int, fun func(), machi
 	gs.current.set(g)
 	g.entryFun = fun
 	g.entryToken = token
-	race.Disable() // make sure no happens-before to the scheduler
+	hostabi.RaceDisable() // make sure no happens-before to the scheduler
 	g.coro.Start(goroutineEntrypoint)
-	race.Enable()
+	hostabi.RaceEnable()
 	gs.current.set(prev)
 
 	return g
@@ -614,7 +613,7 @@ func freeGoroutine(g *goroutine) {
 	g.machine = nil
 	g.parent = nil
 	g.finished = false
-	g.coro = coro.Upcallcoro{}
+	g.coro = hostabi.Upcallcoro{}
 	g.corotask = corotaskNone
 	g.parksynctoken = RaceToken{}
 	g.shouldacquire = false
@@ -693,7 +692,7 @@ const debugUpcall = true
 
 //go:norace
 func (g *goroutine) upcall(f func()) {
-	race.Disable()
+	hostabi.RaceDisable()
 	if debugUpcall {
 		if gs.get().inupcall {
 			panic("already in upcall")
@@ -704,7 +703,7 @@ func (g *goroutine) upcall(f func()) {
 	if debugUpcall {
 		gs.get().inupcall = false
 	}
-	race.Enable()
+	hostabi.RaceEnable()
 }
 
 func (g *goroutine) step() {
@@ -854,25 +853,25 @@ func (g *goroutine) park(wait bool) {
 	// wait for us to resume
 	for {
 		g.releaseSupervisor()
-		if race.Enabled {
+		if hostabi.RaceEnabled {
 			if wait {
 				g.parksynctoken.Release()
 			}
-			race.Disable()
+			hostabi.RaceDisable()
 		}
 
 		g.coro.Yield()
 
-		if race.Enabled {
-			race.Enable()
+		if hostabi.RaceEnabled {
+			hostabi.RaceEnable()
 			if wait {
 				if g.shouldacquire {
-					race.Acquire(unsafe.Pointer(&g.shouldacquire))
+					hostabi.RaceAcquire(unsafe.Pointer(&g.shouldacquire))
 					g.shouldacquire = false
 				}
 				if g.shouldrelease != nil {
 					addr := g.shouldrelease
-					race.Release(unsafe.Pointer(addr))
+					hostabi.RaceRelease(unsafe.Pointer(addr))
 					addr.pending = nil
 					g.shouldrelease = nil
 				}

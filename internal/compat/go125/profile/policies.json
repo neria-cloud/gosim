@@ -1,0 +1,57 @@
+[
+  {
+    "path": "github.com/neria-cloud/gosim/rt/runtime",
+    "mode": "bridge",
+    "reason": "Native deterministic engine with primitive ABI boundary."
+  },
+  {
+    "path": "github.com/neria-cloud/gosim/internal/hostabi",
+    "mode": "bridge",
+    "reason": "Compile-time selected native coroutine and race ABI."
+  },
+  {
+    "path": "sync",
+    "mode": "translate",
+    "reason": "Version-owned runtime hooks; mutable state belongs to the simulated machine."
+  },
+  {
+    "path": "internal/sync",
+    "mode": "translate",
+    "reason": "Version-owned runtime hooks; mutable state belongs to the simulated machine."
+  },
+  {
+    "path": "sync/atomic",
+    "mode": "translate",
+    "reason": "Version-owned runtime hooks; mutable state belongs to the simulated machine."
+  },
+  {
+    "path": "time",
+    "mode": "translate",
+    "reason": "Version-owned runtime hooks; mutable state belongs to the simulated machine."
+  },
+  {
+    "path": "maps",
+    "mode": "translate",
+    "reason": "Version-owned runtime hooks; mutable state belongs to the simulated machine."
+  },
+  {
+    "path": "math/rand",
+    "mode": "translate",
+    "reason": "Version-owned runtime hooks; mutable state belongs to the simulated machine."
+  },
+  {
+    "path": "math/rand/v2",
+    "mode": "translate",
+    "reason": "Version-owned runtime hooks; mutable state belongs to the simulated machine."
+  },
+  {
+    "path": "hash/maphash",
+    "mode": "translate",
+    "reason": "Version-owned runtime hooks; mutable state belongs to the simulated machine."
+  },
+  {
+    "path": "internal/race",
+    "mode": "translate",
+    "reason": "Version-owned runtime hooks; mutable state belongs to the simulated machine."
+  }
+]

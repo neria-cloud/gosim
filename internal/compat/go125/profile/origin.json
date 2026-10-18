@@ -1,0 +1,164 @@
+{
+  "toolchain": "go1.25.14",
+  "files": [
+    {
+      "path": "src/hash/maphash/maphash_runtime.go",
+      "digest": "b52d2db3fbbde2abcbf5484d0807ed99f0b297eab97d60c0b174b059bda9a872"
+    },
+    {
+      "path": "src/internal/race/norace.go",
+      "digest": "d195ef03f406d7a3e636709cccf6fc55e0fc99aa4a6a5291800364b4c308d828"
+    },
+    {
+      "path": "src/internal/sync/hashtriemap.go",
+      "digest": "f0f5a4f8c3b3b22e5b141247be76829065345a32eeb663ab2129656c10314161"
+    },
+    {
+      "path": "src/internal/sync/runtime.go",
+      "digest": "e3445cf3a17f6b322cb3136e30a28eab7a70c0f37fac44ba5dc7912a19930a17"
+    },
+    {
+      "path": "src/maps/maps.go",
+      "digest": "0f69acac135baa8b644e2479e514835b4d991bcc894916c2e34b8739a171fce2"
+    },
+    {
+      "path": "src/math/rand/rand.go",
+      "digest": "a57f58bcc4baa4ac71fb09a6f2a8ce525f6f097d7b9c7ea61f206bcfd910aa39"
+    },
+    {
+      "path": "src/math/rand/v2/rand.go",
+      "digest": "a0b0f516652e66ee56de089ec01457f5f786e0463cd08b2453eb025cd6ad6f58"
+    },
+    {
+      "path": "src/runtime/coro.go",
+      "digest": "e510468afaaf06a14b515f6a51e2191fe1871c0655cbeef2c12268496a627c4a",
+      "hooks": [
+        {
+          "package": "runtime",
+          "symbol": "newcoro",
+          "signature": "func(func(*coro)) *coro",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.newcoro",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "coroexit",
+          "signature": "func(*coro)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.coroexit",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "coroswitch",
+          "signature": "func(*coro)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.coroswitch",
+          "owner": "rt"
+        }
+      ]
+    },
+    {
+      "path": "src/runtime/race.go",
+      "digest": "0d5056ac867eb3c6b8e7c190dc03f5acc09bfd4b979b3e7decf4f41a6069868c",
+      "hooks": [
+        {
+          "package": "runtime",
+          "symbol": "RaceRead",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceRead",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceWrite",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceWrite",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceReadRange",
+          "signature": "func(unsafe.Pointer, int)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceReadRange",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceWriteRange",
+          "signature": "func(unsafe.Pointer, int)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceWriteRange",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceErrors",
+          "signature": "func() int",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceErrors",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceAcquire",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceAcquire",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceRelease",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceRelease",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceReleaseMerge",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceReleaseMerge",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceDisable",
+          "signature": "func()",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceDisable",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceEnable",
+          "signature": "func()",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceEnable",
+          "owner": "rt"
+        }
+      ]
+    },
+    {
+      "path": "src/sync/atomic/doc.go",
+      "digest": "fb448dacfc6b4d5c74ae203224dc31088c2cf45fc42391a4fdb04a47ccc62413"
+    },
+    {
+      "path": "src/sync/atomic/doc_64.go",
+      "digest": "0434f660a650bc6a1eaf9b8c48205ed0ce8c18b53001e949dde7662d04bde9ea"
+    },
+    {
+      "path": "src/sync/atomic/value.go",
+      "digest": "710a2a246c5be7546d145b093b65ee851fd24c06e8b315d6f4059d3427115fba"
+    },
+    {
+      "path": "src/sync/pool.go",
+      "digest": "d613639cb20b77b0db9104bc0de2590f781f4ea3a01494619e521aa727114f99"
+    },
+    {
+      "path": "src/sync/runtime.go",
+      "digest": "a2be85512b59e11270b099f264581343cc1589bb782e03a476102406defd5f33"
+    },
+    {
+      "path": "src/time/sleep.go",
+      "digest": "7af4885f167a12ff201ad4d0b5a7c63ba57cee9204b3fa0cacfe4f832875b765"
+    },
+    {
+      "path": "src/time/time.go",
+      "digest": "ab61194d541aee6a83f9f45400bec8a78426377a7c4f59d7d807fa4f6e6a18f0"
+    }
+  ]
+}

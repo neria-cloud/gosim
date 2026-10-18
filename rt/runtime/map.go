@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 const checkMap = false
@@ -273,9 +273,9 @@ func (m Map[K, V]) Len() int {
 		return 0
 	}
 
-	if race.Enabled {
+	if hostabi.RaceEnabled {
 		// for TestRaceMapLenDelete
-		race.Read(unsafe.Pointer(m.Impl))
+		hostabi.RaceRead(unsafe.Pointer(m.Impl))
 	}
 
 	if m.Impl.underlying == nil {
@@ -298,9 +298,9 @@ func (m Map[K, V]) Delete(k K) {
 		return
 	}
 
-	if race.Enabled {
+	if hostabi.RaceEnabled {
 		// for TestRaceMapLenDelete
-		race.Write(unsafe.Pointer(m.Impl))
+		hostabi.RaceWrite(unsafe.Pointer(m.Impl))
 	}
 
 	if m.Impl.underlying == nil {

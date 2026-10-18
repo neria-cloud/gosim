@@ -438,3 +438,28 @@ Notes / migration ledger
 - Documented the metatest harness fix, actual bound address correction and listener finalization helper in NOT PLANNED CHANGES. Metatesting's build-identity replacement remains Task 23; its package-keyed cache is not final architecture. Existing simulated-use rejection coverage still passes.
 - Ordinary CLI integration still uses the authorized intermediate simulation path. Task 14 replaces manual routes; Task 22 connects public APIs and removes temporary adapters. No target document or compatibility certification was changed.
 - Final Task 11 size: 1,958 changed lines (1,913 additions + 45 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 12 — Native host ABI selection and Go 1.25 runtime hooks
+Date: 2026-10-19. Previous task commit: `14bc00c`. Commit: the Task 12 implementation commit containing this entry.
+
+Implemented
+- Added bounded go125/go126 native host packages and a stable hostabi facade for opaque coroutine handles, Start/Next/Yield/Finish, upcalls, all existing race operations and primitive HostIdentity. Engine imports now use the facade. Native coroutine cancellation still skips application defers; no blocking-channel fallback is reachable through the new facade.
+- Compile-time family selectors, race/norace implementations and named unsupported-family failure. Metadata remains inspectable across families; no executable opposite-family import. runtime.Version reports identity only and never chooses an implementation.
+- Added 96 Go 1.25 hook manifest records covering synchronization, atomics, time, maps, random and translated stdlib race hooks, plus real native Go 1.26 coroutine metadata. Actual private declarations and reviewed source-file hashes come from installed official go1.25.14/go1.26.9 distributions. Native race-only declarations have separate origin verification. No private runtime layout was copied; coroutine pointers stay opaque.
+- Profile descriptors return independent metadata, with 24 pending tuples per family and no result/source certification digests. Source fingerprints include executable adapters, shared facade/selection/spec code, ABI manifests, policy and origin files; tests and tuple evidence are excluded to avoid circular evidence identity. genprofile updates/checks only source revisions, never ABI expectations or certification.
+- New atomic AND/OR hooks return the previous value in both modes. Removed four obsolete sync symbols in favor of pinned-source internal/sync declarations. Added translated notify-list size validation. Old translator hook selection remains until Task 21; full Go 1.26 translated hooks remain Task 16.
+
+Verified
+- Exact go1.25.14 and go1.26.9 native runtime/facade/metadata suites passed in ordinary and race modes on darwin/arm64: `.gosim/task12/{native125,native126,race125,race126}.log`. Coroutine tests check yield/resume, repeated disposal, skipped defers and upcalls; an isolated intentional race verifies facade annotations remain effective.
+- Pinned-source verification passes for both Linux amd64/arm64 declaration selections. Wrong patch/family, absent private symbol, changed hook signature, modified GOROOT source and unsupported-release selectors fail explicitly. Fingerprint tests cover executable/policy/path changes and exclude tests, evidence and inactive-family source.
+- Go 1.25 hook tests cover semaphore/notification ordering, wrong notify layout, virtual timer stop/reset/periodicity/Sleep, independent map clone, random replay and atomic results for all integer widths. Both exact toolchains' `go list ./...` skip inactive executable packages and retain metadata packages. Native import audit excludes old coro and opposite-family host code.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including CLI build, artifact preparation, all ordinary/race suites and script fixtures: `.gosim/task12-gate.log`. Source revision generator check and whitespace checks pass.
+
+Notes / migration ledger
+- Initial full gates exposed omitted embedded profile JSON in the script-test module copy and unflagged native metatest commands that previously selected the channel fallback. Fixed embedded-file copying/error handling and added required linkname flags to those fixtures; documented the diff in NOT PLANNED CHANGES. The final gate passes without a fallback.
+- No target architecture edits or new compatibility certification. Exact toolchain enforcement remains Task 24; this development gate is not evidence for adding go1.26.0 to the supported matrix. Old coro/race packages remain for their other legacy consumers until Task 29.
+- Final Task 12 size: 3,604 changed lines (3,528 additions + 76 deletions), including checklist/log; staged whitespace check passed.
+- Final boundary review corrected new translated hooks to call primitive race bridges in the public rt/runtime package. Only original runtime code imports internal/hostabi; the new hook import test enforces this external-module boundary. No translated reflect/type value passes into the native race bridge. Re-ran both exact families' ordinary/race suites and the full development gate successfully after the correction.
+- Regenerating unchanged revision files during an intermediate gate invalidated its mtime-based prebuilts. genprofile now preserves unchanged file mtimes; regenerated artifacts and the subsequent complete gate pass. The corrected Task 12 commit includes this bridge and generator fix.
+- Corrected final Task 12 size: 3,673 changed lines (3,597 additions + 76 deletions); staged whitespace check passed.

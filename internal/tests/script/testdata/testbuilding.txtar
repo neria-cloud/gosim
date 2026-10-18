@@ -5,11 +5,11 @@ exec gosim test -v .
 stdout 'inside gosim hello'
 
 # Cached metatest fails without binary
-! exec go test -v .
+! exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
 stdout 'Could not find pre-built gosim test binary'
 
 # Uncached metatest works
-exec go test -v -count=1 .
+exec go test -ldflags=-checklinkname=0 -tags=linkname -v -count=1 .
 stdout 'looks like an uncached test run.*build-tests'
 stdout 'inside gosim hello'
 
@@ -17,12 +17,12 @@ stdout 'inside gosim hello'
 exec gosim build-tests .
 
 # Cached metatest now works
-exec go test -v .
+exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
 stdout 'Using pre-built gosim test binary'
 stdout 'inside gosim hello'
 
 # Uncached metatest still works
-exec go test -v -count=1 .
+exec go test -ldflags=-checklinkname=0 -tags=linkname -v -count=1 .
 stdout 'looks like an uncached test run.*build-tests'
 stdout 'inside gosim hello'
 
@@ -30,12 +30,12 @@ stdout 'inside gosim hello'
 exec touch test_test.go
 
 # Cached metatest no longer works
-! exec go test -v .
+! exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
 stdout 'Using pre-built gosim test binary'
 stdout 'changed'
 
 # Uncached metatest still works
-exec go test -v -count=1 .
+exec go test -ldflags=-checklinkname=0 -tags=linkname -v -count=1 .
 stdout 'looks like an uncached test run.*build-tests'
 stdout 'inside gosim hello'
 

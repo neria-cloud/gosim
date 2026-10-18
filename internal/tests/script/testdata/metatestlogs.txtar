@@ -1,12 +1,12 @@
 # metatest forwards logs
 
 # normally we do not see prefixed forwarded logs
-exec go test -run=Ok -race -count=1 -v .
+exec go test -ldflags=-checklinkname=0 -tags=linkname -run=Ok -race -count=1 -v .
 stdout hello
 ! stdout 'metatest binary'
 
 # races do show up
-! exec go test -run=Bad -race -count=1 -v .
+! exec go test -ldflags=-checklinkname=0 -tags=linkname -run=Bad -race -count=1 -v .
 stdout 'metatest binary: WARNING: DATA RACE'
 
 -- race_meta_test.go --

@@ -9,7 +9,7 @@ import (
 	"iter"
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 type waitq struct {
@@ -152,7 +152,7 @@ func NewChan[V any](capacity int) Chan[V] {
 		buf = make([]V, capacity)
 	}
 	var r []racesynchelper
-	if race.Enabled {
+	if hostabi.RaceEnabled {
 		r = make([]racesynchelper, max(1, capacity))
 	}
 	return Chan[V]{
@@ -186,20 +186,20 @@ func (c Chan[V]) send(v V) {
 
 	if other := c.impl.recvQ.dequeue(); other != nil {
 		if c.impl.buf != nil {
-			if race.Enabled {
+			if hostabi.RaceEnabled {
 				racesyncdouble(other.goroutine, &c.impl.race[c.impl.end])
 			}
 			c.impl.end = (c.impl.end + 1) % len(c.impl.buf)
 			c.impl.start = c.impl.end
 		} else {
-			if race.Enabled {
+			if hostabi.RaceEnabled {
 				racesynccross(other.goroutine, &c.impl.race[0])
 			}
 		}
 		other.item = v
 		other.success = true
 	} else {
-		if race.Enabled {
+		if hostabi.RaceEnabled {
 			racesyncsingle(&c.impl.race[c.impl.end])
 		}
 		c.impl.buf[c.impl.end] = v
@@ -216,8 +216,8 @@ func (c Chan[V]) Send(v V) {
 	}
 	g.yield()
 
-	if race.Enabled {
-		race.Read(unsafe.Pointer(c.impl))
+	if hostabi.RaceEnabled {
+		hostabi.RaceRead(unsafe.Pointer(c.impl))
 	}
 
 	if c.canSend() {
@@ -229,7 +229,7 @@ func (c Chan[V]) Send(v V) {
 	c.impl.sendQ.enqueue(sudog)
 	g.wait()
 	if !sudog.success {
-		race.Acquire(unsafe.Pointer(c.impl))
+		hostabi.RaceAcquire(unsafe.Pointer(c.impl))
 		g.releaseWaiters()
 		panic("closed")
 	}
@@ -238,7 +238,7 @@ func (c Chan[V]) Send(v V) {
 
 func (c Chan[V]) completeSend(ok bool) {
 	if !ok {
-		race.Acquire(unsafe.Pointer(c.impl))
+		hostabi.RaceAcquire(unsafe.Pointer(c.impl))
 		panic("closed")
 	}
 }
@@ -270,9 +270,9 @@ func (c Chan[V]) close() {
 func (c Chan[V]) Close() {
 	getg().yield()
 
-	// XXX: race.Write
-	race.Write(unsafe.Pointer(c.impl))
-	race.Release(unsafe.Pointer(c.impl))
+	// XXX: hostabi.RaceWrite
+	hostabi.RaceWrite(unsafe.Pointer(c.impl))
+	hostabi.RaceRelease(unsafe.Pointer(c.impl))
 
 	c.close()
 }
@@ -292,13 +292,13 @@ func chanCast[V any](v any) V {
 //go:norace
 func (c Chan[V]) recvOk() (V, bool) {
 	if c.impl.closed && c.impl.len == 0 {
-		race.Acquire(unsafe.Pointer(c.impl))
+		hostabi.RaceAcquire(unsafe.Pointer(c.impl))
 		var v V
 		return v, false
 	}
 	if other := c.impl.sendQ.dequeue(); other != nil {
 		if c.impl.buf != nil {
-			if race.Enabled {
+			if hostabi.RaceEnabled {
 				racesyncdouble(other.goroutine, &c.impl.race[c.impl.start])
 			}
 			other.success = true
@@ -308,7 +308,7 @@ func (c Chan[V]) recvOk() (V, bool) {
 			c.impl.end = c.impl.start
 			return v, true
 		} else {
-			if race.Enabled {
+			if hostabi.RaceEnabled {
 				racesynccross(other.goroutine, &c.impl.race[0])
 			}
 			v := chanCast[V](other.item)
@@ -316,7 +316,7 @@ func (c Chan[V]) recvOk() (V, bool) {
 			return v, true
 		}
 	} else {
-		if race.Enabled {
+		if hostabi.RaceEnabled {
 			racesyncsingle(&c.impl.race[c.impl.start])
 		}
 		v := c.impl.buf[c.impl.start]
@@ -342,7 +342,7 @@ func (c Chan[V]) RecvOk() (V, bool) {
 		g.releaseWaiters()
 		if !sudog.success {
 			// closed, acquire
-			race.Acquire(unsafe.Pointer(c.impl))
+			hostabi.RaceAcquire(unsafe.Pointer(c.impl))
 		}
 		return v, ok
 	}
@@ -366,7 +366,7 @@ func (c Chan[V]) Range() iter.Seq[V] {
 func (c Chan[V]) completeRecv(ok bool) {
 	if !ok {
 		// closed, acquire
-		race.Acquire(unsafe.Pointer(c.impl))
+		hostabi.RaceAcquire(unsafe.Pointer(c.impl))
 	}
 }
 
@@ -546,17 +546,17 @@ func Select(selectors ...ChanSelector) (int, any, bool) {
 	return idx, v, ok
 }
 
-// racesynchelper tracks goroutines that still have to call race.Release and
-// race.Acquire on a given channel element.
+// racesynchelper tracks goroutines that still have to call hostabi.RaceRelease and
+// hostabi.RaceAcquire on a given channel element.
 //
 // When a blocked goroutine's channel operation is completed by another
 // goroutine, the completing goroutine will call racesync[single/double/cross]
-// to race.Acquire and race.Release a channel element for itself, and then
+// to hostabi.RaceAcquire and hostabi.RaceRelease a channel element for itself, and then
 // (ideally) for the blocked goroutine. In the standard go runtime there are
 // functions to do that but those are not exposed.  We simulate the end result
-// by tracking that the blocked goroutine should have called race.Release and
-// race.Acquire.  This requires some care because another goroutine might come
-// along want to call race.Acquire and race.Release on the same variable:
+// by tracking that the blocked goroutine should have called hostabi.RaceRelease and
+// hostabi.RaceAcquire.  This requires some care because another goroutine might come
+// along want to call hostabi.RaceAcquire and hostabi.RaceRelease on the same variable:
 //
 // 1. A blocked goroutine releases blockedg.waitsyncvar before pausing.
 // 2. The unblocking goroutine releases to blockedg.shouldacquire.
@@ -566,7 +566,7 @@ func Select(selectors ...ChanSelector) (int, any, bool) {
 // 4. The blocked goroutine acquires blockedg.shouldacquire
 // 5. The blocked goroutine releases blockedg.shouldrelease
 // Scenario B:
-// 4. Another goroutine comes wants to race.Acquire and race.Release. It notices the
+// 4. Another goroutine comes wants to hostabi.RaceAcquire and hostabi.RaceRelease. It notices the
 // pending blockedg, acquires blockedg.waitsyncvar, and sets
 // blockedg.shouldrelease to false.
 // 5. The blocked goroutine acquires blockedg.shouldacquire.
@@ -586,8 +586,8 @@ func racesyncsingle(addr *racesynchelper) {
 		g.shouldrelease = nil
 	}
 
-	race.Acquire(unsafe.Pointer(addr))
-	race.Release(unsafe.Pointer(addr))
+	hostabi.RaceAcquire(unsafe.Pointer(addr))
+	hostabi.RaceRelease(unsafe.Pointer(addr))
 }
 
 //go:norace
@@ -598,11 +598,11 @@ func racesyncdouble(g *goroutine, addr *racesynchelper) {
 		g.shouldrelease = nil
 	}
 
-	race.Acquire(unsafe.Pointer(addr))
-	race.Release(unsafe.Pointer(addr))
+	hostabi.RaceAcquire(unsafe.Pointer(addr))
+	hostabi.RaceRelease(unsafe.Pointer(addr))
 
 	g.shouldacquire = true
-	race.Release(unsafe.Pointer(&g.shouldacquire))
+	hostabi.RaceRelease(unsafe.Pointer(&g.shouldacquire))
 	addr.pending = g
 	g.shouldrelease = addr
 }
@@ -611,9 +611,9 @@ func racesyncdouble(g *goroutine, addr *racesynchelper) {
 func racesynccross(g *goroutine, addr *racesynchelper) {
 	g.parksynctoken.Acquire()
 
-	race.Acquire(unsafe.Pointer(addr))
-	race.Release(unsafe.Pointer(addr))
+	hostabi.RaceAcquire(unsafe.Pointer(addr))
+	hostabi.RaceRelease(unsafe.Pointer(addr))
 
 	g.shouldacquire = true
-	race.Release(unsafe.Pointer(&g.shouldacquire))
+	hostabi.RaceRelease(unsafe.Pointer(&g.shouldacquire))
 }

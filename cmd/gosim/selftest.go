@@ -85,7 +85,7 @@ func prepareSelftest() {
 // with the go test cache.
 func copyModuleForScriptTest(modDir string) {
 	pkgs, err := packages.Load(&packages.Config{
-		Mode:  packages.NeedImports | packages.NeedFiles | packages.NeedDeps | packages.NeedName,
+		Mode:  packages.NeedImports | packages.NeedFiles | packages.NeedDeps | packages.NeedName | packages.NeedEmbedFiles,
 		Tests: false,
 	}, gosimtool.Module+"/...")
 	if err != nil {
@@ -135,6 +135,7 @@ func copyModuleForScriptTest(modDir string) {
 		// log.Println(pkg.GoFiles)
 		files = append(files, pkg.GoFiles...)
 		files = append(files, pkg.IgnoredFiles...)
+		files = append(files, pkg.EmbedFiles...)
 	}
 
 	files = append(files, filepath.Join(modDir, "go.mod"))
@@ -147,7 +148,9 @@ func copyModuleForScriptTest(modDir string) {
 		if err := os.MkdirAll(filepath.Dir(newP), 0o755); err != nil {
 			log.Fatal(err)
 		}
-		copyFileIfChanged(file, newP, 0o644)
+		if err := copyFileIfChanged(file, newP, 0o644); err != nil {
+			log.Fatal(err)
+		}
 		wanted[newP] = true
 	}
 

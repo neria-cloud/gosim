@@ -1,0 +1,12 @@
+[
+  {
+    "path": "github.com/neria-cloud/gosim/rt/runtime",
+    "mode": "bridge",
+    "reason": "Native deterministic engine with primitive ABI boundary."
+  },
+  {
+    "path": "github.com/neria-cloud/gosim/internal/hostabi",
+    "mode": "bridge",
+    "reason": "Compile-time selected native coroutine and race ABI."
+  }
+]
