@@ -1,4 +1,4 @@
-package network
+package model
 
 import (
 	"math"
@@ -35,26 +35,26 @@ func (r *scriptedRandom) ExpFloat64() float64 {
 func TestFaultDrawOrder(t *testing.T) {
 	rng := &scriptedRandom{uniforms: []float64{0.1, 0.1, 0.8, 0.9, 0.2, 0.9}}
 	n := testNetwork(t, rng)
-	key := canonicalPair(testPair)
-	s := n.getOrCreateLinkLocked(key)
+	key := edgeKey(testPair)
+	s := n.getOrCreateLink(key)
 	loss := LossConfig{FailProbability: 0.5, RepairProbability: 0.5}
-	if n.advanceLinkLocked(key, s, loss) || s.Status != linkRandomPartition || s.Generation != 1 {
+	if n.advanceLink(key, s, loss) || s.Status != linkRandomPartition || s.Generation != 1 {
 		t.Fatal("failure")
 	}
-	if n.advanceLinkLocked(key, s, loss) || s.Generation != 1 {
+	if n.advanceLink(key, s, loss) || s.Generation != 1 {
 		t.Fatal("unsuccessful repair")
 	}
-	if !n.advanceLinkLocked(key, s, loss) || s.Status != linkHealthy || s.Generation != 1 {
+	if !n.advanceLink(key, s, loss) || s.Status != linkHealthy || s.Generation != 1 {
 		t.Fatal("repair")
 	}
-	if !n.advanceLinkLocked(key, s, loss) {
+	if !n.advanceLink(key, s, loss) {
 		t.Fatal("healthy send")
 	}
 	if len(rng.calls) != 6 {
 		t.Fatal(rng.calls)
 	}
-	s.Status = linkExplicitPartition
-	if n.advanceLinkLocked(key, s, loss) || len(rng.calls) != 6 {
+	s.Explicit = true
+	if n.advanceLink(key, s, loss) || len(rng.calls) != 6 {
 		t.Fatal("explicit partition drew randomness")
 	}
 	r := &scriptedRandom{}
@@ -99,3 +99,6 @@ func TestLatencySampling(t *testing.T) {
 		t.Fatal(got, saturated)
 	}
 }
+
+func (*scriptedRandom) Uint64() uint64        { panic("unexpected integer draw") }
+func (*scriptedRandom) Uint64N(uint64) uint64 { panic("unexpected bounded draw") }

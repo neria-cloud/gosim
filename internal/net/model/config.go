@@ -1,4 +1,4 @@
-package network
+package model
 
 import (
 	"math"
@@ -72,6 +72,7 @@ type linkState struct {
 	Latency    *LatencyConfig
 	Loss       *LossConfig
 	Status     linkStatus
+	Explicit   bool
 	Generation uint64
 }
 
@@ -144,15 +145,21 @@ func ParseHostPair(a, b string) (HostPair, error) {
 	return HostPair{SourceHost: x, DestHost: y}, nil
 }
 
-func canonicalPair(p HostPair) linkKey {
-	a, b := p.SourceHost, p.DestHost
-	if b.Less(a) {
-		a, b = b, a
+// edgeKey deliberately retains caller order.
+func edgeKey(p HostPair) linkKey { return linkKey{A: p.SourceHost, B: p.DestHost} }
+
+func selectedEdges(p HostPair, direction ConnectivityDirection) ([]linkKey, error) {
+	if !p.SourceHost.Is4() || !p.DestHost.Is4() || direction > DirectionOneWay {
+		return nil, syscall.EINVAL
 	}
-	return linkKey{A: a, B: b}
+	keys := []linkKey{edgeKey(p)}
+	if direction == DirectionTwoWay && p.SourceHost != p.DestHost {
+		keys = append(keys, edgeKey(p.Flip()))
+	}
+	return keys, nil
 }
 
-func (n *Network) effectiveConfigLocked(s *linkState) Config {
+func (n *Network) effectiveConfig(s *linkState) Config {
 	c := n.config
 	if s != nil {
 		if s.Latency != nil {
@@ -181,8 +188,6 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 	if r.Kind == SetConnectivity {
 		return n.SetConnectivity(pair, r.Connected, r.Direction)
 	}
-	n.mu.Lock()
-	defer n.mu.Unlock()
 	if !local {
 		c := n.config
 		switch r.Kind {
@@ -201,11 +206,38 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 			return err
 		}
 		n.config = c
-		traceNetwork("configure_global", "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "scope", "global")
+		n.traceNetwork("configure_global", "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "scope", "global")
 		return nil
 	}
-	key := canonicalPair(pair)
-	s := n.links[key]
+	keys, err := selectedEdges(pair, r.Direction)
+	if err != nil {
+		return err
+	}
+	staged := make([]linkState, len(keys))
+	for i, key := range keys {
+		if old := n.links[key]; old != nil {
+			staged[i] = *old
+		}
+		if err := n.applyLocal(&staged[i], r); err != nil {
+			return err
+		}
+	}
+	for i, key := range keys {
+		*n.getOrCreateLink(key) = staged[i]
+	}
+	for _, key := range keys {
+		state := n.links[key]
+		c := n.effectiveConfig(state)
+		event := "configure_link"
+		if r.Kind == ResetPairLatency || r.Kind == ResetPairLoss {
+			event = "reset_group"
+		}
+		n.traceNetwork(event, "a", key.A, "b", key.B, "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "latencyLocal", state.Latency != nil, "lossLocal", state.Loss != nil)
+	}
+	return nil
+}
+
+func (n *Network) applyLocal(s *linkState, r ControlRequest) error {
 	if r.Kind == ResetPairLatency || r.Kind == ResetPairLoss {
 		if s != nil {
 			if r.Kind == ResetPairLatency {
@@ -214,11 +246,9 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 				s.Loss = nil
 			}
 		}
-		c := n.effectiveConfigLocked(s)
-		traceNetwork("reset_group", "a", key.A, "b", key.B, "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "latencyLocal", s != nil && s.Latency != nil, "lossLocal", s != nil && s.Loss != nil)
 		return nil
 	}
-	c := n.effectiveConfigLocked(s)
+	c := n.effectiveConfig(s)
 	latencyChanged := false
 	switch r.Kind {
 	case SetPairLatency:
@@ -238,7 +268,6 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 	if err := ValidateConfig(c); err != nil {
 		return err
 	}
-	s = n.getOrCreateLinkLocked(key)
 	if latencyChanged {
 		snapshot := c.Latency
 		s.Latency = &snapshot
@@ -246,6 +275,49 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 		snapshot := c.Loss
 		s.Loss = &snapshot
 	}
-	traceNetwork("configure_link", "a", key.A, "b", key.B, "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "latencyLocal", s.Latency != nil, "lossLocal", s.Loss != nil)
+	return nil
+}
+
+// SetLinkPolicy replaces complete copied groups atomically; nil leaves a group unchanged.
+func (n *Network) SetLinkPolicy(p HostPair, direction ConnectivityDirection, latency *LatencyConfig, loss *LossConfig) error {
+	keys, err := selectedEdges(p, direction)
+	if err != nil {
+		return err
+	}
+	if latency != nil {
+		if err := validateLatency(*latency); err != nil {
+			return err
+		}
+	}
+	if loss != nil {
+		if err := validateLoss(*loss); err != nil {
+			return err
+		}
+	}
+	for _, key := range keys {
+		s := n.getOrCreateLink(key)
+		if latency != nil {
+			c := *latency
+			s.Latency = &c
+		}
+		if loss != nil {
+			c := *loss
+			s.Loss = &c
+		}
+	}
+	return nil
+}
+
+func (n *Network) ResetLinkPolicy(p HostPair, direction ConnectivityDirection) error {
+	keys, err := selectedEdges(p, direction)
+	if err != nil {
+		return err
+	}
+	for _, key := range keys {
+		if s := n.links[key]; s != nil {
+			s.Latency = nil
+			s.Loss = nil
+		}
+	}
 	return nil
 }

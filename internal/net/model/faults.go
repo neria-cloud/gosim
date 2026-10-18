@@ -1,8 +1,7 @@
-package network
+package model
 
 import (
 	"math"
-	"math/rand"
 	"time"
 )
 
@@ -11,11 +10,6 @@ type randomSource interface {
 	ExpFloat64() float64
 }
 
-// Package-level math/rand is translated to Gosim's seeded randomness.
-type runtimeRandom struct{}
-
-func (runtimeRandom) Float64() float64    { return rand.Float64() }
-func (runtimeRandom) ExpFloat64() float64 { return rand.ExpFloat64() }
 func probability(r randomSource, p float64) bool {
 	if p == 0 {
 		return false
@@ -52,7 +46,7 @@ func saturatingArrival(now int64, delay time.Duration) (int64, bool) {
 	return now + int64(delay), false
 }
 
-func (n *Network) getOrCreateLinkLocked(key linkKey) *linkState {
+func (n *Network) getOrCreateLink(key linkKey) *linkState {
 	if s := n.links[key]; s != nil {
 		return s
 	}
@@ -61,15 +55,15 @@ func (n *Network) getOrCreateLinkLocked(key linkKey) *linkState {
 	return s
 }
 
-func (n *Network) advanceLinkLocked(key linkKey, s *linkState, loss LossConfig) bool {
-	if s.Status == linkExplicitPartition {
+func (n *Network) advanceLink(key linkKey, s *linkState, loss LossConfig) bool {
+	if s.Explicit {
 		return false
 	}
 	fail := probability(n.rng, loss.FailProbability)
 	switch s.Status {
 	case linkHealthy:
 		if fail {
-			n.partitionLocked(key, s, linkRandomPartition)
+			n.partition(key, s, linkRandomPartition)
 			return false
 		}
 		return true
@@ -79,25 +73,20 @@ func (n *Network) advanceLinkLocked(key linkKey, s *linkState, loss LossConfig) 
 			return false
 		}
 		s.Status = linkHealthy
-		traceNetwork("random_repair", "a", key.A, "b", key.B, "generation", s.Generation)
+		n.traceNetwork("random_repair", "a", key.A, "b", key.B, "generation", s.Generation)
 		return true
 	default:
 		panic("invalid network link state")
 	}
 }
 
-func (n *Network) clearOrderingLocked(key linkKey) {
+func (n *Network) clearOrdering(key linkKey) {
 	if a := n.endpoints[key.A]; a != nil {
 		delete(a.last, key.B)
 	}
-	if key.A != key.B {
-		if b := n.endpoints[key.B]; b != nil {
-			delete(b.last, key.A)
-		}
-	}
 }
 
-func (n *Network) partitionLocked(key linkKey, s *linkState, status linkStatus) int {
+func (n *Network) partition(key linkKey, s *linkState, status linkStatus) int {
 	if status != linkRandomPartition && status != linkExplicitPartition {
 		panic("invalid partition status")
 	}
@@ -105,13 +94,17 @@ func (n *Network) partitionLocked(key linkKey, s *linkState, status linkStatus) 
 		panic("network generation exhausted")
 	}
 	s.Generation++
-	s.Status = status
+	if status == linkExplicitPartition {
+		s.Explicit = true
+	} else {
+		s.Status = status
+	}
 	dropped := n.queue.dropPair(key)
-	n.clearOrderingLocked(key)
+	n.clearOrdering(key)
 	event := "random_partition"
 	if status == linkExplicitPartition {
 		event = "manual_partition"
 	}
-	traceNetwork(event, "a", key.A, "b", key.B, "status", status, "generation", s.Generation, "dropped", dropped)
+	n.traceNetwork(event, "a", key.A, "b", key.B, "status", status, "generation", s.Generation, "dropped", dropped)
 	return dropped
 }

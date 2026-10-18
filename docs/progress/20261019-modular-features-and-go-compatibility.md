@@ -393,3 +393,26 @@ Notes / migration ledger
 - Removed ops_pending.go and its Task 9 unfinished-method marker. The remaining manual decoder marker is owned by Task 14. Existing LinuxOS source remains only for the authorized intermediate full-suite entry path until Tasks 22/28; normal optional composition is not yet selected.
 - CrashRequest is an implementation-local typed outcome through the already prescribed error return; it is never serialized as errno or exposed as a public control API. No target architecture or public signature was changed.
 - Final Task 9 size: 1,481 changed lines (1,369 additions + 112 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 10 — Network model ownership, epochs and directed links
+Date: 2026-10-19. Previous task commit: `26cf5b8`. Commit: the Task 10 implementation commit containing this entry.
+
+Implemented
+- Moved internal/simulation/network to internal/net/model, renamed its package to model, updated callers and syscall generator, and regenerated wrappers. Exact injected Network/Stack constructors and ReserveAddress/AbortReservation/Attach/Detach/ProcessIncoming/Shutdown APIs replace direct runtime dependencies.
+- Deterministic staged IPv4 allocation, checked monotonic reservation/connection IDs, duplicate-owner and address collision guards, abort rollback, persistent restart identity, explicit address destruction, and stale-detach guards. Staging emits no events and consumes no random values.
+- Independent ordered link states and queue invalidation; Both updates both edges, Forward only its selected edge. Explicit connectivity remains separate from traffic-triggered random loss. Preserved failure/repair draw order, exponential sampling/quantization, arrival floors and sequence ordering. Complete policies copy groups; legacy field updates validate both directions before committing or tracing.
+- Owner-serialized heap delivery and stream timers through injected Events/Clock, generation-checked cancellation, destination epoch admission, connection generations and handshake tombstones. Removed model mutexes, pools, timer goroutines, package randomness and native trace calls. Readiness uses contracts.ReadinessSink.
+- Quiesce retires timers/readiness and incoming packets, rearms unrelated queued destinations, and forbids application work. Graceful cleanup emits immutable close packets against surviving destination epochs; crash emits none. Cleanup sorts final close notifications by connection generation, drains the entire listener backlog, and releases buffers/maps.
+- Temporary current-simulation ports forward timer callbacks through the existing syscall dispatcher; legacy polling adapts to ReadinessSink. Both carry Task 22 removal markers. Trace ports carry copied strings with named fractional policy fields. Original plan and target layout remain unchanged.
+
+Verified
+- Focused race tests passed: `.gosim/task10-focused.log`. Tests cover reservations/rollback/restart/destroy, no staging events/randomness, duplicate reservations, connection/port reuse, stale source/destination epochs, stale handshakes/callbacks/detach, graceful close after source cancellation, crash silence, queue rearming, backlog cleanup, circular-buffer wrap/window backpressure, poll notification/retirement, directed/symmetric policies, atomic invalid updates, and random-domain independence.
+- Preserved fault probability/latency vectors and queue ordering/reference-retention coverage with injected deterministic events. Replaced old one-way rejection tests with directed mutation/isolation assertions and updated existing simulation callers.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including formatting, CLI/translation artifacts, all ordinary suites and all race suites: `.gosim/task10-gate.log`. Network tracing still preserves fractional fields, excludes payloads, and reproduces checksums/logs on replay.
+- Import audit: model's only Gosim production imports are internal/contracts and rt/runtime/abi; no fs/provider/kernel implementation or native runtime dependency. Generator output is current; staged whitespace check passed.
+
+Notes / migration ledger
+- The first full gate found exact logging IDs shifted by removal of the network goroutine and the old trace JSON structure no longer matched the string-field port. Updated those assertions without dropping coverage; documented the log diff and backlog fix in NOT PLANNED CHANGES.
+- Final review added duplicate-owner reservation rejection, quiescence on detach, and validation-before-tracing for symmetric updates. A transient syntax error in that edit was fixed before rerunning the final passing focused/full gates.
+- New provider/session/socket/control ownership is Task 11; current-simulation adapters remain only until Task 22. No compatibility tuple is certified by this development-toolchain gate.
+- Final Task 10 size: 2,792 changed lines (1,858 additions + 934 deletions) with rename detection, including checklist/log.

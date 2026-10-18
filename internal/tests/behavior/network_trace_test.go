@@ -25,10 +25,11 @@ func TestNetworkTrace(t *testing.T) {
 			continue
 		}
 		var record struct {
-			Message   string                                               `json:"msg"`
-			TraceKind string                                               `json:"traceKind"`
-			Latency   struct{ Lambda float64 }                             `json:"latency"`
-			Loss      struct{ FailProbability, RepairProbability float64 } `json:"loss"`
+			Message           string `json:"msg"`
+			TraceKind         string `json:"traceKind"`
+			Lambda            string `json:"latency.lambda"`
+			FailProbability   string `json:"loss.failProbability"`
+			RepairProbability string `json:"loss.repairProbability"`
 		}
 		if err := json.Unmarshal(line, &record); err != nil {
 			t.Fatal(err)
@@ -36,10 +37,10 @@ func TestNetworkTrace(t *testing.T) {
 		if record.TraceKind != "network" {
 			continue
 		}
-		if record.Message == "network.configure_global" && record.Latency.Lambda == 2.5 && record.Loss.FailProbability == 0.125 && record.Loss.RepairProbability == 0.375 {
+		if record.Message == "network.configure_global" && record.Lambda == "2.5" && record.FailProbability == "0.125" && record.RepairProbability == "0.375" {
 			foundGlobal = true
 		}
-		if record.Message == "network.configure_link" && record.Latency.Lambda == 0.25 && record.Loss.FailProbability == 0.125 && record.Loss.RepairProbability == 0.375 {
+		if record.Message == "network.configure_link" && record.Lambda == "0.25" && record.FailProbability == "0.125" && record.RepairProbability == "0.375" {
 			foundLocal = true
 		}
 	}

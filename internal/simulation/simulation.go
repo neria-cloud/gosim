@@ -7,14 +7,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/neria-cloud/gosim/internal/contracts"
 	fs "github.com/neria-cloud/gosim/internal/fs/model"
-	"github.com/neria-cloud/gosim/internal/simulation/network"
+	network "github.com/neria-cloud/gosim/internal/net/model"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 type Machine struct {
 	id          int
+	netEpoch    contracts.EpochRef
 	label       string
 	addr        netip.Addr
 	bootProgram func()
@@ -45,7 +47,10 @@ type Simulation struct {
 	machinesById  map[int]*Machine
 	main          *Machine
 
-	network *network.Network
+	network       *network.Network
+	networkPorts  contracts.Ports
+	networkEvents *legacyNetworkEvents
+	networkRunID  uint64
 
 	timeoutTimer *time.Timer
 
@@ -59,10 +64,6 @@ func (s *Simulation) newMachine(label string, addr netip.Addr, filesystem *fs.Fi
 
 	if label == "" {
 		label = fmt.Sprintf("machine-%d", id)
-	}
-
-	if !addr.IsValid() {
-		addr = s.network.NextIP()
 	}
 
 	m := &Machine{
@@ -86,8 +87,20 @@ func (s *Simulation) newMachine(label string, addr netip.Addr, filesystem *fs.Fi
 func (s *Simulation) startMachine(machine *Machine) {
 	machine.runtimeMachine = gosimruntime.NewMachine(machine.label)
 
-	machine.netstack = network.NewStack()
-	s.network.AttachStack(machine.addr, machine.netstack)
+	machine.netEpoch.Machine = contracts.MachineRef{RunID: s.networkRunID, ID: uint64(machine.id)}
+	machine.netEpoch.Epoch++
+	var raw [4]byte
+	if machine.addr.IsValid() {
+		raw = machine.addr.As4()
+	}
+	reservation, err := s.network.ReserveAddress(machine.netEpoch.Machine, raw, machine.addr.IsValid())
+	if err != nil {
+		panic(err)
+	}
+	machine.addr = reservation.Address()
+	machine.netstack = network.NewStack(machine.netEpoch, s.networkPorts)
+	s.networkEvents.live[machine.netEpoch] = true
+	s.network.Attach(reservation, machine.netEpoch, machine.netstack)
 
 	machine.linuxOS = NewLinuxOS(s, machine, s.dispatcher)
 	machine.gosimOS = NewGosimOS(s, s.dispatcher)
@@ -128,10 +141,17 @@ func (s *Simulation) stopMachine(machine *Machine, graceful bool) {
 
 	// make sure the network stack won't do anything in the future
 	// graceful shutdown also sends close packets
-	machine.netstack.Shutdown(graceful)
+	kind := contracts.StopCrash
+	if graceful {
+		kind = contracts.StopGraceful
+	}
+	machine.netstack.Quiesce()
+	machine.netstack.Shutdown(kind)
 
 	// stop sending packets to this netstack
-	s.network.DetachStack(machine.netstack)
+	s.network.Detach(machine.netEpoch)
+	s.networkEvents.CancelEpoch(machine.netEpoch)
+	delete(s.networkEvents.live, machine.netEpoch)
 	machine.netstack = nil
 
 	if graceful {
@@ -174,16 +194,12 @@ func Runtime(fun func()) {
 		nextMachineID: 1,
 		machinesById:  make(map[int]*Machine),
 
-		network: network.NewNetwork(),
-
 		timeoutTimer: timeoutTimer,
 
 		rawLogger: slog.New(makeBaseSlogHandler()),
 	}
-	go s.network.Run()
-
-	addr := s.network.NextIP()
-	s.main = s.newMachine("main", addr, fs.NewLinuxFilesystem(), fun)
+	s.setupNetworkPorts()
+	s.main = s.newMachine("main", netip.Addr{}, fs.NewLinuxFilesystem(), fun)
 	s.startMachine(s.main)
 
 	dispatcher.Run()

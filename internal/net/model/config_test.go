@@ -1,4 +1,4 @@
-package network
+package model
 
 import (
 	"math"
@@ -7,14 +7,17 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
 var testPair = HostPair{netip.MustParseAddr("10.0.0.1"), netip.MustParseAddr("10.0.0.2")}
 
-func testNetwork(t *testing.T, rng randomSource) *Network {
+func testNetwork(t *testing.T, rng contracts.Random) *Network {
 	t.Helper()
-	n := newNetwork(rng)
-	t.Cleanup(func() { n.queue.timer.Stop() })
+	events := newTestEvents()
+	n := NewNetwork(events, events, rng, &testTrace{})
+	t.Cleanup(func() { n.queue.drop(func(*Packet) bool { return true }) })
 	return n
 }
 
@@ -75,14 +78,14 @@ func TestConfigDefaultsValidation(t *testing.T) {
 		}
 	}
 	pair, err := ParseHostPair("10.0.0.2", "10.0.0.1")
-	if err != nil || pair != testPair.Flip() || canonicalPair(pair) != canonicalPair(testPair) {
+	if err != nil || pair != testPair.Flip() || edgeKey(pair) == edgeKey(testPair) {
 		t.Fatal(pair, err)
 	}
 }
 
 func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 	n := testNetwork(t, &scriptedRandom{})
-	key := canonicalPair(testPair)
+	key := edgeKey(testPair)
 	if n.config != DefaultConfig() {
 		t.Fatal("constructor defaults", n.config)
 	}
@@ -111,24 +114,24 @@ func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 	c.Latency = LatencyConfig{Max: time.Second, Lambda: 8}
 	c.Loss = LossConfig{FailProbability: 0.9, RepairProbability: 0.4}
 	control(t, n, ControlRequest{Kind: ReplaceGlobal, Config: c})
-	effective := n.effectiveConfigLocked(s)
+	effective := n.effectiveConfig(s)
 	if effective.Latency.Lambda != 2.5 || effective.Loss.FailProbability != 0.125 || effective.Loss.RepairProbability != 1 {
 		t.Fatal(effective)
 	}
 	before := effective
 	r = localRequest(SetPairMaxLatency)
 	r.Duration = time.Millisecond
-	if n.ApplyControl(r) != syscall.EINVAL || n.effectiveConfigLocked(s) != before {
+	if n.ApplyControl(r) != syscall.EINVAL || n.effectiveConfig(s) != before {
 		t.Fatal("invalid update mutated snapshot")
 	}
 	s.Status = linkRandomPartition
 	s.Generation = 7
 	control(t, n, localRequest(ResetPairLatency))
-	if s.Latency != nil || s.Loss == nil || n.effectiveConfigLocked(s).Latency != c.Latency {
+	if s.Latency != nil || s.Loss == nil || n.effectiveConfig(s).Latency != c.Latency {
 		t.Fatal("reset did not restore latency inheritance")
 	}
 	control(t, n, localRequest(ResetPairLoss))
-	if s.Loss != nil || s.Status != linkRandomPartition || s.Generation != 7 || n.effectiveConfigLocked(s) != c {
+	if s.Loss != nil || s.Status != linkRandomPartition || s.Generation != 7 || n.effectiveConfig(s) != c {
 		t.Fatal("reset changed state")
 	}
 	if err := n.SetDelay(testPair, 0); err != nil {
@@ -160,7 +163,7 @@ func TestConfigIndependentGroupInheritance(t *testing.T) {
 	r.Lambda = 3
 	control(t, n, r)
 	control(t, n, ControlRequest{Kind: SetGlobalRepairRate, Probability: 0.2})
-	c := n.effectiveConfigLocked(n.links[canonicalPair(testPair)])
+	c := n.effectiveConfig(n.links[edgeKey(testPair)])
 	if c.Loss.RepairProbability != 0.2 || c.Latency.Lambda != 3 {
 		t.Fatal(c)
 	}
@@ -170,7 +173,7 @@ func TestConfigIndependentGroupInheritance(t *testing.T) {
 	control(t, n, r)
 	control(t, n, ControlRequest{Kind: SetGlobalCurve, Lambda: 7})
 	control(t, n, ControlRequest{Kind: SetGlobalFailRate, Probability: 0.5})
-	c = n.effectiveConfigLocked(n.links[canonicalPair(testPair)])
+	c = n.effectiveConfig(n.links[edgeKey(testPair)])
 	if c.Latency.Lambda != 7 || c.Loss.FailProbability != 0 || c.Loss.RepairProbability != 0.4 {
 		t.Fatal(c)
 	}

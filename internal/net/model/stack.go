@@ -1,15 +1,16 @@
-package network
+package model
 
 import (
 	"errors"
+	"math"
 	"net/netip"
-	"sync"
+	"sort"
 	"syscall"
 	"time"
 
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 
-	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
 type PacketKind byte
@@ -23,80 +24,98 @@ const (
 	PacketKindStreamWindow                   // uses Count
 )
 
-// XXX: for connId, add a secret extra field so we can gracefully handle delayed
-// packets when machines restart (replay chaos). otherwise, implement sequence
-// numbers, tcp wait, ...
-
 type Packet struct {
-	ConnId              ConnId
-	Kind                PacketKind
-	InBuffer, OutBuffer *circularBuffer
-	Offset, Count       int
-	ArrivalTime         timeIndex // used by delayQueue
-	Generation          uint64
+	ConnId                        ConnId
+	Kind                          PacketKind
+	InBuffer, OutBuffer           *circularBuffer
+	Offset, Count                 int
+	ArrivalTime                   timeIndex // used by delayQueue
+	Generation                    uint64
+	SourceEpoch, DestinationEpoch contracts.EpochRef
+	ConnectionGeneration          uint64
 }
 
-var packetPool = &sync.Pool{
-	New: func() any {
-		return &Packet{}
-	},
-}
-
-func allocPacket(kind PacketKind, id ConnId) *Packet {
-	p := packetPool.Get().(*Packet)
-	*p = Packet{Kind: kind, ConnId: id}
-	return p
-}
-
-func freePacket(p *Packet) {
-	*p = Packet{Kind: 255, Offset: -1, Count: -1}
-	packetPool.Put(p)
-}
+func allocPacket(kind PacketKind, id ConnId) *Packet { return &Packet{Kind: kind, ConnId: id} }
+func freePacket(p *Packet)                           { *p = Packet{Kind: 255, Offset: -1, Count: -1} }
 
 type Stack struct {
-	mu sync.Mutex
+	ref      contracts.EpochRef
+	ports    contracts.Ports
+	quiesced bool
 
-	// XXX: check shutdown everywhere?
 	shutdown bool
 
 	streams   map[ConnId]*Stream
+	seen      map[ConnId]uint64
 	listeners map[uint16]*Listener
 
 	endpoint *Endpoint
 
-	nextPort uint16
+	nextPort uint32
 }
 
-func (s *Stack) Shutdown(graceful bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.shutdown = true
-
+// Quiesce stops application timers/readiness before descriptors are finalized.
+func (s *Stack) Quiesce() {
+	if s.quiesced {
+		return
+	}
+	s.quiesced = true
+	if s.endpoint != nil {
+		s.endpoint.net.queue.drop(func(p *Packet) bool { return p.DestinationEpoch == s.ref })
+	}
 	for _, stream := range s.streams {
-		s.endpoint.Send(allocPacket(PacketKindStreamClose, stream.id))
+		stream.stopTimers()
+		stream.pollers.clear()
+	}
+	for _, listener := range s.listeners {
+		listener.pollers.clear()
+	}
+}
 
-		// clean up timers
-		if stream.ackFailedTimer != nil {
-			stream.ackFailedTimer.Stop()
-			stream.ackFailedTimer = nil
-		}
-		if stream.openFailedTimer != nil {
-			stream.openFailedTimer.Stop()
-			stream.openFailedTimer = nil
-		}
-		if stream.keepaliveTimer != nil {
-			stream.keepaliveTimer.Stop()
-			stream.keepaliveTimer = nil
-		}
-
-		// nil out buffers to catch lingering code
+func (s *Stack) Shutdown(kind contracts.StopKind) {
+	if s.shutdown {
+		return
+	}
+	if kind != contracts.StopGraceful && kind != contracts.StopCrash {
+		panic("invalid network stop kind")
+	}
+	s.Quiesce()
+	// Generation order is deterministic even when descriptor closure did not run.
+	streams := make([]*Stream, 0, len(s.streams))
+	for _, stream := range s.streams {
+		streams = append(streams, stream)
+	}
+	sort.Slice(streams, func(i, j int) bool { return streams[i].generation < streams[j].generation })
+	for _, stream := range streams {
+		s.closeStream(stream, kind == contracts.StopGraceful)
 		stream.inBuffer = nil
 		stream.outBuffer = nil
 	}
+	for _, listener := range s.listeners {
+		listener.closed = true
+		clear(listener.incoming)
+		listener.incoming = nil
+		listener.incomingCount = 0
+	}
+	s.shutdown = true
+	clear(s.streams)
+	clear(s.seen)
+	clear(s.listeners)
+}
 
-	// nil out maps to catch lingering code
-	s.streams = nil
-	s.listeners = nil
+func (s *Stream) stopTimers() {
+	if s.openFailedTimer != nil {
+		s.openFailedTimer.Stop()
+		s.openFailedTimer = nil
+	}
+	if s.ackFailedTimer != nil {
+		s.ackFailedTimer.Stop()
+		s.ackFailedTimer = nil
+	}
+	if s.keepaliveTimer != nil {
+		s.keepaliveTimer.Stop()
+		s.keepaliveTimer = nil
+	}
 }
 
 func (b *Stack) Endpoint() *Endpoint {
@@ -107,9 +126,14 @@ func (b *Stack) setEndpoint(ep *Endpoint) {
 	b.endpoint = ep
 }
 
-func NewStack() *Stack {
+func NewStack(ref contracts.EpochRef, ports contracts.Ports) *Stack {
+	if ref.Machine.RunID == 0 || ref.Machine.ID == 0 || ref.Epoch == 0 || ports.Clock == nil || ports.Events == nil {
+		panic("invalid network stack ports")
+	}
 	b := &Stack{
+		ref: ref, ports: ports,
 		streams:   make(map[ConnId]*Stream),
+		seen:      make(map[ConnId]uint64),
 		listeners: make(map[uint16]*Listener),
 
 		nextPort: 10000,
@@ -118,108 +142,77 @@ func NewStack() *Stack {
 }
 
 func (n *Stack) allocatePort() uint16 {
-	port := n.nextPort
+	if n.nextPort > math.MaxUint16 {
+		panic("network port space exhausted")
+	}
+	port := uint16(n.nextPort)
 	n.nextPort++
 	return port
 }
 
-func (b *Stack) processIncomingPacket(packet *Packet) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if b.shutdown {
+// ProcessIncoming rejects retired destinations and recycled connection tuples.
+func (b *Stack) ProcessIncoming(packet *Packet) {
+	if b.shutdown || b.quiesced || packet.DestinationEpoch != b.ref || packet.ConnectionGeneration == 0 {
 		return
 	}
-
-	switch packet.Kind {
-	case PacketKindOpenStream:
-		// XXX: pass to listener?
-		id := packet.ConnId.Flip()
-
-		listener, ok := b.listeners[packet.ConnId.Ports.DestPort]
-		if !ok {
-			// reject, not listening
-			b.endpoint.Send(allocPacket(PacketKindStreamClose, id))
-			break
+	id := packet.ConnId.Flip()
+	if packet.Kind == PacketKindOpenStream {
+		source := b.endpoint.net.endpoints[packet.ConnId.Hosts.SourceHost]
+		if source == nil || source.ref != packet.SourceEpoch || packet.InBuffer == nil || packet.OutBuffer == nil {
+			return
 		}
-
-		if listener.incomingCount == len(listener.incoming) {
-			// reject, too many pending
-			b.endpoint.Send(allocPacket(PacketKindStreamClose, id))
-			break
+		if packet.ConnectionGeneration <= b.seen[id] {
+			return
 		}
-
-		s := NewStream(id, packet.InBuffer, packet.OutBuffer)
-		s.opened = true
-		b.resetKeepaliveTimerLocked(s)
-		// XXX: check if id already exists?
-		b.streams[id] = s
-
-		b.endpoint.Send(allocPacket(PacketKindOpenedStream, id))
-
-		pos := listener.incomingPos + listener.incomingCount
-		if pos >= len(listener.incoming) {
-			pos -= len(listener.incoming)
+		b.seen[id] = packet.ConnectionGeneration
+		if old := b.streams[id]; old != nil {
+			b.closeStream(old, false)
 		}
-		listener.incoming[pos] = s
+		listener := b.listeners[packet.ConnId.Ports.DestPort]
+		if listener == nil || listener.closed || listener.incomingCount == len(listener.incoming) {
+			response := allocPacket(PacketKindStreamClose, id)
+			response.ConnectionGeneration = packet.ConnectionGeneration
+			b.endpoint.Send(response)
+			return
+		}
+		stream := NewStream(id, packet.InBuffer, packet.OutBuffer)
+		stream.generation = packet.ConnectionGeneration
+		stream.remoteEpoch = packet.SourceEpoch
+		stream.owner = b
+		stream.opened = true
+		b.streams[id] = stream
+		b.resetKeepaliveTimer(stream)
+		b.send(stream, allocPacket(PacketKindOpenedStream, id))
+		pos := (listener.incomingPos + listener.incomingCount) % len(listener.incoming)
+		listener.incoming[pos] = stream
 		listener.incomingCount++
 		b.updateListenerPollers(listener)
-
-	case PacketKindOpenedStream:
-		id := packet.ConnId.Flip()
-
-		stream, ok := b.streams[id]
-		if !ok {
-			break // maybe send go away instead?
-		}
-
-		stream.processIncomingPacket(b, packet)
-
-	case PacketKindStreamAck:
-		id := packet.ConnId.Flip()
-
-		stream, ok := b.streams[id]
-		if !ok {
-			break // maybe send go away instead?
-		}
-
-		stream.processIncomingPacket(b, packet)
-
-	case PacketKindStreamData:
-		id := packet.ConnId.Flip()
-
-		stream, ok := b.streams[id]
-		if !ok {
-			break // maybe send go away instead?
-		}
-
-		stream.processIncomingPacket(b, packet)
-
-	case PacketKindStreamWindow:
-		id := packet.ConnId.Flip()
-
-		stream, ok := b.streams[id]
-		if !ok {
-			break // maybe send go away instead?
-		}
-
-		stream.processIncomingPacket(b, packet)
-
-	case PacketKindStreamClose:
-		id := packet.ConnId.Flip()
-
-		stream, ok := b.streams[id]
-		if !ok {
-			break // maybe send go away instead?
-		}
-
-		if err := b.closeStream(stream, false); err != nil {
-			// XXX
-			panic(err)
-		}
-
-	default:
-		panic(packet)
+		return
 	}
+	stream := b.streams[id]
+	if stream == nil || stream.generation != packet.ConnectionGeneration {
+		return
+	}
+	if stream.remoteEpoch != (contracts.EpochRef{}) && stream.remoteEpoch != packet.SourceEpoch {
+		return
+	}
+	if stream.remoteEpoch == (contracts.EpochRef{}) {
+		stream.remoteEpoch = packet.SourceEpoch
+	}
+	switch packet.Kind {
+	case PacketKindOpenedStream, PacketKindStreamAck, PacketKindStreamData, PacketKindStreamWindow:
+		stream.processIncomingPacket(b, packet)
+	case PacketKindStreamClose:
+		b.closeStream(stream, false)
+	default:
+		panic("unknown network packet kind")
+	}
+}
+
+// send stamps immutable connection identity before transferring packet ownership.
+func (s *Stack) send(stream *Stream, packet *Packet) {
+	packet.ConnectionGeneration = stream.generation
+	s.endpoint.Send(packet)
 }
 
 // listeners, streams
@@ -230,22 +223,25 @@ type Listener struct {
 
 	closed bool
 
-	port uint16
+	port  uint16
+	owner *Stack
 
-	pollers syscallabi.Pollers
+	pollers pollers
 }
 
 var ErrPortAlreadyInUse = errors.New("port already in use")
 
 func (n *Stack) OpenListener(port uint16) (*Listener, error) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	if n.shutdown || n.quiesced || n.endpoint == nil {
+		return nil, ErrListenerClosed
+	}
 
 	if _, ok := n.listeners[port]; ok {
 		return nil, ErrPortAlreadyInUse
 	}
 
 	l := &Listener{
+		owner:    n,
 		incoming: make([]*Stream, 5),
 
 		closed: false,
@@ -260,12 +256,12 @@ func (n *Stack) OpenListener(port uint16) (*Listener, error) {
 var ErrListenerClosed = errors.New("listener closed")
 
 func (n *Stack) Accept(listener *Listener) (*Stream, error) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
+	if listener.owner != n {
+		panic("foreign listener")
+	}
 	l := listener
 
-	if l.closed {
+	if l.closed || n.quiesced {
 		return nil, ErrListenerClosed
 	}
 
@@ -285,23 +281,28 @@ func (n *Stack) Accept(listener *Listener) (*Stream, error) {
 }
 
 func (n *Stack) updateListenerPollers(listener *Listener) {
-	listener.pollers.NotifyCanRead(listener.closed || listener.incomingCount > 0)
+	if n.quiesced {
+		return
+	}
+	listener.pollers.set(n.ref, listener.closed || listener.incomingCount > 0, false, listener.closed)
 }
 
 func (n *Stack) CloseListener(listener *Listener) error {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
+	if listener.owner != n {
+		panic("foreign listener")
+	}
 	l := listener
 
-	if l.closed {
+	if l.closed || n.quiesced {
 		return ErrListenerClosed
 	}
 
 	l.closed = true
 
-	for i := 0; i < l.incomingCount; i++ {
-		n.closeStream(l.incoming[l.incomingPos], true)
+	for l.incomingCount > 0 {
+		if stream := l.incoming[l.incomingPos]; !stream.closed {
+			n.closeStream(stream, !n.quiesced)
+		}
 		l.incoming[l.incomingPos] = nil
 		l.incomingPos++
 		if l.incomingPos == len(l.incoming) {
@@ -322,28 +323,15 @@ func (n *Stack) closeStream(stream *Stream, sendClose bool) error {
 		panic(stream)
 	}
 
-	// fmt.Fprintf(gosimruntime.LogOut, "close stream\n")
-
 	if sendClose {
-		n.endpoint.Send(allocPacket(PacketKindStreamClose, stream.id))
+		n.send(stream, allocPacket(PacketKindStreamClose, stream.id))
 	}
 
 	delete(n.streams, stream.id)
 	stream.closed = true
 	n.updateStreamPollers(stream)
 
-	if stream.openFailedTimer != nil {
-		stream.openFailedTimer.Stop()
-		stream.openFailedTimer = nil
-	}
-	if stream.ackFailedTimer != nil {
-		stream.ackFailedTimer.Stop()
-		stream.ackFailedTimer = nil
-	}
-	if stream.keepaliveTimer != nil {
-		stream.keepaliveTimer.Stop()
-		stream.keepaliveTimer = nil
-	}
+	stream.stopTimers()
 
 	return nil
 }
@@ -405,27 +393,30 @@ func (c *circularBuffer) Read(data abi.ByteView) int {
 }
 
 type Stream struct {
-	id ConnId
+	id          ConnId
+	owner       *Stack
+	generation  uint64
+	remoteEpoch contracts.EpochRef
 
 	opened bool
 	closed bool
 
-	openFailedTimer *time.Timer
-	ackFailedTimer  *time.Timer
-	keepaliveTimer  *time.Timer
+	openFailedTimer *modelTimer
+	ackFailedTimer  *modelTimer
+	keepaliveTimer  *modelTimer
 
 	sendPos int
 	ackPos  int
 	recvPos int
 
 	// in-memory shared between both ends to skip allocating
-	// todo: stick these in a pool somehow
+	// Buffers belong to the connection and are shared only by its two endpoints.
 	inBuffer, outBuffer *circularBuffer
 
 	incomingAvailable int
 	outgoingWindow    int
 
-	pollers syscallabi.Pollers
+	pollers pollers
 }
 
 func (s *Stream) ID() ConnId {
@@ -433,12 +424,10 @@ func (s *Stream) ID() ConnId {
 }
 
 // reset every time we send something that might trigger an ack
-func (n *Stack) resetKeepaliveTimerLocked(s *Stream) {
+func (n *Stack) resetKeepaliveTimer(s *Stream) {
 	if s.keepaliveTimer == nil {
-		s.keepaliveTimer = time.AfterFunc(30*time.Second, func() {
-			n.mu.Lock()
-			defer n.mu.Unlock()
-			if n.shutdown || s.closed {
+		s.keepaliveTimer = n.after(30*time.Second, func() {
+			if n.shutdown || n.quiesced || s.closed {
 				return
 			}
 
@@ -450,23 +439,21 @@ func (n *Stack) resetKeepaliveTimerLocked(s *Stream) {
 			packet := allocPacket(PacketKindStreamData, s.id)
 			packet.Offset = s.sendPos
 			packet.Count = 0
-			n.endpoint.Send(packet)
+			n.send(s, packet)
 
-			n.resetKeepaliveTimerLocked(s)
-			n.resetAckFailedTimerLocked(s)
+			n.resetKeepaliveTimer(s)
+			n.resetAckFailedTimer(s)
 		})
 	} else {
 		s.keepaliveTimer.Reset(15 * time.Second)
 	}
 }
 
-func (n *Stack) resetAckFailedTimerLocked(s *Stream) {
+func (n *Stack) resetAckFailedTimer(s *Stream) {
 	if s.ackFailedTimer == nil {
 		// TODO: this time is way too low, it breaks when latency goes to 2.5s?
-		s.ackFailedTimer = time.AfterFunc(5*time.Second, func() {
-			n.mu.Lock()
-			defer n.mu.Unlock()
-			if n.shutdown || s.closed {
+		s.ackFailedTimer = n.after(5*time.Second, func() {
+			if n.shutdown || n.quiesced || s.closed {
 				return
 			}
 
@@ -498,8 +485,12 @@ func NewStream(id ConnId, inBuffer, outBuffer *circularBuffer) *Stream {
 }
 
 func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	if n.shutdown || n.quiesced || n.endpoint == nil {
+		return nil, ErrStreamClosed
+	}
+	if !addr.Addr().Is4() {
+		return nil, syscall.EAFNOSUPPORT
+	}
 
 	localPort := n.allocatePort()
 	id := ConnId{
@@ -516,6 +507,8 @@ func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
 	inBuffer := newCircularBuffer(1024)
 	outBuffer := newCircularBuffer(1024)
 	stream := NewStream(id, inBuffer, outBuffer)
+	stream.owner = n
+	stream.generation = n.endpoint.net.connectionGeneration()
 
 	n.streams[stream.id] = stream
 	// XXX: check stream id doesn't already exist
@@ -523,12 +516,10 @@ func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
 	packet := allocPacket(PacketKindOpenStream, id)
 	packet.InBuffer = outBuffer
 	packet.OutBuffer = inBuffer
-	n.endpoint.Send(packet)
+	n.send(stream, packet)
 
-	stream.openFailedTimer = time.AfterFunc(time.Second, func() {
-		n.mu.Lock()
-		defer n.mu.Unlock()
-		if n.shutdown {
+	stream.openFailedTimer = n.after(time.Second, func() {
+		if n.shutdown || n.quiesced {
 			return
 		}
 		if stream.opened || stream.closed {
@@ -545,8 +536,9 @@ func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
 var ErrStreamClosed = errors.New("stream closed")
 
 func (n *Stack) StreamClose(stream *Stream) error {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	if stream.owner != n {
+		panic("foreign stream")
+	}
 
 	if stream.closed {
 		return ErrStreamClosed
@@ -562,10 +554,13 @@ func (n *Stack) StreamClose(stream *Stream) error {
 func (s *Stream) processIncomingPacket(b *Stack, packet *Packet) {
 	switch packet.Kind {
 	case PacketKindOpenedStream:
+		if s.opened {
+			return
+		}
 		s.opened = true
 		s.openFailedTimer.Stop()
 		s.openFailedTimer = nil
-		b.resetKeepaliveTimerLocked(s)
+		b.resetKeepaliveTimer(s)
 		b.updateStreamPollers(s)
 
 	case PacketKindStreamData:
@@ -580,7 +575,7 @@ func (s *Stream) processIncomingPacket(b *Stack, packet *Packet) {
 
 		response := allocPacket(PacketKindStreamAck, s.id)
 		response.Offset = packet.Offset + packet.Count
-		b.endpoint.Send(response)
+		b.send(s, response)
 		b.updateStreamPollers(s)
 
 	case PacketKindStreamAck:
@@ -589,7 +584,7 @@ func (s *Stream) processIncomingPacket(b *Stack, packet *Packet) {
 			return
 		}
 		s.ackPos = packet.Offset
-		if s.ackPos == s.sendPos {
+		if s.ackPos == s.sendPos && s.ackFailedTimer != nil {
 			s.ackFailedTimer.Stop()
 		}
 
@@ -600,16 +595,18 @@ func (s *Stream) processIncomingPacket(b *Stack, packet *Packet) {
 }
 
 func (n *Stack) updateStreamPollers(stream *Stream) {
-	stream.pollers.NotifyCanWrite(stream.closed || stream.outgoingWindow > 0)
-	stream.pollers.NotifyCanRead(stream.closed || stream.incomingAvailable > 0)
+	if n.quiesced {
+		return
+	}
+	stream.pollers.set(n.ref, stream.closed || stream.incomingAvailable > 0, stream.closed || stream.outgoingWindow > 0, stream.closed)
 }
 
 func (n *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
+	if stream.owner != n {
+		panic("foreign stream")
+	}
 	s := stream
-	if s.closed {
+	if s.closed || n.quiesced {
 		return 0, ErrStreamClosed
 	}
 
@@ -633,12 +630,12 @@ func (n *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
 	packet := allocPacket(PacketKindStreamData, s.id)
 	packet.Offset = offset
 	packet.Count = written
-	n.endpoint.Send(packet)
+	n.send(s, packet)
 
 	s.outgoingWindow -= written
 
-	n.resetAckFailedTimerLocked(s)
-	n.resetKeepaliveTimerLocked(s)
+	n.resetAckFailedTimer(s)
+	n.resetKeepaliveTimer(s)
 
 	n.updateStreamPollers(s)
 
@@ -646,8 +643,12 @@ func (n *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
 }
 
 func (n *Stack) StreamRecv(s *Stream, data abi.ByteView) (int, error) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	if s.owner != n {
+		panic("foreign stream")
+	}
+	if n.quiesced {
+		return 0, ErrStreamClosed
+	}
 
 	if s.incomingAvailable == 0 {
 		if s.closed {
@@ -665,7 +666,7 @@ func (n *Stack) StreamRecv(s *Stream, data abi.ByteView) (int, error) {
 
 	packet := allocPacket(PacketKindStreamWindow, s.id)
 	packet.Count = m
-	n.endpoint.Send(packet)
+	n.send(s, packet)
 
 	n.updateStreamPollers(s)
 
@@ -678,39 +679,34 @@ type StreamStatus struct {
 }
 
 func (n *Stack) StreamStatus(stream *Stream) StreamStatus {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
 	return StreamStatus{
 		Open:   stream.opened,
 		Closed: stream.closed,
 	}
 }
 
-func (n *Stack) RegisterStreamPoller(poller *syscallabi.PollDesc, stream *Stream) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	stream.pollers.Add(poller)
+func (n *Stack) RegisterStreamPoller(poller contracts.ReadinessSink, stream *Stream) {
+	stream.pollers.add(n.ref, poller)
 }
 
-func (n *Stack) DeregisterStreamPoller(poller *syscallabi.PollDesc, stream *Stream) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	stream.pollers.Remove(poller)
+func (n *Stack) DeregisterStreamPoller(poller contracts.ReadinessSink, stream *Stream) {
+	stream.pollers.remove(poller)
 }
 
-func (n *Stack) RegisterListenerPoller(poller *syscallabi.PollDesc, listener *Listener) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	listener.pollers.Add(poller)
+func (n *Stack) RegisterListenerPoller(poller contracts.ReadinessSink, listener *Listener) {
+	listener.pollers.add(n.ref, poller)
 }
 
-func (n *Stack) DeregisterListenerPoller(poller *syscallabi.PollDesc, listener *Listener) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+func (n *Stack) DeregisterListenerPoller(poller contracts.ReadinessSink, listener *Listener) {
+	listener.pollers.remove(poller)
+}
 
-	listener.pollers.Remove(poller)
+func (n *Stack) ReleaseStream(stream *Stream, reason contracts.CloseReason) error {
+	if stream.owner != n {
+		panic("foreign stream")
+	}
+	if stream.closed {
+		return nil
+	}
+	return n.closeStream(stream, reason == contracts.CloseExplicit || reason == contracts.CloseGraceful)
 }

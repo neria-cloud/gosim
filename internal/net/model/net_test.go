@@ -1,17 +1,24 @@
-package network
+package model
 
 import (
 	"math"
 	"net/netip"
-	"reflect"
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
 func attachTestEndpoints(n *Network, hosts ...netip.Addr) {
 	for _, addr := range hosts {
-		n.endpoints[addr] = &Endpoint{net: n, addr: addr, stack: &Stack{}, last: make(map[netip.Addr]timeIndex)}
+		ref := contracts.EpochRef{Machine: contracts.MachineRef{RunID: 1, ID: uint64(addr.As4()[3])}, Epoch: 1}
+		r, err := n.ReserveAddress(ref.Machine, addr.As4(), true)
+		if err != nil {
+			panic(err)
+		}
+		stack := NewStack(ref, contracts.Ports{Clock: n.clock, Events: n.events, Trace: n.trace})
+		n.Attach(r, ref, stack)
 	}
 }
 
@@ -39,10 +46,8 @@ func TestNetworkPartitionAdmissionAndOrdering(t *testing.T) {
 	}
 	// Model a packet already dequeued but not yet admitted. No queue/network
 	// goroutines are running in this owner-level fixture.
-	n.queue.mu.Lock()
 	n.queue.items = nil
-	n.queue.updateTimerLocked()
-	n.queue.mu.Unlock()
+	n.queue.updateTimer()
 	admitted := n.getStack(first)
 	if admitted == nil {
 		t.Fatal("healthy packet not admitted")
@@ -73,21 +78,27 @@ func TestNetworkPartitionAdmissionAndOrdering(t *testing.T) {
 	if n.getStack(third) == nil {
 		t.Fatal("new packet rejected")
 	}
-	n.queue.dropPair(canonicalPair(testPair))
+	n.queue.dropPair(edgeKey(testPair))
 	// Endpoint removal and replacement retain policy and generation.
 	old := n.endpoints[testPair.DestHost]
 	old.stack.endpoint = old
-	n.DetachStack(old.stack)
-	replacement := &Stack{}
-	n.AttachStack(testPair.DestHost, replacement)
-	if s := n.links[canonicalPair(testPair)]; s.Generation != 1 || s.Latency == nil {
+	n.Detach(old.ref)
+	ref := old.ref
+	ref.Epoch++
+	reservation, err := n.ReserveAddress(ref.Machine, [4]byte{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacement := NewStack(ref, contracts.Ports{Clock: n.clock, Events: n.events})
+	n.Attach(reservation, ref, replacement)
+	if s := n.links[edgeKey(testPair)]; s.Generation != 1 || s.Latency == nil {
 		t.Fatal("restart lost policy")
 	}
 	p := sendTestPacket(n, testPair)
 	if n.getStack(p) != replacement {
 		t.Fatal("replacement not attached")
 	}
-	n.queue.dropPair(canonicalPair(testPair))
+	n.queue.dropPair(edgeKey(testPair))
 }
 
 func TestNetworkFiveHostIsolation(t *testing.T) {
@@ -104,7 +115,7 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 	c.Latency.Max = time.Hour
 	control(t, n, ControlRequest{Kind: ReplaceGlobal, Config: c})
 	target := HostPair{hosts[1], hosts[4]}
-	key := canonicalPair(target)
+	key := edgeKey(target)
 	for i := 0; i < 5; i++ {
 		for j := i + 1; j < 5; j++ {
 			rng.exponentials = append(rng.exponentials, 0, 0)
@@ -120,14 +131,15 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 	control(t, n, ControlRequest{Kind: SetPairFailRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 1})
 	control(t, n, ControlRequest{Kind: SetPairRepairRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 0})
 	sendTestPacket(n, target)
+	sendTestPacket(n, target.Flip())
 	if len(n.queue.items) != 18 || n.links[key].Status != linkRandomPartition {
 		t.Fatal("pair failure did not purge exactly two packets")
 	}
 	for other, s := range n.links {
-		if other == key {
+		if other == key || other == edgeKey(target.Flip()) {
 			continue
 		}
-		if s.Latency != nil || s.Loss != nil || s.Status != linkHealthy || s.Generation != 0 || n.effectiveConfigLocked(s) != c {
+		if s.Latency != nil || s.Loss != nil || s.Status != linkHealthy || s.Generation != 0 || n.effectiveConfig(s) != c {
 			t.Fatal("unrelated pair changed", other, s)
 		}
 	}
@@ -152,7 +164,7 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 	control(t, n, ControlRequest{Kind: SetPairRepairRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 1})
 	rng.exponentials = append(rng.exponentials, 0)
 	sendTestPacket(n, target.Flip())
-	if len(n.queue.items) != 19 || n.links[key].Status != linkHealthy {
+	if len(n.queue.items) != 19 || n.links[edgeKey(target.Flip())].Status != linkHealthy || n.links[key].Status != linkRandomPartition {
 		t.Fatal("send did not repair")
 	}
 	for other := range n.links {
@@ -160,57 +172,57 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 	}
 }
 
-func TestNetworkOneWayNoMutation(t *testing.T) {
-	for _, status := range []linkStatus{linkHealthy, linkRandomPartition, linkExplicitPartition} {
-		for _, reverse := range []bool{false, true} {
-			for _, connected := range []bool{false, true} {
-				rng := &scriptedRandom{exponentials: []float64{0, 0}}
-				n := testNetwork(t, rng)
-				attachTestEndpoints(n, testPair.SourceHost, testPair.DestHost)
-				if err := n.SetDelay(testPair, time.Hour); err != nil {
-					t.Fatal(err)
-				}
-				sendTestPacket(n, testPair)
-				sendTestPacket(n, testPair.Flip())
-				s := n.links[canonicalPair(testPair)]
-				s.Status = status
-				before := *s
-				config := n.config
-				sequence := n.nextSequence
-				packets := append([]*Packet(nil), n.queue.items...)
-				arrival := packets[0].ArrivalTime
-				pair := testPair
-				if reverse {
-					pair = pair.Flip()
-				}
-				r := ControlRequest{Kind: SetConnectivity, A: pair.SourceHost.String(), B: pair.DestHost.String(), Direction: DirectionOneWay, Connected: connected}
-				if n.ApplyControl(r) != syscall.EOPNOTSUPP {
-					t.Fatal("one-way was not rejected")
-				}
-				if !reflect.DeepEqual(before, *s) || n.config != config || n.nextSequence != sequence || !reflect.DeepEqual(packets, []*Packet(n.queue.items)) || packets[0].ArrivalTime != arrival || len(rng.calls) != 2 {
-					t.Fatal("unsupported call mutated network")
-				}
-				if len(n.endpoints[testPair.SourceHost].last) != 1 || len(n.endpoints[testPair.DestHost].last) != 1 {
-					t.Fatal("unsupported call reset ordering")
-				}
-				n.queue.dropPair(canonicalPair(testPair))
-			}
+func TestNetworkDirectedConnectivity(t *testing.T) {
+	for _, reverse := range []bool{false, true} {
+		rng := &scriptedRandom{exponentials: []float64{0, 0}}
+		n := testNetwork(t, rng)
+		attachTestEndpoints(n, testPair.SourceHost, testPair.DestHost)
+		if err := n.SetDelay(testPair, time.Hour); err != nil {
+			t.Fatal(err)
+		}
+		pair := testPair
+		if reverse {
+			pair = pair.Flip()
+		}
+		forward := sendTestPacket(n, pair)
+		backward := sendTestPacket(n, pair.Flip())
+		oldReverse := *n.links[edgeKey(pair.Flip())]
+		if err := n.SetConnectivity(pair, false, DirectionOneWay); err != nil {
+			t.Fatal(err)
+		}
+		if forward.Kind != 255 || len(n.queue.items) != 1 || n.queue.items[0] != backward || *n.links[edgeKey(pair.Flip())] != oldReverse {
+			t.Fatal("forward partition affected reverse")
+		}
+		if _, ok := n.endpoints[pair.SourceHost].last[pair.DestHost]; ok {
+			t.Fatal("forward ordering survived")
+		}
+		if len(n.endpoints[pair.DestHost].last) != 1 {
+			t.Fatal("reverse ordering cleared")
+		}
+		forwardState := n.links[edgeKey(pair)]
+		forwardState.Status = linkRandomPartition
+		if err := n.SetConnectivity(pair, true, DirectionOneWay); err != nil {
+			t.Fatal(err)
+		}
+		if forwardState.Explicit || forwardState.Status != linkRandomPartition || len(rng.calls) != 2 {
+			t.Fatal("explicit repair changed random state or sampled")
+		}
+		if err := n.SetConnected(pair, false); err != nil {
+			t.Fatal(err)
+		}
+		if len(n.queue.items) != 0 || !n.links[edgeKey(pair.Flip())].Explicit {
+			t.Fatal("Both did not partition reverse")
+		}
+		if err := n.SetConnectivity(pair, true, DirectionOneWay); err != nil {
+			t.Fatal(err)
+		}
+		if !n.links[edgeKey(pair.Flip())].Explicit {
+			t.Fatal("forward repair repaired reverse")
 		}
 	}
 	n := testNetwork(t, &scriptedRandom{})
-	r := localRequest(SetConnectivity)
-	r.Direction = DirectionOneWay
-	if n.ApplyControl(r) != syscall.EOPNOTSUPP || len(n.links) != 0 {
-		t.Fatal("unsupported call allocated state")
-	}
-	r.A = "invalid"
-	if n.ApplyControl(r) != syscall.EINVAL {
-		t.Fatal("invalid address accepted")
-	}
-	r = localRequest(SetConnectivity)
-	r.Direction = 99
-	if n.ApplyControl(r) != syscall.EINVAL {
-		t.Fatal("unknown direction accepted")
+	if n.SetConnectivity(HostPair{}, false, DirectionOneWay) != syscall.EINVAL || n.SetConnectivity(testPair, false, 99) != syscall.EINVAL || len(n.links) != 0 {
+		t.Fatal("invalid direction/address mutated state")
 	}
 }
 
@@ -249,7 +261,7 @@ func TestNetworkCounterExhaustion(t *testing.T) {
 				}
 			}()
 			if which == "generation" {
-				n.getOrCreateLinkLocked(canonicalPair(testPair)).Generation = math.MaxUint64
+				n.getOrCreateLink(edgeKey(testPair)).Generation = math.MaxUint64
 				_ = n.SetConnected(testPair, false)
 			} else {
 				n.nextSequence = math.MaxUint64
@@ -275,7 +287,7 @@ func TestNetworkSampledOrderAcrossGlobalUpdates(t *testing.T) {
 	if first.ArrivalTime.index >= second.ArrivalTime.index || second.ArrivalTime.index >= third.ArrivalTime.index {
 		t.Fatal("unstable ties")
 	}
-	n.queue.dropPair(canonicalPair(testPair))
+	n.queue.dropPair(edgeKey(testPair))
 }
 
 func TestNetworkSelfPair(t *testing.T) {
@@ -291,7 +303,7 @@ func TestNetworkSelfPair(t *testing.T) {
 	if err := n.SetConnected(pair, false); err != nil {
 		t.Fatal(err)
 	}
-	if len(n.queue.items) != 0 || len(n.endpoints[addr].last) != 0 || n.links[canonicalPair(pair)].Generation != 1 {
+	if len(n.queue.items) != 0 || len(n.endpoints[addr].last) != 0 || n.links[edgeKey(pair)].Generation != 1 {
 		t.Fatal("self pair not partitioned exactly once")
 	}
 }

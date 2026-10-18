@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–9 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–10 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -234,16 +234,16 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§4 net policy; T§5 ports; T§6 stale packet and final-close behavior; T§7 network model inventory; I: network files.  
 **Budget:** 2,500–4,500 changed lines with rename detection. **Dependency:** 4, 6.
 
-- [ ] Implement `NewNetwork(Clock,Events,Random,Trace)`, ReserveAddress/AbortReservation/Attach/Detach and `NewStack(EpochRef,Ports)`, ProcessIncoming and Shutdown signatures. Remove direct package randomness/runtime trace dependencies.
-- [ ] Stage deterministic IPv4 reservations; abort frees them, restart preserves assigned address while allocating new stack/connection generations. Add destination epoch and connection generation to packets; reject packets for an old incarnation even if addresses/ports match.
-- [ ] Preserve traffic-triggered fail/repair probability and packet ordering; implement independent directed link state for Forward and symmetric Both. Partition invalidates only the selected directional queues, without affecting reverse traffic for Forward. Global/group override updates copy inputs atomically.
-- [ ] Quiesce cancels application events. Graceful final close uses immutable packet data scheduled against a live destination, never a canceled source stack; crash emits no close notification.
-- [ ] Remove model scheduling/pooling patterns that violate serialized supervisor ownership. Temporary current-simulation port adapters are removed in Task 22.
+- [x] Implement `NewNetwork(Clock,Events,Random,Trace)`, ReserveAddress/AbortReservation/Attach/Detach and `NewStack(EpochRef,Ports)`, ProcessIncoming and Shutdown signatures. Remove direct package randomness/runtime trace dependencies.
+- [x] Stage deterministic IPv4 reservations; abort frees them, restart preserves assigned address while allocating new stack/connection generations. Add destination epoch and connection generation to packets; reject packets for an old incarnation even if addresses/ports match.
+- [x] Preserve traffic-triggered fail/repair probability and packet ordering; implement independent directed link state for Forward and symmetric Both. Partition invalidates only the selected directional queues, without affecting reverse traffic for Forward. Global/group override updates copy inputs atomically.
+- [x] Quiesce cancels application events. Graceful final close uses immutable packet data scheduled against a live destination, never a canceled source stack; crash emits no close notification.
+- [x] Remove model scheduling/pooling patterns that violate serialized supervisor ownership. Temporary current-simulation port adapters are removed in Task 22.
 
 #### Verification
 
-- [ ] Existing fault/queue tests, independent streams, directed and symmetric partition behavior, address rollback, stale packets after port reuse and graceful-vs-crash peer behavior pass.
-- [ ] Run common commit gate; network imports no fs/provider kernel implementation.
+- [x] Existing fault/queue tests, independent streams, directed and symmetric partition behavior, address rollback, stale packets after port reuse and graceful-vs-crash peer behavior pass.
+- [x] Run common commit gate; network imports no fs/provider kernel implementation.
 
 ### Task 11: Implement network provider, socket capabilities and controls
 
@@ -784,6 +784,15 @@ Task 9 also fixes two model errors required by the strict syscall boundary and m
   file.mmaps = slices.Delete(file.mmaps, idx, idx+1)
 + if err := fs.CloseFile(m.Inode); err != nil { panic(err) }
 ```
+
+Task 10 updates `internal/tests/behavior/log_meta_test.go` because removing the network runner removes one goroutine before application startup. Exact log assertions remain; only the corresponding goroutine IDs decrease by one (`"goroutine":4` → `"goroutine":3`, `main/4` → `main/3`, and equivalent initialization/child IDs). `network_trace_test.go` now checks the prescribed copied string-field trace representation (`latency.lambda`, `loss.failProbability`, `loss.repairProbability`) while retaining fractional-value, payload-exclusion and replay checks. Network lifecycle cleanup also fixes the existing partially drained listener backlog:
+
+```diff
+- for i := 0; i < l.incomingCount; i++ {
++ for l.incomingCount > 0 {
+```
+
+These are required effects/fixes of Task 10 ownership changes, not a target architecture revision. Real Forward behavior replaces the old EOPNOTSUPP assertions as explicitly planned.
 
 ## Execution log
 

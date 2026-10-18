@@ -165,13 +165,9 @@ func TestNetworkConfigFiveHosts(t *testing.T) {
 			}
 		}
 	}
-	// Both public two-way entry points must block both directions. Unsupported
-	// one-way repair must leave the explicit partition intact.
+	// Both public two-way entry points must block both directions.
 	networkCheck(t, gosim.Partition(a, b))
 	for _, pair := range [][2]int{{1, 4}, {4, 1}} {
-		if err := gosim.RepairOneWay(addresses[pair[0]], addresses[pair[1]]); !errors.Is(err, syscall.EOPNOTSUPP) {
-			t.Fatal(err)
-		}
 		if probe(pair[0], pair[1], true).err == nil {
 			t.Fatal("explicit partition did not block direction", pair)
 		}

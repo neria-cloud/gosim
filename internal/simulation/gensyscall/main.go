@@ -626,7 +626,7 @@ func writeSyscalls(outputPath string, syscalls []syscallInfo, sysnums map[string
 	}
 	networkImport := ""
 	if isMachine {
-		networkImport = "\t" + strconv.Quote(gosimtool.Module+"/internal/simulation/network") + "\n"
+		networkImport = "\tnetwork " + strconv.Quote(gosimtool.Module+"/internal/net/model") + "\n"
 	}
 	output += fmt.Sprintf(`package simulation
 

@@ -5,8 +5,8 @@ import (
 	"syscall"
 	"time"
 
+	network "github.com/neria-cloud/gosim/internal/net/model"
 	"github.com/neria-cloud/gosim/internal/simulation"
-	"github.com/neria-cloud/gosim/internal/simulation/network"
 )
 
 // LatencyConfig defines a capped exponential delay. Min and Max must be
@@ -144,17 +144,12 @@ func Repair(a, b string) error {
 	return applyNetworkControl("Repair", network.ControlRequest{Kind: network.SetConnectivity, A: a, B: b, Direction: network.DirectionTwoWay, Connected: true})
 }
 
-// PartitionOneWay will partition only from→to. Currently valid IPv4 requests return
-// EOPNOTSUPP without changing the network; outside simulation it returns ENOSYS.
-// NotImplemented: operational one-way support is reserved for a future change.
+// PartitionOneWay partitions only from→to; reverse traffic keeps its current state.
 func PartitionOneWay(from, to string) error {
 	return applyNetworkControl("PartitionOneWay", network.ControlRequest{Kind: network.SetConnectivity, A: from, B: to, Direction: network.DirectionOneWay, Connected: false})
 }
 
-// RepairOneWay will repair only from→to, including after a two-way partition.
-// Currently valid IPv4 requests return EOPNOTSUPP without changing the network;
-// outside simulation it returns ENOSYS.
-// NotImplemented: operational one-way support is reserved for a future change.
+// RepairOneWay repairs explicit connectivity only from→to, including after a two-way partition.
 func RepairOneWay(from, to string) error {
 	return applyNetworkControl("RepairOneWay", network.ControlRequest{Kind: network.SetConnectivity, A: from, B: to, Direction: network.DirectionOneWay, Connected: true})
 }

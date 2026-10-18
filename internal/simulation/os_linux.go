@@ -17,11 +17,12 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/neria-cloud/gosim/internal/contracts"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 
 	fs "github.com/neria-cloud/gosim/internal/fs/model"
 	"github.com/neria-cloud/gosim/internal/gosimlog"
-	"github.com/neria-cloud/gosim/internal/simulation/network"
+	network "github.com/neria-cloud/gosim/internal/net/model"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
@@ -40,7 +41,8 @@ type LinuxOS struct {
 	files  map[int]interface{}
 	nextFd int
 
-	mmaps map[uintptr]*fs.Mmap
+	mmaps          map[uintptr]*fs.Mmap
+	networkPollers map[*syscallabi.PollDesc]*legacyNetworkPoller
 
 	workdirInode int
 }
@@ -62,7 +64,8 @@ func NewLinuxOS(simulation *Simulation, machine *Machine, dispatcher syscallabi.
 		files:  make(map[int]interface{}),
 		nextFd: 5,
 
-		mmaps: make(map[uintptr]*fs.Mmap),
+		mmaps:          make(map[uintptr]*fs.Mmap),
+		networkPollers: make(map[*syscallabi.PollDesc]*legacyNetworkPoller),
 
 		workdirInode: workdirInode,
 	}
@@ -77,6 +80,7 @@ func (l *LinuxOS) doShutdown() {
 	// nil out pointers to catch any use after shutdown
 	l.machine = nil
 	l.files = nil
+	clear(l.networkPollers)
 }
 
 func logf(format string, args ...any) {
@@ -190,13 +194,17 @@ func (l *LinuxOS) PollOpen(fd int, desc abi.ValueView[syscallabi.PollDesc], invo
 		return 0
 	}
 
+	pd := (*syscallabi.PollDesc)(desc.UnsafePointer())
+	poller := &legacyNetworkPoller{}
+	poller.pollers.Add(pd)
+	l.networkPollers[pd] = poller
 	f := l.files[fd]
 	if socket, ok := f.(*Socket); ok {
 		if socket.Stream != nil {
-			l.machine.netstack.RegisterStreamPoller((*syscallabi.PollDesc)(desc.UnsafePointer()), socket.Stream)
+			l.machine.netstack.RegisterStreamPoller(poller, socket.Stream)
 		}
 		if socket.Listener != nil {
-			l.machine.netstack.RegisterListenerPoller((*syscallabi.PollDesc)(desc.UnsafePointer()), socket.Listener)
+			l.machine.netstack.RegisterListenerPoller(poller, socket.Listener)
 		}
 	}
 	return 0
@@ -218,13 +226,20 @@ func (l *LinuxOS) PollClose(fd int, desc abi.ValueView[syscallabi.PollDesc], inv
 		return 0
 	}
 
+	pd := (*syscallabi.PollDesc)(desc.UnsafePointer())
+	poller := l.networkPollers[pd]
+	if poller == nil {
+		return 0
+	}
+	delete(l.networkPollers, pd)
+	poller.pollers.Remove(pd)
 	f := l.files[fd]
 	if socket, ok := f.(*Socket); ok {
 		if socket.Stream != nil {
-			l.machine.netstack.DeregisterStreamPoller((*syscallabi.PollDesc)(desc.UnsafePointer()), socket.Stream)
+			l.machine.netstack.DeregisterStreamPoller(poller, socket.Stream)
 		}
 		if socket.Listener != nil {
-			l.machine.netstack.DeregisterListenerPoller((*syscallabi.PollDesc)(desc.UnsafePointer()), socket.Listener)
+			l.machine.netstack.DeregisterListenerPoller(poller, socket.Listener)
 		}
 	}
 	return 0
@@ -1823,4 +1838,12 @@ func (l *LinuxOS) SysMunmap(addr uintptr, length uintptr, invocation *syscallabi
 	delete(l.mmaps, addr)
 
 	return nil
+}
+
+// TODO(migration): remove in Task 22 with legacy poll descriptors.
+type legacyNetworkPoller struct{ pollers syscallabi.Pollers }
+
+func (p *legacyNetworkPoller) Notify(_ contracts.EpochRef, _ int, mask contracts.Readiness) {
+	p.pollers.NotifyCanRead(mask&contracts.ReadReady != 0)
+	p.pollers.NotifyCanWrite(mask&contracts.WriteReady != 0)
 }

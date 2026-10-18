@@ -9,7 +9,7 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 
 	fs "github.com/neria-cloud/gosim/internal/fs/model"
-	"github.com/neria-cloud/gosim/internal/simulation/network"
+	network "github.com/neria-cloud/gosim/internal/net/model"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 )
 

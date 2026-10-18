@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	fs "github.com/neria-cloud/gosim/internal/fs/model"
-	"github.com/neria-cloud/gosim/internal/simulation/network"
+	network "github.com/neria-cloud/gosim/internal/net/model"
 	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 	"github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"

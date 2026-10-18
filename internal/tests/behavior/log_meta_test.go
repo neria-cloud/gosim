@@ -48,10 +48,10 @@ func TestLogMachineGoroutineTime(t *testing.T) {
 	}
 
 	actual := parseLog(t, run.LogOutput)
-	expected := parseLog(t, []byte(`{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hi there","machine":"main","goroutine":4,"step":1}
-{"time":"2020-01-15T14:10:13.000001234Z","level":"INFO","msg":"hey","machine":"inside","goroutine":6,"step":2}
-{"time":"2020-01-15T14:10:23.000001234Z","level":"INFO","msg":"propagated","machine":"inside","goroutine":7,"step":3}
-{"time":"2020-01-15T14:10:23.000001234Z","level":"WARN","msg":"foo","machine":"inside","bar":"baz","counter":20,"goroutine":7,"step":4}
+	expected := parseLog(t, []byte(`{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hi there","machine":"main","goroutine":3,"step":1}
+{"time":"2020-01-15T14:10:13.000001234Z","level":"INFO","msg":"hey","machine":"inside","goroutine":5,"step":2}
+{"time":"2020-01-15T14:10:23.000001234Z","level":"INFO","msg":"propagated","machine":"inside","goroutine":6,"step":3}
+{"time":"2020-01-15T14:10:23.000001234Z","level":"WARN","msg":"foo","machine":"inside","bar":"baz","counter":20,"goroutine":6,"step":4}
 `))
 
 	if diff := cmp.Diff(expected, actual); diff != "" {
@@ -70,7 +70,7 @@ func TestLogSLog(t *testing.T) {
 	}
 
 	actual := parseLog(t, run.LogOutput)
-	expected := parseLog(t, []byte(`{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hello 10","machine":"main","goroutine":4,"step":1}
+	expected := parseLog(t, []byte(`{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hello 10","machine":"main","goroutine":3,"step":1}
 `))
 
 	if diff := cmp.Diff(expected, actual); diff != "" {
@@ -89,10 +89,10 @@ func TestLogStdoutStderr(t *testing.T) {
 	}
 
 	actual := parseLog(t, run.LogOutput)
-	expected := parseLog(t, []byte(`{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hello","machine":"main","method":"stdout","goroutine":4,"step":1}
-{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"goodbye","machine":"main","method":"stderr","goroutine":4,"step":2}
-{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"same goroutine log","machine":"main","goroutine":4,"step":3}
-{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"same goroutine slog","machine":"main","goroutine":4,"step":4}
+	expected := parseLog(t, []byte(`{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hello","machine":"main","method":"stdout","goroutine":3,"step":1}
+{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"goodbye","machine":"main","method":"stderr","goroutine":3,"step":2}
+{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"same goroutine log","machine":"main","goroutine":3,"step":3}
+{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"same goroutine slog","machine":"main","goroutine":3,"step":4}
 `))
 
 	if diff := cmp.Diff(expected, actual); diff != "" {
@@ -114,10 +114,10 @@ func TestLogDuringInit(t *testing.T) {
 	}
 
 	actual := parseLog(t, run.LogOutput)
-	expected := parseLog(t, []byte(`{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hello","machine":"main","method":"stdout","goroutine":3,"step":1}
-{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"2020/01/15 14:10:03 INFO help","machine":"main","method":"stderr","goroutine":3,"step":2}
-{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hello","machine":"logm","method":"stdout","goroutine":5,"step":3}
-{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"2020/01/15 14:10:03 INFO help","machine":"logm","method":"stderr","goroutine":5,"step":4}
+	expected := parseLog(t, []byte(`{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hello","machine":"main","method":"stdout","goroutine":2,"step":1}
+{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"2020/01/15 14:10:03 INFO help","machine":"main","method":"stderr","goroutine":2,"step":2}
+{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"hello","machine":"logm","method":"stdout","goroutine":4,"step":3}
+{"time":"2020-01-15T14:10:03.000001234Z","level":"INFO","msg":"2020/01/15 14:10:03 INFO help","machine":"logm","method":"stderr","goroutine":4,"step":4}
 `))
 
 	if diff := cmp.Diff(expected, actual); diff != "" {
@@ -171,15 +171,15 @@ func TestLogTraceSyscall(t *testing.T) {
 
 	// TODO: support snapshotting these logs?
 	if diff := cmp.Diff(formatLogsWithExtra(gosimlog.ParseLog(run.LogOutput)), []string{
-		"1 main/4 INFO unsupported syscall unknown (9999) 0 0 0 0 0 0",
-		`2 main/4 INFO call SysOpenat dirfd="AT_FDCWD" path="hello" flags="O_WRONLY|O_TRUNC|O_CREAT|O_CLOEXEC" mode="0o644"`,
-		"3 main/4 INFO ret  SysOpenat fd=5 err=null",
-		"4 main/4 INFO call SysFcntl",
-		"5 main/4 INFO ret  SysFcntl",
-		`6 main/4 INFO call SysWrite fd=5 p="world"`,
-		"7 main/4 INFO ret  SysWrite n=5 err=null",
-		"8 main/4 INFO call SysClose fd=5",
-		"9 main/4 INFO ret  SysClose err=null",
+		"1 main/3 INFO unsupported syscall unknown (9999) 0 0 0 0 0 0",
+		`2 main/3 INFO call SysOpenat dirfd="AT_FDCWD" path="hello" flags="O_WRONLY|O_TRUNC|O_CREAT|O_CLOEXEC" mode="0o644"`,
+		"3 main/3 INFO ret  SysOpenat fd=5 err=null",
+		"4 main/3 INFO call SysFcntl",
+		"5 main/3 INFO ret  SysFcntl",
+		`6 main/3 INFO call SysWrite fd=5 p="world"`,
+		"7 main/3 INFO ret  SysWrite n=5 err=null",
+		"8 main/3 INFO call SysClose fd=5",
+		"9 main/3 INFO ret  SysClose err=null",
 	}); diff != "" {
 		t.Error("diff", diff)
 	}

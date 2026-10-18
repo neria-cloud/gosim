@@ -13,7 +13,7 @@ import (
 func TestNetworkConfigDirections(t *testing.T) {
 	for _, operation := range []func(string, string) error{gosim.PartitionOneWay, gosim.RepairOneWay} {
 		for _, pair := range [][2]string{{aAddr, bAddr}, {bAddr, aAddr}} {
-			if err := operation(pair[0], pair[1]); !errors.Is(err, syscall.EOPNOTSUPP) {
+			if err := operation(pair[0], pair[1]); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -22,7 +22,7 @@ func TestNetworkConfigDirections(t *testing.T) {
 		}
 	}
 	networkCheck(t, gosim.Partition(aAddr, bAddr))
-	if err := gosim.RepairOneWay(aAddr, bAddr); !errors.Is(err, syscall.EOPNOTSUPP) {
+	if err := gosim.RepairOneWay(aAddr, bAddr); err != nil {
 		t.Fatal(err)
 	}
 	networkCheck(t, gosim.Repair(bAddr, aAddr))
