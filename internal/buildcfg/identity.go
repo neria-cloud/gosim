@@ -1,0 +1,225 @@
+package buildcfg
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+
+	"github.com/neria-cloud/gosim/internal/buildspec"
+	"github.com/neria-cloud/gosim/internal/compat/spec"
+)
+
+func Canonical(id buildspec.Identity) ([]byte, error) { return buildspec.Canonical(id) }
+func Digest(id buildspec.Identity) (string, error)    { return buildspec.Digest(id) }
+
+// Identity describes an unpromoted build. A caller must validate a pending
+// tuple, or attach matching reviewed evidence before selecting a certified one.
+func Identity(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile, opts buildspec.BuildOptions) (buildspec.Identity, error) {
+	cfg, err := Normalize(cfg)
+	if err != nil {
+		return buildspec.Identity{}, err
+	}
+	if cfg.Toolchain != tc.Version {
+		return buildspec.Identity{}, fmt.Errorf("config and resolved toolchain differ")
+	}
+	if err := buildspec.CheckEnvironment(tc); err != nil {
+		return buildspec.Identity{}, err
+	}
+	if err := profile.Validate(); err != nil {
+		return buildspec.Identity{}, err
+	}
+	if opts.Experiments != "" {
+		return buildspec.Identity{}, fmt.Errorf("nondefault experiments are unsupported")
+	}
+	for _, tag := range opts.Tags {
+		if tag != "sim" && tag != "linkname" {
+			return buildspec.Identity{}, fmt.Errorf("unapproved build tag %q", tag)
+		}
+	}
+	tags := slices.Clone(opts.Tags)
+	slices.Sort(tags)
+	if len(slices.Compact(tags)) != len(opts.Tags) {
+		return buildspec.Identity{}, fmt.Errorf("duplicate build tags")
+	}
+	distribution, err := Fingerprint(tc)
+	if err != nil {
+		return buildspec.Identity{}, err
+	}
+	root, graph, err := moduleGraph(tc)
+	if err != nil {
+		return buildspec.Identity{}, err
+	}
+	return identityForSource(cfg, tc, profile, opts, distribution, root, graph)
+}
+
+func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile, opts buildspec.BuildOptions, dist Distribution, root, graph string) (buildspec.Identity, error) {
+	id := buildspec.Identity{
+		Schema: 1, Toolchain: tc.Version, Profile: profile.ID, AdapterRevision: profile.Revision,
+		DistributionDigest: dist.ArchiveDigest, StdlibDigest: dist.SourceDigest,
+		HostOS: tc.HostOS, HostArch: tc.HostArch, SimulationOS: cfg.SimulationOS, SimulationArch: tc.HostArch,
+		Features: cfg.Features, Race: opts.Race, Experiments: opts.Experiments,
+		Tags: []string{"linkname", "sim"}, ModuleGraphDigest: graph, Certification: "candidate",
+	}
+	var err error
+	id.RuntimeRevision, err = hashSources(root, []string{"rt/runtime", "internal/contracts", "internal/kernel", "internal/control"})
+	if err != nil {
+		return id, err
+	}
+	for _, feature := range cfg.Features {
+		if feature == "rt" {
+			continue
+		}
+		digest, err := hashSources(root, []string{"internal/" + feature})
+		if err != nil {
+			return id, err
+		}
+		id.ProviderRevisions = append(id.ProviderRevisions, buildspec.Revision{Name: feature, Digest: digest})
+	}
+	// The complete tool/source tree is a conservative translator fingerprint.
+	// Evidence metadata and documentation never enter executable identities.
+	id.TranslatorDigest, err = hashSources(root, []string{"."})
+	if err != nil {
+		return id, err
+	}
+	mod, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		return id, err
+	}
+	policy, err := json.Marshal([]string{"gosim-build-policy-v1", "-ldflags=-checklinkname=0", "-tags=linkname,sim", "GODEBUG=", string(mod)})
+	if err != nil {
+		return id, err
+	}
+	id.DebugPolicyDigest = buildspec.Hash(policy)
+	return buildspec.NormalizeIdentity(id)
+}
+
+type moduleRecord struct {
+	Path, Version, Sum, GoModSum, GoVersion string
+	Main                                    bool
+	Replace                                 *moduleRecord
+	Dir                                     string `json:",omitempty"`
+	LocalDigest                             string `json:",omitempty"`
+}
+
+func moduleGraph(tc buildspec.Toolchain) (string, string, error) {
+	cmd := Command(tc, "", "list", "-m", "-json", "all")
+	data, err := cmd.Output()
+	if err != nil {
+		return "", "", fmt.Errorf("resolve module graph: %w", err)
+	}
+	var root string
+	var modules []moduleRecord
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	for {
+		var m moduleRecord
+		if err := decoder.Decode(&m); err == io.EOF {
+			break
+		} else if err != nil {
+			return "", "", err
+		}
+		if m.Path == "github.com/neria-cloud/gosim" {
+			root = m.Dir
+			if m.Replace != nil {
+				root = m.Replace.Dir
+			}
+		}
+		m.Dir = ""
+		if m.Replace != nil {
+			if m.Replace.Version == "" {
+				m.Replace.LocalDigest, err = hashSources(m.Replace.Dir, []string{"."})
+				if err != nil {
+					return "", "", err
+				}
+				// Absolute paths are location, not executable identity.
+				m.Replace.Path = "local"
+			}
+			m.Replace.Dir = ""
+		}
+		modules = append(modules, m)
+	}
+	if root == "" {
+		return "", "", fmt.Errorf("module graph does not contain Gosim source")
+	}
+	slices.SortFunc(modules, func(a, b moduleRecord) int { return strings.Compare(a.Path, b.Path) })
+	canonical, err := json.Marshal(modules)
+	if err != nil {
+		return "", "", err
+	}
+	return root, buildspec.Hash(canonical), nil
+}
+
+func evidenceMetadata(name string) bool {
+	for _, family := range []string{"go125", "go126"} {
+		prefix := "internal/compat/" + family + "/profile/"
+		if name == prefix+"tuples.json" || name == prefix+"evidence.json" {
+			return true
+		}
+	}
+	return false
+}
+
+func hashSources(root string, paths []string) (string, error) {
+	if root == "" {
+		return "", fmt.Errorf("missing source root")
+	}
+	var files []buildspec.Revision
+	for _, sub := range paths {
+		before := len(files)
+		err := filepath.WalkDir(filepath.Join(root, sub), func(filename string, entry fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			rel, err := filepath.Rel(root, filename)
+			if err != nil {
+				return err
+			}
+			rel = filepath.ToSlash(rel)
+			if rel == ".git" {
+				if entry.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if entry.IsDir() {
+				if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if evidenceMetadata(rel) {
+				return nil
+			}
+			// Hash all non-documentation inputs, including embeds and templates.
+			if filepath.Ext(rel) == ".md" {
+				return nil
+			}
+			if !entry.Type().IsRegular() {
+				return fmt.Errorf("source input must be a regular file: %s", rel)
+			}
+			digest, err := hashFile(filename)
+			if err != nil {
+				return err
+			}
+			files = append(files, buildspec.Revision{Name: rel, Digest: digest})
+			return nil
+		})
+		if err != nil {
+			return "", fmt.Errorf("fingerprint %s: %w", sub, err)
+		}
+		if len(files) == before {
+			return "", fmt.Errorf("no source inputs in %s", sub)
+		}
+	}
+	slices.SortFunc(files, func(a, b buildspec.Revision) int { return strings.Compare(a.Name, b.Name) })
+	data, err := json.Marshal(files)
+	if err != nil {
+		return "", err
+	}
+	return buildspec.Hash(data), nil
+}

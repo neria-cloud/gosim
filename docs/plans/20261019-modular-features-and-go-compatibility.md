@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** ready for implementation; every implementation checkbox is initially unchecked.
+**Status:** in progress; Task 1 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -78,18 +78,18 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§1–3; T§8 / Profile; T§9 / persisted and transient build schemas; T§12 / resolveBuild.  
 **Budget:** 1,500–2,500 changed lines. **Dependency:** none.
 
-- [ ] Implement the exact T§9 `Config`, `Identity`, `Revision`, `Tuple`, `Selection`, `Toolchain`, `BuildOptions`, `Overrides`, and `Distribution` records, including explicit JSON tags, debug-policy/evidence digests, and candidate/certified status. Keep shared value types in buildspec to avoid the spec/buildcfg import cycle.
-- [ ] Implement `Load`, `Normalize`, `Resolve`, `ValidateWorker`, `Fingerprint`, `Command`, `Identity`, `Canonical`, `Digest`, plus `Profile.Validate`, `Profile.Select`, `ValidateTuple`, and `VerifyHooks` signatures. Initially validate profiles provided by tests; do not select unimplemented executable adapters or fabricate evidence.
-- [ ] Make toolchain resolution/fingerprinting and subprocess environment selection real: exact executable/version, official distribution/source identity, host tuple, bounded environment/flags, no `+auto`, no modified GOROOT acceptance. Use pinned download metadata as input; test without requiring network for every unit test. Hash deterministic ordered inputs.
-- [ ] Keep the current CLI path operational until selection/composition cutover; these new libraries do not yet imply compatibility. Add a declaration/route ownership ledger to this plan's execution log covering I plus new T§4–9 methods; assign every entry to a later task.
-- [ ] Record baseline current-patch/full-suite results and exact toolchain environment. If the baseline fails, repair it before treating this as a completed green commit; do not turn the historical 1.26.0 result into certification.
+- [x] Implement the exact T§9 `Config`, `Identity`, `Revision`, `Tuple`, `Selection`, `Toolchain`, `BuildOptions`, `Overrides`, and `Distribution` records, including explicit JSON tags, debug-policy/evidence digests, and candidate/certified status. Keep shared value types in buildspec to avoid the spec/buildcfg import cycle.
+- [x] Implement `Load`, `Normalize`, `Resolve`, `ValidateWorker`, `Fingerprint`, `Command`, `Identity`, `Canonical`, `Digest`, plus `Profile.Validate`, `Profile.Select`, `ValidateTuple`, and `VerifyHooks` signatures. Initially validate profiles provided by tests; do not select unimplemented executable adapters or fabricate evidence.
+- [x] Make toolchain resolution/fingerprinting and subprocess environment selection real: exact executable/version, official distribution/source identity, host tuple, bounded environment/flags, no `+auto`, no modified GOROOT acceptance. Use pinned download metadata as input; test without requiring network for every unit test. Hash deterministic ordered inputs.
+- [x] Keep the current CLI path operational until selection/composition cutover; these new libraries do not yet imply compatibility. Add a declaration/route ownership ledger to this plan's execution log covering I plus new T§4–9 methods; assign every entry to a later task.
+- [x] Record baseline current-patch/full-suite results and exact toolchain environment. If the baseline fails, repair it before treating this as a completed green commit; do not turn the historical 1.26.0 result into certification.
 
 **Target contract:** `Config{Schema,Toolchain,Features,SimulationOS}`, `Identity{Schema,Toolchain,DistributionDigest,StdlibDigest,Profile,AdapterRevision,RuntimeRevision,ProviderRevisions,HostOS,HostArch,SimulationOS,SimulationArch,Features,Race,Experiments,Tags,ModuleGraphDigest,TranslatorDigest,DebugPolicyDigest,Certification,EvidenceDigest}` and `Selection{Identity,HookManifestDigest,RuntimePackages,ProviderImports}` exactly as tagged in T§9.
 
 #### Verification
 
-- [ ] Config replacement/unknown fields, missing/duplicate/invalid features, fs/net without rt, canonical ordering, worker mismatch, changed fingerprint, unapproved environment, and pending/certified tuple selection tests pass; child commands use the pinned executable/environment.
-- [ ] Run common commit gate; all existing suites still pass without claiming a new supported tuple.
+- [x] Config replacement/unknown fields, missing/duplicate/invalid features, fs/net without rt, canonical ordering, worker mismatch, changed fingerprint, unapproved environment, and pending/certified tuple selection tests pass; child commands use the pinned executable/environment.
+- [x] Run common commit gate; all existing suites still pass without claiming a new supported tuple.
 
 ### Task 2: Move the native runtime import path and extract the memory ABI
 
@@ -762,7 +762,7 @@ Required stdlib init classification, one-way Forward behavior, reliable iterator
 
 ## NOT IMPLEMENTED GAPS
 
-No implementation has started. Unchecked tasks above are planned work, not discovered gaps. During execution add each mismatch with target section, owning task/file, evidence, proposed fix and validation. Use `[_]` only for a discovered required gap that remains unfixed because it is too complex; such a marker prevents an unqualified completion claim.
+Implementation has started. Unchecked tasks above are planned work, not discovered gaps. During execution add each mismatch with target section, owning task/file, evidence, proposed fix and validation. Use `[_]` only for a discovered required gap that remains unfixed because it is too complex; such a marker prevents an unqualified completion claim.
 
 | State | Target / task | Gap and evidence | Resolution / validation |
 | --- | --- | --- | --- |
@@ -770,13 +770,14 @@ No implementation has started. Unchecked tasks above are planned work, not disco
 
 ## NOT PLANNED CHANGES
 
-None. Record any necessary implementation change outside a task's declared scope with affected files, reason, size and validation; include a concise diff or commit reference. Do not quietly add unrelated syscall functionality or dependency upgrades.
+Task 1 uses small additional files inside the declared packages for shared canonicalization/command policy, archive verification, and hook-source inspection. This avoids the spec/buildcfg import cycle and keeps archive verification independently testable. Pinned distribution metadata is stored in `internal/buildcfg/distributions.json`; these hashes are trust anchors, not certification evidence. The plan is tracked in the actual checkout, despite the planning notice describing it as ignored. No behavioral changes outside Task 1 were needed. See its implementation commit and progress record for validation and size.
 
 ## Execution log
 
 | Task / commit | Actual changed lines | Toolchain / host / features | Validation and evidence | Notes |
 | --- | --- | --- | --- | --- |
-| Planning only | Documentation | Source baseline e6122b1 | Repository/source/target review; no new compatibility tests executed | All implementation tasks unchecked |
+| Planning only | Documentation | Source baseline e6122b1 | Repository/source/target review; no new compatibility tests executed | Initial plan |
+| Task 1 (commit containing this entry) | See progress record | go1.26.0 / darwin-arm64 / existing full feature suite | Baseline and final `./test.sh --concurrency 1` passed, including race; focused rejection/identity/hook tests; real distribution verification for both target patches | No tuple certified |
 
 ## Planning verification
 
