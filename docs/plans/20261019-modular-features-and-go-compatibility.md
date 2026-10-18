@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–7 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–8 implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -201,16 +201,16 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **References:** T§4 fs behavior; T§5 lifecycle; T§6 recovery; T§7 FSControl/provider inventory; T§12 NextSnapshot.  
 **Budget:** 2,000–3,500 changed lines. **Dependency:** 5–7.
 
-- [ ] Implement FS provider/session/Prepared/Instance lifecycle signatures from Task 4. Stage initial disk/cwd state without publishing or flushing; retain persistent state in Session, not kernel. Separate stable session Controls from per-epoch FileOps bindings.
-- [ ] Implement FSConfig/FSFaultConfig/InodeInfo and all FSControl methods: ConfigureMachine, SetCrashMode, SetSyncFault, InspectInode, Enumerate, NextSnapshot, CloseIterator, Restore, CloseSnapshot. Validate state in kernel and domain values in provider; inputs either replace atomically or leave old values unchanged.
-- [ ] Use `/app` and the existing Linux fixture. Graceful Settle flushes; crash Settle freezes the pre-crash image and selects retained state with fs randomness. Settle is once-only; Quiesce/Detach/Destroy/Close are idempotent.
-- [ ] Implement owned snapshot/iterator IDs, positive MaxStates, one-item lookahead, ErrEnumerationLimit, independent returned snapshot retention, target Restore references, stale/cross-run errors and deterministic final cleanup.
-- [ ] Test session controls before first machine Start and after crash. Do not expose filesystem controls through per-epoch bindings or a concrete kernel field.
+- [x] Implement FS provider/session/Prepared/Instance lifecycle signatures from Task 4. Stage initial disk/cwd state without publishing or flushing; retain persistent state in Session, not kernel. Separate stable session Controls from per-epoch FileOps bindings.
+- [x] Implement FSConfig/FSFaultConfig/InodeInfo and all FSControl methods: ConfigureMachine, SetCrashMode, SetSyncFault, InspectInode, Enumerate, NextSnapshot, CloseIterator, Restore, CloseSnapshot. Validate state in kernel and domain values in provider; inputs either replace atomically or leave old values unchanged.
+- [x] Use `/app` and the existing Linux fixture. Graceful Settle flushes; crash Settle freezes the pre-crash image and selects retained state with fs randomness. Settle is once-only; Quiesce/Detach/Destroy/Close are idempotent.
+- [x] Implement owned snapshot/iterator IDs, positive MaxStates, one-item lookahead, ErrEnumerationLimit, independent returned snapshot retention, target Restore references, stale/cross-run errors and deterministic final cleanup.
+- [x] Test session controls before first machine Start and after crash. Do not expose filesystem controls through per-epoch bindings or a concrete kernel field.
 
 #### Verification
 
-- [ ] Prepare abort causes no flush; invalid config is atomic; graceful/crash images differ correctly; snapshot survival across iterator close/destroy and budget exhaustion are covered.
-- [ ] Provider contract tests and common commit gate pass; all retained resources return to zero after session Close.
+- [x] Prepare abort causes no flush; invalid config is atomic; graceful/crash images differ correctly; snapshot survival across iterator close/destroy and budget exhaustion are covered.
+- [x] Provider contract tests and common commit gate pass; all retained resources return to zero after session Close.
 
 ### Task 9: Move filesystem syscalls behind FileOps and descriptor capabilities
 

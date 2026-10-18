@@ -350,3 +350,24 @@ Notes / migration ledger
 - Temporary legacy callers freeze immutable images, close iterators on explicit release/machine shutdown, release superseded filesystems on restart, and retain a per-logical-machine native fs random stream across restarts. Marked adapters are removed in Task 22. The current dispatcher already serializes these model calls; the new provider will own them through the supervisor.
 - Existing unsupported filesystem semantics, including unreachable inode retention in crash images, remain unchanged. No new compatibility tuple is certified by this development-toolchain gate.
 - Final Task 7 size: 1,044 changed lines (708 additions + 336 deletions) with rename detection, including checklist/log; staged whitespace check passed.
+
+## Task 8 — Filesystem session lifecycle and recovery controls
+Date: 2026-10-19. Previous task commit: `ea7b5f8`. Commit: the Task 8 implementation commit containing this entry.
+
+Implemented
+- Filesystem Provider/Session/Prepared/Instance lifecycle with stable session controls, tentative Linux fixture/cwd creation, independent staged restart state, no publication/flush/random draws during preparation or abort, and persistent disk/configuration owned solely by the session.
+- Once-only graceful flush or crash-time outcome selection, retained immutable pre-crash image, independent fs stream, and idempotent quiesce/detach/destroy/close. Prior disks survive failed restart preparation; successful publication drops the machine's obsolete crash image without invalidating existing iterators.
+- All FSControl methods with atomic config/fault validation, before-first-start cwd configuration, live crash/sync-fault settings, inode inspection, positive enumeration budget, one retained lookahead, independently owned snapshots/restores, monotonic typed handles, checked exhaustion, closed-handle tombstones, and deterministic cleanup.
+- Kernel FilesystemControl boundary validates feature/run/caller epoch and target state before invoking the contract under the non-yielding supervisor guard. Public recovery run identity is checked separately from session-local numeric IDs, preventing reuse of an earlier run's handle. Kernel has no filesystem model/provider dependency.
+
+Verified
+- Focused ordinary/race lifecycle and recovery tests cover default /app and Linux fixture, invalid/NaN/infinite configs leaving state unchanged, aborted first/restart preparation, failed restored-cwd resolution, graceful/crash differences, repeated settlement, random selection at crash rather than restart, and stale epoch bindings.
+- Recovery tests cover empty/exact budget exhaustion versus ErrEnumerationLimit, bounded lookahead, allocation overflow without consuming a state, early/repeated close, wrong-kind/unknown handles, snapshots surviving iterator close/source destruction/restart, independent restores, restored ownership after snapshot close, and deterministic session cleanup of staged/active/retained resources.
+- Real kernel/engine integration covers before-start and after-crash controls, state/run/stale-caller guards, destroyed targets, source-destroy snapshot restore, and second-provider preparation failure rolling back FS without publishing a disk.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including formatting, build artifacts, all ordinary suites and all race suites: `.gosim/task8-gate.log`. Final focused race log: `.gosim/task8-focused.log`.
+
+Notes / migration ledger
+- Added internal/kernel/control_fs.go to implement this task's required kernel state validation; generated routes/public control transport connect to that boundary in Tasks 14/22. Cross-run checks belong at this envelope boundary because the prescribed FSControl recovery methods carry only session-local uint64 IDs.
+- Task 9 explicitly owns every FileOps syscall body. ops_pending.go supplies the complete interface with explicit invariant failures for unfinished calls, never success or host fallback; Task 9 removes it. Session fault settings are implemented here; their Sync syscall behavior is Task 9. Normal CLI composition still uses the authorized intermediate integration path.
+- The user briefly paused implementation to discuss directory moves, then requested continuation of the original source plan/architecture. No target-architecture/layout revision was made.
+- Final Task 8 size: 1,541 changed lines (1,533 additions + 8 deletions), including checklist/log; staged whitespace check passed.
