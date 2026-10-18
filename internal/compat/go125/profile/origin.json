@@ -14,8 +14,20 @@
       "digest": "1404ae196db293493f755275fce7baa3d4cafebee57e46c0a30199c31a16ae67"
     },
     {
+      "path": "src/embed/embed.go",
+      "digest": "76a63eaa0fb982c485df5bd3cc59e4765397f5f1103d2420ce45ddbf8380c52a"
+    },
+    {
       "path": "src/hash/maphash/maphash_runtime.go",
       "digest": "b52d2db3fbbde2abcbf5484d0807ed99f0b297eab97d60c0b174b059bda9a872"
+    },
+    {
+      "path": "src/internal/godebug/godebug.go",
+      "digest": "cd492e76ae63872ac4310fc09b2e097229588dbf114d14d713be3f027b0233c8"
+    },
+    {
+      "path": "src/internal/poll/fd_poll_runtime.go",
+      "digest": "88fda43019c5dcf42545effdebd1747aaea377560dd041a35df8499538ee07c5"
     },
     {
       "path": "src/internal/race/norace.go",
@@ -34,8 +46,20 @@
       "digest": "3291fd3debb2430be3017c9a3cd783ad4d1a2791d8b4133b473a11a29e250449"
     },
     {
+      "path": "src/iter/iter.go",
+      "digest": "ccc0a58dd5652ea17f8ec08cb73ad1a52bea313e1c0100c0765b98b228e48f0e"
+    },
+    {
       "path": "src/maps/maps.go",
       "digest": "0f69acac135baa8b644e2479e514835b4d991bcc894916c2e34b8739a171fce2"
+    },
+    {
+      "path": "src/math/big/int.go",
+      "digest": "7689a5447c12d8c4cb350697cd7cdb4c827b3bdd3f0fb875441588cde3b18676"
+    },
+    {
+      "path": "src/math/big/prime.go",
+      "digest": "783e8e94c38db53b28b67ffacecbdb6efb7b04f5ee50e77666a530ac10956609"
     },
     {
       "path": "src/math/rand/rand.go",
@@ -44,6 +68,42 @@
     {
       "path": "src/math/rand/v2/rand.go",
       "digest": "a0b0f516652e66ee56de089ec01457f5f786e0463cd08b2453eb025cd6ad6f58"
+    },
+    {
+      "path": "src/net/conf.go",
+      "digest": "c2ce5b531decce68f10df916bc353a74c564a388156cb4f2d2ed2b6800571f5a"
+    },
+    {
+      "path": "src/net/dnsconfig_unix.go",
+      "digest": "a707636ba4d5c9fab72cf500a0bc9d617385fee6fa21d6a85bf5ef41fb250748"
+    },
+    {
+      "path": "src/net/hosts.go",
+      "digest": "265d5f3d71175407a3cc49c731d43ded8e90fdb2a67106d3d4ecb0e86955c3eb"
+    },
+    {
+      "path": "src/net/ipsock_posix.go",
+      "digest": "07ada8421bda6e6390ad2a6c295131bb27505ec0cd660d6ef41979e1a44970f5"
+    },
+    {
+      "path": "src/net/netip/netip.go",
+      "digest": "8aa2a0d6896ac0150d0b677846b65c44d5980e3a5410c185edc5d1e74c4c4d65"
+    },
+    {
+      "path": "src/os/executable_procfs.go",
+      "digest": "61240d3520f1294d95bf0de8e8a324367cd66b06727b319ecb55e2b3046e5e46"
+    },
+    {
+      "path": "src/os/file_unix.go",
+      "digest": "877dd004355c475e8805b5700061604558422da057037556e0cf6edeb36ab7ec"
+    },
+    {
+      "path": "src/os/pidfd_linux.go",
+      "digest": "74c34719a5401965351520a838f2649ab692f5f95023ebb91fe2341943a4d2d9"
+    },
+    {
+      "path": "src/os/proc.go",
+      "digest": "54ed65b25fe5251adb4b7799117f38ba0b2176610f2d21b333a7a5745e988200"
     },
     {
       "path": "src/reflect/deepequal.go",
@@ -103,6 +163,14 @@
           "owner": "rt"
         }
       ]
+    },
+    {
+      "path": "src/runtime/debug.go",
+      "digest": "d5e40b496358454b448479e1aa68841fc66498038ac1b81845e34331c70d5a8c"
+    },
+    {
+      "path": "src/runtime/mfinal.go",
+      "digest": "17804b324b2dae726e9d442d25a2405ddffddb497994bf70be9f555e5bc05b50"
     },
     {
       "path": "src/runtime/race.go",
@@ -201,6 +269,18 @@
       "digest": "a2be85512b59e11270b099f264581343cc1589bb782e03a476102406defd5f33"
     },
     {
+      "path": "src/syscall/env_unix.go",
+      "digest": "3158e5dfc1e4e1e05342354857cb3f1ea2c209af73a5dda4158fdca901fbbe34"
+    },
+    {
+      "path": "src/syscall/rlimit.go",
+      "digest": "f0eee111b4a1fd060d21d2a18878353242c9c9440da5aec97d74667ef634eb51"
+    },
+    {
+      "path": "src/syscall/syscall.go",
+      "digest": "9fef7ad972eae0c33251f87c8f04e12a975bb1a24d26718b3f7ff96c4e20b594"
+    },
+    {
       "path": "src/testing/allocs.go",
       "digest": "4fa935b51bd22e94d35d285234c4fb42329708348901915565990e64e8864a72"
     },
@@ -231,6 +311,10 @@
     {
       "path": "src/time/time.go",
       "digest": "ab61194d541aee6a83f9f45400bec8a78426377a7c4f59d7d807fa4f6e6a18f0"
+    },
+    {
+      "path": "src/unique/handle.go",
+      "digest": "08c7ca3c26f66f22128d0f061e47242fc3a96e6dd765ac73d1fb8800e022c859"
     }
   ]
 }

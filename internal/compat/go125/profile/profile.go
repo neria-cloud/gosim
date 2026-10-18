@@ -10,7 +10,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed hooks.json tuples.json policies.json origin.json shims.json
+//go:embed hooks.json tuples.json policies.json origin.json shims.json bridges.json probes.json modules.json capabilities.json native_imports.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
@@ -18,7 +18,14 @@ var metadata embed.FS
 func Descriptor() spec.Profile {
 	p := spec.Profile{
 		ID: "go125", Revision: Revision,
-		RuntimePackages: []string{"github.com/neria-cloud/gosim/rt/runtime", "github.com/neria-cloud/gosim/rt/runtime/abi", "github.com/neria-cloud/gosim/internal/hostabi"},
+		RuntimePackages: []string{
+			"github.com/neria-cloud/gosim/rt/runtime", "github.com/neria-cloud/gosim/rt/runtime/abi", "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt",
+			"github.com/neria-cloud/gosim/internal/compat/go125/shims/reflect",
+			"github.com/neria-cloud/gosim/internal/compat/go125/shims/testing",
+			"github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest",
+			"github.com/neria-cloud/gosim/internal/compat/go125/shims/maps",
+			"github.com/neria-cloud/gosim/internal/compat/go125/shims/cryptorand",
+		},
 	}
 	decode("hooks.json", &p.Hooks)
 	decode("tuples.json", &p.Tuples)
@@ -41,6 +48,12 @@ func ShimManifest() []spec.Hook {
 }
 
 func Verify(tc buildspec.Toolchain) error {
+	if err := Descriptor().Validate(); err != nil {
+		return err
+	}
+	if err := PolicyManifest().Validate(Descriptor()); err != nil {
+		return err
+	}
 	if err := spec.VerifyOrigin(tc, VerificationOrigin()); err != nil {
 		return err
 	}
@@ -58,4 +71,21 @@ func decode(name string, result any) {
 	if err != nil {
 		panic(fmt.Sprintf("invalid embedded go125 profile %s: %v", name, err))
 	}
+}
+
+// PolicyManifest contains application boundaries, not host compiler/runner
+// permissions. TODO(migration): Tasks 14/15 bind the classified init responses
+// into adapters; Task 21 activates this profile only after complete composition.
+func PolicyManifest() spec.PolicyManifest {
+	var manifest spec.PolicyManifest
+	decode("bridges.json", &manifest.Bridges)
+	decode("probes.json", &manifest.Probes)
+	decode("modules.json", &manifest.Modules)
+	decode("capabilities.json", &manifest.Capabilities)
+	decode("native_imports.json", &manifest.NativeImports)
+	return manifest
+}
+
+func VerifyModules(tc buildspec.Toolchain, directory string) error {
+	return spec.VerifyModules(tc, directory, PolicyManifest().Modules)
 }

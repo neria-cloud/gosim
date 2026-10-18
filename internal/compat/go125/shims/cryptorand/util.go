@@ -8,8 +8,8 @@ package rand
 
 import (
 	"errors"
-	"io"       //gosim:notranslate
-	"math/big" //gosim:notranslate
+	"io"
+	"math/big"
 )
 
 // Prime returns a number of the given bit length that is prime with high probability.

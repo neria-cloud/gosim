@@ -3,14 +3,13 @@
 // Package rand provides a deterministic replacement for crypto/rand
 // when running under gosim simulation.
 //
-// The real crypto/rand is skipped (not translated) because it imports
-// crypto/internal/fips140/drbg which has untranslatable runtime linknames.
-// This replacement uses gosim's deterministic PRNG so that simulated code
-// gets reproducible "random" bytes.
+// This version-owned shim uses the application's deterministic random stream.
+// Its io and math/big values stay translated with the caller; it never reads
+// host entropy and must not be used to generate real secrets.
 package rand
 
 import (
-	"io" //gosim:notranslate
+	"io"
 
 	"github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"

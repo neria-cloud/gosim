@@ -486,3 +486,24 @@ Verified
 Notes / migration ledger
 - Documented native reflected deletion and primitive fatal-adapter bridge under NOT PLANNED CHANGES. Old shims remain only for the authorized intermediate translator path until cutover/removal tasks. Task 13.2 owns reviewed package modes, named initialization probes, module pins, rejection fixtures and completion of the parent task; Task 21 connects new composition.
 - Final Task 13.1 size: 4,188 changed lines (4,178 additions + 10 deletions), including child-task split/checklist/log; staged whitespace check passed.
+
+
+## Task 13.2 — Audited Go 1.25 package and initialization policies
+Date: 2026-10-19. Previous task commit: `53ed9ba`. Commit: the Task 13.2 implementation commit containing this entry.
+
+Implemented
+- Replaced new-profile skip assumptions with explicit translate/native-pure/bridge/reject policies, exact bridge symbol rewrites and trusted adapter-only native imports. Unknown standard-library packages fail review; unknown application packages stay translated. Context/time/net/io/errors/math/big retain translated identities. HTTP/gRPC/TLS/private reflect2/host entropy/native coroutine and native embed.FS boundaries reject explicitly. Corrected legacy comments that falsely claimed native networking remained intercepted; legacy selection itself remains only until Task 21.
+- Classified 26 source-backed init/first-use/operation probes. Narrow standard-fd F_GETFL and RLIMIT_NOFILE discovery contracts do not enable fs/net or grant general syscall success. DNS configuration/hosts access requires fs; IP capability probing is lazy and requires net. Process clone, native bubbles and unknown operations reject. Source hashes cover every probe's callsite/declaration evidence.
+- Added modeled single-processor runtime hooks and explicit finalizer/metric/pool-cleanup stub capability records. GOMAXPROCS above one aborts the application machine without recovery/deferred execution. Runtime hook source signatures come from pinned Go 1.25.14. Finalizer registration does not retain a host-GC callback.
+- Pinned x/sys v0.27.0 and reflect2 v1.0.1 with module and go.mod sums; verify selected graph, reject replacements, and hash extracted source contents. No dependency upgrade was necessary. Profile verification validates policy metadata; fingerprints include the new source/metadata and preserve pending certification status.
+
+Verified
+- Exact go1.25.14 ordinary/race adapter, shim, host facade and runtime suites pass: `.gosim/task13/policy-ordinary125.log`, `.gosim/task13/policy-race125.log`. Both architecture selections' upstream signatures remain verified by existing source checks.
+- Policy fixtures exercise minimal os/net/testing imports, exact symbol rewrites, source-comment native escapes, HTTP/gRPC/entropy rejection and all four feature sets' named probe contracts. These are policy/AST fixtures, not claims of completed generated-program execution; Task 21 activates the new path. Raw AST comments are required because CommentGroup.Text removes directive comments.
+- Module tests verify actual pinned repository dependencies and reject wrong versions, replacement modules, modified source, substituted go.mod, duplicate pins and missing source. Temporary tampering fixtures never modify the shared module cache.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed with ordinary/race/script suites: `.gosim/task13.2-gate.log`. Source revision generator check and whitespace check pass.
+
+Notes / migration ledger
+- Task 14 must implement the classified os initialization responses, machine-local argv/environment/debug callbacks and bounded diagnostic writes. net's IPv4 capability probe passes IPPROTO_TCP=6, whereas the new provider currently accepts only protocol 0; its adapter/provider boundary must reconcile this explicitly. IPv6 remains EAFNOSUPPORT. These are adapter work already assigned to Task 14, not successful runtime behavior claimed by policy metadata.
+- Later translation wiring must validate assembly/private hook requirements for translated math/big, hash and third-party packages rather than inherit broad legacy assembly exemptions. Native engine/ABI are explicit bridge islands; direct generated imports of internal/hostabi are rejected. No target edits or newly certified tuple.
+- Final Task 13.2 size: 1,417 changed lines (1,311 additions + 106 deletions), including checklist/log; staged whitespace check passed.

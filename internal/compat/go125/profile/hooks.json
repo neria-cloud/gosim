@@ -183,6 +183,27 @@
   },
   {
     "package": "runtime",
+    "symbol": "GOMAXPROCS",
+    "signature": "func(int) int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Runtime_GOMAXPROCS",
+    "owner": "rt"
+  },
+  {
+    "package": "runtime",
+    "symbol": "NumCPU",
+    "signature": "func() int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Runtime_NumCPU",
+    "owner": "rt"
+  },
+  {
+    "package": "runtime",
+    "symbol": "SetFinalizer",
+    "signature": "func(any, any)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Runtime_SetFinalizer",
+    "owner": "rt"
+  },
+  {
+    "package": "runtime",
     "symbol": "coroexit",
     "signature": "func(*coro)",
     "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.coroexit",

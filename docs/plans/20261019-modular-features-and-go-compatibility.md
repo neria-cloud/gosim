@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–12 and child Task 13.1 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–13 (including children 13.1/13.2) implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -288,15 +288,15 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 **Budget:** 3,000–4,800 changed lines. **Dependency:** 12.
 
 - [x] Implement/version the entire required reflect/testing surface and helper shims, using I as the migration checklist and actual go1.25.14 sources as ABI authority. Do not import executable go126 shims or retain a hidden go123 fallback.
-- [ ] Replace the hardcoded skip-map assumptions with reviewed `translate`, `native-pure`, `bridge`, `reject` records. Audit native values crossing context/time/net/reflect/container boundaries and cryptographic randomness. A package doing host I/O or entropy is not native-pure.
-- [ ] Classify standard-library init probes by named operation: modeled rt/kernel response, guarded fs/net route, or explicit rejection. Include minimal program/os/net/testing imports so disabled-feature behavior remains practical without silently enabling models.
-- [ ] Mark unsupported application HTTP/gRPC/TLS-related paths explicitly; distinguish compiler/runner host infrastructure from simulated application import policy. Replace permissive skip comments with accurate capability diagnostics and TODO(not planned) notes.
-- [ ] Pin external module inputs affecting x/sys and private linknames. Upgrade dependency versions only when needed for the required toolchains, documenting why and preserving compatibility with both families; do not combine unrelated updates.
+- [x] Replace the hardcoded skip-map assumptions with reviewed `translate`, `native-pure`, `bridge`, `reject` records. Audit native values crossing context/time/net/reflect/container boundaries and cryptographic randomness. A package doing host I/O or entropy is not native-pure.
+- [x] Classify standard-library init probes by named operation: modeled rt/kernel response, guarded fs/net route, or explicit rejection. Include minimal program/os/net/testing imports so disabled-feature behavior remains practical without silently enabling models.
+- [x] Mark unsupported application HTTP/gRPC/TLS-related paths explicitly; distinguish compiler/runner host infrastructure from simulated application import policy. Replace permissive skip comments with accurate capability diagnostics and TODO(not planned) notes.
+- [x] Pin external module inputs affecting x/sys and private linknames. Upgrade dependency versions only when needed for the required toolchains, documenting why and preserving compatibility with both families; do not combine unrelated updates.
 
 #### Verification
 
-- [ ] Go 1.25 reflect/testing/map/random boundary fixtures and named init-probe policy checks pass; unsafe native network/entropy paths fail deliberately.
-- [ ] Run common commit gate; existing supported semantics remain covered while rejected integrations have explicit expected-failure fixtures.
+- [x] Go 1.25 reflect/testing/map/random boundary fixtures and named init-probe policy checks pass; unsafe native network/entropy paths fail deliberately.
+- [x] Run common commit gate; existing supported semantics remain covered while rejected integrations have explicit expected-failure fixtures.
 
 ### Task 13.1: Version and verify Go 1.25 shim surfaces
 
@@ -314,10 +314,10 @@ The existing shim sources total 2,855 lines. Adding exact-source signature/capab
 **Parent:** Task 13; satisfies remaining parent requirements and verification. **Dependency:** 13.1. **Budget:** 1,500–3,000 changed lines.
 **References:** T§3 type universes; T§8 PackagePolicy; T§10/11 init probes and unsupported integrations.
 
-- [ ] Replace skip-map assumptions in the new profile with reviewed translate/native-pure/bridge/reject records, including context/time/net/reflect/container boundaries and explicit HTTP/gRPC/TLS/entropy rejection. Preserve the legacy selection only for intermediate gates.
-- [ ] Classify named minimal program/os/net/testing initialization probes as modeled runtime/kernel responses, guarded domain routes or explicit rejection; test policy enforcement and disabled-feature applicability.
-- [ ] Pin and verify x/sys/private-linkname module inputs; update dependencies only if required by concrete toolchain evidence.
-- [ ] Run boundary/rejection/policy tests and the common commit gate; complete parent Task 13 checks, log and commit before Task 14.
+- [x] Replace skip-map assumptions in the new profile with reviewed translate/native-pure/bridge/reject records, including context/time/net/reflect/container boundaries and explicit HTTP/gRPC/TLS/entropy rejection. Preserve the legacy selection only for intermediate gates.
+- [x] Classify named minimal program/os/net/testing initialization probes as modeled runtime/kernel responses, guarded domain routes or explicit rejection; test policy enforcement and disabled-feature applicability.
+- [x] Pin and verify x/sys/private-linkname module inputs; update dependencies only if required by concrete toolchain evidence.
+- [x] Run boundary/rejection/policy tests and the common commit gate; complete parent Task 13 checks, log and commit before Task 14.
 
 ### Task 14: Build the route generator and Go 1.25 amd64 adapters
 

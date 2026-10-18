@@ -47,21 +47,14 @@ var skippedPackagesGo123 = map[string]bool{
 
 	"unique": true, // XXX: yes
 
-	// ugorji/go/codec uses //go:linkname to access runtime map internals
-	// (makemap, mapassign, mapaccess2, etc.) and has complex initializers
-	// that crash the globals translator. Skip it -- it's a serialization
-	// library with no gosim scheduling interaction.
+	// Legacy private-runtime dependency. The new profile rejects this package;
+	// skipping translation does not make its runtime map access safe.
 	"github.com/ugorji/go/codec": true,
 
-	// Go 1.25 reorganized crypto into crypto/internal/fips140/* sub-packages.
-	// These packages use 2-part //go:linkname directives (fatal, setIndicator,
-	// getIndicator, sha3Unwrap, etc.) pointing into the runtime. When translated,
-	// those link targets become undefined. Since gosim doesn't need FIPS-140
-	// compliance, we skip all fips140-related packages entirely.
-	// All crypto/* packages that import these internal packages are also skipped;
-	// they deal only with byte-slice computations and don't interact with gosim's
-	// simulated scheduling/time/filesystem — the simulation intercepts at the
-	// syscall level instead.
+	// TODO(migration): Task 21 replaces this legacy skip policy with reviewed
+	// version profiles. Native crypto may access entropy, scheduling and process
+	// state; these entries are not evidence of simulated crypto support.
+	// TODO(not planned): General crypto/TLS translation repair is separate work.
 	"crypto/internal/fips140":                    true,
 	"crypto/internal/fips140/alias":              true,
 	"crypto/internal/fips140/subtle":             true,
@@ -92,7 +85,7 @@ var skippedPackagesGo123 = map[string]bool{
 	"crypto/internal/fips140deps/cpu":            true,
 	"crypto/internal/sysrand":                    true,
 	// Non-internal crypto packages that transitively import fips140 internals.
-	// All pure computation on byte slices; no gosim scheduling needed.
+	// These legacy exclusions do not establish a safe native boundary.
 	"crypto/aes":      true,
 	"crypto/cipher":   true,
 	"crypto/des":      true,
@@ -120,14 +113,9 @@ var skippedPackagesGo123 = map[string]bool{
 	"crypto/internal/boring/sig": true,
 	"crypto/internal/nistec":     true,
 
-	// net/http uses crypto/tls (skipped) which uses real net.Addr/time.Time.
-	// Translating net/http causes type mismatches between translated/net.Conn
-	// and net.Conn. Since gosim's simulation intercepts at the syscall layer,
-	// skipping net/http allows user code to use it normally while network
-	// syscalls are still intercepted by the simulated OS.
-	// XXX: This means HTTP simulation does not work via gosim (no syscall hooks
-	// for net/http's real runtime). Fixing requires translating crypto/tls, which
-	// is blocked by crypto/internal/fips140/* internal package import restrictions.
+	// Native HTTP bypasses simulated networking and crosses translated net/time
+	// types. New profiles reject it explicitly; this is only the legacy path.
+	// TODO(not planned): HTTP/TLS translation support is separate compatibility work.
 	"net/http":          true,
 	"net/http/httputil": true, // uses real net/http types
 	// crypto/x509 uses real crypto types (rsa, ecdsa, etc.) which are skipped.
@@ -184,15 +172,12 @@ var skippedPackagesGo123 = map[string]bool{
 // treated as skipped (not translated). Any package whose path has one of these
 // prefixes will be omitted from translation and used as-is.
 //
-// google.golang.org/grpc uses crypto/tls (skipped) which uses real net.Conn.
-// Translating grpc would cause type mismatches throughout (net.Conn, context.Context,
-// time.Time, etc.) between translated and real types. Like net/http, gosim intercepts
-// at the syscall level, so real grpc still works under simulation.
+// Native gRPC crosses context/net/time types and bypasses simulated networking.
+// TODO(migration): Task 21 activates explicit profile rejection for applications.
+// TODO(not planned): gRPC translation repair remains separate compatibility work.
 var skippedPrefixesGo123 = []string{
 	"google.golang.org/grpc",
-	// quic-go uses crypto/tls (skipped) which uses real net.Conn.
-	// Translating quic-go would cause type mismatches. Like net/http,
-	// gosim intercepts at the syscall level, so real quic-go still works.
+	// Native QUIC likewise has no supported simulated transport boundary.
 	"github.com/quic-go/quic-go",
 	// golang.org/x/crypto sub-packages depend on skipped stdlib crypto/*
 	// packages (hmac, cipher, etc.). Translating them causes type mismatches
