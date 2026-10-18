@@ -4,8 +4,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/jellevandenhooff/gosim/gosimruntime"
-	"github.com/jellevandenhooff/gosim/internal/race"
+	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/internal/race"
 )
 
 func Time_now() (sec int64, nsec int32, mono int64) {
@@ -21,6 +21,17 @@ func Time_now() (sec int64, nsec int32, mono int64) {
 
 func Time_runtimeNano() int64 {
 	return gosimruntime.Nanotime()
+}
+
+// Go 1.25: runtimeNow replaced now on Linux.
+func Time_runtimeNow() (sec int64, nsec int32, mono int64) {
+	return Time_now()
+}
+
+// Go 1.25: runtimeIsBubbled reports whether the current goroutine is in a
+// synctest bubble. Gosim has no synctest bubbles, so always returns false.
+func Time_runtimeIsBubbled() bool {
+	return false
 }
 
 func Time_Sleep(duration time.Duration) {

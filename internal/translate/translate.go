@@ -21,7 +21,7 @@ import (
 	"github.com/dave/dst/dstutil"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/jellevandenhooff/gosim/internal/gosimtool"
+	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
 type translatePackageArgs struct {

@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/jellevandenhooff/gosim/gosimruntime"
-	"github.com/jellevandenhooff/gosim/internal/simulation"
+	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/internal/simulation"
 )
 
 func Syscall_runtime_BeforeFork() {
@@ -41,6 +41,10 @@ func Syscall_Getpagesize() int {
 }
 
 func Syscall_Exit(code int) {
+	panic("gosim not implemented")
+}
+
+func Syscall_runtimeClearenv(env map[string]int) {
 	panic("gosim not implemented")
 }
 

@@ -34,6 +34,7 @@ var hooksGo123 = map[packageSelector]packageSelector{
 	// arm only?
 	{Pkg: "internal/cpu", Selector: "getMIDR"}:  {Pkg: hooksGo123Package},
 	{Pkg: "internal/cpu", Selector: "getisar0"}: {Pkg: hooksGo123Package},
+	{Pkg: "internal/cpu", Selector: "getpfr0"}:  {Pkg: hooksGo123Package},
 
 	// amd only?
 	{Pkg: "internal/cpu", Selector: "cpuid"}:           {Pkg: hooksGo123Package},
@@ -113,6 +114,7 @@ var hooksGo123 = map[packageSelector]packageSelector{
 	{Pkg: "sync", Selector: "runtime_SemacquireMutex"}:     {Pkg: hooksGo123Package},
 	{Pkg: "sync", Selector: "runtime_SemacquireRWMutex"}:   {Pkg: hooksGo123Package},
 	{Pkg: "sync", Selector: "runtime_SemacquireRWMutexR"}:  {Pkg: hooksGo123Package},
+	{Pkg: "sync", Selector: "runtime_SemacquireWaitGroup"}: {Pkg: hooksGo123Package}, // Go 1.25
 	{Pkg: "sync", Selector: "runtime_Semrelease"}:          {Pkg: hooksGo123Package},
 	{Pkg: "sync", Selector: "runtime_StoreReluintptr"}:     {Pkg: hooksGo123Package},
 	{Pkg: "sync", Selector: "runtime_canSpin"}:             {Pkg: hooksGo123Package},
@@ -128,6 +130,20 @@ var hooksGo123 = map[packageSelector]packageSelector{
 	{Pkg: "sync", Selector: "runtime_randn"}:               {Pkg: hooksGo123Package},
 	{Pkg: "sync", Selector: "runtime_registerPoolCleanup"}: {Pkg: hooksGo123Package},
 	{Pkg: "sync", Selector: "throw"}:                       {Pkg: hooksGo123Package},
+
+	// Go 1.25: sync internals moved to internal/sync.
+	{Pkg: "internal/sync", Selector: "runtime_SemacquireMutex"}: {Pkg: hooksGo123Package},
+	{Pkg: "internal/sync", Selector: "runtime_Semrelease"}:      {Pkg: hooksGo123Package},
+	{Pkg: "internal/sync", Selector: "runtime_canSpin"}:         {Pkg: hooksGo123Package},
+	{Pkg: "internal/sync", Selector: "runtime_doSpin"}:          {Pkg: hooksGo123Package},
+	{Pkg: "internal/sync", Selector: "runtime_nanotime"}:        {Pkg: hooksGo123Package},
+	{Pkg: "internal/sync", Selector: "runtime_rand"}:            {Pkg: hooksGo123Package},
+	{Pkg: "internal/sync", Selector: "throw"}:                   {Pkg: hooksGo123Package},
+	{Pkg: "internal/sync", Selector: "fatal"}:                   {Pkg: hooksGo123Package},
+
+	// Go 1.25: weak package for weak pointer support.
+	{Pkg: "weak", Selector: "runtime_registerWeakPointer"}: {Pkg: hooksGo123Package},
+	{Pkg: "weak", Selector: "runtime_makeStrongFromWeak"}:  {Pkg: hooksGo123Package},
 
 	{Pkg: "sync/atomic", Selector: "AddInt32"}:              {Pkg: hooksGo123Package},
 	{Pkg: "sync/atomic", Selector: "AddInt64"}:              {Pkg: hooksGo123Package},
@@ -179,6 +195,7 @@ var hooksGo123 = map[packageSelector]packageSelector{
 	{Pkg: "syscall", Selector: "hasWaitingReaders"}:           {Pkg: hooksGo123Package},
 	{Pkg: "syscall", Selector: "rawSyscallNoError"}:           {Pkg: hooksGo123Package},
 	{Pkg: "syscall", Selector: "rawVforkSyscall"}:             {Pkg: hooksGo123Package},
+	{Pkg: "syscall", Selector: "runtimeClearenv"}:             {Pkg: hooksGo123Package},
 	{Pkg: "syscall", Selector: "runtimeSetenv"}:               {Pkg: hooksGo123Package},
 	{Pkg: "syscall", Selector: "runtimeUnsetenv"}:             {Pkg: hooksGo123Package},
 	{Pkg: "syscall", Selector: "runtime_AfterExec"}:           {Pkg: hooksGo123Package},
@@ -202,10 +219,22 @@ var hooksGo123 = map[packageSelector]packageSelector{
 	{Pkg: "time", Selector: "resetTimer"}:  {Pkg: hooksGo123Package},
 	{Pkg: "time", Selector: "runtimeNano"}: {Pkg: hooksGo123Package},
 	{Pkg: "time", Selector: "stopTimer"}:   {Pkg: hooksGo123Package},
+	// Go 1.25: runtimeNow replaced now on Linux; runtimeIsBubbled added for synctest.
+	{Pkg: "time", Selector: "runtimeNow"}:       {Pkg: hooksGo123Package},
+	{Pkg: "time", Selector: "runtimeIsBubbled"}: {Pkg: hooksGo123Package},
 }
 
 var hooksGensyscallGo123ByArch = map[string]map[packageSelector]packageSelector{}
 
 var acceptedgo123Linknames = map[packageSelector]packageSelector{
 	{Pkg: "hash/maphash", Selector: "runtime_memhash"}: {Pkg: "runtime", Selector: "memhash"},
+	// Go 1.25: vgetrandom links to runtime.vgetrandom for fast random data via vDSO.
+	// The real runtime.vgetrandom is available in the translated binary; pass through.
+	{Pkg: "internal/syscall/unix", Selector: "vgetrandom"}: {Pkg: "runtime", Selector: "vgetrandom"},
+	{Pkg: "golang.org/x/sys/unix", Selector: "vgetrandom"}: {Pkg: "runtime", Selector: "vgetrandom"},
+	// runtime_getAuxv retrieves the ELF auxiliary vector; pure data, no gosim interaction.
+	{Pkg: "golang.org/x/sys/cpu", Selector: "runtime_getAuxv"}:  {Pkg: "runtime", Selector: "getAuxv"},
+	{Pkg: "golang.org/x/sys/unix", Selector: "runtime_getAuxv"}: {Pkg: "runtime", Selector: "getAuxv"},
+	// runtime_setCrashFD sets the crash file descriptor; no gosim interaction.
+	{Pkg: "runtime/debug", Selector: "runtime_setCrashFD"}: {Pkg: "runtime", Selector: "setCrashFD"},
 }

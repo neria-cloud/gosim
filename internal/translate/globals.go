@@ -257,7 +257,12 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 			}
 		}
 
-		rhs := t.apply(t.dstMap.Nodes[initializer.Rhs]).(dst.Expr) // hmm
+		dstNode := t.dstMap.Nodes[initializer.Rhs]
+		if dstNode == nil {
+			fmt.Printf("globals: nil dstMap node for initializer in pkg=%s lhs=%s rhs=%v\n", t.pkgPath, initializer.Lhs[0].Name(), initializer.Rhs)
+			continue
+		}
+		rhs := t.apply(dstNode).(dst.Expr) // hmm
 
 		if shouldShare {
 			if lastIfSmt == nil {

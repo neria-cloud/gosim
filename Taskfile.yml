@@ -3,7 +3,7 @@ version: '3'
 output: prefixed
 
 vars:
-  # GOSIM: go run github.com/jellevandenhooff/gosim/cmd/gosim
+  # GOSIM: go run github.com/neria-cloud/gosim/cmd/gosim
   GOSIM: $(pwd)/.gosim/gosimtool
   SIMPACKAGES: ./internal/tests/behavior ./nemesis
 

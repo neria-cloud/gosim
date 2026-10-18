@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/jellevandenhooff/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/race"
 )
 
 const checkMap = false
@@ -54,6 +54,19 @@ func NewMap[K comparable, V any]() Map[K, V] {
 
 func NilMap[K comparable, V any]() Map[K, V] {
 	return Map[K, V]{}
+}
+
+// AnyMap is a type constraint satisfied by gosimruntime.Map[K, V] and any
+// named type whose underlying type is gosimruntime.Map[K, V] (e.g.
+// type Values gosimruntime.Map[string, []string]).
+//
+// The translator emits AnyMap[K, V] when it encounters the ~map[K]V type
+// parameter constraint from the standard library (e.g. in maps.Keys).
+// We cannot use ~gosimruntime.Map[K, V] because Go forbids ~ on generic
+// instantiations; AnyMap achieves the same effect by constraining via the
+// shared underlying struct type.
+type AnyMap[K comparable, V any] interface {
+	~struct{ Impl *mapImpl[K, V] }
 }
 
 // ExtractMap extracts a Map from named Map types.

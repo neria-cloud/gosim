@@ -75,7 +75,7 @@ can be flagged by Gosim's tracing mechanism, which calculates a running hash
 over all events like spawning goroutines, context switches, etc.
 
 The implementation of the runtime is in the
-[github.com/jellevandenhooff/gosim/gosimruntime](../gosimruntime/) package.
+[github.com/neria-cloud/gosim/gosimruntime](../gosimruntime/) package.
 
 ## Simulated time
 
@@ -161,7 +161,7 @@ non-translated code by annotating an import with `//gosim:notranslate`.  This
 lets, for example, Gosim's wrapper `reflect` package access the underlying real
 `reflect` package.
 
-The github.com/jellevandenhooff/gosim/internal/translator package implements the
+The github.com/neria-cloud/gosim/internal/translator package implements the
 translator. It is exposed through the Gosim CLI.
 
 An alternative design could have modified the Go runtime or compiler to instead
@@ -182,7 +182,7 @@ func newTimer(when, period int64, f func(arg any, seq uintptr, delay int64), arg
 ```
 
 which lives in `runtime/time.go`. For all such functions Gosim has hooks in the
-package github.com/jellevandenhooff/gosim/internals/hooks/go123. The hooks are
+package github.com/neria-cloud/gosim/internals/hooks/go123. The hooks are
 Go version specific because there are no API stability guarantees for these
 low-level unexported runtime functions. The hooks in Gosim are implemented as
 calls to the gosimruntime package.
@@ -261,7 +261,7 @@ Gosim simulates the operating system as an independent simulated go process.
 The operating system has a model of a network, filesystem, etc., all stored as
 Go structs, etc. The programs that Gosim tests call into this using its syscall
 interface defined in
-github.com/jellevandenhooff/gosim/internal/simulation/syscallabi.Syscall.
+github.com/neria-cloud/gosim/internal/simulation/syscallabi.Syscall.
 This is a RPC-like mechanism that works safely between Gosim's simulated machines.
 
 At a code level, Gosim's translator replaces the wrapper functions in the
@@ -306,7 +306,7 @@ func Syscall_pread(fd int, p []byte, offset int64) (n int, err error) {
 and finally linked into the rewritten standard library with a linkname
 
 ```go
-//go:linkname pread translated/github.com/jellevandenhooff/gosim/internal_/hooks/go123.Syscall_pread
+//go:linkname pread translated/github.com/neria-cloud/gosim/internal_/hooks/go123.Syscall_pread
 func pread(fd int, p []byte, offset int64) (n int, err error)
 ```
 
@@ -329,7 +329,7 @@ the tricky behavior that Linux can portray.
 
 Gosim's implementation is spread among a number of internal packages.  To
 provide a consistent API to handle machines, the simulated network, etc.  the
-[github.com/jellevandenhooff/gosim package](..) provides a high-level API to
+[github.com/neria-cloud/gosim package](..) provides a high-level API to
 create new machines, manipulate the network, etc. Behind the scenes these are
 implemented as custom system calls to the simulated operating system.
 
@@ -338,7 +338,7 @@ implemented as custom system calls to the simulated operating system.
 Gosim aspires to be as easy to use as the standard Go tooling. To run a test
 using Gosim, ideally all that you need to do is replace `> go test` with
 `> gosim test` on the command line. In practice, `gosim` becomes
-`go run github.com/jellevandenhooff/gosim/cmd/gosim`
+`go run github.com/neria-cloud/gosim/cmd/gosim`
 but otherwise the tool exposes flags like `go test`.
 
 When running such a test, `gosim` first translates the code, caching
@@ -376,7 +376,7 @@ and gets formatted as
 ## Metatesting
 
 A larger module might want to run Gosim tests as parts of its normal `go test`
-suite. With the [github.com/jellevandenhooff/gosim/metatesting](../metatesting)
+suite. With the [github.com/neria-cloud/gosim/metatesting](../metatesting)
 package, normal tests can invoke Gosim tests with varying seeds and inspecting
 their logs. Such tests can check that the Gosim tests are deterministic, or that
 programs behave as expected by reading their logs.

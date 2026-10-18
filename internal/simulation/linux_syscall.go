@@ -5,7 +5,7 @@ package simulation
 import (
 	"syscall"
 
-	"github.com/jellevandenhooff/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 )
 
 // manually implemented system calls...

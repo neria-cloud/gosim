@@ -30,7 +30,19 @@ func Enable() {
 func Read(addr unsafe.Pointer) {
 }
 
+func ReadPC(addr unsafe.Pointer, callerpc, pc uintptr) {
+}
+
+func ReadObjectPC(t any, addr unsafe.Pointer, callerpc, pc uintptr) {
+}
+
 func Write(addr unsafe.Pointer) {
+}
+
+func WritePC(addr unsafe.Pointer, callerpc, pc uintptr) {
+}
+
+func WriteObjectPC(t any, addr unsafe.Pointer, callerpc, pc uintptr) {
 }
 
 func ReadRange(addr unsafe.Pointer, len int) {

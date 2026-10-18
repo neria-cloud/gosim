@@ -4,7 +4,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/jellevandenhooff/gosim/internal/gosimlog"
+	"github.com/neria-cloud/gosim/internal/gosimlog"
 )
 
 func TestBitflags(t *testing.T) {

@@ -15,9 +15,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/jellevandenhooff/gosim/gosimruntime"
-	"github.com/jellevandenhooff/gosim/internal/gosimtool"
-	"github.com/jellevandenhooff/gosim/internal/prettylog"
+	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/internal/gosimtool"
+	"github.com/neria-cloud/gosim/internal/prettylog"
 )
 
 // The structs below are copied from gosimruntime.runConfig and

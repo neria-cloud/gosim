@@ -5,11 +5,11 @@ package metatesting_test
 import (
 	"testing"
 
-	"github.com/jellevandenhooff/gosim/metatesting"
+	"github.com/neria-cloud/gosim/metatesting"
 )
 
 func TestMetatest(t *testing.T) {
-	runner := metatesting.ForOtherPackage(t, "github.com/jellevandenhooff/gosim/internal/tests/behavior")
+	runner := metatesting.ForOtherPackage(t, "github.com/neria-cloud/gosim/internal/tests/behavior")
 	tests, err := runner.ListTests()
 	if err != nil {
 		t.Fatal(err)

@@ -27,7 +27,7 @@ helpful error message. A simple way to run tests is to use a script that invoke
 'gosim build-tests' before running 'go test':
 
 	# build gosim test binaries
-	go run github.com/jellevandenhooff/gosim/cmd/gosim build-tests pkgA pkgA/pkgB
+	go run github.com/neria-cloud/gosim/cmd/gosim build-tests pkgA pkgA/pkgB
 	# then run tests
 	go test ./...
 

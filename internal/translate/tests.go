@@ -24,6 +24,11 @@ func (t *packageTranslator) rewriteTestFunc(c *dstutil.Cursor) {
 			newDecls = append(newDecls, decl)
 			continue
 		}
+		// Remove user-defined TestMain to avoid conflict with
+		// the gosim-generated TestMain in gosim_meta_test.go.
+		if funcDecl.Name.Name == "TestMain" && funcDecl.Recv == nil {
+			continue
+		}
 		if funcDecl.Recv != nil || !t.testFuncs[funcDecl.Name.Name] {
 			newDecls = append(newDecls, decl)
 			continue

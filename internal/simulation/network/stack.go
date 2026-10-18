@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jellevandenhooff/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 )
 
 type PacketKind byte

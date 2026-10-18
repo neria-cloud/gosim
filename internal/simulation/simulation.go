@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jellevandenhooff/gosim/gosimruntime"
-	"github.com/jellevandenhooff/gosim/internal/simulation/fs"
-	"github.com/jellevandenhooff/gosim/internal/simulation/network"
-	"github.com/jellevandenhooff/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/internal/simulation/fs"
+	"github.com/neria-cloud/gosim/internal/simulation/network"
+	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 )
 
 type Machine struct {

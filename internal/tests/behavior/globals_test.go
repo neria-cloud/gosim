@@ -5,8 +5,8 @@ package behavior_test
 import (
 	"testing"
 
-	"github.com/jellevandenhooff/gosim"
-	"github.com/jellevandenhooff/gosim/internal/tests/behavior"
+	"github.com/neria-cloud/gosim"
+	"github.com/neria-cloud/gosim/internal/tests/behavior"
 )
 
 var sharedGlobal = 10

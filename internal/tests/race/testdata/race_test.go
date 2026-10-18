@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/jellevandenhooff/gosim"
+	"github.com/neria-cloud/gosim"
 )
 
 func TestRaceSimple(t *testing.T) {

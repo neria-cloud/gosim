@@ -2,7 +2,7 @@
 # gofmt checks that code is formatted with gofumpt and sorted inputs
 
 gofiles=$(find . -name "*.go" -and -not -ipath "./.gosim/*" -exec sh -c 'head -3 {} | grep -q "DO NOT EDIT." || echo {}' \;)
-goimports="go run golang.org/x/tools/cmd/goimports -local=github.com/jellevandenhooff/gosim -format-only"
+goimports="go run golang.org/x/tools/cmd/goimports -local=github.com/neria-cloud/gosim -format-only"
 gofumpt="go run mvdan.cc/gofumpt"
 
 if [[ $1 == "check" ]]; then

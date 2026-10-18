@@ -18,8 +18,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/jellevandenhooff/gosim/internal/gosimtool"
-	"github.com/jellevandenhooff/gosim/internal/translate/cache"
+	"github.com/neria-cloud/gosim/internal/gosimtool"
+	"github.com/neria-cloud/gosim/internal/translate/cache"
 )
 
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
@@ -47,24 +47,165 @@ var skippedPackagesGo123 = map[string]bool{
 
 	"unique": true, // XXX: yes
 
-	"testing":                     true,
-	"testing/internal/testdeps":   true,
-	"internal/reflectlite":        true,
+	// ugorji/go/codec uses //go:linkname to access runtime map internals
+	// (makemap, mapassign, mapaccess2, etc.) and has complex initializers
+	// that crash the globals translator. Skip it -- it's a serialization
+	// library with no gosim scheduling interaction.
+	"github.com/ugorji/go/codec": true,
+
+	// Go 1.25 reorganized crypto into crypto/internal/fips140/* sub-packages.
+	// These packages use 2-part //go:linkname directives (fatal, setIndicator,
+	// getIndicator, sha3Unwrap, etc.) pointing into the runtime. When translated,
+	// those link targets become undefined. Since gosim doesn't need FIPS-140
+	// compliance, we skip all fips140-related packages entirely.
+	// All crypto/* packages that import these internal packages are also skipped;
+	// they deal only with byte-slice computations and don't interact with gosim's
+	// simulated scheduling/time/filesystem — the simulation intercepts at the
+	// syscall level instead.
+	"crypto/internal/fips140":                    true,
+	"crypto/internal/fips140/alias":              true,
+	"crypto/internal/fips140/subtle":             true,
+	"crypto/internal/fips140/sha256":             true,
+	"crypto/internal/fips140/sha3":               true,
+	"crypto/internal/fips140/sha512":             true,
+	"crypto/internal/fips140/aes":                true,
+	"crypto/internal/fips140/aes/gcm":            true,
+	"crypto/internal/fips140/nistec":             true,
+	"crypto/internal/fips140/nistec/fiat":        true,
+	"crypto/internal/fips140/bigmod":             true,
+	"crypto/internal/fips140/ecdsa":              true,
+	"crypto/internal/fips140/edwards25519/field": true,
+	"crypto/internal/fips140/check":              true,
+	"crypto/internal/fips140/drbg":               true,
+	"crypto/internal/fips140/hmac":               true,
+	"crypto/internal/fips140/hkdf":               true,
+	"crypto/internal/fips140/mlkem":              true,
+	"crypto/internal/fips140/pbkdf2":             true,
+	"crypto/internal/fips140/rsa":                true,
+	"crypto/internal/fips140/tls12":              true,
+	"crypto/internal/fips140/tls13":              true,
+	"crypto/internal/fips140cache":               true,
+	"crypto/internal/fips140hash":                true,
+	"crypto/internal/fips140only":                true,
+	"crypto/internal/fips140deps/godebug":        true,
+	"crypto/internal/fips140deps/byteorder":      true,
+	"crypto/internal/fips140deps/cpu":            true,
+	"crypto/internal/sysrand":                    true,
+	// Non-internal crypto packages that transitively import fips140 internals.
+	// All pure computation on byte slices; no gosim scheduling needed.
+	"crypto/aes":      true,
+	"crypto/cipher":   true,
+	"crypto/des":      true,
+	"crypto/dsa":      true,
+	"crypto/ecdh":     true,
+	"crypto/ecdsa":    true,
+	"crypto/ed25519":  true,
+	"crypto/elliptic": true,
+	"crypto/fips140":  true,
+	"crypto/hkdf":     true,
+	"crypto/hmac":     true,
+	"crypto/md5":      true,
+	"crypto/mlkem":    true,
+	"crypto/pbkdf2":   true,
+	"crypto/rand":     true,
+	"crypto/rc4":      true,
+	"crypto/rsa":      true,
+	"crypto/sha1":     true,
+	"crypto/sha256":   true,
+	"crypto/sha3":     true,
+	"crypto/sha512":   true,
+	"crypto/subtle":   true,
+	"crypto/tls":      true,
+	// boring and nistec are also now covered by skipping the above
+	"crypto/internal/boring/sig": true,
+	"crypto/internal/nistec":     true,
+
+	// net/http uses crypto/tls (skipped) which uses real net.Addr/time.Time.
+	// Translating net/http causes type mismatches between translated/net.Conn
+	// and net.Conn. Since gosim's simulation intercepts at the syscall layer,
+	// skipping net/http allows user code to use it normally while network
+	// syscalls are still intercepted by the simulated OS.
+	// XXX: This means HTTP simulation does not work via gosim (no syscall hooks
+	// for net/http's real runtime). Fixing requires translating crypto/tls, which
+	// is blocked by crypto/internal/fips140/* internal package import restrictions.
+	"net/http":          true,
+	"net/http/httputil": true, // uses real net/http types
+	// crypto/x509 uses real crypto types (rsa, ecdsa, etc.) which are skipped.
+	// Translating it causes type mismatches with real crypto.Signer etc.
+	"crypto/x509":      true,
+	"crypto/x509/pkix": true,
+	// golang.org/x/net/http2 uses real net/http types (req.Context() etc.)
+	// which clash with translated/context.Context.
+	"golang.org/x/net/http2": true,
+	// selfcert uses crypto/x509 (skipped) with time.Time and net.IP;
+	// translating it causes type mismatches with real crypto types.
+	"github.com/glycerine/rpc25519/selfcert": true,
+	// net/url uses //go:linkname setpath which causes issues when translated.
+	// Skipping it means all packages (translated and skipped alike) use the
+	// real net/url.URL type, avoiding mismatches with crypto/x509.URIs etc.
+	"net/url": true,
+
+	// internal/runtime/maps is the runtime's map implementation in Go 1.25+.
+	// It has many 2-part //go:linkname directives pointing to the runtime, and
+	// 3-part linknames that define runtime.mapaccess1 etc. Translating it causes
+	// duplicate symbol errors at link time (both translated and real versions
+	// define runtime.mapaccess1 etc.). Since gosim replaces map[K]V with
+	// gosimruntime.Map[K,V] everywhere, translated code never calls into this
+	// package directly anyway.
+	"internal/runtime/maps": true,
+	// hash/maphash is NOT skipped — it must be translated so its
+	// runtime_rand linkname gets hooked to gosim's deterministic RNG.
+	// The internal/runtime/maps import (used only for maps.Use64BitHash)
+	// is redirected to internal/maps_shim via replacedPkgs.
+
+	"testing":          true,
+	"testing/synctest": true,
+	// "internal/synctest" is replaced by gosim's stub (synctestPackage).
+	// The stdlib internal/synctest cannot be imported outside stdlib, so we
+	// skip translating it and redirect imports to our stub via replacedPkgs.
+	"internal/synctest":         true,
+	"testing/internal/testdeps": true,
+	"internal/reflectlite":      true,
+	// internal/race is replaced by gosim's version (racePackage) via replacedPkgs.
+	// Go 1.26 changed stdlib internal/race to use body-less //go:linkname stubs
+	// pushed from runtime, which break when translated. Gosim's version calls
+	// runtime.Race* functions directly.
+	"internal/race":               true,
 	gosimruntimePackage:           true,
 	gosimruntimePackage + "_test": true, // eh
 	gosimruntimePackage + ".test": true, // eh
 	// reflectPackage: true,
 }
 
+// skippedPrefixesGo123 lists import-path prefixes for packages that should be
+// treated as skipped (not translated). Any package whose path has one of these
+// prefixes will be omitted from translation and used as-is.
+//
+// google.golang.org/grpc uses crypto/tls (skipped) which uses real net.Conn.
+// Translating grpc would cause type mismatches throughout (net.Conn, context.Context,
+// time.Time, etc.) between translated and real types. Like net/http, gosim intercepts
+// at the syscall level, so real grpc still works under simulation.
+var skippedPrefixesGo123 = []string{
+	"google.golang.org/grpc",
+	// quic-go uses crypto/tls (skipped) which uses real net.Conn.
+	// Translating quic-go would cause type mismatches. Like net/http,
+	// gosim intercepts at the syscall level, so real quic-go still works.
+	"github.com/quic-go/quic-go",
+	// golang.org/x/crypto sub-packages depend on skipped stdlib crypto/*
+	// packages (hmac, cipher, etc.). Translating them causes type mismatches
+	// between translated/hash.Hash and hash.Hash etc.
+	"golang.org/x/crypto",
+	// cloudflare/circl is a crypto library depending on skipped crypto packages.
+	"github.com/cloudflare/circl",
+	// zygomys uses reflect with maps; gosim's map replacement causes
+	// translated/reflect.Type vs reflect.Type mismatches.
+	"github.com/glycerine/zygomys",
+	// blake3 has a variable/type name collision (var job *job) that
+	// trips the translator. Pure hash computation, no gosim interaction.
+	"github.com/glycerine/blake3",
+}
+
 var keepAsmPackagesGo123 = map[string]bool{
-	"crypto/aes":                                   true,
-	"crypto/internal/boring/sig":                   true,
-	"crypto/internal/nistec":                       true,
-	"crypto/md5":                                   true,
-	"crypto/sha1":                                  true,
-	"crypto/sha256":                                true,
-	"crypto/sha512":                                true,
-	"crypto/subtle":                                true,
 	"crypto/internal/bigmod":                       true,
 	"crypto/internal/edwards25519/field":           true,
 	"vendor/golang.org/x/crypto/chacha20":          true,
@@ -73,14 +214,45 @@ var keepAsmPackagesGo123 = map[string]bool{
 	"vendor/golang.org/x/crypto/sha3":              true,
 	"hash/crc32":                                   true,
 
-	"net/url":  true, // XXX: linkname setpath nonsense
-	"net/http": true, // XXX: linkname roundtrip nonsense
-
 	"github.com/cespare/xxhash/v2": true,
+
+	// klauspost/compress has assembly-backed functions (CPU detection,
+	// Huffman, S2, Zstd, xxHash). Pure computation, no gosim interaction.
+	"github.com/klauspost/compress/internal/cpuinfo":     true,
+	"github.com/klauspost/compress/huff0":                true,
+	"github.com/klauspost/compress/s2":                   true,
+	"github.com/klauspost/compress/zstd":                 true,
+	"github.com/klauspost/compress/zstd/internal/xxhash": true,
+	"github.com/klauspost/cpuid/v2":                      true,
+
+	// Other third-party packages with assembly-backed functions.
+	// All pure computation (compression, hashing, CPU detection).
+	"github.com/glycerine/blake3/guts":            true,
+	"github.com/glycerine/rpc25519/bytes":         true,
+	"github.com/minio/minlz":                      true,
+	"github.com/pierrec/lz4/v4/internal/lz4block": true,
+	"github.com/templexxx/cpu":                    true,
+
+	// Non-vendored golang.org/x/* modules (vendored versions are separate entries above).
+	"golang.org/x/crypto/argon2":            true,
+	"golang.org/x/crypto/blake2b":           true,
+	"golang.org/x/crypto/chacha20poly1305":  true,
+	"golang.org/x/crypto/internal/poly1305": true,
+	"golang.org/x/sys/cpu":                  true,
+
+	// internal/runtime/sys contains pure compiler intrinsics (GetCallerPC,
+	// GetCallerSP, GetClosurePtr) and architecture-specific helpers (EnableDIT,
+	// DisableDIT). None interact with gosim scheduling, so pass them through.
+	// This package became a direct dependency of crypto/subtle in Go 1.25.
+	"internal/runtime/sys": true,
+
+	// internal/runtime/syscall/linux contains Syscall6, which is
+	// assembly-backed. Pass through as-is.
+	"internal/runtime/syscall/linux": true,
 }
 
 var PublicExportHacks = map[string][]string{
-	"encoding/binary":                  {"littleEndian"},
+	"encoding/binary":                  {"littleEndian", "bigEndian"},
 	"internal/poll":                    {"errNetClosing"},
 	"github.com/golang/protobuf/proto": {"enumsByName"},
 }
@@ -100,6 +272,10 @@ const (
 	reflectPackage      = gosimModPath + "/internal/reflect"
 	simulationPackage   = gosimModPath + "/internal/simulation"
 	testingPackage      = gosimModPath + "/internal/testing"
+	synctestPackage     = gosimModPath + "/internal/synctest"
+	mapsShimPackage     = gosimModPath + "/internal/maps_shim"
+	cryptorandPackage   = gosimModPath + "/internal/cryptorand"
+	racePackage         = gosimModPath + "/internal/race"
 )
 
 var TranslatedRuntimePackages = []string{
@@ -107,6 +283,9 @@ var TranslatedRuntimePackages = []string{
 	reflectPackage,
 	simulationPackage,
 	testingPackage,
+	synctestPackage,
+	mapsShimPackage,
+	cryptorandPackage,
 }
 
 const (
@@ -250,12 +429,27 @@ func classifyPackage(pkg *packages.Package) (packageKind, string) {
 	}
 }
 
-func collectImports(roots []*packages.Package, skip map[string]bool) []*packages.Package {
+// isSkippedByPrefix returns true if pkgPath equals a prefix exactly, or starts
+// with prefix + "/". This avoids false positives from module names that share
+// a common start (e.g. "grpc" vs "grpc-gateway").
+func isSkippedByPrefix(pkgPath string, prefixes []string) bool {
+	for _, prefix := range prefixes {
+		if pkgPath == prefix || strings.HasPrefix(pkgPath, prefix+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+// collectImports collects all packages reachable from roots, excluding those
+// in skip (exact match) and skipPrefixes (prefix match). Pass nil skipPrefixes
+// to collect all packages including those matching skippedPrefixesGo123.
+func collectImports(roots []*packages.Package, skip map[string]bool, skipPrefixes []string) []*packages.Package {
 	seen := make(map[*packages.Package]bool)
 	var order []*packages.Package
 	var visit func(pkg *packages.Package)
 	visit = func(pkg *packages.Package) {
-		if skip[pkg.PkgPath] || seen[pkg] {
+		if skip[pkg.PkgPath] || seen[pkg] || isSkippedByPrefix(pkg.PkgPath, skipPrefixes) {
 			return
 		}
 		seen[pkg] = true
@@ -274,7 +468,8 @@ func collectImports(roots []*packages.Package, skip map[string]bool) []*packages
 }
 
 func writeGoModFile(modDir string, modFile *modfile.File, writer *outputWriter) {
-	isGosim := modFile.Module.Mod.Path == gosimModPath
+	origModPath := modFile.Module.Mod.Path
+	isGosim := origModPath == gosimModPath
 	// take the existing go.mod and make it work for a sub-directory containing
 	// a module translated
 	if err := modFile.AddModuleStmt("translated"); err != nil {
@@ -301,6 +496,16 @@ func writeGoModFile(modDir string, modFile *modfile.File, writer *outputWriter) 
 					log.Fatal(err)
 				}
 			}
+		}
+
+		// Make the original module available so that skipped sub-packages
+		// (which remain as untranslated imports) can be resolved.
+		// Added after the adjust loop to avoid double-adjusting the path.
+		if err := modFile.AddRequire(origModPath, "v0.0.0"); err != nil {
+			log.Fatal(err)
+		}
+		if err := modFile.AddReplace(origModPath, "", "../../../", ""); err != nil {
+			log.Fatal(err)
 		}
 	}
 
@@ -373,10 +578,22 @@ func buildReplacePackagesAndPackageNames(convertPkgs, allPkgs []*packages.Packag
 		packageNames[outputPackage] = packageNames[inputPackage]
 	}
 
-	// override reflect and testing
+	// override reflect, testing, synctest, and shim packages
 	replacedPkgs["reflect"] = replacedPkgs[reflectPackage]
 	replacedPkgs["internal/reflectlite"] = replacedPkgs[reflectPackage]
 	replacedPkgs["testing"] = replacedPkgs[testingPackage]
+	replacedPkgs["internal/synctest"] = replacedPkgs[synctestPackage]
+	// Redirect internal/runtime/maps to our shim (only provides Use64BitHash).
+	// hash/maphash is the only translated package that imports this.
+	replacedPkgs["internal/runtime/maps"] = replacedPkgs[mapsShimPackage]
+	// Redirect crypto/rand to our deterministic implementation.
+	// The real crypto/rand is skipped (fips140 dep chain) but user code
+	// that imports crypto/rand should get deterministic random bytes.
+	replacedPkgs["crypto/rand"] = replacedPkgs[cryptorandPackage]
+	// Redirect stdlib internal/race to gosim's internal/race.
+	// Go 1.26 added 1-part //go:linkname directives to internal/race that
+	// break when translated. Gosim's version calls runtime.Race* directly.
+	replacedPkgs["internal/race"] = replacedPkgs[racePackage]
 
 	// handle the linkname in the os package
 	replacedPkgs["net"] = "translated/" + gosimtool.ReplaceSpecialPackages("net")
@@ -446,8 +663,8 @@ func translatePackages(cache *cache.Cache, listPatterns []string, rootOutputDir 
 	checkGosimDep(modFile)
 	checkSingleModule(modPath, listedPkgs)
 
-	allPkgs := collectImports(listedPkgs, nil)
-	convertPkgs := collectImports(listedPkgs, skippedPackagesGo123)
+	allPkgs := collectImports(listedPkgs, nil, nil)
+	convertPkgs := collectImports(listedPkgs, skippedPackagesGo123, skippedPrefixesGo123)
 
 	packageGraph := newDepGraph()
 	basePkgs := make(map[string]*packages.Package)

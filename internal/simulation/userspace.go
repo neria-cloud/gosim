@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/jellevandenhooff/gosim/gosimruntime"
-	"github.com/jellevandenhooff/gosim/internal/gosimlog"
+	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/internal/gosimlog"
 )
 
 // Per-machine globals initialized in setupUserspace:

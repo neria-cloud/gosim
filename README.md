@@ -1,5 +1,4 @@
 # Gosim: Simulation testing for Go
-[![Go Reference](https://pkg.go.dev/badge/github.com/jellevandenhooff/gosim.svg)](https://pkg.go.dev/github.com/jellevandenhooff/gosim)
 
 Gosim is a simulation testing framework that aims to make it easier to write
 reliable distributed systems code in go. Gosim takes standard go programs and
@@ -23,15 +22,16 @@ or links; TCP works, but not UDP; IP addresses work, but not hostnames. The API
 can and will change. Now that those warnings are out of the way, please take a
 look at what gosim can do.
 
-# Using Gosim
+## Using Gosim
 
-## From go test to gosim test
+### From go test to gosim test
+
 Gosim tests standard go code and is used just like another go package. To get
 started with `gosim`, you need to import it in your module:
 ```
 > mkdir example && cd example
 > go mod init example
-> go get github.com/jellevandenhooff/gosim
+> go get github.com/neria-cloud/gosim
 ```
 To test code with Gosim, write a small a test in a file `simple_test.go` and then run
 it using `go test`:
@@ -42,7 +42,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/jellevandenhooff/gosim"
+	"github.com/neria-cloud/gosim"
 )
 
 func TestGosim(t *testing.T) {
@@ -62,9 +62,9 @@ ok  	example	0.216s
 The test prints that Gosim is not enabled, and each time the test runs the random number is different.
 
 To run this test with `gosim` instead, replace `go test` with
-`go run github.com/jellevandenhooff/gosim/cmd/gosim test`:
+`go run github.com/neria-cloud/gosim/cmd/gosim test`:
 ```
-> go run github.com/jellevandenhooff/gosim/cmd/gosim test -v -run TestGosim
+> go run github.com/neria-cloud/gosim/cmd/gosim test -v -run TestGosim
 === RUN   TestGosim (seed 1)
     1 main/4     14:10:03.000 INF examples/simple_test.go:12 > Are we in the Matrix? true method=t.Logf
     2 main/4     14:10:03.000 INF examples/simple_test.go:13 > Random: 811966193383742320 method=t.Logf
@@ -80,7 +80,7 @@ The `=== RUN` line includes the test's seed. Each time this test runs with the
 same seed it will output the same random number. To test with different seeds,
 you can pass ranges of seeds to `gosim test`:
 ```
-go run github.com/jellevandenhooff/gosim/cmd/gosim test -v -seeds=1-3 -run=TestGosim .
+go run github.com/neria-cloud/gosim/cmd/gosim test -v -seeds=1-3 -run=TestGosim .
 === RUN   TestGosim (seed 1)
     1 main/4     14:10:03.000 INF examples/simple_test.go:12 > Are we in the Matrix? true method=t.Logf
     2 main/4     14:10:03.000 INF examples/simple_test.go:13 > Random: 811966193383742320 method=t.Logf
@@ -93,13 +93,14 @@ go run github.com/jellevandenhooff/gosim/cmd/gosim test -v -seeds=1-3 -run=TestG
     1 main/4     14:10:03.000 INF examples/simple_test.go:12 > Are we in the Matrix? true method=t.Logf
     2 main/4     14:10:03.000 INF examples/simple_test.go:13 > Random: 3226404213937589817 method=t.Logf
 --- PASS: TestGosim (0.00s simulated)
-ok  	translated/github.com/jellevandenhooff/gosim/examples	0.254s
+ok  	translated/github.com/neria-cloud/gosim/examples	0.254s
 ```
 
 If running `gosim` fails with errors about missing `go.sum` entries, run
 `go mod tidy` to update your `go.sum` file.
 
-## Simulation
+### Simulation
+
 Tests running in Gosim run inside Gosim's simulation environment. In the
 simulation, tests can create simulated machines that can talk to each other
 over a simulated network, crash and restart machine, introduce latency,
@@ -116,7 +117,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jellevandenhooff/gosim"
+	"github.com/neria-cloud/gosim"
 )
 
 var count = 0
@@ -187,7 +188,7 @@ messes with the server, restarting it and adding latency. Let's see
 what happens this test is run:
 <!-- TODO: two machines and a bug? -->
 ```
-> go run github.com/jellevandenhooff/gosim/cmd/gosim test -v -run TestMachines
+> go run github.com/neria-cloud/gosim/cmd/gosim test -v -run TestMachines
 === RUN   TestMachines (seed 1)
     1 server/5   14:10:03.000 INF example/machines_test.go:17 > starting server
     2 main/4     14:10:04.000 INF example/machines_test.go:27 > making a request
@@ -240,7 +241,8 @@ less than a second. Simulated time can be sped up when Gosim knows that all
 goroutines are waiting for time advance. With simulated time, tests can use
 realistic latency and timeouts without development time becoming slow.
 
-## Debugging
+### Debugging
+
 Gosim's simulation is deterministic, which means that running a test twice
 will result in the exact same behavior, from randomly generated numbers
 to goroutine concurrency interleavings. That is useful because it means that
@@ -252,7 +254,7 @@ The numbers at the start of each log are Gosim's step numbers. Take step 11 from
 the log above, from the line "got a request ...". We can debug the state of the
 program at the time the log was printed with `gosim debug`:
 ```
-> go run github.com/jellevandenhooff/gosim/cmd/gosim debug -package=. -test=TestMachines -step=11
+> go run github.com/neria-cloud/gosim/cmd/gosim debug -package=. -test=TestMachines -step=11
 ...
     26:	func (w gosimSlogHandler) Handle(ctx context.Context, r slog.Record) error {
     27:		r.AddAttrs(slog.Int("goroutine", gosimruntime.GetGoroutine()))
@@ -270,9 +272,9 @@ Now we can debug the program as a standard Go program. To see what was happening
 in the HTTP handler that called print, we run backtrace
 ```
 (dlv) bt
- 0  0x000000010129e7ac in translated/github.com/jellevandenhooff/gosim/internal_/simulation.gosimSlogHandler.Handle
-    at ./github.com/jellevandenhooff/gosim/internal_/simulation/userspace.go:28
- 1  0x00000001012a5e24 in translated/github.com/jellevandenhooff/gosim/internal_/simulation.(*gosimSlogHandler).Handle
+ 0  0x000000010129e7ac in translated/github.com/neria-cloud/gosim/internal_/simulation.gosimSlogHandler.Handle
+    at ./github.com/neria-cloud/gosim/internal_/simulation/userspace.go:28
+ 1  0x00000001012a5e24 in translated/github.com/neria-cloud/gosim/internal_/simulation.(*gosimSlogHandler).Handle
     at <autogenerated>:1
  2  0x0000000101283d68 in translated/log/slog.(*handlerWriter).Write
     at ./log/slog/logger.go:99
@@ -287,7 +289,7 @@ in the HTTP handler that called print, we run backtrace
 and then select the HTTP handler's stack frame that called `log.Printf`
 ```
 (dlv) frame 5
-> translated/github.com/jellevandenhooff/gosim/internal_/simulation.gosimSlogHandler.Handle() ./github.com/jellevandenhooff/gosim/internal_/simulation/userspace.go:28 (PC: 0x1029ce45c)
+> translated/github.com/neria-cloud/gosim/internal_/simulation.gosimSlogHandler.Handle() ./github.com/neria-cloud/gosim/internal_/simulation/userspace.go:28 (PC: 0x1029ce45c)
 Frame 5: ./example/machines_test.go:19 (PC: 102d3decc)
     14:	)
     15:
@@ -307,12 +309,13 @@ Now we can inspect the state of memory to see details that the log line might ha
 "11.0.0.1:10001"
 ```
 
-## Tracing system calls
+### Tracing system calls
+
 Gosim's simulation is at the system call level. To see why a program behaved
 the way it did, Gosim can output detailed logs of all system calls with the
 `-simtrace=syscall` flag:
 ```
-> go run github.com/jellevandenhooff/gosim/cmd/gosim test -v -simtrace=syscall -run TestMachines
+> go run github.com/neria-cloud/gosim/cmd/gosim test -v -simtrace=syscall -run TestMachines
 === RUN   TestMachines (seed 1)
     1 server/5   14:10:03.000 INF examples/machines_test.go:19 > starting server
     2 server/5   14:10:03.000 INF simulation/os_linux_.go:88 > call SysSocket flags=SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC net=AF_INET proto=IPPROTO_IP traceKind=syscall
@@ -341,7 +344,7 @@ the way it did, Gosim can output detailed logs of all system calls with the
 ```
 Here you can see on step 60 the HTTP GET request being written by the client, and then on step 64 being read by the server.
 
-## Examples
+### Examples
 
 Gosim can run some sizeable real-world code. In this repository
 there are examples for:
@@ -351,32 +354,32 @@ there are examples for:
 - [examples/etcd](./examples/etcd/): running a 3-node [Etcd](https://github.com/etcd-io/etcd) cluster and partitioning the
   nodes
 
-# API and documentation
+## API and documentation
 
 A description of Gosim's architecture and design decisions is in
 [docs/design.md](docs/design.md).
 
 Gosim's public packages are:
 
-- [github.com/jellevandenhooff/gosim](./): the core API for creating machines
+- [github.com/neria-cloud/gosim](./): the core API for creating machines
   and manipulating the simulation environment
 
-- [github.com/jellevandenhooff/gosim/cmd/gosim](./cmd/gosim): the CLI for
+- [github.com/neria-cloud/gosim/cmd/gosim](./cmd/gosim): the CLI for
   running Gosim tests
 
-- [github.com/jellevandenhooff/gosim/metatesting](./metatesting/): a package
+- [github.com/neria-cloud/gosim/metatesting](./metatesting/): a package
   for running Gosim tests inside of normal go test.
 
-- [github.com/jellevandenhooff/gosim/nemesis](./nemesis/): a package, still
+- [github.com/neria-cloud/gosim/nemesis](./nemesis/): a package, still
   sparse, to introduce chaos into simulations
 
-# Development
+## Development
 
 Gosim and its tools are tested using the `./test.sh` script, which invokes the
 tests defined in `./Taskfile.yml`. These test the Gosim tooling as well as the
 behavior of simulated code. Ideally tests verify that the simulation behaves
 like reality: The tests for the filesystem in
-[github.com/jellevandenhooff/gosim/internal/tests/behavior/disk_test.go](./internal/tests/behavior/disk_test.go)
+[github.com/neria-cloud/gosim/internal/tests/behavior/disk_test.go](./internal/tests/behavior/disk_test.go)
 are run in both simulated and non-simulated builds.
 
 Gosim simulates Linux, but should work on macOS, Linux, and Windows (not tested
@@ -385,3 +388,8 @@ amd64 and arm64, there are scripts `.ci/crossarch-tests/test-amd64.sh` and
 `.ci/crossarch-tests/test-arm64.sh` that run the tests using Docker. A Github
 Action runs the tests on Linux amd64.
 
+## License
+
+MIT
+
+neria-cloud/gosim is fork of [jellevandenhooff/gosim](https://github.com/jellevandenhooff/gosim).

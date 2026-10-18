@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/jellevandenhooff/gosim/internal/tests/testpb";
+option go_package = "github.com/neria-cloud/gosim/internal/tests/testpb";
 
 package testpb;
 

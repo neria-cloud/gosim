@@ -1,7 +1,7 @@
 package go123
 
 import (
-	"github.com/jellevandenhooff/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/gosimruntime"
 )
 
 func Maps_clone(m any) any {

@@ -18,7 +18,7 @@ import (
 	gocmp "github.com/google/go-cmp/cmp"
 	"golang.org/x/tools/txtar"
 
-	"github.com/jellevandenhooff/gosim/internal/gosimtool"
+	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
 var (

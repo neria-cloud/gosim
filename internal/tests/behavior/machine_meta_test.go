@@ -6,7 +6,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/jellevandenhooff/gosim/metatesting"
+	"github.com/neria-cloud/gosim/metatesting"
 )
 
 func TestMachineCrashRuns(t *testing.T) {

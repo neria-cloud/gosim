@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jellevandenhooff/gosim/metatesting"
+	"github.com/neria-cloud/gosim/metatesting"
 )
 
 func TestMetaRandDifferentBySeed(t *testing.T) {

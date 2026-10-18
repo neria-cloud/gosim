@@ -7,10 +7,11 @@
 package reflect
 
 import (
+	"iter"    //gosim:notranslate
 	"reflect" //gosim:notranslate
 	"unsafe"
 
-	"github.com/jellevandenhooff/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/gosimruntime"
 )
 
 type wrapKind byte
@@ -60,6 +61,14 @@ func unwrapValues(x []Value) []reflect.Value {
 
 func Append(s Value, x ...Value) Value {
 	return wrapValue(reflect.Append(s.inner, unwrapValues(x)...))
+}
+
+// TypeAssert returns the value held by v as type T, reporting whether the
+// assertion succeeded. It is equivalent to v.Interface().(T).
+// Added in Go 1.25.
+func TypeAssert[T any](v Value) (T, bool) {
+	t, ok := v.inner.Interface().(T)
+	return t, ok
 }
 
 func AppendSlice(s, t Value) Value {
@@ -552,4 +561,20 @@ func (v Value) Comparable() bool {
 
 func (v Value) Equal(u Value) bool {
 	return v.inner.Equal(u.inner)
+}
+
+func (v Value) Seq() iter.Seq[Value] {
+	return func(yield func(Value) bool) {
+		v.inner.Seq()(func(rv reflect.Value) bool {
+			return yield(wrapValue(rv))
+		})
+	}
+}
+
+func (v Value) Seq2() iter.Seq2[Value, Value] {
+	return func(yield func(Value, Value) bool) {
+		v.inner.Seq2()(func(k, val reflect.Value) bool {
+			return yield(wrapValue(k), wrapValue(val))
+		})
+	}
 }

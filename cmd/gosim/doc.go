@@ -23,7 +23,7 @@ in the current package should be fast.
 Packages should be listed as if they were arguments to 'go test' or 'go build'
 command. All listed packages must be part of the current module. The current
 module must have a dependency on gosim by importing
-'github.com/jellevandenhooff/gosim' somewhere in the code.
+'github.com/neria-cloud/gosim' somewhere in the code.
 
 Translate translates code with specific build flags sets. The GOOS is fixed to
 linux, and the GOARCH is the one used to compile translate.

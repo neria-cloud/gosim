@@ -37,7 +37,23 @@ func Read(addr unsafe.Pointer) {
 	runtime.RaceRead(addr)
 }
 
+func ReadPC(addr unsafe.Pointer, callerpc, pc uintptr) {
+	runtime.RaceRead(addr)
+}
+
+func ReadObjectPC(t any, addr unsafe.Pointer, callerpc, pc uintptr) {
+	runtime.RaceRead(addr)
+}
+
 func Write(addr unsafe.Pointer) {
+	runtime.RaceWrite(addr)
+}
+
+func WritePC(addr unsafe.Pointer, callerpc, pc uintptr) {
+	runtime.RaceWrite(addr)
+}
+
+func WriteObjectPC(t any, addr unsafe.Pointer, callerpc, pc uintptr) {
 	runtime.RaceWrite(addr)
 }
 

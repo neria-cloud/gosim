@@ -1,7 +1,7 @@
 package go123
 
 import (
-	"github.com/jellevandenhooff/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/gosimruntime"
 )
 
 func Sync_runtime_Semacquire(addr *uint32) {
@@ -105,5 +105,47 @@ func Sync_throw(str string) {
 }
 
 func Sync_fatal(str string) {
+	panic(str)
+}
+
+// Go 1.25: sync.WaitGroup.Wait uses runtime_SemacquireWaitGroup instead of
+// runtime_SemacquireMutex. synctestDurable is for synctest integration;
+// in the simulation we simply ignore it.
+func Sync_runtime_SemacquireWaitGroup(addr *uint32, synctestDurable bool) {
+	gosimruntime.Semacquire(addr, false)
+}
+
+// Go 1.25: internal/sync extracted mutex/semaphore primitives from sync.
+// Implementations are identical to their Sync_ counterparts.
+
+func InternalSync_runtime_SemacquireMutex(addr *uint32, lifo bool, skipframes int) {
+	gosimruntime.Semacquire(addr, lifo)
+}
+
+func InternalSync_runtime_Semrelease(addr *uint32, handoff bool, skipframes int) {
+	gosimruntime.Semrelease(addr)
+}
+
+func InternalSync_runtime_canSpin(i int) bool {
+	return false
+}
+
+func InternalSync_runtime_doSpin() {
+	panic("no")
+}
+
+func InternalSync_runtime_nanotime() int64 {
+	return gosimruntime.Nanotime()
+}
+
+func InternalSync_runtime_rand() uint64 {
+	return gosimruntime.Fastrand64()
+}
+
+func InternalSync_throw(str string) {
+	panic(str)
+}
+
+func InternalSync_fatal(str string) {
 	panic(str)
 }

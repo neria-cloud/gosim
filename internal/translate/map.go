@@ -283,6 +283,14 @@ func (t *packageTranslator) rewriteMapLen(c *dstutil.Cursor) {
 }
 
 func (t *packageTranslator) rewriteMapType(c *dstutil.Cursor) {
+	// internal/sync and hash/maphash use `var m map[K]V` solely for
+	// abi.TypeOf type introspection (HashTrieMap.initSlow and comparableHash).
+	// Do not rewrite map types there; the real map type is required for
+	// abi.TypeOf(m).MapType() to return a non-nil *abi.MapType.
+	if t.pkgPath == "internal/sync" || t.pkgPath == "hash/maphash" {
+		return
+	}
+
 	// map type
 	if mapType, ok := c.Node().(*dst.MapType); ok {
 		c.Replace(&dst.IndexListExpr{
@@ -294,11 +302,15 @@ func (t *packageTranslator) rewriteMapType(c *dstutil.Cursor) {
 		})
 	}
 
-	// for generics, eject the outer ~ on map...
+	// for generics, translate ~map[K]V → gosimruntime.AnyMap[K, V].
+	// We use AnyMap (an interface constraint ~struct{Impl *mapImpl[K,V]}) rather than
+	// gosimruntime.Map[K,V] (exact type) so that named map types like
+	// type Values gosimruntime.Map[string, []string] satisfy the constraint.
+	// We cannot use ~gosimruntime.Map[K,V] because Go forbids ~ on generic instantiations.
 	if unary, ok := c.Node().(*dst.UnaryExpr); ok && unary.Op == token.TILDE {
 		if mapType, ok := unary.X.(*dst.MapType); ok {
 			c.Replace(&dst.IndexListExpr{
-				X: t.newRuntimeSelector("Map"),
+				X: t.newRuntimeSelector("AnyMap"),
 				Indices: []dst.Expr{
 					mapType.Key,
 					t.apply(mapType.Value).(dst.Expr),

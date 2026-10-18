@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jellevandenhooff/gosim"
+	"github.com/neria-cloud/gosim"
 )
 
 var count = 0

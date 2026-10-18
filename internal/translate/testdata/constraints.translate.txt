@@ -20,8 +20,8 @@ package basicgosim_test
 import (
 	testing_original "testing"
 
-	"github.com/jellevandenhooff/gosim/gosimruntime"
-	"translated/github.com/jellevandenhooff/gosim/internal_/hooks/go123"
+	"github.com/neria-cloud/gosim/gosimruntime"
+	"translated/github.com/neria-cloud/gosim/internal_/hooks/go123"
 )
 
 func init() {

@@ -17,11 +17,11 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/jellevandenhooff/gosim/gosimruntime"
-	"github.com/jellevandenhooff/gosim/internal/gosimlog"
-	"github.com/jellevandenhooff/gosim/internal/simulation/fs"
-	"github.com/jellevandenhooff/gosim/internal/simulation/network"
-	"github.com/jellevandenhooff/gosim/internal/simulation/syscallabi"
+	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/internal/gosimlog"
+	"github.com/neria-cloud/gosim/internal/simulation/fs"
+	"github.com/neria-cloud/gosim/internal/simulation/network"
+	"github.com/neria-cloud/gosim/internal/simulation/syscallabi"
 )
 
 // LinuxOS implements gosim's versions of Linux system calls.
@@ -322,7 +322,8 @@ func (l *LinuxOS) SysOpenat(dirfd int, path string, flags int, mode uint32, invo
 	// TODO: check mode
 
 	const flagSupported = os.O_RDONLY | os.O_WRONLY | os.O_RDWR |
-		os.O_CREATE | os.O_EXCL | os.O_TRUNC
+		os.O_CREATE | os.O_EXCL | os.O_TRUNC |
+		syscall.O_DIRECTORY // allow opening directories (used by os.ReadDir)
 
 	if flags&(^flagSupported) != 0 {
 		return 0, syscall.EINVAL // XXX?

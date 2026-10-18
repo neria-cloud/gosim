@@ -9,7 +9,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/jellevandenhooff/gosim"
+	"github.com/neria-cloud/gosim"
 )
 
 /*

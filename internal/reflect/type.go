@@ -10,7 +10,7 @@ import (
 	"reflect" //gosim:notranslate
 	"sync"    //gosim:notranslate
 
-	"github.com/jellevandenhooff/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/gosimruntime"
 )
 
 func makeMapType() reflect.Type {
@@ -55,8 +55,8 @@ type Type interface {
 	OverflowFloat(x float64) bool
 	OverflowInt(x int64) bool
 	OverflowUint(x uint64) bool
-	// CanSeq() bool
-	// CanSeq2() bool
+	CanSeq() bool
+	CanSeq2() bool
 	isType()
 	// common() *abi.Type
 	// uncommon() *uncommonType
@@ -242,6 +242,14 @@ func (t *typeImpl) NumOut() int {
 
 func (t *typeImpl) Out(i int) Type {
 	return wrapType(t.inner.Out(i))
+}
+
+func (t *typeImpl) CanSeq() bool {
+	return t.inner.CanSeq()
+}
+
+func (t *typeImpl) CanSeq2() bool {
+	return t.inner.CanSeq2()
 }
 
 func (t *typeImpl) OverflowComplex(x complex128) bool {

@@ -5,7 +5,7 @@ package behavior_test
 import (
 	"testing"
 
-	"github.com/jellevandenhooff/gosim/metatesting"
+	"github.com/neria-cloud/gosim/metatesting"
 )
 
 func TestMetaDeterministic(t *testing.T) {

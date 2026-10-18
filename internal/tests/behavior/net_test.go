@@ -3,24 +3,17 @@
 package behavior_test
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
-	"net/http"
 	"net/netip"
 	"os"
 	"syscall"
 	"testing"
 	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/jellevandenhooff/gosim"
-	"github.com/jellevandenhooff/gosim/internal/tests/testpb"
+	"github.com/neria-cloud/gosim"
 )
 
 // TODO: at the end of each machine, also check that there are no more running goroutines/events/...?
@@ -273,127 +266,9 @@ func TestNetTcpDisconnectBasic(t *testing.T) {
 	b.Wait()
 }
 
-func TestNetTcpHttp(t *testing.T) {
-	a := gosim.NewMachine(gosim.MachineConfig{
-		Label: "a",
-		Addr:  netip.MustParseAddr(aAddr),
-		MainFunc: func() {
-			listener, err := net.Listen("tcp", aAddr+":1234")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("hello world"))
-			})
-
-			srv := &http.Server{Handler: nil}
-
-			go func() {
-				time.Sleep(10 * time.Second)
-				srv.Shutdown(context.Background())
-			}()
-
-			if err := srv.Serve(listener); err != nil {
-				if err != http.ErrServerClosed {
-					t.Fatal(err)
-				}
-			}
-		},
-	})
-
-	b := gosim.NewMachine(gosim.MachineConfig{
-		Label: "b",
-		Addr:  netip.MustParseAddr(bAddr),
-		MainFunc: func() {
-			// give the other a second to start listening
-			time.Sleep(time.Second)
-
-			resp, err := http.Get(fmt.Sprintf("http://%s:1234/", aAddr))
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer resp.Body.Close()
-
-			log.Println(resp.StatusCode)
-
-			bytes, err := io.ReadAll(resp.Body)
-
-			log.Println(string(bytes), err)
-
-			if string(bytes) != "hello world" {
-				t.Fatal(string(bytes))
-			}
-		},
-	})
-
-	a.Wait()
-	b.Wait()
-}
-
-type testServer struct{}
-
-func (s *testServer) Echo(ctx context.Context, req *testpb.EchoRequest) (*testpb.EchoResponse, error) {
-	return &testpb.EchoResponse{
-		Message: req.Message,
-	}, nil
-}
-
-func TestNetTcpGrpc(t *testing.T) {
-	a := gosim.NewMachine(gosim.MachineConfig{
-		Label: "a",
-		Addr:  netip.MustParseAddr(aAddr),
-		MainFunc: func() {
-			listener, err := net.Listen("tcp", aAddr+":1234")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			server := grpc.NewServer()
-			testpb.RegisterEchoServerServer(server, &testServer{})
-
-			go func() {
-				time.Sleep(10 * time.Second)
-				server.GracefulStop()
-			}()
-
-			if err := server.Serve(listener); err != nil {
-				t.Fatal(err)
-			}
-		},
-	})
-
-	b := gosim.NewMachine(gosim.MachineConfig{
-		Label: "b",
-		Addr:  netip.MustParseAddr(bAddr),
-		MainFunc: func() {
-			// give the other a second to start listening
-			time.Sleep(time.Second)
-
-			client, err := grpc.Dial(fmt.Sprintf("%s:1234", aAddr), grpc.WithTransportCredentials(insecure.NewCredentials()))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testClient := testpb.NewEchoServerClient(client)
-
-			resp, err := testClient.Echo(context.Background(), &testpb.EchoRequest{Message: "hello world"})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if resp.Message != "hello world" {
-				t.Fatal(resp.Message)
-			}
-
-			client.Close()
-		},
-	})
-
-	a.Wait()
-	b.Wait()
-}
-
 // TODO: test hosts crash?
+// TestNetTcpHttp and TestNetTcpGrpc moved to net_grpc_http_test.go (//go:build ignore)
+// until crypto/tls can be translated in Go 1.25+.
 // TODO: port tests below to TCP?
 
 /*

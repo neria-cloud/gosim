@@ -3,7 +3,7 @@
         "build.env": {
             "GOOS": "linux",
         },
-        "formatting.local": "github.com/jellevandenhooff/gosim",
+        "formatting.local": "github.com/neria-cloud/gosim",
         "formatting.gofumpt": true
     },
     "go.buildFlags": [

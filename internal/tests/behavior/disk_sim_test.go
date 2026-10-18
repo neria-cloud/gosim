@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/jellevandenhooff/gosim"
+	"github.com/neria-cloud/gosim"
 )
 
 // TODO: more scenarios for either triggering or not triggering GC (pending ops, rename, delete, etc.)

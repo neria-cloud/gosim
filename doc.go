@@ -22,12 +22,12 @@ test' command:
 	# run an normal test
 	go test -run TestName -v ./path/to/pkg
 	# run a gosim test
-	go run github.com/jellevandenhooff/gosim/cmd/gosim test -run TestName -v ./path/to/pkg
+	go run github.com/neria-cloud/gosim/cmd/gosim test -run TestName -v ./path/to/pkg
 
 For more information on the 'gosim' command see its documentation at
-[github.com/jellevandenhooff/gosim/cmd/gosim].  To run Gosim tests from within a
+[github.com/neria-cloud/gosim/cmd/gosim].  To run Gosim tests from within a
 Go test, use the
-[github.com/jellevandenhooff/gosim/metatesting] package.
+[github.com/neria-cloud/gosim/metatesting] package.
 
 # Gosim simulation
 
@@ -61,6 +61,6 @@ manipulate the network.
 # Gosim internals
 
 For a description of how Gosim works, see the design in
-https://github.com/jellevandenhooff/gosim/blob/main/docs/design.md
+https://github.com/neria-cloud/gosim/blob/main/docs/design.md
 */
 package gosim

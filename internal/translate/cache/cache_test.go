@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jellevandenhooff/gosim/internal/translate/cache"
+	"github.com/neria-cloud/gosim/internal/translate/cache"
 )
 
 func mustMiss(t *testing.T, db *cache.DB, key string) {

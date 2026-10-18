@@ -7,7 +7,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/jellevandenhooff/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/race"
 )
 
 //go:norace

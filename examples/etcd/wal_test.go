@@ -14,7 +14,7 @@ import (
 	"go.etcd.io/etcd/server/v3/wal"
 	"go.etcd.io/etcd/server/v3/wal/walpb"
 
-	"github.com/jellevandenhooff/gosim/examples/etcd"
+	"github.com/neria-cloud/gosim/examples/etcd"
 )
 
 // TestSnapshotter smoke tests the low-level snap package in etcd.

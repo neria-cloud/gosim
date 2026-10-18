@@ -10,7 +10,7 @@ import (
 	"github.com/rogpeppe/go-internal/gotooltest"
 	"github.com/rogpeppe/go-internal/testscript"
 
-	"github.com/jellevandenhooff/gosim/internal/gosimtool"
+	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
 func TestScript(t *testing.T) {
