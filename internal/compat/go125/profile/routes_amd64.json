@@ -1,11 +1,12 @@
 {
+  "adapter_digest": "16ee1d15d9dd2819eeafff99602a05ad095854ee8de47db5e0fee36ed61e0fb0",
   "transport_digest": "41e16adc30f1528ac6afba371199bded013bbe9e94d8e5bc33dfc04c0e787c92",
   "schema": 1,
   "toolchain": "go1.25.14",
   "profile": "go125",
   "architecture": "amd64",
   "route_digest": "662687a24ea0d974d6f0c995a7e4bd66e92180110933d9395368fccb60c791a7",
-  "origin_digest": "5ff88f7a67d38b05b4b556c3d09432cfb2f26d568bc6c1f2230636eff1ee6436",
+  "origin_digest": "219a506373dd23661a70338ed73d8a4064659a99c3494f15c596e26155c5fc36",
   "modules": [
     {
       "path": "golang.org/x/sys",
@@ -22,5 +23,5 @@
       "reason": "Private reflect ABI is inventoried and rejected, with its dependency version explicit."
     }
   ],
-  "stage": "transport-schema"
+  "stage": "typed-adapters"
 }

@@ -50,6 +50,106 @@
       "digest": "3291fd3debb2430be3017c9a3cd783ad4d1a2791d8b4133b473a11a29e250449"
     },
     {
+      "path": "src/internal/syscall/unix/at.go",
+      "digest": "6b24496de4a9b1586bcb88b6acddcccc80777f302bd390288ebe178ac8064705"
+    },
+    {
+      "path": "src/internal/syscall/unix/at_fstatat.go",
+      "digest": "5e70a71173b2e771d34d17707de3fd14ae415dfafb318d5a8641144dd851ad6a"
+    },
+    {
+      "path": "src/internal/syscall/unix/at_sysnum_linux.go",
+      "digest": "f6ea8f6c906a1d476ce6327d037b186ceb1c8228e80e9bd867a7ea9bc040600e"
+    },
+    {
+      "path": "src/internal/syscall/unix/at_sysnum_newfstatat_linux.go",
+      "digest": "1c15f30d713ca93199e4cf616ac3582a23d96d1e55d44902a39e0c43655a1c0d"
+    },
+    {
+      "path": "src/internal/syscall/unix/constants.go",
+      "digest": "4ccef3971fa8cf67f5ac98c696cf252cf14c2fa56ad18aa5cf4b8998efe03b65"
+    },
+    {
+      "path": "src/internal/syscall/unix/copy_file_range_unix.go",
+      "digest": "7fbf814a8a7d4fbd0c76d1827e50e8864b4bb701cad01277b96af9d0826809e0"
+    },
+    {
+      "path": "src/internal/syscall/unix/eaccess.go",
+      "digest": "f81216e0796d54c28e4e33328c0c5b75fe98b7dab172ac30d35be304412c9b97"
+    },
+    {
+      "path": "src/internal/syscall/unix/faccessat_syscall.go",
+      "digest": "60d3fb3116514098e471e948e845b77582d2e777859e3dde03cf73d65b99fe69"
+    },
+    {
+      "path": "src/internal/syscall/unix/fchmodat_linux.go",
+      "digest": "034445a6baf8b91377f0e5b568ef7ca7c8099b02ece40958547b19d1dc45fac2"
+    },
+    {
+      "path": "src/internal/syscall/unix/fcntl_unix.go",
+      "digest": "5ab1dd517d3ed5beb706bcff14ca89acb6720c1e92a13088e54bffcedc715a6d"
+    },
+    {
+      "path": "src/internal/syscall/unix/getrandom.go",
+      "digest": "1cafffb178e0a2182349ef5a39fd89aa01f2a9d1fd565afdb947416b9ab13e40"
+    },
+    {
+      "path": "src/internal/syscall/unix/getrandom_linux.go",
+      "digest": "9cf2c1d1ce02e08300dc45f44d1472754117350a6a135a9da755783f02c17c52"
+    },
+    {
+      "path": "src/internal/syscall/unix/kernel_version_linux.go",
+      "digest": "7e1df29baff4556808f0b4c250456e6e701ec63d2fad5eee5042f1b3aa10c7ae"
+    },
+    {
+      "path": "src/internal/syscall/unix/net.go",
+      "digest": "866c1318e10b6d9d14bddd6a403220a69e69b52549510b63b3365d629e75b3fb"
+    },
+    {
+      "path": "src/internal/syscall/unix/nofollow_posix.go",
+      "digest": "5c5562ab0d8f94c8108172ea142ce5d0e20a07e471e0c7bd9d9bede2c6c93689"
+    },
+    {
+      "path": "src/internal/syscall/unix/nonblocking_unix.go",
+      "digest": "3871841b05dbc99b8d0d6cb51765e2deea09ecd1c394b95e67a52de068db80c2"
+    },
+    {
+      "path": "src/internal/syscall/unix/pidfd_linux.go",
+      "digest": "c83da30c5aed4890792d8612c78f430c7ab6f3311e8fd73792c24e6636937b4c"
+    },
+    {
+      "path": "src/internal/syscall/unix/renameat_sysnum_linux.go",
+      "digest": "8c0c2f88d0c7e34b9caa1a21b771fa40d284b3844b02e63f194f26e2e550377d"
+    },
+    {
+      "path": "src/internal/syscall/unix/siginfo_linux.go",
+      "digest": "e774621eefa370361d1245adf058d8a1752b0bb78ecdf8939d535a6226a6fa32"
+    },
+    {
+      "path": "src/internal/syscall/unix/siginfo_linux_other.go",
+      "digest": "e2aba05f88bd7ca0e0fd1bf26fa5d53617398744dae3562bd4cee9937fd20486"
+    },
+    {
+      "path": "src/internal/syscall/unix/syscall.go",
+      "digest": "65de2b30e89644981e8dc159d226ebe585a66112438e382e6cd2651aa6f68451"
+    },
+    {
+      "path": "src/internal/syscall/unix/sysnum_linux_amd64.go",
+      "digest": "383d4857ec4f538630e4f781dba650ec48baacfd101456814a1b533b41201c8d"
+    },
+    {
+      "path": "src/internal/syscall/unix/tcsetpgrp_linux.go",
+      "digest": "a154792f653632733e8a2c81fd2620b0fa08b0e977774af6c64beaefa970855c"
+    },
+    {
+      "path": "src/internal/syscall/unix/utimes.go",
+      "digest": "e37b2cfa5ff403dff694dc69dfef3fff40bad5a6d99a311d1dc123c1ff469deb"
+    },
+    {
+      "path": "src/internal/syscall/unix/waitid_linux.go",
+      "digest": "6e59316cada5dc52c568b2bc62e7f2220a72114b3438beb11dd6d8f7abdaf68c"
+    },
+    {
       "path": "src/iter/iter.go",
       "digest": "ccc0a58dd5652ea17f8ec08cb73ad1a52bea313e1c0100c0765b98b228e48f0e"
     },
@@ -277,16 +377,112 @@
       "digest": "a2be85512b59e11270b099f264581343cc1589bb782e03a476102406defd5f33"
     },
     {
+      "path": "src/syscall/badlinkname_unix.go",
+      "digest": "2d5d9bc9885f05f58ce7f7334232ce15668931aadb9eb6c49c71b8a43fa3f83e"
+    },
+    {
+      "path": "src/syscall/dirent.go",
+      "digest": "8ac4e3bc980a31542d5071eef6b59ddf26f83eb8b43224ff0f9ca31cd017e153"
+    },
+    {
       "path": "src/syscall/env_unix.go",
       "digest": "3158e5dfc1e4e1e05342354857cb3f1ea2c209af73a5dda4158fdca901fbbe34"
+    },
+    {
+      "path": "src/syscall/exec_linux.go",
+      "digest": "3baba505f5403c1dd0e3ab375d0798773ebf7ccf6e066e9ce1c2bfddaa2f68c5"
+    },
+    {
+      "path": "src/syscall/exec_unix.go",
+      "digest": "a0e7697342b3c261d53f2326687df0c0f4b0660d9964414dd3605da618598dc1"
+    },
+    {
+      "path": "src/syscall/flock_linux.go",
+      "digest": "13d2a434013cb2233ae64034d67fdd19f9df6415b5b60530044e7227fd8b242f"
+    },
+    {
+      "path": "src/syscall/forkpipe2.go",
+      "digest": "8178af2b2692f288af9b08859acf52266bf8ac4e2b7fdc6cab0786d3dd50aca1"
+    },
+    {
+      "path": "src/syscall/linkname_unix.go",
+      "digest": "5bf0a04177de7a0537a305c39cc9e380f626a04c569b88ac3679d9acdcef2924"
+    },
+    {
+      "path": "src/syscall/lsf_linux.go",
+      "digest": "a0cc8b45b9996b8fd1bc334dd81051dde04357edc4a1c8ea68e5b539390d927a"
+    },
+    {
+      "path": "src/syscall/net.go",
+      "digest": "96c7ea22567bb7a64b294ee89f91801f116b336beeabc341d016b37cf840058d"
+    },
+    {
+      "path": "src/syscall/netlink_linux.go",
+      "digest": "569949cb048d294b11e02078525d4ac2be2b6d8520575fe4c9c3234ef418242b"
     },
     {
       "path": "src/syscall/rlimit.go",
       "digest": "f0eee111b4a1fd060d21d2a18878353242c9c9440da5aec97d74667ef634eb51"
     },
     {
+      "path": "src/syscall/rlimit_stub.go",
+      "digest": "0a1d3dadf3b0f1eb85765f5e7ff1c94322d75c14ffb33f43bf2e229b5c7a8f93"
+    },
+    {
+      "path": "src/syscall/setuidgid_linux.go",
+      "digest": "59d764551533051659477d084963f111d02eb0ae13841b683383685eff3beb31"
+    },
+    {
+      "path": "src/syscall/sockcmsg_linux.go",
+      "digest": "5a8ebab526ca05814dd14aa8970b6f177e484cd666ce36ef6be8eb4c502fa93d"
+    },
+    {
+      "path": "src/syscall/sockcmsg_unix.go",
+      "digest": "8e78ac0374da70229837cd41eed4fd3a5ad06dbc90ef3ea4136ccedacf762616"
+    },
+    {
+      "path": "src/syscall/sockcmsg_unix_other.go",
+      "digest": "a2320d4a54bb9b491374508605c892597c85e5a07c57574a2aec4ed7885ae021"
+    },
+    {
       "path": "src/syscall/syscall.go",
       "digest": "9fef7ad972eae0c33251f87c8f04e12a975bb1a24d26718b3f7ff96c4e20b594"
+    },
+    {
+      "path": "src/syscall/syscall_linux.go",
+      "digest": "3584c4b0ee1868b4301df0e3a16587132113449056347493baadf48189c699e1"
+    },
+    {
+      "path": "src/syscall/syscall_linux_amd64.go",
+      "digest": "e220a8ff4c78efdfca407b87d8db7dcb6b61e20238091dacfde1bdabccf7b42e"
+    },
+    {
+      "path": "src/syscall/syscall_unix.go",
+      "digest": "cccc8f6b8c92d4a2f16d625f31cb3cd26268d44346b55c8144dba0b289ed3e48"
+    },
+    {
+      "path": "src/syscall/time_nofake.go",
+      "digest": "8c9c3e97fa48debbdb2808cc290918e2abc49fd9198811fd8e69477d50467ec0"
+    },
+    {
+      "path": "src/syscall/timestruct.go",
+      "digest": "4271edf5d1f895c0f94f6af4c067fc71c1197e11cf3e5b85facc563f321101fb"
+    },
+    {
+      "path": "src/syscall/zerrors_linux_amd64.go",
+      "digest": "2d96a92f48c420b427f48090663c854672433142fe7c6f7d67638e1e7113a173"
+    },
+    {
+      "path": "src/syscall/zsyscall_linux_amd64.go",
+      "digest": "9d3d6ce5403a67d06471690e1c0f7ebf36bade8d843c7e3bef31ca2b7acaf80c"
+    },
+    {
+      "path": "src/syscall/zsysnum_linux_amd64.go",
+      "digest": "65c4a7f1c1e01548d30fa3abe5d6247ccabb4ab13ea150dc1b678164c64013c6"
+    },
+    {
+      "path": "src/syscall/ztypes_linux_amd64.go",
+      "digest": "e088363772b32993ef155541ff9cb2b98798f34039a35abc74ce4ea5d37b0d70"
     },
     {
       "path": "src/testing/allocs.go",

@@ -15,6 +15,7 @@ import (
 )
 
 type GenerationRecord struct {
+	AdapterDigest   string           `json:"adapter_digest,omitempty"`
 	TransportDigest string           `json:"transport_digest"`
 	Schema          int              `json:"schema"`
 	Toolchain       string           `json:"toolchain"`
@@ -69,6 +70,30 @@ func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, 
 	if err != nil {
 		return err
 	}
+	for _, arch := range arches {
+		adapters, err := renderAdapters(tc, arch, m)
+		if err != nil {
+			return err
+		}
+		if len(adapters) == 0 {
+			continue
+		}
+		recordPath := "internal/compat/" + profileID + "/profile/routes_" + arch + ".json"
+		var record GenerationRecord
+		if err := json.Unmarshal(outputs[recordPath], &record); err != nil {
+			return err
+		}
+		record.Stage = "typed-adapters"
+		record.AdapterDigest = adaptersDigest(adapters)
+		data, err := json.MarshalIndent(record, "", "  ")
+		if err != nil {
+			return err
+		}
+		outputs[recordPath] = append(data, '\n')
+		for name, data := range adapters {
+			outputs[name] = data
+		}
+	}
 	// Validate/render all inputs before the first write, then write in stable order.
 	names := make([]string, 0, len(outputs))
 	for name := range outputs {
@@ -98,8 +123,8 @@ func renderOutputs(toolchain, profile string, arches []string, m Manifest, origi
 		return nil, err
 	}
 	for _, arch := range arches {
-		// TODO(migration): Task 14.3 adds amd64 selected-source adapter generation;
-		// Task 15 adds arm64. This record certifies neither wrappers nor execution.
+		// GenerateProfile augments this transport record with selected adapter
+		// source digests; the record itself never certifies execution.
 		record := GenerationRecord{TransportDigest: buildspec.Hash(append(append([]byte(nil), code...), dispatch...)), Schema: m.Schema, Toolchain: toolchain, Profile: profile, Architecture: arch, RouteDigest: m.Digest(), OriginDigest: buildspec.Hash(source), Modules: pins, Stage: "transport-schema"}
 		data, err := json.MarshalIndent(record, "", "  ")
 		if err != nil {

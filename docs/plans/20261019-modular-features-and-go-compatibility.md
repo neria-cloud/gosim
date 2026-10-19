@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–13 (including children 13.1/13.2) and children 14.1/14.2 implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–14 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -325,16 +325,16 @@ The existing shim sources total 2,855 lines. Adding exact-source signature/capab
 **References:** T§5 Invocation/Result; T§7 full routing table and neutral Stat/Lock/Address; T§8 hooks.json; T§9 GenerateProfile.  
 **Budget:** 3,000–4,900 changed lines including generated output. **Dependency:** 4, 6, 9, 11–13.
 
-- [ ] Implement `GenerateProfile(Toolchain, profileID string, arches []string, output string) error` with explicit input patch, module graph and output family. Generation updates only its requested family/architecture and is reproducible.
-- [ ] Inventory every current generated/manual route, including x/sys, shared read/write/close/fcntl/poll, process calls and all public control operations. Assign stable versioned RouteIDs and generated payload types/decoders; reject unsupported/unknown routes and ABI signature drift.
-- [ ] Generate go125 amd64 wrappers that marshal real Go/Linux layouts to contracts.Stat/Lock/Address/ABI views and typed kernel services. Preserve pointer-vs-integer fcntl distinction and race annotations. Disabled domain wrappers call Require without importing providers.
-- [ ] Implement the shared `internal/control` transport signatures CurrentRef/Submit/Bind and generated route codecs, with per-run binding and checked payload types. Only the generated harness may bind a kernel; production wrappers cannot supply arbitrary trampolines.
-- [ ] Add capability records for implemented/limited/stub/rejected operations. Keep original generated wrappers only for the still-active old integration path; Task 26 removes them after cutover.
+- [x] Implement `GenerateProfile(Toolchain, profileID string, arches []string, output string) error` with explicit input patch, module graph and output family. Generation updates only its requested family/architecture and is reproducible.
+- [x] Inventory every current generated/manual route, including x/sys, shared read/write/close/fcntl/poll, process calls and all public control operations. Assign stable versioned RouteIDs and generated payload types/decoders; reject unsupported/unknown routes and ABI signature drift.
+- [x] Generate go125 amd64 wrappers that marshal real Go/Linux layouts to contracts.Stat/Lock/Address/ABI views and typed kernel services. Preserve pointer-vs-integer fcntl distinction and race annotations. Disabled domain wrappers call Require without importing providers.
+- [x] Implement the shared `internal/control` transport signatures CurrentRef/Submit/Bind and generated route codecs, with per-run binding and checked payload types. Only the generated harness may bind a kernel; production wrappers cannot supply arbitrary trampolines.
+- [x] Add capability records for implemented/limited/stub/rejected operations. Keep original generated wrappers only for the still-active old integration path; Task 26 removes them after cutover.
 
 #### Verification
 
-- [ ] Regeneration is byte-identical; missing symbols, wrong pointer layouts, forged payloads and unknown RouteIDs fail. amd64 wrappers build on an amd64 worker/container, with executed route probes when available; compile-only evidence is labeled.
-- [ ] Run common commit gate; new wrappers import contracts/kernel but no concrete fs/net models.
+- [x] Regeneration is byte-identical; missing symbols, wrong pointer layouts, forged payloads and unknown RouteIDs fail. amd64 wrappers build on an amd64 worker/container, with executed route probes when available; compile-only evidence is labeled.
+- [x] Run common commit gate; new wrappers import contracts/kernel but no concrete fs/net models.
 
 ### Task 14.1: Establish versioned route inventory and reproducible generation
 
@@ -361,9 +361,9 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **Parent:** Task 14; completes remaining parent requirements and verification. **Dependency:** 14.2. **Budget:** 3,000–4,900 changed lines.
 **References:** T§7 Stat/Lock/Address/routing; T§8/9 exact source ABI generation; Task 13.2 named initialization audit.
 
-- [ ] Generate complete go125 amd64 kernel/fs/net wrappers from exact Go/x/sys sources, with real Linux layouts, pointer/integer fcntl separation, memory/race annotations, explicit capabilities and no concrete provider imports.
-- [ ] Implement source-audited runtime/kernel initialization responses, environment/debug behavior and the IPv4 TCP capability probe identified by Task 13.2, without blanket success or host fallback.
-- [ ] Verify byte-identical regeneration, missing/signature/layout drift failures, amd64 build/executed probes as available, and common gate; finish parent Task 14 checks, log and commit before Task 15.
+- [x] Generate complete go125 amd64 kernel/fs/net wrappers from exact Go/x/sys sources, with real Linux layouts, pointer/integer fcntl separation, memory/race annotations, explicit capabilities and no concrete provider imports.
+- [x] Implement source-audited runtime/kernel initialization responses, environment/debug behavior and the IPv4 TCP capability probe identified by Task 13.2, without blanket success or host fallback.
+- [x] Verify byte-identical regeneration, missing/signature/layout drift failures, amd64 build/executed probes as available, and common gate; finish parent Task 14 checks, log and commit before Task 15.
 
 ### Task 14.3.1: Kernel initialization and adapter transport foundation
 
@@ -378,8 +378,8 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **Parent:** Task 14.3; completes its remaining requirements. **Dependency:** 14.3.1. **Budget:** 3,000–4,900 changed lines.
 **References:** T§7 Stat/Lock/Address; T§8/9 exact source ABI generation.
 
-- [ ] Generate complete amd64 syscall wrappers and layouts with source/signature/layout verification, explicit capabilities and pointer/integer separation.
-- [ ] Verify byte-identical scoped regeneration, ABI drift failures, executed amd64 probes when available and common gate; finish parent checks, log and commit.
+- [x] Generate complete amd64 syscall wrappers and layouts with source/signature/layout verification, explicit capabilities and pointer/integer separation.
+- [x] Verify byte-identical scoped regeneration, ABI drift failures, executed amd64 probes when available and common gate; finish parent checks, log and commit.
 
 ### Task 15: Generate and verify Go 1.25 arm64 adapters
 

@@ -14,7 +14,6 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	p125 "github.com/neria-cloud/gosim/internal/compat/go125/profile"
 )
 
 func TestInventoryCoversLegacyRoutes(t *testing.T) {
@@ -116,14 +115,15 @@ func TestInvalidRouteSchemas(t *testing.T) {
 }
 
 func TestGeneratedOutputIsCurrent(t *testing.T) {
-	m, err := Load()
+	tc, err := buildcfg.Resolve("go1.25.14")
 	if err != nil {
 		t.Fatal(err)
 	}
-	outputs, err := renderOutputs("go1.25.14", "go125", []string{"amd64"}, m, p125.VerificationOrigin(), p125.PolicyManifest().Modules)
-	if err != nil {
+	out := t.TempDir()
+	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out); err != nil {
 		t.Fatal(err)
 	}
+	outputs := readOutputTree(t, out)
 	for name, want := range outputs {
 		got, err := os.ReadFile(filepath.Join("../..", name))
 		if err != nil {
@@ -177,7 +177,7 @@ func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
 	if err := json.Unmarshal(first["internal/compat/go125/profile/routes_amd64.json"], &record); err != nil {
 		t.Fatal(err)
 	}
-	if record.Stage != "transport-schema" || record.Toolchain != "go1.25.14" || len(record.Modules) == 0 || !buildspec.ValidDigest(record.OriginDigest) {
+	if record.Stage != "typed-adapters" || !buildspec.ValidDigest(record.AdapterDigest) || record.Toolchain != "go1.25.14" || len(record.Modules) == 0 || !buildspec.ValidDigest(record.OriginDigest) {
 		t.Fatalf("generation identity=%+v", record)
 	}
 	for _, test := range []struct {
