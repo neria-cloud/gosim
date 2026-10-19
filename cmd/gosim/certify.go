@@ -69,6 +69,9 @@ func runCertificationCommand(command string, args []string) {
 // certify records one declared pending tuple. Reports stay candidate and never
 // edit reviewed profile metadata. Package applicability comes from one registry.
 func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (report CertificationReport, err error) {
+	if err := validateCertificationSelection(runtime.GOARCH, flags.Options.Race, suite.large); err != nil {
+		return report, err
+	}
 	resolved, err := resolveBuild("internal-candidate", flags)
 	if err != nil {
 		return report, err
@@ -107,6 +110,15 @@ func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (repor
 	}
 	report.ResultDigest, _ = buildspec.ReportDigest(report)
 	return report, buildspec.ValidateReport(report)
+}
+
+// Ordinary validation uses this runner too and remains available on every host.
+// Only ARM64 builds without race instrumentation may produce certification.
+func validateCertificationSelection(hostArch string, race, large bool) error {
+	if large && (hostArch != "arm64" || race) {
+		return fmt.Errorf("AMD64 and race certification are disabled; use ARM64 without race")
+	}
+	return nil
 }
 
 // verifyStep and certify share the full suite runner; neither recurses through

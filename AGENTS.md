@@ -121,7 +121,7 @@ GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -
 
 Omit `-check` only when intentionally regenerating adapters. Run `go run ./internal/compat/genprofile` when version-owned source/facade inputs change. The filesystem model's separate stringer generation remains supported.
 
-Final certification requires 2 exact patches × 3 host tuples × 4 feature sets × 2 race modes. Use `run-matrix.sh --native --platform OS/ARCH` on an actual matching native worker. Colima routes use `--context colima --platform linux/amd64` or `linux/arm64` from Darwin ARM64. Linux AMD64 must not silently run ARM64 jobs. Preserve observed architecture/emulation and image metadata. The runner copies artifacts through Docker's API and does not recreate the VM.
+Final certification currently runs 16 tuples: 2 exact patches × 2 ARM64 host tuples (Linux and Darwin) × 4 feature sets, without race instrumentation. AMD64 and race certification processes are disabled in CI, the matrix runner, and direct certification workers/commands. Ordinary validation and explicitly requested race tests remain available; they do not certify these excluded tuples. Use `run-matrix.sh --native --platform OS/arm64` on an actual matching native worker. The Colima route uses `--context colima --platform linux/arm64` from Darwin ARM64. Preserve observed architecture and image metadata. The runner copies artifacts through Docker's API and does not recreate the VM. Historical AMD64/race evidence does not authorize new certification jobs.
 
 ## Test conventions
 

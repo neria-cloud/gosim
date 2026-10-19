@@ -12,19 +12,20 @@ import subprocess
 import sys
 import tempfile
 
-from worker import arch
+from worker import CERTIFICATION_PLATFORMS, arch, validate_certification
 
 PATCHES = ("go1.25.14", "go1.26.9")
-PLATFORMS = ("linux/amd64", "linux/arm64", "darwin/arm64")
+PLATFORMS = CERTIFICATION_PLATFORMS
 FEATURES = ("rt", "rt,fs", "rt,net", "rt,fs,net")
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def enumerate_jobs(platforms, patches, smoke=False):
-    return [dict(platform=p, patch=v, features=f, race=r)
-            for p, v, f, r in itertools.product(platforms, patches[:1] if smoke else patches,
-                                               FEATURES[:1] if smoke else FEATURES,
-                                               (False,) if smoke else (False, True))]
+    for platform in platforms:
+        validate_certification(platform)
+    return [dict(platform=p, patch=v, features=f, race=False)
+            for p, v, f in itertools.product(platforms, patches[:1] if smoke else patches,
+                                            FEATURES[:1] if smoke else FEATURES)]
 
 
 def job_name(job):
@@ -185,6 +186,7 @@ def execute(job, run, args, inputs, docker, daemon, images):
     status = directory / "execution.json"
     status.write_text(json.dumps(record, indent=2) + "\n")
     try:
+        validate_certification(job["platform"], job["race"])
         common = ["--patch", job["patch"], "--platform", job["platform"], "--features", job["features"],
                   "--concurrency", str(args.worker_concurrency)]
         if job["race"]:

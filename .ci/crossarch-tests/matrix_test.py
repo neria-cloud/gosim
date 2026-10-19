@@ -7,18 +7,43 @@ import unittest
 from unittest.mock import patch
 
 import matrix
+import worker
 
 
 class MatrixTests(unittest.TestCase):
     def test_complete_enumeration(self):
         jobs = matrix.enumerate_jobs(matrix.PLATFORMS, matrix.PATCHES)
-        self.assertEqual(len(jobs), 48)
-        self.assertEqual(len({matrix.job_name(j) for j in jobs}), 48)
+        self.assertEqual(len(jobs), 16)
+        self.assertEqual(len({matrix.job_name(j) for j in jobs}), 16)
+        self.assertTrue(all(j["platform"].endswith("/arm64") and not j["race"] for j in jobs))
         for platform in matrix.PLATFORMS:
-            self.assertEqual(sum(j["platform"] == platform for j in jobs), 16)
+            self.assertEqual(sum(j["platform"] == platform for j in jobs), 8)
         smoke = matrix.enumerate_jobs(matrix.PLATFORMS, matrix.PATCHES, smoke=True)
-        self.assertEqual(len(smoke), 3)
+        self.assertEqual(len(smoke), 2)
         self.assertTrue(all(not j["race"] and j["features"] == "rt" for j in smoke))
+
+    def test_disabled_certification_rejected_before_execution(self):
+        with self.assertRaises(ValueError):
+            matrix.enumerate_jobs(["linux/amd64"], matrix.PATCHES)
+        for platform, race in [("linux/amd64", False), ("linux/arm64", True), ("darwin/arm64", True)]:
+            with self.subTest(platform=platform, race=race):
+                args = ["--patch", matrix.PATCHES[0], "--platform", platform,
+                        "--features", "rt", "--evidence", "unused"]
+                if race:
+                    args.append("--race")
+                with patch.object(worker.subprocess, "check_output") as observe, patch.object(worker.Path, "mkdir") as mkdir:
+                    with self.assertRaises(SystemExit) as error:
+                        worker.main(args)
+                    self.assertEqual(error.exception.code, 2)
+                    observe.assert_not_called()
+                    mkdir.assert_not_called()
+                job = dict(platform=platform, patch=matrix.PATCHES[0], features="rt", race=race)
+                with tempfile.TemporaryDirectory() as tmp, patch.object(matrix, "checked") as command, patch.object(matrix, "snapshot") as snapshot:
+                    result = matrix.execute(job, Path(tmp), argparse.Namespace(native=True), {}, [], {}, {})
+                    self.assertEqual(result["status"], "failed")
+                    self.assertIn("disabled", result["error"])
+                    command.assert_not_called()
+                    snapshot.assert_not_called()
 
     def test_worker_routing_rejects_cross_compile_as_execution(self):
         for requested in matrix.PLATFORMS:

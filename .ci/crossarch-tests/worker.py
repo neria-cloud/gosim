@@ -11,7 +11,15 @@ def arch(value):
     return {"aarch64": "arm64", "arm64": "arm64", "x86_64": "amd64", "amd64": "amd64"}.get(value, value)
 
 
-def main():
+CERTIFICATION_PLATFORMS = ("linux/arm64", "darwin/arm64")
+
+
+def validate_certification(platform, race=False):
+    if platform not in CERTIFICATION_PLATFORMS or race:
+        raise ValueError("AMD64 and race certification are disabled; use ARM64 without race")
+
+
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch", required=True)
     parser.add_argument("--platform", required=True)
@@ -21,7 +29,11 @@ def main():
     parser.add_argument("--mode", default="native")
     parser.add_argument("--image", default="")
     parser.add_argument("--concurrency", type=int, default=2)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    try:
+        validate_certification(args.platform, args.race)
+    except ValueError as error:
+        parser.error(str(error))
     if args.concurrency < 1:
         parser.error("concurrency must be positive")
     evidence = Path(args.evidence).resolve()

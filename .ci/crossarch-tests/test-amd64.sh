@@ -1,3 +1,4 @@
-#!/bin/bash
-set -euo pipefail
-exec "$(dirname "$0")/run-matrix.sh" --context colima --platform linux/amd64 "$@"
+#!/bin/sh
+set -eu
+echo "AMD64 certification is disabled; use test-arm64.sh for ARM64 certification." >&2
+exit 2

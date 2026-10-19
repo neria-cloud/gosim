@@ -119,3 +119,22 @@ func TestSuiteConcurrencyBudget(t *testing.T) {
 		t.Fatal(string(out), err)
 	}
 }
+
+func TestCertificationSelection(t *testing.T) {
+	t.Parallel()
+	for _, arch := range []string{"amd64", "arm64"} {
+		for _, race := range []bool{false, true} {
+			for _, large := range []bool{false, true} {
+				name := fmt.Sprintf("%s/race=%t/large=%t", arch, race, large)
+				t.Run(name, func(t *testing.T) {
+					t.Parallel()
+					err := validateCertificationSelection(arch, race, large)
+					wantDisabled := large && (arch == "amd64" || race)
+					if (err != nil) != wantDisabled {
+						t.Fatalf("disabled=%t, error=%v", wantDisabled, err)
+					}
+				})
+			}
+		}
+	}
+}
