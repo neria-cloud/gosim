@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–17 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–18 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -446,15 +446,15 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§5/7 routes and payloads; T§8/9 generation; T§2 exact amd64 tuple.  
 **Budget:** 2,500–4,000 changed lines. **Dependency:** 14, 16–17.
 
-- [ ] Implement the Go 1.26-specific `syscall.runtimeClearenv(map[string]int)` process hook found by Task 17.2; keep its map translated and clear machine/debug state without native environment access.
-- [ ] Generate all amd64 routes using go1.26.9 and the pinned external module graph; reuse the logical manifest, not older ABI declarations. Cover shared descriptor, fs, net, process and control ownership completely.
-- [ ] Verify disabled wrappers require features before domain calls and import no domain models. Preserve deterministic errno/capability classification, pointer marshalling and race annotations.
-- [ ] Check generated outputs contain no old simulation, go123, go125-executable or old engine import.
+- [x] Implement the Go 1.26-specific `syscall.runtimeClearenv(map[string]int)` process hook found by Task 17.2; keep its map translated and clear machine/debug state without native environment access.
+- [x] Generate all amd64 routes using go1.26.9 and the pinned external module graph; reuse the logical manifest, not older ABI declarations. Cover shared descriptor, fs, net, process and control ownership completely.
+- [x] Verify disabled wrappers require features before domain calls and import no domain models. Preserve deterministic errno/capability classification, pointer marshalling and race annotations.
+- [x] Check generated outputs contain no old simulation, go123, go125-executable or old engine import.
 
 #### Verification
 
-- [ ] amd64 layout/generation/signature and executed adapter probes pass with recorded worker/emulation mode.
-- [ ] Run common commit gate and both-family generation clean-checks.
+- [x] amd64 layout/generation/signature and executed adapter probes pass with recorded worker/emulation mode.
+- [x] Run common commit gate and both-family generation clean-checks.
 
 ### Task 19: Generate Go 1.26 arm64 adapters and close ABI inventory gaps
 

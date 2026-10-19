@@ -1,0 +1,113 @@
+package routegen
+
+import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/neria-cloud/gosim/internal/buildcfg"
+	p126 "github.com/neria-cloud/gosim/internal/compat/go126/profile"
+)
+
+func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
+	tc, err := buildcfg.Resolve("go1.26.9")
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := t.TempDir()
+	protected := filepath.Join(output, "internal/compat/go125/profile/routes_amd64.json")
+	if err := os.MkdirAll(filepath.Dir(protected), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(protected, []byte("other family"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := GenerateProfile(tc, "go126", []string{"amd64"}, output); err != nil {
+		t.Fatal(err)
+	}
+	first := readOutputTree(t, output)
+	for name, want := range first {
+		if strings.Contains(name, "/go125/") {
+			if string(want) != "other family" {
+				t.Fatal("changed other family")
+			}
+			continue
+		}
+		got, err := os.ReadFile(filepath.Join("../..", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("stale output %s", name)
+		}
+		if strings.HasSuffix(name, ".go") && strings.Contains(name, "/go126/") {
+			for _, forbidden := range []string{"/internal/compat/go125/", "/internal/simulation", "/internal/fs", "/internal/net", "/internal/hooks/", "/gosimruntime"} {
+				if bytes.Contains(got, []byte(forbidden)) {
+					t.Fatalf("%s imports %s", name, forbidden)
+				}
+			}
+		}
+	}
+	file := filepath.Join(output, "internal/compat/go126/hooks/fs/syscalls_amd64.go")
+	stat, err := os.Stat(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := GenerateProfile(tc, "go126", []string{"amd64"}, output); err != nil {
+		t.Fatal(err)
+	}
+	second, err := os.Stat(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stat.ModTime() != second.ModTime() {
+		t.Fatal("unchanged output was rewritten")
+	}
+	for name, want := range first {
+		got, err := os.ReadFile(filepath.Join(output, name))
+		if err != nil || !bytes.Equal(got, want) {
+			t.Fatalf("generation changed %s: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(output, "internal/compat/go126/hooks/fs/syscalls_arm64.go")); !os.IsNotExist(err) {
+		t.Fatal("unselected architecture emitted")
+	}
+	manifest, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile := p126.Descriptor()
+	for i, h := range profile.Hooks {
+		if h.Package == "syscall" && h.Symbol == "Fstat" {
+			profile.Hooks[i].Signature = "func(int) error"
+		}
+	}
+	if _, err := renderAdapters(tc, profile, "amd64", manifest); err == nil || !strings.Contains(err.Error(), "unreviewed adapter ABI") {
+		t.Fatalf("signature mutation: %v", err)
+	}
+	// Optional-domain gates precede all argument marshalling, even invalid pointers.
+	for _, owner := range []string{"fs", "net"} {
+		path := filepath.Join(output, "internal/compat/go126/hooks", owner, "syscalls_amd64.go")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, h := range p126.Descriptor().Hooks {
+			if h.Owner != owner {
+				continue
+			}
+			name := adapterPrefix(h.Package) + h.Symbol
+			start := strings.Index(string(data), "func "+name+"(")
+			if start < 0 {
+				t.Fatalf("missing wrapper %s", name)
+			}
+			body := string(data)[start:]
+			brace := strings.Index(body, "{\n")
+			if brace < 0 || !strings.HasPrefix(strings.TrimSpace(body[brace+2:]), "kh.Require(") {
+				t.Fatalf("missing first gate: %s", name)
+			}
+		}
+	}
+}

@@ -27,7 +27,7 @@ type layoutManifest struct {
 	Numbers map[string]string            `json:"numbers"`
 }
 
-func renderLayouts(sources map[string]sourcePackage, arch string) ([]byte, error) {
+func renderLayouts(sources map[string]sourcePackage, arch, profileID string) ([]byte, error) {
 	data := amd64Layout
 	if arch == "arm64" {
 		data = arm64Layout
@@ -39,7 +39,7 @@ func renderLayouts(sources map[string]sourcePackage, arch string) ([]byte, error
 		return nil, err
 	}
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "// Code generated from pinned Linux source by gosim-gen. DO NOT EDIT.\n//go:build go1.25 && !go1.26 && %s\n\npackage kernel\n", arch)
+	fmt.Fprintf(&b, "// Code generated from pinned Linux source by gosim-gen. DO NOT EDIT.\n//go:build %s && %s\n\npackage kernel\n", familyBounds(profileID), arch)
 	for _, pkg := range []string{"syscall", "golang.org/x/sys/unix"} {
 		prefix := ""
 		if pkg != "syscall" {

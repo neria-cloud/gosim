@@ -10,6 +10,7 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	p125 "github.com/neria-cloud/gosim/internal/compat/go125/profile"
+	p126 "github.com/neria-cloud/gosim/internal/compat/go126/profile"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
@@ -32,8 +33,17 @@ type GenerationRecord struct {
 // It never changes tuple certification, source ABI expectations, or another
 // family's files. Shared route schemas are architecture-neutral.
 func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, output string) error {
-	if profileID != "go125" || tc.Version != "go1.25.14" {
-		return fmt.Errorf("generation requires implemented go125 profile and go1.25.14")
+	var profile spec.Profile
+	var origin spec.Origin
+	var policies spec.PolicyManifest
+	var verify func(buildspec.Toolchain) error
+	switch {
+	case profileID == "go125" && tc.Version == "go1.25.14":
+		profile, origin, policies, verify = p125.Descriptor(), p125.VerificationOrigin(), p125.PolicyManifest(), p125.Verify
+	case profileID == "go126" && tc.Version == "go1.26.9":
+		profile, origin, policies, verify = p126.Descriptor(), p126.VerificationOrigin(), p126.PolicyManifest(), p126.Verify
+	default:
+		return fmt.Errorf("generation requires a matching implemented profile and exact pinned toolchain")
 	}
 	if output == "" || len(arches) == 0 {
 		return fmt.Errorf("explicit output and architectures are required")
@@ -49,29 +59,29 @@ func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, 
 	if err != nil {
 		return err
 	}
-	if err := p125.Verify(tc); err != nil {
+	if err := verify(tc); err != nil {
 		return err
 	}
 	for _, arch := range arches {
 		sourceTC := tc
 		sourceTC.HostArch = arch // VerifyHooks reads selected Linux source, not a native binary.
-		if err := spec.VerifyHooks(sourceTC, p125.Descriptor().Hooks); err != nil {
+		if err := spec.VerifyHooks(sourceTC, profile.Hooks); err != nil {
 			return err
 		}
 	}
-	if err := p125.VerifyModules(tc, root); err != nil {
+	if err := spec.VerifyModules(tc, root, policies.Modules); err != nil {
 		return err
 	}
 	m, err := Load()
 	if err != nil {
 		return err
 	}
-	outputs, err := renderOutputs(tc.Version, profileID, arches, m, p125.VerificationOrigin(), p125.PolicyManifest().Modules)
+	outputs, err := renderOutputs(tc.Version, profileID, arches, m, origin, policies.Modules)
 	if err != nil {
 		return err
 	}
 	for _, arch := range arches {
-		adapters, err := renderAdapters(tc, arch, m)
+		adapters, err := renderAdapters(tc, profile, arch, m)
 		if err != nil {
 			return err
 		}
@@ -163,4 +173,15 @@ func writeFile(path string, data []byte) error {
 		return err
 	}
 	return os.Rename(file.Name(), path)
+}
+
+func familyBounds(profile string) string {
+	switch profile {
+	case "go125":
+		return "go1.25 && !go1.26"
+	case "go126":
+		return "go1.26 && !go1.27"
+	default:
+		panic("invalid generation family")
+	}
 }

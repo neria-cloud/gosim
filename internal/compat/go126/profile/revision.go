@@ -2,4 +2,4 @@
 
 package profile
 
-const Revision = "8269c8576ba2c651b748bf1641d3b56ff414a04d6b68e77e53c3336b8397a89e"
+const Revision = "aedc048dfaa10903ebb36d95f091c7d4aef0fba1bba47ee80f9af0dc10bb1d05"
