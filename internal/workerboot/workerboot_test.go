@@ -169,6 +169,14 @@ func TestWorkerCacheAndForwarding(t *testing.T) {
 		}
 	}
 	w := workers[0]
+	if override, err := OpenOverride(t.Context(), w.Path, r, source, inputs); err != nil || override != w {
+		t.Fatal("matching override rejected", err)
+	}
+	wrong := source
+	wrong.SourceDigest = buildspec.Hash([]byte("different source"))
+	if _, err := OpenOverride(t.Context(), w.Path, r, wrong, inputs); err == nil {
+		t.Fatal("override accepted a different source identity")
+	}
 	before, err := os.Stat(w.Path)
 	if err != nil {
 		t.Fatal(err)

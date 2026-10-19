@@ -227,9 +227,9 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	var outputLock sync.Mutex
 	execution, err := runTestJobs(len(commands), suite.concurrency, func(i int) ([]byte, error) {
 		if converters[i] != nil {
-			return captureSimulationCommand(commands[i], converters[i], &outputLock, stream)
+			return captureSimulationCommand(cfg.Context, commands[i], converters[i], &outputLock, stream)
 		}
-		return captureCommand(commands[i], &outputLock, stream)
+		return captureCommand(cfg.Context, commands[i], &outputLock, stream)
 	})
 	if writeErr := os.WriteFile(filepath.Join(dir, "execute.log"), execution, 0o644); writeErr != nil {
 		return results, writeErr
@@ -267,12 +267,8 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	if err := os.WriteFile(configPath, configData, 0o644); err != nil {
 		return results, err
 	}
-	worker, err := candidateWrapper()
-	if err != nil {
-		return results, err
-	}
-	cmd.Env = append(cmd.Env, "GOSIM_CONFIG="+configPath, "GOSIMTOOL="+worker, "GOSIM_TEST_LARGE=0")
-	result, err := runLogged(cmd, dir, "native", stream)
+	cmd.Env = append(cmd.Env, "GOSIM_CONFIG="+configPath, "GOSIMTOOL=", "GOSIM_TEST_LARGE=0")
+	result, err := runLogged(cfg.Context, cmd, dir, "native", stream)
 	results = append(results, result)
 	if err != nil || full {
 		if err == nil && suite.large {
@@ -293,7 +289,7 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	args = append(args, units...)
 	unitCommand := buildcfg.Command(cfg.Toolchain, "", args...)
 	unitCommand.Env = cmd.Env
-	result, err = runLogged(unitCommand, dir, "native-units", stream)
+	result, err = runLogged(cfg.Context, unitCommand, dir, "native-units", stream)
 	results = append(results, result)
 	if err != nil {
 		return results, err
@@ -325,7 +321,7 @@ func runLargeSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (S
 		"UNIT_PARALLEL="+strconv.Itoa(parallel), "UNIT_PACKAGES="+strconv.Itoa(packages),
 		"GOSIM_TOOLCHAIN="+cfg.Identity.Toolchain, "TEST_REPORTS_DIR="+filepath.Join(dir, "test-reports"))
 	cmd.Env = buildcfg.Command(cfg.Toolchain, "").Env
-	return runLogged(cmd, dir, "large")
+	return runLogged(cfg.Context, cmd, dir, "large")
 }
 
 // Divide one budget between package processes and parallel tests in each
@@ -337,10 +333,10 @@ func nativeTestParallelFlags(concurrency int) []string {
 
 // Simulation engines cannot share a process. Run independent binaries with a
 // bounded pool and merge their logs in input order, regardless of finish order.
-func runTestCommands(commands []*exec.Cmd, concurrency int, stream ...io.Writer) ([]byte, error) {
+func runTestCommands(ctx context.Context, commands []*exec.Cmd, concurrency int, stream ...io.Writer) ([]byte, error) {
 	var outputLock sync.Mutex
 	return runTestJobs(len(commands), concurrency, func(i int) ([]byte, error) {
-		return captureCommand(commands[i], &outputLock, stream...)
+		return captureCommand(ctx, commands[i], &outputLock, stream...)
 	})
 }
 
@@ -370,35 +366,14 @@ func runTestJobs(count, concurrency int, run func(int) ([]byte, error)) ([]byte,
 	return bytes.Join(outputs, nil), errors.Join(errs...)
 }
 
-func runLogged(cmd *exec.Cmd, dir, name string, stream ...io.Writer) (SuiteResult, error) {
-	output, err := captureCommand(cmd, new(sync.Mutex), stream...)
+func runLogged(ctx context.Context, cmd *exec.Cmd, dir, name string, stream ...io.Writer) (SuiteResult, error) {
+	output, err := captureCommand(ctx, cmd, new(sync.Mutex), stream...)
 	// Preserve stdout/stderr even on failure; a failed report remains incomplete.
 	if writeErr := os.WriteFile(filepath.Join(dir, name+".log"), output, 0o644); writeErr != nil {
 		return SuiteResult{}, errors.Join(err, writeErr)
 	}
 	fmt.Fprintf(os.Stdout, "%s: passed=%t (%s)\n", name, err == nil, filepath.Join(dir, name+".log"))
 	return SuiteResult{Name: name, Passed: err == nil, LogDigest: buildspec.Hash(output)}, err
-}
-
-func candidateWrapper() (string, error) {
-	executable, err := os.Executable()
-	if err != nil {
-		return "", err
-	}
-	root, err := gosimtool.FindGoModDir()
-	if err != nil {
-		return "", err
-	}
-	destination := filepath.Join(root, ".gosim", "ci", runtime.Version(), "gosim-candidate")
-	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
-		return "", err
-	}
-	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
-	data := []byte("#!/bin/sh\nexec " + quote(executable) + " internal-candidate \"$@\"\n")
-	if err := os.WriteFile(destination, data, 0o755); err != nil {
-		return "", err
-	}
-	return destination, nil
 }
 
 // Each command buffers partial lines before taking the shared output lock.
@@ -427,16 +402,17 @@ func (w *eventWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func captureCommand(cmd *exec.Cmd, mu *sync.Mutex, stream ...io.Writer) ([]byte, error) {
-	if len(stream) == 0 || stream[0] == nil {
-		return cmd.CombinedOutput()
-	}
+func captureCommand(ctx context.Context, cmd *exec.Cmd, mu *sync.Mutex, stream ...io.Writer) ([]byte, error) {
 	var output bytes.Buffer
-	events := &eventWriter{mu: mu, out: stream[0]}
-	cmd.Stdout = io.MultiWriter(&output, events)
-	cmd.Stderr = cmd.Stdout
-	err := cmd.Run()
-	if len(events.pending) > 0 {
+	cmd.Stdout, cmd.Stderr = &output, &output
+	var events *eventWriter
+	if len(stream) > 0 && stream[0] != nil {
+		events = &eventWriter{mu: mu, out: stream[0]}
+		cmd.Stdout = io.MultiWriter(&output, events)
+		cmd.Stderr = cmd.Stdout
+	}
+	err := buildspec.RunProcess(ctx, cmd)
+	if events != nil && len(events.pending) > 0 {
 		mu.Lock()
 		_, writeErr := events.out.Write(events.pending)
 		mu.Unlock()

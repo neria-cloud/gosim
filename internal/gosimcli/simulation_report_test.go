@@ -45,7 +45,7 @@ func TestSimulationReportClosesTestsAndPackage(t *testing.T) {
 			binary.Env = append(os.Environ(), "GOSIM_REPORT_TEST_CHILD="+mode)
 			converter := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "tool", "test2json", "-t", "-p", "fixture/simulation")
 			var streamed bytes.Buffer
-			data, err := captureSimulationCommand(binary, converter, new(sync.Mutex), &streamed)
+			data, err := captureSimulationCommand(t.Context(), binary, converter, new(sync.Mutex), &streamed)
 			if (err == nil) != (mode == "pass") {
 				t.Fatalf("%s: %v", mode, err)
 			}
@@ -103,7 +103,7 @@ func TestSimulationReportConverterStartFailure(t *testing.T) {
 	binary := exec.Command(executable, "-test.run=^TestSimulationReportProcess$")
 	binary.Env = append(os.Environ(), "GOSIM_REPORT_TEST_CHILD=pass")
 	converter := exec.Command(filepath.Join(t.TempDir(), "missing"))
-	if _, err := captureSimulationCommand(binary, converter, new(sync.Mutex), nil); err == nil || !errors.Is(err, os.ErrNotExist) {
+	if _, err := captureSimulationCommand(t.Context(), binary, converter, new(sync.Mutex), nil); err == nil || !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("lost converter start failure", err)
 	}
 }

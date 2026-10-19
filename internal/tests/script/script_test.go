@@ -71,7 +71,7 @@ func TestScript(t *testing.T) {
 			log.Fatal(err)
 		}
 		e.Setenv("PATH", binDir+string(filepath.ListSeparator)+e.Getenv("PATH"))
-		e.Setenv("GOSIMTOOL", filepath.Join(binDir, "gosim"))
+		e.Setenv("GOSIMTOOL", "")
 
 		// allow the module to access our shared cache
 		e.Vars = append(e.Vars, "GOSIMCACHE="+filepath.Join(curModDir, gosimtool.OutputDirectory))

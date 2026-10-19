@@ -1,15 +1,16 @@
 package gosimtool
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"golang.org/x/mod/modfile"
@@ -17,6 +18,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/hostabi"
+	"github.com/neria-cloud/gosim/internal/workerboot"
 )
 
 const (
@@ -158,65 +160,74 @@ func GetNewPackageName(pkg string) string {
 	return "translated/" + ReplaceSpecialPackages(pkg)
 }
 
-// invokeTestWorker requires the host metatest and worker to use the selected
-// exact patch. A mismatch reports the rebuild command; it never bootstraps a
-// different toolchain behind the caller's back.
+// invokeTestWorker fixes the compiler to the running native test process. The
+// caller's selected source is bootstrapped through the same cache as the CLI.
 func invokeTestWorker(t *testing.T, patch, command string, args ...string) []byte {
 	t.Helper()
-	tc, err := buildcfg.Resolve(patch)
+	ctx, cancel := signal.NotifyContext(t.Context(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	r, err := buildcfg.ResolveRunningProcess(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := buildcfg.ValidateWorker(tc); err != nil {
+	if r.Toolchain.Version != patch {
+		t.Fatalf("test compiler is %s, artifact requests %s; re-run go test", r.Toolchain.Version, patch)
+	}
+	if err := buildcfg.ValidateWorker(r.Toolchain); err != nil {
 		t.Fatal(err)
 	}
-	var child *exec.Cmd
-	args = append([]string{command}, args...)
-	if worker := os.Getenv("GOSIMTOOL"); worker != "" {
-		child = exec.Command(worker, args...)
-		child.Env = buildcfg.Command(tc, "", "version").Env
+	source, err := workerboot.ResolveSource(ctx, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inputs, err := buildcfg.Fingerprint(r.Toolchain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var worker workerboot.Worker
+	if override := os.Getenv("GOSIMTOOL"); override != "" {
+		worker, err = workerboot.OpenOverride(ctx, override, r, source, inputs)
 	} else {
-		args = append([]string{"run", "-ldflags=-checklinkname=0", "-tags=linkname", Module + "/cmd/gosim"}, args...)
-		child = buildcfg.Command(tc, "", args...)
+		worker, err = workerboot.Ensure(ctx, r, source, inputs, "")
 	}
-	output, err := child.Output()
 	if err != nil {
-		var exit *exec.ExitError
-		var detail string
-		if errors.As(err, &exit) {
-			detail = string(exit.Stderr)
-		}
-		t.Fatalf("Could not find pre-built gosim test binary: %v\n%s", err, detail)
+		t.Fatal(err)
 	}
-	return output
+	var output, diagnostics bytes.Buffer
+	code, err := workerboot.Run(ctx, worker, r, append([]string{command}, args...), workerboot.Streams{Out: &output, Err: &diagnostics})
+	if err != nil || code != 0 {
+		t.Fatalf("gosim worker %s: exit status %d: %v\n%s", command, code, err, diagnostics.String())
+	}
+	return output.Bytes()
 }
 
 // ResolveTestIdentity resolves config in the host process so the outer Go test
 // cache observes it, then asks the exact worker for the complete source identity.
 func ResolveTestIdentity(t *testing.T, configPath string) buildspec.Identity {
 	t.Helper()
-	if configPath == "" {
-		configPath = os.Getenv("GOSIM_CONFIG")
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
 	}
-	if configPath == "" {
-		root, err := FindGoModDir()
-		if err != nil {
-			t.Fatal(err)
-		}
-		configPath = filepath.Join(root, "gosim.json")
+	configPath, err = workerboot.ConfigPath(cwd, configPath)
+	if err != nil {
+		t.Fatal(err)
 	}
 	cfg, err := buildcfg.Load(configPath, buildcfg.Overrides{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	resolution, err := buildcfg.ResolveRunningProcess(context.Background(), "")
+	resolution, err := buildcfg.ResolveRunningProcess(t.Context(), "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.ExplicitToolchain != "" && cfg.ExplicitToolchain != resolution.Toolchain.Version {
 		t.Fatal("configured compiler differs from running Go test; migrate config to schema 2")
 	}
-	args := []string{"-config", configPath}
+	var args []string
+	if configPath != "" {
+		args = []string{"-config", configPath}
+	}
 	if hostabi.RaceEnabled {
 		args = append(args, "-race")
 	}

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 
@@ -60,7 +61,11 @@ func manifestFor(r buildspec.Resolution, s Source, f buildspec.Fingerprints) (Wo
 }
 
 func readWorker(dir string, want WorkerManifest) (Worker, error) {
-	path := filepath.Join(dir, "worker")
+	return readWorkerFile(filepath.Join(dir, "worker"), want)
+}
+
+func readWorkerFile(path string, want WorkerManifest) (Worker, error) {
+	dir := filepath.Dir(path)
 	for _, name := range []string{dir, filepath.Join(dir, "manifest.json"), path} {
 		info, err := os.Lstat(name)
 		if err != nil {
@@ -108,6 +113,32 @@ func readWorker(dir string, want WorkerManifest) (Worker, error) {
 		return Worker{}, err
 	}
 	return Worker{Path: path, Manifest: got}, nil
+}
+
+// OpenOverride validates an explicitly supplied worker against the same source
+// and compiler inputs as automatic startup. A bare binary cannot prove which
+// source it was built from: keep its generated manifest alongside it.
+func OpenOverride(ctx context.Context, path string, r buildspec.Resolution, source Source, inputs buildspec.Fingerprints) (Worker, error) {
+	path, err := exec.LookPath(path)
+	if err != nil {
+		return Worker{}, err
+	}
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return Worker{}, err
+	}
+	want, err := manifestFor(r, source, inputs)
+	if err != nil {
+		return Worker{}, err
+	}
+	w, err := readWorkerFile(path, want)
+	if err != nil {
+		return Worker{}, fmt.Errorf("invalid GOSIMTOOL worker or missing matching manifest; unset GOSIMTOOL for automatic startup: %w", err)
+	}
+	if err := Verify(ctx, w, r); err != nil {
+		return Worker{}, err
+	}
+	return w, nil
 }
 
 func Ensure(ctx context.Context, r buildspec.Resolution, source Source, inputs buildspec.Fingerprints, cacheRoot string) (worker Worker, result error) {

@@ -2,6 +2,7 @@ package gosimcli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -56,7 +57,7 @@ func TestSuiteCommandsOverlapWithinBudgetAndKeepAllResults(t *testing.T) {
 		err    error
 	}
 	done := make(chan result, 1)
-	go func() { output, err := runTestCommands(commands, 2); done <- result{output, err} }()
+	go func() { output, err := runTestCommands(t.Context(), commands, 2); done <- result{output, err} }()
 	// Always release and reap workers before TempDir cleanup, including failure.
 	t.Cleanup(func() {
 		_ = os.WriteFile(filepath.Join(dir, "release"), nil, 0o600)
@@ -99,6 +100,16 @@ func TestSuiteCommandsOverlapWithinBudgetAndKeepAllResults(t *testing.T) {
 	}
 }
 
+func TestSuiteCancellationStopsCommands(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer cancel()
+	cmd := exec.Command("/bin/sh", "-c", "sleep 30")
+	if _, err := runTestCommands(ctx, []*exec.Cmd{cmd}, 1); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("suite did not propagate cancellation", err)
+	}
+}
+
 func TestSuiteConcurrencyBudget(t *testing.T) {
 	t.Parallel()
 	for budget := 1; budget <= 16; budget++ {
@@ -112,10 +123,10 @@ func TestSuiteConcurrencyBudget(t *testing.T) {
 			t.Fatalf("parallel tests disabled: %v", flags)
 		}
 	}
-	if _, err := runTestCommands(nil, 0); err == nil {
+	if _, err := runTestCommands(t.Context(), nil, 0); err == nil {
 		t.Fatal("accepted zero budget")
 	}
-	if out, err := runTestCommands(nil, 2); err != nil || len(out) != 0 {
+	if out, err := runTestCommands(t.Context(), nil, 2); err != nil || len(out) != 0 {
 		t.Fatal(string(out), err)
 	}
 }

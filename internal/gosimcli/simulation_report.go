@@ -2,6 +2,7 @@ package gosimcli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
 var (
@@ -61,7 +64,7 @@ func (w *simulationOutput) line(line string) error {
 	return err
 }
 
-func captureSimulationCommand(binary, converter *exec.Cmd, mu *sync.Mutex, stream io.Writer) ([]byte, error) {
+func captureSimulationCommand(ctx context.Context, binary, converter *exec.Cmd, mu *sync.Mutex, stream io.Writer) ([]byte, error) {
 	input, output := io.Pipe()
 	converter.Stdin = input
 	type result struct {
@@ -70,7 +73,7 @@ func captureSimulationCommand(binary, converter *exec.Cmd, mu *sync.Mutex, strea
 	}
 	done := make(chan result, 1)
 	go func() {
-		data, err := captureCommand(converter, mu, stream)
+		data, err := captureCommand(ctx, converter, mu, stream)
 		// Unblock the binary writer if the converter fails to start or exits early.
 		_ = input.CloseWithError(io.ErrClosedPipe)
 		done <- result{data, err}
@@ -78,7 +81,7 @@ func captureSimulationCommand(binary, converter *exec.Cmd, mu *sync.Mutex, strea
 	normalized := &simulationOutput{out: output, starts: make(map[string]time.Time)}
 	binary.Stdout = normalized
 	binary.Stderr = normalized
-	runErr := binary.Run()
+	runErr := buildspec.RunProcess(ctx, binary)
 	var flushErr error
 	if len(normalized.pending) > 0 {
 		flushErr = normalized.line(string(normalized.pending))

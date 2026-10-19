@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/neria-cloud/gosim/internal/buildcfg"
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
@@ -46,10 +46,10 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 		args = append(args, "-c")
 		args = append(args, "-o", buildDir)
 		args = append(args, "./internal/tests/race/testdata")
-		cmd := buildcfg.Command(cfg.Toolchain, modDir, args...)
+		cmd := buildspec.OutputCommand(cfg.Context, cfg.Toolchain, modDir, args...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		if err := buildspec.RunProcess(cfg.Context, cmd); err != nil {
 			return err
 		}
 		// place the binary
@@ -63,10 +63,17 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 
 	}
 
-	// Prepare the gosim binary
-	// TODO: should we have a -race version as well?
-	gosimBuildPath, err := os.Executable()
+	// Script callers must perform their own normal Go/source selection. Copying
+	// this worker would bind every fixture to the preparation process's compiler.
+	buildDir, err := os.MkdirTemp("", "gosim-script-launcher-*")
 	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(buildDir)
+	gosimBuildPath := filepath.Join(buildDir, "gosim")
+	cmd := buildspec.ApplicationCommand(cfg.Context, cfg.Resolution, "build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", gosimBuildPath, gosimtool.Module+"/cmd/gosim")
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	if err := buildspec.RunProcess(cfg.Context, cmd); err != nil {
 		return err
 	}
 	gosimFinalPath := filepath.Join(modDir, gosimtool.OutputDirectory, "scripttest", "bin", "gosim-user")
