@@ -108,3 +108,51 @@ Focused selected generation/declaration/provenance and native-boundary checks pa
 README, AGENTS and current design now document family support, ordinary Go toolchain selection, automatic caller-source worker bootstrap, optional schema-2 configuration, exact identities, module/workspace graph preservation and separate report directories. Certification is manual-only throughout; CI publishes ordinary test reports. Preserved the user's separately staged README feature-table/introduction changes.
 
 The first final ordinary invocation stopped at the formatting precheck (one extra blank line in identity_test.go), before library tests ran. Fixed that formatting and restarted. The authorized final large suite runs separately and without race instrumentation. Native public-package, family-contract and buildspec checks passed on early Go 1.25.1 and Go 1.26.1; normal Go tooling obtained those compilers. Final full-suite reports and external early-patch simulation checks remain pending.
+
+
+### Final validation findings and fixes
+
+Ordinary local Go 1.25.5 verification passed in 159.450s: 1,691 passed, zero failed/errors, 16 skips across 67 package reports. Report: test-reports/unit/20261019T211543.721446Z-v2v47run/report.md. The skips are five large-suite entry/helper gates, two race-only harnesses, one subprocess helper entry, and eight deliberately failing/log-output simulation fixtures invoked separately by native metatests. No additional test was disabled.
+
+Initial large run (221.529s) passed selected translation but exposed fixture assumptions: the etcd negative check resolved a repository-relative path from the package directory; testscript scratch/GOPATH content lived inside hashed application inputs; and the CLI refactor had separated simulation stderr from its historical combined stdout. Fixed the etcd working directory (focused check passed in 2.077s), put scratch outputs under .gosim, reused Go’s shared immutable module cache, and restored the existing simulation stdout contract while retaining separate launcher/worker diagnostics. The corrected large suite is running. Initial failure report: test-reports/large/20261019T211545.136897Z-9adzdtga/report.md.
+
+External ordinary native metatests successfully bootstrapped and executed their simulation on Go 1.25.1 (56.796s) and Go 1.26.1 (49.074s), with GOWORK off and no GOSIMTOOL override. Logs and results: .gosim/go-family-work/final-external-*.log and final-external-results.json. Focused public-package/contract/buildspec checks on both early patches also passed. Actual compatibility-check timings on Go 1.26.9 were 0.551s cold and 0.128s with a populated successful-check cache, measured separately from compiler fingerprinting/bootstrap. Earlier worker startup timings were 14.748s cold and 1.184s warm.
+
+Ordinary Go 1.26.9 also passed: 1,697 passed, zero failures/errors, the same 16 expected skips across 67 package reports, in 137.065s. Report: test-reports/unit/20261019T212049.984268Z-1vfdnxq_/report.md. Each ordinary job used its selected compiler; no internal cross-patch sweep ran. The final large checks are being run independently on both families.
+
+
+### Target architecture audit
+
+| Target component | Implemented boundary and verification |
+| --- | --- |
+| Family support/configuration | Shared strict stable-version registry; supported 1.25/1.26 families; schema-2 config and deprecated explicit schema-1 override. Hypothetical future patches are parser fixtures, not downloads. |
+| Caller compiler selection | Ordinary Go discovery preserves caller module/workspace and environment, freezes the selected executable, and validates the actual running worker. Focused discovery and early/later real compiler tests passed. |
+| Compatibility/provenance | Per-family hook/layout/constant contracts inspect actual selected compiler sources; success-only content cache; baseline origin remains generation provenance. Drift/cache/source-context tests passed. |
+| Independent launcher | No executable adapter/runtime/translator imports. Caller-selected source, compiler/dependency content keys, locked atomic bootstrap, binary manifest and bounded protocol validation. Cache/concurrency/corruption/override/cancellation tests passed. |
+| Workspace/private modules | Preserves selected graph roots and replacements, avoids pruned-graph expansion, validates private output parity and caller context. Real workspace and plain-module native metatests passed. |
+| Identity/artifacts/replay | Schema-2 exact compiler/source/config identity; certification excluded; manifest and package-content hashes; old protocols rejected. Source mutation, identity separation and stale artifact tests passed. |
+| Native metatests/CLI | Running-process compiler, automatic matching CLI worker, explicit override validation, preserved simulation stdout and cancellation ownership. Large fixtures exercise public commands without certification. |
+| Reporting/CI | Ordinary, large and race modes remain distinct; isolated snapshots and persistent reports; native CI runs ordinary/report-tool checks only. Matrix defaults no longer restrict supported patches. |
+| Manual certification | Kept outside CI and ordinary execution; AMD64/race guards unchanged. Only mocked orchestration/report validation tests ran; no certification execution. |
+| Documentation/migration | Updated README, AGENTS, current design and CLI package docs. User’s separately staged README edits remain staged. |
+
+No target feature was replaced by a patch allowlist, certification gate, archive download policy, runtime family switch or native I/O fallback. No new application tables were introduced. Intentional adapter/provenance baselines remain exact for reproducible generation. Final suite result reconciliation remains the last unchecked task.
+
+
+### Final results and completion
+
+All observed failures are resolved. Final ordinary runs passed on Go 1.25.5 and Go 1.26.9. Large candidate/feature-boundary and selected-translation suites passed on both compilers, as did ten of eleven script fixtures. The only remaining script failure in those full reports was the test’s lowercase `binary` assertion against the existing uppercase `Binary` lookup JSON field. Fixed only that assertion, then reran only TestScript/certification on both compilers using the same reporting library: both passed (29.208s and 31.272s). That fixture invokes ordinary commands to prove certification is unnecessary; it does not execute certification.
+
+| Validation | Result/evidence |
+| --- | --- |
+| Go 1.25.5 ordinary | PASS, 1,691 passed / 16 expected skips, 159.450s; [report](../../test-reports/unit/20261019T211543.721446Z-v2v47run/report.md) |
+| Go 1.26.9 ordinary | PASS, 1,697 passed / 16 expected skips, 137.065s; [report](../../test-reports/unit/20261019T212049.984268Z-1vfdnxq_/report.md) |
+| Go 1.25.5 large | Candidate and translation PASS; ten script fixtures PASS; one assertion failure subsequently fixed, 115.905s; [original report](../../test-reports/large/20261019T212237.809124Z-dr0fm8u7/report.md) |
+| Go 1.26.9 large | Same outcome, 109.856s; [original report](../../test-reports/large/20261019T212619.402709Z-g7wbxrdk/report.md) |
+| Final affected script on both compilers | PASS, 4 reported tests including parent tests, no skips/errors/failures, 61.024s total; [focused report](../../test-reports/focused/large/20261019T212834.397598Z-fifwb8pl/report.md) |
+| Go 1.25.1 and Go 1.26.1 | Public native packages, contracts/buildspec and real external native-to-simulation worker runs PASS; .gosim/go-family-work/final-early*.log and final-external-*.log |
+| Reporting/orchestration | make test-report-tools PASS; .gosim/go-family-work/migration-report-tools.log |
+
+The full large reports are immutable and correctly retain their original FAIL status. No full sweep was repeated after the final assertion-only fix; the passing focused report supersedes that test failure, not the other tests’ results. Ordinary source snapshots also predate these isolated large-fixture/output corrections, which were verified by the large and focused runs. Nothing was silently relabeled as a new full current-source run or as certification.
+
+Completed the target audit and documentation reconciliation. All seven plan stages are complete. Certification, race-instrumented tests/builds, VMs, Colima, and foreign-platform execution were not run. The separately staged README introduction/feature-table changes remain the user’s uncommitted changes.

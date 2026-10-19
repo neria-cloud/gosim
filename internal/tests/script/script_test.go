@@ -5,7 +5,9 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/rogpeppe/go-internal/gotooltest"
@@ -23,7 +25,19 @@ func TestScript(t *testing.T) {
 	p := testscript.Params{
 		Dir: "testdata",
 	}
-	gotooltest.Setup(&p)
+	if err := gotooltest.Setup(&p); err != nil {
+		t.Fatal(err)
+	}
+	moduleCache, err := exec.Command("go", "env", "GOMODCACHE").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Immutable downloaded dependencies use Go's shared, concurrency-safe cache.
+	// Each fixture still owns its module, workspace and output directories.
+	moduleCachePath := strings.TrimSpace(string(moduleCache))
+	if !filepath.IsAbs(moduleCachePath) {
+		t.Fatal("Go returned a nonabsolute module cache", moduleCachePath)
+	}
 	originalCondition := p.Condition
 	p.Condition = func(cond string) (bool, error) {
 		if cond == "gosimrace" {
@@ -87,8 +101,20 @@ func TestScript(t *testing.T) {
 		e.Vars = append(e.Vars, "GOSIMCACHE="+filepath.Join(curModDir, gosimtool.OutputDirectory))
 
 		if origSetup != nil {
-			return origSetup(e)
+			if err := origSetup(e); err != nil {
+				return err
+			}
 		}
+		// Tool scratch files are outputs, not caller
+		// source inputs. Keep them in the excluded artifact directory.
+		for key, name := range map[string]string{"TMPDIR": "tmp", "GOPATH": "gopath"} {
+			path := filepath.Join(e.WorkDir, ".gosim", name)
+			if err := os.MkdirAll(path, 0o755); err != nil {
+				return err
+			}
+			e.Setenv(key, path)
+		}
+		e.Setenv("GOMODCACHE", moduleCachePath)
 		return nil
 	}
 	testscript.Run(t, p)

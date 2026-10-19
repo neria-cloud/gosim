@@ -4,7 +4,7 @@ exec gosim-user test -v .
 stdout 'PASS'
 exec gosim-user build-tests .
 exec gosim-user lookup-test .
-stdout '"binary"'
+stdout '"Binary"'
 
 # The legacy candidate entry resolves the same evidence-independent identity.
 mkdir .gosim/identity

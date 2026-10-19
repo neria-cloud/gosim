@@ -60,9 +60,9 @@ References: target §§7–8, 12.
 References: target §§1–12, especially validation §10.
 
 - [x] Reconcile AGENTS/README/current design with actual implementation while preserving unrelated user changes.
-- [ ] Run and check ordinary local tests, early/later supported-patch coverage and final local large suites; no certification or cross-platform jobs. Race suite requires an explicit instruction naming it under AGENTS.
-- [ ] Fix every observed failure; record reports and actual skipped coverage. Measure startup/cache timings.
-- [ ] Audit every target component, entry-point wiring, schema, error case and test requirement. Resolve gaps before marking complete; commit final changes.
+- [x] Run and check ordinary local tests, early/later supported-patch coverage and final local large suites; no certification or cross-platform jobs. Race suite requires an explicit instruction naming it under AGENTS.
+- [x] Fix every observed failure; record reports and actual skipped coverage. Measure startup/cache timings.
+- [x] Audit every target component, entry-point wiring, schema, error case and test requirement. Resolve gaps before marking complete; commit final changes.
 
 ## Validation policy
 

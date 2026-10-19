@@ -332,7 +332,9 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 			child = exec.Command(binary, args...)
 		}
 		child.Env = append(os.Environ(), "GODEBUG=")
-		child.Stdin, child.Stdout, child.Stderr = streams.In, streams.Out, streams.Err
+		// Preserve the CLI test-output contract: simulation diagnostics and logs
+		// form one stdout stream. Launcher/worker diagnostics still use stderr.
+		child.Stdin, child.Stdout, child.Stderr = streams.In, streams.Out, streams.Out
 		if err := buildspec.RunProcess(ctx, child); err != nil {
 			var exit *exec.ExitError
 			if errors.As(err, &exit) {

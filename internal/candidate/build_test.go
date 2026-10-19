@@ -68,6 +68,7 @@ func TestCandidateWorker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Chdir(root)
 	tuple := os.Getenv("GOSIM_LARGE_TUPLE")
 	if tuple == "" || tuple == "rt,fs,net" {
 		t.Run("unsupported-etcd", func(t *testing.T) {
