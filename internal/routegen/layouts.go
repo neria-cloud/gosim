@@ -19,17 +19,23 @@ var layoutNames = strings.Fields("Timespec Stat_t Dirent Flock_t RawSockaddr Raw
 //go:embed layout_amd64.json
 var amd64Layout []byte
 
+//go:embed layout_arm64.json
+var arm64Layout []byte
+
 type layoutManifest struct {
 	Types   map[string]map[string]string `json:"types"`
 	Numbers map[string]string            `json:"numbers"`
 }
 
 func renderLayouts(sources map[string]sourcePackage, arch string) ([]byte, error) {
-	if arch != "amd64" {
+	data := amd64Layout
+	if arch == "arm64" {
+		data = arm64Layout
+	} else if arch != "amd64" {
 		return nil, fmt.Errorf("unimplemented layouts %s", arch)
 	}
 	var expected layoutManifest
-	if err := json.Unmarshal(amd64Layout, &expected); err != nil {
+	if err := json.Unmarshal(data, &expected); err != nil {
 		return nil, err
 	}
 	var b bytes.Buffer
@@ -78,6 +84,10 @@ func renderLayouts(sources map[string]sourcePackage, arch string) ([]byte, error
 	for _, name := range names {
 		for _, pkg := range []string{"syscall", "golang.org/x/sys/unix"} {
 			expr := sources[pkg].Constants[name]
+			// Go names arm64 syscall 79 FSTATAT; x/sys calls it NEWFSTATAT.
+			if arch == "arm64" && pkg == "golang.org/x/sys/unix" && name == "SYS_FSTATAT" {
+				expr = sources[pkg].Constants["SYS_NEWFSTATAT"]
+			}
 			if pkg == "syscall" && name == "SYS_GETRANDOM" {
 				expr = sources["internal/syscall/unix"].Constants["getrandomTrap"]
 			}

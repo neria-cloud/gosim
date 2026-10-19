@@ -6,7 +6,7 @@
   "profile": "go125",
   "architecture": "amd64",
   "route_digest": "662687a24ea0d974d6f0c995a7e4bd66e92180110933d9395368fccb60c791a7",
-  "origin_digest": "219a506373dd23661a70338ed73d8a4064659a99c3494f15c596e26155c5fc36",
+  "origin_digest": "a2b02fd9f3f148ad461417d1e3cd972483ed095c336eefc78deee8aa98775c6d",
   "modules": [
     {
       "path": "golang.org/x/sys",

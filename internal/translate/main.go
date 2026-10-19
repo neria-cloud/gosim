@@ -714,7 +714,10 @@ func translatePackages(cache *cache.Cache, listPatterns []string, rootOutputDir 
 			allResults[pkgId] = res
 			cacheHits[hash] = true // record cache hits so we don't update the cache for them
 		} else {
-			uncachedPackages[strings.TrimSuffix(pkg.PkgPath, "_test")] = struct{}{}
+			// Synthetic test binaries are reloaded through their real base package.
+			// A cold Go cache cannot resolve an import path ending in ".test".
+			_, reloadPath := classifyPackage(pkg)
+			uncachedPackages[reloadPath] = struct{}{}
 		}
 	}
 

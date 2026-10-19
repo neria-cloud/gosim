@@ -120,7 +120,7 @@ func TestGeneratedOutputIsCurrent(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out); err != nil {
+	if err := GenerateProfile(tc, "go125", []string{"amd64", "arm64"}, out); err != nil {
 		t.Fatal(err)
 	}
 	outputs := readOutputTree(t, out)
@@ -231,4 +231,40 @@ func readOutputTree(t *testing.T, root string) map[string][]byte {
 		t.Fatal(err)
 	}
 	return files
+}
+
+func TestArm64GenerationPreservesAMD64(t *testing.T) {
+	tc, err := buildcfg.Resolve("go1.25.14")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out); err != nil {
+		t.Fatal(err)
+	}
+	before := readOutputTree(t, out)
+	if err := GenerateProfile(tc, "go125", []string{"arm64"}, out); err != nil {
+		t.Fatal(err)
+	}
+	both := readOutputTree(t, out)
+	for path, data := range before {
+		if !bytes.Equal(data, both[path]) {
+			t.Fatal("arm64 generation changed existing amd64/common output", path)
+		}
+	}
+	arm := filepath.Join(out, "internal/compat/go125/hooks/fs/syscalls_arm64.go")
+	first, err := os.Stat(arm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := GenerateProfile(tc, "go125", []string{"arm64"}, out); err != nil {
+		t.Fatal(err)
+	}
+	second, err := os.Stat(arm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !first.ModTime().Equal(second.ModTime()) || !reflect.DeepEqual(both, readOutputTree(t, out)) {
+		t.Fatal("arm64 regeneration changed bytes or mtimes")
+	}
 }

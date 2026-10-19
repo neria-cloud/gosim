@@ -1,4 +1,4 @@
-//go:build go1.25 && !go1.26 && linux && amd64
+//go:build go1.25 && !go1.26 && linux && (amd64 || arm64)
 
 package kernel_test
 
@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 	"testing"
 	"unsafe"
@@ -19,11 +18,8 @@ import (
 	nh "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net"
 	"github.com/neria-cloud/gosim/internal/contracts"
 	"github.com/neria-cloud/gosim/internal/control"
-	fp "github.com/neria-cloud/gosim/internal/fs"
 	"github.com/neria-cloud/gosim/internal/kernel"
-	np "github.com/neria-cloud/gosim/internal/net"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
-	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 // Exercise the real upstream pointer types across the same ABI linknames used
@@ -41,46 +37,7 @@ func linkedLock(uintptr, int, *syscall.Flock_t) error
 //go:linkname linkedXLock github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_FcntlFlock
 func linkedXLock(uintptr, int, *unix.Flock_t) error
 
-func runABI(t *testing.T, features contracts.FeatureSet, main func()) error {
-	t.Helper()
-	e, err := simrt.NewEngine(simrt.EngineConfig{Seed: 17, TimeoutNS: 1e9, ReplayRevision: simrt.ReplayRevision})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer e.Close()
-	return e.Run(func() {
-		var providers []contracts.Provider
-		if features.Has(contracts.FS) {
-			providers = append(providers, fp.NewProvider())
-		}
-		if features.Has(contracts.Net) {
-			providers = append(providers, np.NewProvider())
-		}
-		k, err := kernel.New(kernel.Config{BuildDigest: strings.Repeat("b", 64), Features: features, TimeoutNS: 1e9, Identity: abi.HostIdentity{Toolchain: "go1.25.14", Profile: "go125", HostOS: "linux", HostArch: "amd64"}}, e, providers)
-		if err != nil {
-			t.Fatal(err)
-		}
-		control.Bind(k)
-		defer func() {
-			if err := k.Close(); err != nil {
-				t.Error(err)
-			}
-			control.Bind(nil)
-		}()
-		if err := k.Run(main); err != nil {
-			t.Error(err)
-		}
-	})
-}
-
-func must(t *testing.T, err error) {
-	t.Helper()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestLinuxAMD64Layouts(t *testing.T) {
+func TestLinuxLayouts(t *testing.T) {
 	for name, pair := range map[string][2]uintptr{
 		"stat-size": {unsafe.Sizeof(kh.Stat_t{}), unsafe.Sizeof(syscall.Stat_t{})}, "xstat-size": {unsafe.Sizeof(kh.XStat_t{}), unsafe.Sizeof(unix.Stat_t{})},
 		"stat-mode": {unsafe.Offsetof(kh.Stat_t{}.Mode), unsafe.Offsetof(syscall.Stat_t{}.Mode)}, "xstat-atim": {unsafe.Offsetof(kh.XStat_t{}.Atim), unsafe.Offsetof(unix.Stat_t{}.Atim)},
@@ -99,7 +56,7 @@ func TestLinuxAMD64Layouts(t *testing.T) {
 	}
 }
 
-func TestAMD64FileRoutes(t *testing.T) {
+func TestLinuxFileRoutes(t *testing.T) {
 	must(t, runABI(t, contracts.FeatureSet(contracts.RT|contracts.FS), func() {
 		fd, err := fh.Syscall_openat(-100, "file", 2|0x40|0x200, 0o600)
 		must(t, err)
@@ -185,7 +142,7 @@ func TestAMD64FileRoutes(t *testing.T) {
 	}))
 }
 
-func TestAMD64ProcessAndSocketRoutes(t *testing.T) {
+func TestLinuxProcessAndSocketRoutes(t *testing.T) {
 	must(t, runABI(t, contracts.FeatureSet(contracts.RT|contracts.Net), func() {
 		limit := kh.Rlimit{Cur: 123, Max: 456}
 		if err := kh.Syscall_Getrlimit(7, &limit); err != syscall.ENOSYS || limit.Cur != 123 || limit.Max != 456 {
@@ -275,7 +232,7 @@ func TestAMD64ProcessAndSocketRoutes(t *testing.T) {
 	}))
 }
 
-func TestAMD64DisabledAndRawBoundaries(t *testing.T) {
+func TestLinuxDisabledAndRawBoundaries(t *testing.T) {
 	for name, operation := range map[string]func(){
 		"fs-nil": func() { _ = fh.Syscall_Fstat(-1, nil) }, "net-nil": func() { _ = nh.Syscall_bind(-1, nil, 0) },
 		"raw-known": func() { _, _, _ = kh.Syscall_RawSyscall6(kh.LinuxSYS_READ, 0, 0, 0, 0, 0, 0) }, "raw-unknown": func() { _, _, _ = kh.GolangOrgXSysUnix_Syscall(99999, 0, 0, 0) },
@@ -294,7 +251,7 @@ func TestAMD64DisabledAndRawBoundaries(t *testing.T) {
 // Borrowed memory remains visible to the race detector even though the kernel
 // reads/writes it with norace views. The child intentionally races application
 // stores with a real write adapter; the parent requires the race report.
-func TestAMD64BorrowedMemoryRace(t *testing.T) {
+func TestLinuxBorrowedMemoryRace(t *testing.T) {
 	if !simrt.RaceEnabled {
 		t.Skip("race-only oracle")
 	}
@@ -316,10 +273,10 @@ func TestAMD64BorrowedMemoryRace(t *testing.T) {
 		}))
 		return
 	}
-	cmd := exec.Command(os.Args[0], "-test.run=^TestAMD64BorrowedMemoryRace$")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestLinuxBorrowedMemoryRace$")
 	cmd.Env = append(os.Environ(), "GOSIM_ADAPTER_RACE_CHILD=1", "GORACE=halt_on_error=1")
 	out, err := cmd.CombinedOutput()
-	if err == nil || !bytes.Contains(out, []byte("WARNING: DATA RACE")) || !bytes.Contains(out, []byte("runtime.racereadrange")) || !bytes.Contains(out, []byte("TestAMD64BorrowedMemoryRace.func1.1")) {
+	if err == nil || !bytes.Contains(out, []byte("WARNING: DATA RACE")) || !bytes.Contains(out, []byte("runtime.racereadrange")) || !bytes.Contains(out, []byte("TestLinuxBorrowedMemoryRace.func1.1")) {
 		t.Fatalf("missing application-memory race: %v\n%s", err, out)
 	}
 }

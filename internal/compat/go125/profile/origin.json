@@ -58,6 +58,10 @@
       "digest": "5e70a71173b2e771d34d17707de3fd14ae415dfafb318d5a8641144dd851ad6a"
     },
     {
+      "path": "src/internal/syscall/unix/at_sysnum_fstatat_linux.go",
+      "digest": "2e1c745d39d79c3c3e8b0cb0fa7f46d1fcbc70c03474c2279c03b7fa2c99ae9a"
+    },
+    {
       "path": "src/internal/syscall/unix/at_sysnum_linux.go",
       "digest": "f6ea8f6c906a1d476ce6327d037b186ceb1c8228e80e9bd867a7ea9bc040600e"
     },
@@ -136,6 +140,10 @@
     {
       "path": "src/internal/syscall/unix/sysnum_linux_amd64.go",
       "digest": "383d4857ec4f538630e4f781dba650ec48baacfd101456814a1b533b41201c8d"
+    },
+    {
+      "path": "src/internal/syscall/unix/sysnum_linux_generic.go",
+      "digest": "02adadb8fdb4f389321ee940618fd46dd3a867e8a93bff62996516eac6d97e6e"
     },
     {
       "path": "src/internal/syscall/unix/tcsetpgrp_linux.go",
@@ -457,6 +465,10 @@
       "digest": "e220a8ff4c78efdfca407b87d8db7dcb6b61e20238091dacfde1bdabccf7b42e"
     },
     {
+      "path": "src/syscall/syscall_linux_arm64.go",
+      "digest": "d22059c2984415a156489e76a6fdfc002ad07e6261fc731055679c52d7b0eb7b"
+    },
+    {
       "path": "src/syscall/syscall_unix.go",
       "digest": "cccc8f6b8c92d4a2f16d625f31cb3cd26268d44346b55c8144dba0b289ed3e48"
     },
@@ -473,16 +485,32 @@
       "digest": "2d96a92f48c420b427f48090663c854672433142fe7c6f7d67638e1e7113a173"
     },
     {
+      "path": "src/syscall/zerrors_linux_arm64.go",
+      "digest": "3bda67550c959cadcec978be211b250be898f7d175c77530ef4885ba7c669d39"
+    },
+    {
       "path": "src/syscall/zsyscall_linux_amd64.go",
       "digest": "9d3d6ce5403a67d06471690e1c0f7ebf36bade8d843c7e3bef31ca2b7acaf80c"
+    },
+    {
+      "path": "src/syscall/zsyscall_linux_arm64.go",
+      "digest": "c992df6c46315abb35a6019b8c3e3dfe03976ba9a1204dcc306130947dfa32c7"
     },
     {
       "path": "src/syscall/zsysnum_linux_amd64.go",
       "digest": "65c4a7f1c1e01548d30fa3abe5d6247ccabb4ab13ea150dc1b678164c64013c6"
     },
     {
+      "path": "src/syscall/zsysnum_linux_arm64.go",
+      "digest": "7ddc12ef4061ca5bde7101788b3799ba28b7fa5dfb849d3f4fb7f81d33ee30ce"
+    },
+    {
       "path": "src/syscall/ztypes_linux_amd64.go",
       "digest": "e088363772b32993ef155541ff9cb2b98798f34039a35abc74ce4ea5d37b0d70"
+    },
+    {
+      "path": "src/syscall/ztypes_linux_arm64.go",
+      "digest": "09f305323ceacc9581f1f929447b056fd2b228c6c32ae32a4db62c199c83ad05"
     },
     {
       "path": "src/testing/allocs.go",

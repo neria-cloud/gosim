@@ -143,9 +143,9 @@ func adapterType(expr ast.Expr, pkg, owner string) ast.Expr {
 }
 
 func renderAdapters(tc buildspec.Toolchain, arch string, m Manifest) (map[string][]byte, error) {
-	if arch != "amd64" {
-		return nil, nil
-	} // TODO(migration): Task 15 implements arm64 outputs.
+	if arch != "amd64" && arch != "arm64" {
+		return nil, fmt.Errorf("unimplemented adapters %s", arch)
+	}
 	sources, err := loadSources(tc, arch)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,13 @@ func renderAdapters(tc buildspec.Toolchain, arch string, m Manifest) (map[string
 			}
 			fmt.Fprintf(&b, "\nfunc %s%s {\n%s\n}\n", name, strings.TrimPrefix(signature, "func"), body)
 		}
-		b.WriteString(adapterHelpers(owner))
+		helpers := adapterHelpers(owner)
+		if arch == "arm64" && owner == "fs" {
+			// Linux arm64 stat.nlink is 32 bits; reject loss before writing output.
+			helpers = strings.ReplaceAll(helpers, "Nlink:stat.Nlink", "Nlink:uint32(stat.Nlink)")
+			helpers = strings.ReplaceAll(helpers, "out:=kh.Stat_t", "if stat.Nlink>uint64(^uint32(0)){kh.Reject(\"stat.nlink overflow\")}\n out:=kh.Stat_t")
+		}
+		b.WriteString(helpers)
 		code, err := format.Source(b.Bytes())
 		if err != nil {
 			return nil, fmt.Errorf("render %s adapters: %w", owner, err)

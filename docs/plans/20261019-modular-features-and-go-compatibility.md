@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–14 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–15 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -387,14 +387,14 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§2 linux/arm64 and darwin/arm64 distinction; T§7 routing/transport schemas; T§8/9 generation.  
 **Budget:** 2,500–4,000 changed lines. **Dependency:** 14.
 
-- [ ] Generate the complete arm64 route set from go1.25.14/x/sys source rather than copying amd64 layouts. Verify syscall numbers, flock/stat/dirent/sockaddr field widths, alignment and pointer-slot encoding.
-- [ ] Verify the same logical route/capability set on both architectures; differences must be an explicit architecture policy, never an accidentally omitted wrapper.
-- [ ] Check simulated Linux source selection followed by native darwin/arm64 compilation; retain filename/build-constraint rewriting without compiling Linux executables for the Mac runner.
+- [x] Generate the complete arm64 route set from go1.25.14/x/sys source rather than copying amd64 layouts. Verify syscall numbers, flock/stat/dirent/sockaddr field widths, alignment and pointer-slot encoding.
+- [x] Verify the same logical route/capability set on both architectures; differences must be an explicit architecture policy, never an accidentally omitted wrapper.
+- [x] Check simulated Linux source selection followed by native darwin/arm64 compilation; retain filename/build-constraint rewriting without compiling Linux executables for the Mac runner.
 
 #### Verification
 
-- [ ] Generation clean-check, layout tests and arm64 executed adapter probes pass; architecture-specific error-path tests are included.
-- [ ] Run common commit gate and go125 complete hook/shim compile tests with required linkname flags.
+- [x] Generation clean-check, layout tests and arm64 executed adapter probes pass; architecture-specific error-path tests are included.
+- [x] Run common commit gate and go125 complete hook/shim compile tests with required linkname flags.
 
 ### Task 16: Implement Go 1.26 runtime hooks and profile policies
 
@@ -924,3 +924,12 @@ Task 13.1 extends `rt/runtime/map.go` so a reflected invalid value deletes a map
 ```
 
 The Task 13 split records the existing 2,855 shim lines before adding verification, fixes and policy work. Both children are required; Task 13.1 does not claim the pending policy/init audit or new-path composition is complete. Native unit tests of testing filesystem helpers verify delegation/cleanup only; translated filesystem gating is covered by subsequent adapters/composition and feature suites.
+
+
+Task 15's workspace-cache rebuild exposed a pre-existing cold-cache translator failure: synthetic `package.test` binaries were passed back to go/packages as real import paths. `internal/translate/main.go` now uses its existing package classifier's base path when requesting an uncached reload. The complete gate rebuilds the affected synthetic packages and verifies translation/race/script behavior. This incidental fix was required by the common gate:
+
+```diff
+- uncachedPackages[strings.TrimSuffix(pkg.PkgPath, "_test")] = struct{}{}
++ _, reloadPath := classifyPackage(pkg)
++ uncachedPackages[reloadPath] = struct{}{}
+```

@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -117,5 +118,44 @@ func TestAdapterInventoryAndProviderBoundary(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestArchitectureRouteParity(t *testing.T) {
+	tc, err := buildcfg.Resolve("go1.25.14")
+	if err != nil {
+		t.Fatal(err)
+	}
+	amd, err := loadSources(tc, "amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	arm, err := loadSources(tc, "arm64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := adapterHooks(amd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := adapterHooks(arm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(a, b) {
+		t.Fatal("logical hooks or capabilities differ by architecture")
+	}
+	if _, err := renderLayouts(arm, "arm64"); err != nil {
+		t.Fatal(err)
+	}
+	stat := arm["syscall"].Types["Stat_t"]
+	arm["syscall"].Types["Stat_t"] = amd["syscall"].Types["Stat_t"]
+	if _, err := renderLayouts(arm, "arm64"); err == nil {
+		t.Fatal("amd64 stat accepted as arm64")
+	}
+	arm["syscall"].Types["Stat_t"] = stat
+	arm["golang.org/x/sys/unix"].Constants["SYS_NEWFSTATAT"] = &ast.BasicLit{Kind: token.INT, Value: "262"}
+	if _, err := renderLayouts(arm, "arm64"); err == nil {
+		t.Fatal("wrong fstatat alias accepted")
 	}
 }
