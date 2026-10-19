@@ -76,15 +76,25 @@ func copyFile(from, to string, perm fs.FileMode) error {
 		return err
 	}
 	defer src.Close()
-	dst, err := os.OpenFile(to, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, perm)
+	// Publish on a fresh inode. Rewriting an executed Mach-O file in place can
+	// leave macOS's cached code signature invalid even when codesign verifies its
+	// bytes on disk. A failed copy must also preserve the complete old artifact.
+	dst, err := os.CreateTemp(filepath.Dir(to), ".gosim-copy-*")
 	if err != nil {
 		return err
 	}
+	defer os.Remove(dst.Name())
 	defer dst.Close()
+	if err := dst.Chmod(perm); err != nil {
+		return err
+	}
 	if _, err := io.Copy(dst, src); err != nil {
 		return err
 	}
-	return nil
+	if err := dst.Close(); err != nil {
+		return err
+	}
+	return os.Rename(dst.Name(), to)
 }
 
 func copyFileIfChanged(src, dst string, perm fs.FileMode) error {

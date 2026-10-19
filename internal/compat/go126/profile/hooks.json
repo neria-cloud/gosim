@@ -1692,5 +1692,19 @@
     "signature": "func()",
     "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_runtime_exitsyscall",
     "owner": "kernel"
+  },
+  {
+    "package": "os",
+    "symbol": "ignoreSIGSYS",
+    "signature": "func()",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Os_ignoreSIGSYS",
+    "owner": "kernel"
+  },
+  {
+    "package": "os",
+    "symbol": "restoreSIGSYS",
+    "signature": "func()",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Os_restoreSIGSYS",
+    "owner": "kernel"
   }
 ]

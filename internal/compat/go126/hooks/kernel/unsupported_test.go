@@ -12,6 +12,8 @@ import (
 
 func TestUnsupportedPrivateProcessHooks(t *testing.T) {
 	for name, operation := range map[string]func(){
+		"os.ignoreSIGSYS":                     Os_ignoreSIGSYS,
+		"os.restoreSIGSYS":                    Os_restoreSIGSYS,
 		"syscall.runtime_BeforeFork":          Syscall_runtime_BeforeFork,
 		"syscall.runtime_AfterFork":           Syscall_runtime_AfterFork,
 		"syscall.runtime_AfterForkInChild":    Syscall_runtime_AfterForkInChild,

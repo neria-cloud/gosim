@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–18 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–19 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -462,14 +462,14 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§2; T§7 full route table; T§8 inventory and shims; T§9 generation.  
 **Budget:** 2,500–4,000 changed lines. **Dependency:** 15, 18.
 
-- [ ] Generate and validate arm64 syscall layouts, pointer forms and all control codecs under go1.26.9. Exercise both Linux arm64 and Linux-source-to-Darwin output selection paths.
-- [ ] Account for every I hook/shim method and every T§7 route across both selected families and both architectures. Record intentional rejects/stubs explicitly; no unexplained unimplemented declaration is accepted.
-- [ ] Confirm family selection never imports the other family's executable source and that unsupported family compilation fails before a simulation runs.
+- [x] Generate and validate arm64 syscall layouts, pointer forms and all control codecs under go1.26.9. Exercise both Linux arm64 and Linux-source-to-Darwin output selection paths.
+- [x] Account for every I hook/shim method and every T§7 route across both selected families and both architectures. Record intentional rejects/stubs explicitly; no unexplained unimplemented declaration is accepted.
+- [x] Confirm family selection never imports the other family's executable source and that unsupported family compilation fails before a simulation runs.
 
 #### Verification
 
-- [ ] arm64 layout/execution and family/architecture coverage checks pass; all four family/architecture output generations are reproducible.
-- [ ] Run common commit gate. Do not promote compatibility status yet.
+- [x] arm64 layout/execution and family/architecture coverage checks pass; all four family/architecture output generations are reproducible.
+- [x] Run common commit gate. Do not promote compatibility status yet.
 
 #### Task 19.1: Go 1.26 arm64 adapters and host execution
 
@@ -482,8 +482,8 @@ The original generator is 892 lines, existing temporary decoders are approximate
 
 **Budget:** 2,000–4,800 changed lines. Depends on 19.1; completes parent 19.
 
-- [ ] Account for all inventoried hook/shim declarations and target routes, implement remaining family-owned gaps, and record reviewed replacements, rejections and stubs with no unexplained omissions.
-- [ ] Verify family/architecture coverage, bounded selection, unsupported-family rejection, all generated outputs and the common commit gate without compatibility promotion.
+- [x] Account for all inventoried hook/shim declarations and target routes, implement remaining family-owned gaps, and record reviewed replacements, rejections and stubs with no unexplained omissions.
+- [x] Verify family/architecture coverage, bounded selection, unsupported-family rejection, all generated outputs and the common commit gate without compatibility promotion.
 
 ##### Task 19.2.1: Complete source-selected helper and rejection adapters
 
@@ -496,8 +496,8 @@ The original generator is 892 lines, existing temporary decoders are approximate
 
 **Budget:** 1,500–3,000 changed lines. Depends on 19.2.1; completes 19.2 and parent 19.
 
-- [ ] Check in a durable baseline inventory and reviewed dispositions for every hook/shim declaration and target route, including obsolete declarations and named stubs/rejects.
-- [ ] Verify both families/architectures, replacements, bounded/unsupported-family selection and complete route ownership; run common commit gate.
+- [x] Check in a durable baseline inventory and reviewed dispositions for every hook/shim declaration and target route, including obsolete declarations and named stubs/rejects.
+- [x] Verify both families/architectures, replacements, bounded/unsupported-family selection and complete route ownership; run common commit gate.
 
 ### Task 20: Implement v2 cache envelopes and package-specific build artifacts
 
@@ -777,11 +777,11 @@ Host test invocations retain `-ldflags=-checklinkname=0 -tags=linkname` and addi
 
 ### Generation and import boundaries after Task 19
 
-Task 14 defines `-go`, `-profile`, `-arch`, `-out`, `-check` for gosim-gen; `-check` compares temporary generated output without overwriting tracked files:
+The generator uses explicit `-toolchain`, `-profile`, `-arches`, and repository-root `-output` flags. Task 19 adds the planned `-check` mode, which compares temporary generated output without overwriting tracked files:
 
 ```sh
-GOTOOLCHAIN=go1.25.14 go run ./cmd/gosim-gen -go=go1.25.14 -profile=go125 -arch=amd64,arm64 -out=internal/compat/go125 -check
-GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim-gen -go=go1.26.9 -profile=go126 -arch=amd64,arm64 -out=internal/compat/go126 -check
+GOTOOLCHAIN=go1.25.14 go run ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=. -check
+GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -arches=amd64,arm64 -output=. -check
 ```
 
 Task 25's import/declaration checks run from the candidate suite against each actual generated graph, not a hand-maintained allowlist alone. Include normal and race variants and inspect transitive package paths.
@@ -999,4 +999,20 @@ Task 19.1 fixes the existing translation golden test's cross-toolchain fixture d
 + binPath := filepath.Join(t.TempDir(), "gosim")
 + exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binPath, "./cmd/gosim")
 + GOTOOLCHAIN=local; PATH=<runtime.GOROOT()/bin>:<existing PATH>
+```
+
+
+Task 19.2.2 adds the planned generator check mode after the validation-command audit found it missing, and corrects the examples to the implemented explicit flag names and repository-root output. `routegen.CheckProfile` renders in a temporary tree and compares bytes without rewriting tracked files. The relevant CLI diff is `+ check := flag.Bool("check", false, ...)` and `+ if *check { err = routegen.CheckProfile(...) } else { err = GenerateProfile(...) }`. The target architecture is unchanged.
+
+Task 19.2.2 also fixes executable publication in `cmd/gosim/main.go` after the common gate exposed macOS killing valid-on-disk Mach-O workers. The original cached inode exited with SIGKILL, while a byte-identical fresh copy executed. Copying now uses a completed temporary file and atomic rename; an open old inode and the previous artifact survive replacement/failure. Regression coverage is `cmd/gosim/copy_test.go`. Three already-poisoned task-owned generated fixtures were refreshed with identical bytes; no tests or signature checks were disabled. The relevant diff is:
+
+```diff
+- dst, err := os.OpenFile(to, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, perm)
++ dst, err := os.CreateTemp(filepath.Dir(to), ".gosim-copy-*")
++ defer os.Remove(dst.Name())
++ if err := dst.Chmod(perm); err != nil { return err }
+  if _, err := io.Copy(dst, src); err != nil { return err }
+- return nil
++ if err := dst.Close(); err != nil { return err }
++ return os.Rename(dst.Name(), to)
 ```
