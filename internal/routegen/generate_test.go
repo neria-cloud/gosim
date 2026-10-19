@@ -115,23 +115,27 @@ func TestInvalidRouteSchemas(t *testing.T) {
 }
 
 func TestGeneratedOutputIsCurrent(t *testing.T) {
-	tc, err := buildcfg.Resolve("go1.25.14")
-	if err != nil {
-		t.Fatal(err)
-	}
-	out := t.TempDir()
-	if err := GenerateProfile(tc, "go125", []string{"amd64", "arm64"}, out); err != nil {
-		t.Fatal(err)
-	}
-	outputs := readOutputTree(t, out)
-	for name, want := range outputs {
-		got, err := os.ReadFile(filepath.Join("../..", name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(got, want) {
-			t.Fatalf("stale generated output %s; run gosim-gen", name)
-		}
+	for _, family := range []struct{ id, patch string }{{"go125", "go1.25.14"}, {"go126", "go1.26.9"}} {
+		t.Run(family.id, func(t *testing.T) {
+			tc, err := buildcfg.Resolve(family.patch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			out := t.TempDir()
+			if err := GenerateProfile(tc, family.id, []string{"amd64", "arm64"}, out); err != nil {
+				t.Fatal(err)
+			}
+			outputs := readOutputTree(t, out)
+			for name, want := range outputs {
+				got, err := os.ReadFile(filepath.Join("../..", name))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(got, want) {
+					t.Fatalf("stale generated output %s; run gosim-gen", name)
+				}
+			}
+		})
 	}
 }
 

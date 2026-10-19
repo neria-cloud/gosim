@@ -471,6 +471,20 @@ The original generator is 892 lines, existing temporary decoders are approximate
 - [ ] arm64 layout/execution and family/architecture coverage checks pass; all four family/architecture output generations are reproducible.
 - [ ] Run common commit gate. Do not promote compatibility status yet.
 
+#### Task 19.1: Go 1.26 arm64 adapters and host execution
+
+**Budget:** 1,200–2,000 changed lines. Split recorded before implementation; inventory closure remains a separate buildable commit under the 5,000-line cap.
+
+- [x] Generate Go 1.26 arm64 layouts/wrappers and extend native Linux/Darwin ABI probes and complete four-output reproducibility checks.
+- [x] Execute exact-patch Linux arm64 ordinary/race probes and both-family Darwin/source checks; verify family isolation and run the common commit gate.
+
+#### Task 19.2: Close both-family hook and shim inventory gaps
+
+**Budget:** 2,000–4,800 changed lines. Depends on 19.1; completes parent 19.
+
+- [ ] Account for all inventoried hook/shim declarations and target routes, implement remaining family-owned gaps, and record reviewed replacements, rejections and stubs with no unexplained omissions.
+- [ ] Verify family/architecture coverage, bounded selection, unsupported-family rejection, all generated outputs and the common commit gate without compatibility promotion.
+
 ### Task 20: Implement v2 cache envelopes and package-specific build artifacts
 
 **Files:** UPDATE `internal/translate/cache.go`, `internal/translate/cache/cache.go`; CREATE host artifact/manifest helpers in `internal/gosimtool/`; ADD cache/materialization tests.  
@@ -960,3 +974,15 @@ Task 16 corrects the object-race ABI in both family-owned adapters, native facad
 ```
 
 The corresponding WriteObjectPC path receives the same correction. Last-field read/write race-oracle tests pass on both pinned patches. Task 16 also adds the missing explicit `maps` translate policy to Go 1.25 after reviewing byte-identical maps sources across the two pinned patches; this closes a policy omission exposed by the Go 1.26 audit. Origin/revision/generated-origin digests were refreshed. No target changes or certification promotion.
+
+
+Task 19.1 fixes the existing translation golden test's cross-toolchain fixture dependency in `internal/translate/translate_test.go`. The shared prepare-selftest extraction contained only Go 1.26 native host dependencies; running the Go 1.25 translator test against it produced an ill-typed SSA package and nil dereference. The test now builds a private worker with its exact compiler, pins loader subprocess PATH/GOTOOLCHAIN, and uses the complete source module. It preserves all golden assertions and does not mutate shared prebuilts. The relevant diff is:
+
+```diff
+- MakeGoModForTest(extractedModDir, workDir, ...)
++ MakeGoModForTest(curModDir, workDir, ...)
+- binPath := <shared .gosim/scripttest/bin/gosim>
++ binPath := filepath.Join(t.TempDir(), "gosim")
++ exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binPath, "./cmd/gosim")
++ GOTOOLCHAIN=local; PATH=<runtime.GOROOT()/bin>:<existing PATH>
+```

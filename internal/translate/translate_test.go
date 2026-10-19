@@ -34,9 +34,6 @@ var (
 //
 // The expected output of the translation is stored with the testdata/ (next to
 // each input file) and checked or rewritten depending on the -rewrite flag.
-//
-// TODO: this test relies on a compiled and up-to-date gosim binary from the
-// script test... this is brittle and will be a pain at some point...
 func TestTranslate(t *testing.T) {
 	entries, err := os.ReadDir("./testdata")
 	if err != nil {
@@ -67,17 +64,8 @@ func TestTranslate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	extractedModDir := filepath.Join(curModDir, gosimtool.OutputDirectory, "scripttest", "mod")
-
-	// add test dependencies to the copied gosim module
-	if err := filepath.Walk(extractedModDir, func(path string, info fs.FileInfo, err error) error {
-		return nil
-	}); err != nil {
-		log.Fatal(err)
-	}
-
 	// put a fake go.mod in the work directory
-	if err := gosimtool.MakeGoModForTest(extractedModDir, workDir, []string{
+	if err := gosimtool.MakeGoModForTest(curModDir, workDir, []string{
 		"github.com/dave/dst",
 		"github.com/google/go-cmp",
 		"github.com/mattn/go-isatty",
@@ -91,9 +79,18 @@ func TestTranslate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO: dedup this code with scripttest, somehow
-	binPath := filepath.Join(curModDir, gosimtool.OutputDirectory, "scripttest", "bin", "gosim")
-	envVars := append(os.Environ(), "GOSIMCACHE="+filepath.Join(curModDir, gosimtool.OutputDirectory))
+	// Build a worker with this test's exact compiler. Shared prepare-selftest
+	// artifacts may belong to another patch/family and omit its native packages.
+	binPath := filepath.Join(t.TempDir(), "gosim")
+	build := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binPath, "./cmd/gosim")
+	build.Dir = curModDir
+	build.Env = append(os.Environ(), "GOTOOLCHAIN=local")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build matching translator worker: %v\n%s", err, out)
+	}
+	envVars := append(os.Environ(), "GOTOOLCHAIN=local",
+		"PATH="+filepath.Join(runtime.GOROOT(), "bin")+string(filepath.ListSeparator)+os.Getenv("PATH"),
+		"GOSIMCACHE="+filepath.Join(curModDir, gosimtool.OutputDirectory))
 
 	// parse all inputs and write them to work directory
 	archiveByPackage := make(map[string]*txtar.Archive)
