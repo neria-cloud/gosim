@@ -1,4 +1,4 @@
-//go:build !linux
+//go:build gosim_retired && !linux
 
 // This file lets the os package compile on non-linux go builds.
 //

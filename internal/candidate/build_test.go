@@ -56,6 +56,13 @@ func TestCandidateWorker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Run("unsupported-etcd", func(t *testing.T) {
+		cfg := buildspec.Config{Schema: 1, Toolchain: runtime.Version(), Features: []string{"rt", "fs", "net"}, SimulationOS: "linux"}
+		_, err := Build(cfg, buildspec.BuildOptions{}, []string{"./examples/etcd"})
+		if err == nil || (!strings.Contains(err.Error(), "net/http") && !strings.Contains(err.Error(), "google.golang.org/grpc")) {
+			t.Fatalf("expected explicit HTTP/gRPC rejection for etcd: %v", err)
+		}
+	})
 	project := t.TempDir()
 	project, err = filepath.EvalSymlinks(project)
 	if err != nil {
@@ -149,10 +156,10 @@ func TestCandidateWorker(t *testing.T) {
 					if feature == "net" {
 						name = "TestDisabledNet"
 					}
-					configs = append(configs, simrt.RunConfig{Test: name, Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}})
+					configs = append(configs, simrt.RunConfig{Test: name, Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}}, simrt.RunConfig{Test: name + "Control", Seed: 42})
 				}
 			}
-			configs = append(configs, simrt.RunConfig{Test: "TestFailure", Seed: 42})
+			configs = append(configs, simrt.RunConfig{Test: "TestSelfTransitions", Seed: 42}, simrt.RunConfig{Test: "TestRootExit", Seed: 42}, simrt.RunConfig{Test: "TestRootCrash", Seed: 42}, simrt.RunConfig{Test: "TestFailure", Seed: 42})
 			configs = append(configs, simrt.RunConfig{Test: "TestRuntime", Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}})
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
@@ -170,6 +177,10 @@ func TestCandidateWorker(t *testing.T) {
 					}
 					if len(result.Checksum) == 0 || !bytes.Equal(results[0].Checksum, result.Checksum) {
 						t.Fatal("same-process replay differs", i)
+					}
+				} else if configs[i].Test == "TestSelfTransitions" || configs[i].Test == "TestRootExit" || configs[i].Test == "TestRootCrash" {
+					if result.Failed {
+						t.Fatalf("self transition: %s\n%s", result.Err, result.LogOutput)
 					}
 				} else if configs[i].Test == "TestFailure" {
 					if !result.Failed || result.Err != "test failed" || !bytes.Contains(result.LogOutput, []byte("expected failure")) {
@@ -220,6 +231,10 @@ import (
  "io"
  "testing"
  "time"
+ "github.com/neria-cloud/gosim"
+ simfs "github.com/neria-cloud/gosim/fs"
+ simnet "github.com/neria-cloud/gosim/net"
+ "github.com/neria-cloud/gosim/rt"
  "github.com/neria-cloud/gosim/internal/control"
  "github.com/neria-cloud/gosim/internal/contracts"
  "github.com/neria-cloud/gosim/internal/kernel"
@@ -234,7 +249,7 @@ var array [4]int
 const arrayLength = len(array)
 var initialized bool
 func init(){
- if control.CurrentRef().ID==0{panic("application initialized before root/control binding")}
+ if !gosim.IsSim()||gosim.CurrentMachine().ID()==0{panic("application initialized before root/control binding")}
  if embeddedText!="embedded"||string(embeddedBytes)!="embedded"||derived!="embedded"{panic("embedded globals not initialized before expressions/init")}
  initialized=true
 }
@@ -266,18 +281,41 @@ func TestRuntime(t *testing.T){
  if time.Since(before)!=5*time.Nanosecond{t.Fatal("simulated time failed")}
  embeddedBytes[0]='X'
  values["answer"]=99
- child,err:=kernel.DecodeCreateResult(submit(kernel.CreateRequest{Label:"child",Main:func(){
+ info:=rt.Info()
+ if info.Certified||info.BuildDigest==""||info.ReplayRevision==""{t.Fatal("candidate run metadata",info)}
+ changedInfo:=rt.Info();changedInfo.Features[0]="changed"
+ if rt.Info().Features[0]!="rt"{t.Fatal("Info aliases run metadata")}
+ if err:=rt.SetTimeout(time.Minute);err!=nil{t.Fatal(err)}
+ if err:=rt.SetTimeout(0);!errors.Is(err,gosim.ErrInvalidConfig){t.Fatal(err)}
+ child,err:=gosim.NewMachine(gosim.MachineConfig{Label:"child",Main:func(){
   if !initialized||values["answer"]!=42||os.Getenv("CANDIDATE_ENV")!="owned"{panic("child initialization or isolation failed")}
   values["answer"]=7
- }}.Invocation()));if err!=nil{t.Fatal(err)}
- if _,err:=kernel.DecodeStartResult(submit(kernel.StartRequest{Machine:child.Machine}.Invocation()));err!=nil{t.Fatal(err)}
- if _,err:=kernel.DecodeWaitResult(submit(kernel.WaitRequest{Machine:child.Machine}.Invocation()));err!=nil{t.Fatal(err)}
- if _,err:=kernel.DecodeRestartResult(submit(kernel.RestartRequest{Machine:child.Machine}.Invocation()));err!=nil{t.Fatal(err)}
- if _,err:=kernel.DecodeWaitResult(submit(kernel.WaitRequest{Machine:child.Machine}.Invocation()));err!=nil{t.Fatal(err)}
+ }});if err!=nil{t.Fatal(err)}
+ if state,err:=child.State();err!=nil||state!=gosim.New{t.Fatal("new machine started",state,err)}
+ if label,err:=child.Label();err!=nil||label!="child"{t.Fatal(label,err)}
+ if child.ID()==0||child.RunID()!=gosim.CurrentMachine().RunID(){t.Fatal("machine identity")}
+ if _,err:=child.Wait();!errors.Is(err,gosim.ErrNotStarted){t.Fatal("wait before start",err)}
+ for _,feature:=range info.Features{
+  switch feature{
+  case "fs":
+   if err:=simfs.ConfigureMachine(child,simfs.DefaultConfig());err!=nil{t.Fatal(err)}
+   if err:=simfs.SetCrashMode(child,simfs.SamplePending);err!=nil{t.Fatal(err)}
+   if err:=simfs.SetSyncFault(child,simfs.SyncFault{});err!=nil{t.Fatal(err)}
+  case "net":
+   if err:=simnet.ConfigureMachine(child,simnet.MachineConfig{});err!=nil{t.Fatal(err)}
+   if _,err:=simnet.Address(child);!errors.Is(err,gosim.ErrNotStarted){t.Fatal("address before allocation",err)}
+  }
+ }
+ if err:=child.Start();err!=nil{t.Fatal(err)}
+ exit,err:=child.Wait();if err!=nil||exit.Kind!=gosim.Graceful||exit.Epoch==0{t.Fatal(exit,err)}
+ if err:=child.Restart();err!=nil{t.Fatal(err)}
+ next,err:=child.Wait();if err!=nil||next.Kind!=gosim.Graceful||next.Epoch<=exit.Epoch{t.Fatal(next,err)}
  if string(embeddedBytes)!="Xmbedded"{t.Fatal("child changed embedded bytes")}
  if values["answer"]!=99{t.Fatal("child changed root globals")}
- if _,err:=kernel.DecodeDestroyResult(submit(kernel.DestroyRequest{Machine:child.Machine}.Invocation()));err!=nil{t.Fatal(err)}
- info,err:=kernel.DecodeInfoResult(submit(kernel.InfoRequest{}.Invocation()));if err!=nil{t.Fatal(err)}
+ if err:=child.Crash();err!=nil{t.Fatal(err)}
+ if terminal,err:=child.Wait();err!=nil||terminal!=next{t.Fatal("terminal exit changed",terminal,err)}
+ if err:=child.Destroy();err!=nil{t.Fatal(err)}
+ if _,err:=child.State();!errors.Is(err,gosim.ErrMachineNotFound){t.Fatal("destroyed handle",err)}
  for _,feature:=range info.Features{
   switch feature{
   case "fs":
@@ -287,8 +325,8 @@ func TestRuntime(t *testing.T){
   case "net":
    socket,err:=kernel.DecodeSocketResult(submit(kernel.SocketRequest{Domain:2,Type:1|0x800|0x80000}.Invocation()));if err!=nil{t.Fatal(err)}
    if _,err:=kernel.DecodeCloseResult(submit(kernel.CloseRequest{FD:socket.FD}.Invocation()));err!=nil{t.Fatal(err)}
-   address,err:=kernel.DecodeNetAddressResult(submit(kernel.NetAddressRequest{Machine:control.CurrentRef()}.Invocation()));if err!=nil{t.Fatal(err)}
-   listener,err:=net.Listen("tcp4",net.IP(address.Address[:]).String()+":8080");if err!=nil{t.Fatal(err)}
+   address,err:=simnet.Address(gosim.CurrentMachine());if err!=nil{t.Fatal(err)}
+   listener,err:=net.Listen("tcp4",address.String()+":8080");if err!=nil{t.Fatal(err)}
    done:=make(chan error,1)
    go func(){conn,err:=listener.Accept();if err!=nil{done<-err;return};defer conn.Close();_,err=io.CopyN(conn,conn,2);done<-err}()
    conn,err:=net.DialTimeout("tcp4",listener.Addr().String(),time.Second);if err!=nil{t.Fatal(err)}
@@ -315,6 +353,35 @@ func TestRuntime(t *testing.T){
   }
  }
 }
+func TestRootExit(t *testing.T){defer func(){panic("root exit unwound")}();gosim.ExitSelf();panic("root exit returned")}
+func TestRootCrash(t *testing.T){defer func(){panic("root crash unwound")}();gosim.CrashSelf();panic("root crash returned")}
+
+func TestSelfTransitions(t *testing.T) {
+ root:=gosim.CurrentMachine()
+ if err:=root.Stop();!errors.Is(err,gosim.ErrSelfTransition){t.Fatal(err)}
+ if err:=root.Crash();!errors.Is(err,gosim.ErrSelfTransition){t.Fatal(err)}
+ if _,err:=root.Wait();!errors.Is(err,gosim.ErrSelfTransition){t.Fatal(err)}
+ if err:=root.Destroy();!errors.Is(err,gosim.ErrSelfTransition){t.Fatal(err)}
+ for i,exit:=range []func(){gosim.ExitSelf,gosim.CrashSelf} {
+  child,err:=gosim.NewMachine(gosim.MachineConfig{Main:func(){defer func(){panic("self exit unwound")}();exit();panic("self exit returned")}})
+  if err!=nil{t.Fatal(err)}
+  if err:=child.Start();err!=nil{t.Fatal(err)}
+  result,err:=child.Wait();if err!=nil||result.Kind!=gosim.ExitKind(i){t.Fatal(result,err)}
+  if err:=child.Destroy();err!=nil{t.Fatal(err)}
+ }
+}
+func TestDisabledFSControl(t *testing.T){
+ defer func(){recover();panic("disabled control unwound")}()
+ var iter *simfs.CrashIterator
+ iter.Next()
+ panic("disabled control returned")
+}
+func TestDisabledNetControl(t *testing.T){
+ defer func(){recover();panic("disabled control unwound")}()
+ simnet.SetLinkPolicy(simnet.Link{},simnet.LinkPolicy{})
+ panic("disabled control returned")
+}
+
 func TestDisabledFS(t *testing.T){
  defer func(){recover();panic("disabled filesystem unwound application defers")}()
  os.ReadFile("/disabled")

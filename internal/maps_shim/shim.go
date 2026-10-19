@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 // Package maps_shim provides a minimal replacement for internal/runtime/maps
 // used when translating hash/maphash. The real internal/runtime/maps is
 // internal to the std module and cannot be imported from the translated module.

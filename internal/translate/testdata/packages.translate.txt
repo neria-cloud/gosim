@@ -124,7 +124,7 @@ import (
 	testing_original "testing"
 
 	"github.com/neria-cloud/gosim/rt/runtime"
-	"translated/github.com/neria-cloud/gosim/internal_/hooks/go123"
+	"translated/github.com/neria-cloud/gosim/.gosim/v2/IDENTITY/input/gosimcomposition"
 )
 
 func init() {
@@ -133,7 +133,7 @@ func init() {
 	})
 }
 func TestMain(m *testing_original.M) {
-	gosimruntime.TestMain(go123.Runtime())
+	gosimruntime.TestMain(gosimcomposition.Driver{})
 }
 -- testpkg/main.go --
 package testpkg
@@ -174,7 +174,7 @@ func TestHello(t *testing.T) {
 package testpkg_test
 
 import (
-	"translated/github.com/neria-cloud/gosim/internal_/testing"
+	"translated/github.com/neria-cloud/gosim/internal_/compat/SELECTED/shims/testing"
 	"translated/log"
 
 	"translated/test/packages/testpkg"

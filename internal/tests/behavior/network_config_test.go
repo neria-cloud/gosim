@@ -9,11 +9,13 @@ import (
 	"math"
 	"net"
 	"net/netip"
-	"syscall"
 	"testing"
 	"time"
 
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
+
 	"github.com/neria-cloud/gosim"
+	simnet "github.com/neria-cloud/gosim/net"
 )
 
 func networkCheck(t *testing.T, err error) {
@@ -23,39 +25,38 @@ func networkCheck(t *testing.T, err error) {
 	}
 }
 
+func networkLink(a, b string) simnet.Link {
+	return simnet.Link{From: netip.MustParseAddr(a), To: netip.MustParseAddr(b)}
+}
+
 func TestNetworkConfigValidation(t *testing.T) {
-	c := gosim.DefaultNetworkConfig()
+	c := simnet.DefaultConfig()
 	c.Latency.Lambda = 2.5
-	c.Loss.FailProbability = 0.125
-	c.Loss.RepairProbability = 0.375
-	networkCheck(t, gosim.ConfigureNetwork(c))
-	// These noninteger values must survive the pointer-based syscall unchanged.
-	networkCheck(t, gosim.SetMessageLatencyCurve(0.5))
-	networkCheck(t, gosim.SetLinkMessageLatencyCurve(aAddr, bAddr, 0.25))
-	networkCheck(t, gosim.SetFailRate(0.125))
-	networkCheck(t, gosim.SetRepairRate(0.375))
-	networkCheck(t, gosim.SetLinkFailRate(aAddr, bAddr, 0.125))
-	networkCheck(t, gosim.SetLinkRepairRate(aAddr, bAddr, 0.375))
-	for _, op := range []func() error{
-		func() error { return gosim.ConfigureNetwork(gosim.NetworkConfig{}) },
-		func() error { return gosim.SetMaxMessageLatency(-1) },
-		func() error { return gosim.SetMessageLatencyCurve(math.NaN()) },
-		func() error { return gosim.SetFailRate(2) }, func() error { return gosim.SetRepairRate(-1) },
-		func() error { return gosim.SetConnected("bad", bAddr, false) },
-		func() error { return gosim.SetDelay("::1", bAddr, 0) },
-		func() error { return gosim.SetLinkLatency(aAddr, bAddr, -1) },
+	c.Loss = simnet.LossConfig{FailProbability: 0.125, RepairProbability: 0.375}
+	networkCheck(t, simnet.Configure(c))
+	latency := simnet.LatencyConfig{Max: time.Second, Lambda: 0.25}
+	loss := simnet.LossConfig{FailProbability: 0.125, RepairProbability: 0.375}
+	networkCheck(t, simnet.SetLinkPolicy(networkLink(aAddr, bAddr), simnet.LinkPolicy{Latency: &latency, Loss: &loss}))
+	for _, operation := range []func() error{
+		func() error { return simnet.Configure(simnet.Config{}) },
+		func() error { bad := c; bad.Latency.Max = -1; return simnet.Configure(bad) },
+		func() error { bad := c; bad.Latency.Lambda = math.NaN(); return simnet.Configure(bad) },
+		func() error { bad := c; bad.Loss.FailProbability = 2; return simnet.Configure(bad) },
+		func() error { bad := c; bad.Loss.RepairProbability = -1; return simnet.Configure(bad) },
+		func() error { return simnet.Partition(simnet.Link{}) },
+		func() error {
+			return simnet.Partition(simnet.Link{From: netip.MustParseAddr("::1"), To: netip.MustParseAddr(bAddr)})
+		},
+		func() error {
+			return simnet.SetLinkPolicy(networkLink(aAddr, bAddr), simnet.LinkPolicy{Latency: &simnet.LatencyConfig{Min: time.Second, Max: time.Millisecond, Lambda: 5}})
+		},
 	} {
-		if err := op(); !errors.Is(err, syscall.EINVAL) {
+		if err := operation(); !errors.Is(err, gosim.ErrInvalidConfig) {
 			t.Fatal(err)
 		}
 	}
-	networkCheck(t, gosim.SetLinkLatency(aAddr, bAddr, time.Second))
-	if err := gosim.SetLinkMaxMessageLatency(aAddr, bAddr, time.Millisecond); !errors.Is(err, syscall.EINVAL) {
-		t.Fatal(err)
-	}
-	networkCheck(t, gosim.ResetLinkLatency(aAddr, bAddr))
-	networkCheck(t, gosim.ResetLinkLoss(aAddr, bAddr))
-	networkCheck(t, gosim.ConfigureNetwork(gosim.DefaultNetworkConfig()))
+	networkCheck(t, simnet.ResetLinkPolicy(networkLink(aAddr, bAddr)))
+	networkCheck(t, simnet.Configure(simnet.DefaultConfig()))
 }
 
 type networkProbe struct {
@@ -80,7 +81,7 @@ func TestNetworkConfigFiveHosts(t *testing.T) {
 	}
 	for i := range addresses {
 		i := i
-		machines[i] = gosim.NewMachine(gosim.MachineConfig{Label: fmt.Sprintf("h%d", i+1), Addr: netip.MustParseAddr(addresses[i]), MainFunc: func() {
+		machines[i] = testsupport.StartConfigured(t, gosim.MachineConfig{Label: fmt.Sprintf("h%d", i+1), Main: func() {
 			<-start
 			listener, err := net.Listen("tcp", addresses[i]+":1234")
 			networkCheck(t, err)
@@ -132,7 +133,7 @@ func TestNetworkConfigFiveHosts(t *testing.T) {
 				}
 				command.result <- networkProbeResult{elapsed: time.Since(started), err: err}
 			}
-		}})
+		}}, netip.MustParseAddr(addresses[i]))
 	}
 	close(start)
 	for range addresses {
@@ -151,7 +152,7 @@ func TestNetworkConfigFiveHosts(t *testing.T) {
 		}
 	}
 	a, b := addresses[1], addresses[4]
-	networkCheck(t, gosim.SetLinkLatency(a, b, 200*time.Millisecond))
+	networkCheck(t, simnet.SetLinkPolicy(networkLink(a, b), simnet.LinkPolicy{Latency: &simnet.LatencyConfig{Min: 200 * time.Millisecond, Max: 200 * time.Millisecond, Lambda: 5}}))
 	for i := 0; i < 5; i++ {
 		for j := i + 1; j < 5; j++ {
 			result := probe(i, j, false)
@@ -165,27 +166,26 @@ func TestNetworkConfigFiveHosts(t *testing.T) {
 			}
 		}
 	}
-	// Both public two-way entry points must block both directions.
-	networkCheck(t, gosim.Partition(a, b))
+	// A symmetric partition blocks both directions, including after repair.
+	networkCheck(t, simnet.Partition(networkLink(a, b)))
 	for _, pair := range [][2]int{{1, 4}, {4, 1}} {
 		if probe(pair[0], pair[1], true).err == nil {
 			t.Fatal("explicit partition did not block direction", pair)
 		}
 	}
-	networkCheck(t, gosim.SetConnected(a, b, true))
+	networkCheck(t, simnet.Repair(networkLink(a, b)))
 	networkCheck(t, probe(1, 4, true).err)
 	networkCheck(t, probe(4, 1, true).err)
-	networkCheck(t, gosim.SetConnected(a, b, false))
+	networkCheck(t, simnet.Partition(networkLink(a, b)))
 	for _, pair := range [][2]int{{1, 4}, {4, 1}} {
 		if probe(pair[0], pair[1], true).err == nil {
-			t.Fatal("legacy partition did not block direction", pair)
+			t.Fatal("repeated partition did not block direction", pair)
 		}
 	}
-	networkCheck(t, gosim.Repair(a, b))
+	networkCheck(t, simnet.Repair(networkLink(a, b)))
 	networkCheck(t, probe(1, 4, true).err)
 	networkCheck(t, probe(4, 1, true).err)
-	networkCheck(t, gosim.SetLinkFailRate(a, b, 1))
-	networkCheck(t, gosim.SetLinkRepairRate(a, b, 0))
+	networkCheck(t, simnet.SetLinkPolicy(networkLink(a, b), simnet.LinkPolicy{Loss: &simnet.LossConfig{FailProbability: 1, RepairProbability: 0}}))
 	if result := probe(1, 4, false); result.err == nil {
 		t.Fatal("forced failure did not drop traffic")
 	}
@@ -196,24 +196,22 @@ func TestNetworkConfigFiveHosts(t *testing.T) {
 			}
 		}
 	}
-	networkCheck(t, gosim.ResetLinkLatency(a, b))
-	networkCheck(t, gosim.ResetLinkLoss(a, b))
-	networkCheck(t, gosim.Repair(a, b))
+	networkCheck(t, simnet.ResetLinkPolicy(networkLink(a, b)))
+	networkCheck(t, simnet.Repair(networkLink(a, b)))
 	networkCheck(t, probe(1, 4, true).err)
 	// Exercise intermediate probabilities and traffic-triggered repairs. A
 	// dropped stream may require reconnection; each attempt has a bounded timeout.
-	networkCheck(t, gosim.SetLinkFailRate(a, b, 0.125))
-	networkCheck(t, gosim.SetLinkRepairRate(a, b, 0.5))
+	networkCheck(t, simnet.SetLinkPolicy(networkLink(a, b), simnet.LinkPolicy{Loss: &simnet.LossConfig{FailProbability: 0.125, RepairProbability: 0.5}}))
 	for range 6 {
 		_ = probe(1, 4, true)
 	}
-	networkCheck(t, gosim.ResetLinkLoss(a, b))
-	networkCheck(t, gosim.Repair(a, b))
+	networkCheck(t, simnet.ResetLinkPolicy(networkLink(a, b)))
+	networkCheck(t, simnet.Repair(networkLink(a, b)))
 	networkCheck(t, probe(1, 4, true).err)
 	for _, command := range commands {
 		close(command)
 	}
 	for _, machine := range machines {
-		machine.Wait()
+		testsupport.Wait(t, machine)
 	}
 }

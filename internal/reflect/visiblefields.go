@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 package reflect
 
 import "reflect" //gosim:notranslate

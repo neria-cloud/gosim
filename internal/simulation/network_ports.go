@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 package simulation
 
 // TODO(migration): remove in Task 22; the live kernel supplies these ports after cutover.

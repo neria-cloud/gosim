@@ -5,9 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"log/slog"
 	"maps"
-	"os"
 	"path"
 	"path/filepath"
 	"runtime/debug"
@@ -29,7 +27,6 @@ type translatePackageArgs struct {
 	infrastructure     bool
 	definitions        map[PackageSelector]bool
 	Selection          buildspec.Selection
-	legacy             bool // TODO(migration): remove in Task 22.
 	cfg                gosimtool.BuildConfig
 	pkg                *packages.Package
 	hooksPackage       string
@@ -139,15 +136,12 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 			err = fmt.Errorf("translate %s: %v\n%s", args.pkg.ID, failure, debug.Stack())
 		}
 	}()
-	var policies *PackagePolicies
-	if !args.legacy {
-		resolved, err := Policies(args.Selection)
-		if err != nil {
-			return nil, err
-		}
-		policies = &resolved
-		policies.definitions = args.definitions
+	resolved, err := Policies(args.Selection)
+	if err != nil {
+		return nil, err
 	}
+	policies := &resolved
+	policies.definitions = args.definitions
 
 	kind, extractedPath := classifyPackage(args.pkg)
 
@@ -258,34 +252,13 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 
 	var results TranslatePackageResult
 
-	shared := globalsDontTranslateGo123
-	if policies != nil {
-		shared = policies.shared
-	}
+	shared := policies.shared
 	globals := collectGlobalsAndTests(dstFiles, dec.Ast, args.pkg.PkgPath, args.pkg.TypesInfo, shared)
-	if policies != nil {
-		// The legacy collector also infers sharing from initializer shapes (for
-		// example errors.New). Selection owns every shared global on this path.
-		globals.shouldShare = make(map[string]bool)
-		for _, name := range globals.globalsFields {
-			if policies.shared[PackageSelector{Pkg: args.pkg.PkgPath, Selector: name}] {
-				globals.shouldShare[name] = true
-			}
-		}
-	}
 	globalInfo := &PackageGlobalInfo{
 		Container:   make(map[string]string),
 		ShouldShare: make(map[string]bool),
 		Rewritten:   make(map[string]string),
 	}
-
-	// if args.pkg.PkgPath == "net/http" {
-	// log.Println(args.pkg.PkgPath, collectGlobalsSSA(args.pkg))
-	ssaGlobals := ssaGlobalsInfo{}
-	if args.legacy {
-		ssaGlobals = collectGlobalsSSA(args.pkg)
-	}
-	// }
 
 	globalField := map[packageKind]string{
 		// TODO: share these constants with the global file code
@@ -303,14 +276,6 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 	}
 	for global, val := range globals.shouldShare {
 		globalInfo.ShouldShare[global] = val
-	}
-	for _, info := range ssaGlobals.readonlyMaps {
-		globalInfo.ShouldShare[info.name] = true
-		delete(globalInfo.Container, info.name)
-		if info.onceName != "" && info.onceFn != "" {
-			globalInfo.ShouldShare[info.onceName] = true
-			delete(globalInfo.Container, info.onceName)
-		}
 	}
 
 	if kind == PackageKindBase || kind == PackageKindForTest {
@@ -350,9 +315,6 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 
 	allGlobals.merge(args.pkg.PkgPath, globalInfo)
 
-	hooks := maps.Clone(hooksGo123)
-	maps.Copy(hooks, hooksGensyscallGo123ByArch[args.cfg.Identity.SimulationArch])
-
 	translator := &packageTranslator{
 		infrastructure:      args.infrastructure,
 		profile:             policies,
@@ -367,11 +329,8 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 		forTest:             forTest,
 		collect: translateCollect{
 			bindspecs: make(map[bindspec]struct{}),
-			maps:      ssaGlobals.readonlyMaps,
 		},
-		hooks:             hooks,
-		acceptedLinknames: acceptedgo123Linknames,
-		keepAsmPkgs:       keepAsmPackagesGo123,
+		hooks: policies.hooks,
 	}
 
 	if policies != nil {
@@ -381,8 +340,6 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 			return nil, err
 		}
 		translator.hooks = policies.hooks
-		translator.acceptedLinknames = nil
-		translator.keepAsmPkgs = nil
 	}
 	// translate package files
 	for _, dstFile := range dstFiles {
@@ -406,7 +363,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 		PackageKindTests:   "gosim_globals_test.go",
 	}[kind]; ok {
 		// write a globals.go, if applicable
-		if len(translator.collect.globalFields) > 0 || len(translator.collect.inits) > 0 || len(translator.collect.bindspecs) > 0 || len(translator.collect.sharedGlobalFields) > 0 || len(translator.collect.maps) > 0 {
+		if len(translator.collect.globalFields) > 0 || len(translator.collect.inits) > 0 || len(translator.collect.bindspecs) > 0 || len(translator.collect.sharedGlobalFields) > 0 {
 			file, err := makeDetgoGlobalsFile(translator, args.pkg.Name, forTest)
 			if err != nil {
 				return nil, err
@@ -421,28 +378,11 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 		}
 	}
 
-	if kind == PackageKindBase && translator.keepAsmPkgs[args.pkg.PkgPath] {
-		// copy over assembly implementations for specific packages
-		for _, filePath := range args.pkg.OtherFiles {
-			slog.Debug("copying other file", "pkg", args.pkg.PkgPath, "file", filePath)
-			bytes, err := os.ReadFile(filePath)
-			if err != nil {
-				return nil, err
-			}
-			// prepend our header so cleanup will delete it,
-			// even though we do not modify the file
-			prefixed := append([]byte(header), bytes...)
-			if err := writer.stage(pathForFile(outputPackage, filepath.Base(filePath)), prefixed); err != nil {
-				return nil, err
-			}
-		}
-	}
-
 	// write a gosimaliashack.go file if needed
 	if kind == PackageKindBase {
 		// XXX: compute these automatically?
-		if vars, ok := PublicExportHacks[args.pkg.PkgPath]; ok {
-			file, err := makePublicExportHackFile(path.Base(outputPackage), vars)
+		if vars, ok := typeAliases[args.pkg.PkgPath]; ok {
+			file, err := makeTypeAliasFile(path.Base(outputPackage), vars)
 			if err != nil {
 				return nil, err
 			}
@@ -469,7 +409,6 @@ type translateCollect struct {
 	initIdx            int
 	inits              []string
 	bindspecs          map[bindspec]struct{}
-	maps               []mapInitializer
 }
 
 type PackageSelector struct {
@@ -488,9 +427,7 @@ type packageTranslator struct {
 	replacedPkgs   map[string]string
 	pkgPath        string
 
-	hooks             map[PackageSelector]PackageSelector
-	acceptedLinknames map[PackageSelector]PackageSelector
-	keepAsmPkgs       map[string]bool
+	hooks map[PackageSelector]PackageSelector
 
 	collect             translateCollect
 	implicitConversions map[ast.Expr]types.Type
@@ -721,12 +658,12 @@ func (t *packageTranslator) translateFile(dstFile *dst.File) (*dst.File, error) 
 	return dstFile, nil
 }
 
-func makePublicExportHackFile(pkgName string, names []string) (*dst.File, error) {
+func makeTypeAliasFile(pkgName string, names []string) (*dst.File, error) {
 	slices.Sort(names)
 	var specs []dst.Spec
 	for _, name := range names {
 		specs = append(specs, &dst.TypeSpec{
-			Name:   dst.NewIdent("GosimPublicExportHack" + name),
+			Name:   dst.NewIdent("GosimTypeAlias" + name),
 			Assign: true,
 			Type:   dst.NewIdent(name),
 		})

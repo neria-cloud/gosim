@@ -54,7 +54,11 @@ func (e *Engine) startCapture() (func(), error) {
 	}
 	logger := makeLogger(&c.log, slog.LevelInfo)
 	checksum := newChecksummer(logger.slog)
-	logger = makeLogger(io.MultiWriter(&checksumWriter{checksummer: checksum}, &c.log), slog.LevelInfo)
+	outputs := []io.Writer{&checksumWriter{checksummer: checksum}, &c.log}
+	if consoleOutput != nil {
+		outputs = append(outputs, consoleOutput)
+	}
+	logger = makeLogger(io.MultiWriter(outputs...), slog.LevelInfo)
 	e.scheduler.logger = logger
 	e.scheduler.checksummer = checksum
 	e.scheduler.envs = append(slices.Clone(c.config.ExtraEnv), "GOSIM_LOG_LEVEL=INFO")

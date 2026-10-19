@@ -15,9 +15,9 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
+	"github.com/neria-cloud/gosim/internal/candidate"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/gosimviewer"
 	"github.com/neria-cloud/gosim/internal/translate"
@@ -150,342 +150,140 @@ import (
 `
 
 func main() {
-	flag.Usage = func() {
-		fmt.Print(doc())
-	}
+	flag.Usage = func() { fmt.Print(doc()) }
 	flag.Parse()
-
-	if len(flag.Args()) < 1 {
+	if flag.NArg() == 0 {
 		flag.Usage()
 		os.Exit(2)
 	}
-	cmd := flag.Args()[0]
-	cmdArgs := flag.Args()[1:]
-
-	cfg := gosimtool.LegacyBuildConfig{
-		GOOS:   "linux",
-		GOARCH: runtime.GOARCH,
-		Race:   false,
+	command, arguments := flag.Arg(0), flag.Args()[1:]
+	f := flag.NewFlagSet(commandName(command), flag.ExitOnError)
+	if command == "viewer" {
+		logs := f.String("log", "", "captured JSON log")
+		source := f.String("source", "", "translated source directory from the matching artifact")
+		f.Parse(arguments)
+		if *source == "" {
+			log.Fatal("viewer requires -source from the matching artifact")
+		}
+		gosimviewer.Viewer(*logs, *source)
+		return
 	}
-
-	switch cmd {
-	case "translate":
-		translateflags := flag.NewFlagSet(commandName("translate"), flag.ExitOnError)
-		race := translateflags.Bool("race", false, "build in -race mode")
-		translateflags.Parse(cmdArgs)
-
-		cfg.Race = *race
-
-		_, err := translate.LegacyTranslate(&translate.LegacyTranslateInput{
-			Packages: translateflags.Args(),
-			Cfg:      cfg,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-	case "test":
-		testflags := flag.NewFlagSet(commandName("test"), flag.ExitOnError)
-		verbose := testflags.Bool("v", false, "verbose output")
-		race := testflags.Bool("race", false, "build in -race mode")
-		run := testflags.String("run", "", "tests to run (as in go test -run)")
-		logformat := testflags.String("logformat", "pretty", "gosim log formatting: raw|indented|pretty")
-		simtrace := testflags.String("simtrace", "", "set of a comma-separated traces to enable")
-		jsonlogout := testflags.String("jsonlogout", "", "path to a file to write json log to, for use with viewer")
-		seeds := testflags.String("seeds", "1", "a comma separated list of seeds and ranges to run, such as 1,2,10-100,99")
-		testflags.Parse(cmdArgs)
-
-		cfg.Race = *race
-
-		packages := testflags.Args()
-		if len(packages) == 0 {
-			packages = []string{"."}
-		}
-
-		output, err := translate.LegacyTranslate(&translate.LegacyTranslateInput{
-			Packages: packages,
-			Cfg:      cfg,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		name := "go"
-		args := []string{"test"}
-
-		// TODO: only for go1.23?
-		args = append(args, "-ldflags=-checklinkname=0", "-tags=linkname")
-		if *verbose {
-			args = append(args, "-v")
-		}
-		if *race {
-			args = append(args, "-race")
-		}
-		args = append(args, "-trimpath")
-		if *run != "" {
-			args = append(args, "-run", *run)
-		}
-		args = append(args, output.Packages...)
-		if *logformat != "pretty" {
-			// TODO: configure this default somewhere?
-			args = append(args, "-logformat", *logformat)
-		}
-		if *simtrace != "" {
-			args = append(args, "-simtrace", *simtrace)
-		}
-		// TODO: make this output somehow work per test
-		if *jsonlogout != "" {
-			abs, err := filepath.Abs(*jsonlogout)
-			if err != nil {
-				log.Fatalf("making jsonlogout absolute: %s", err)
-			}
-			args = append(args, "-jsonlogout", abs)
-		}
-		if *seeds != "" {
-			args = append(args, "-seeds", *seeds)
-		}
-
-		cmd := exec.Command(name, args...)
-		cmd.Env = append(os.Environ(), "FORCE_COLOR=1")
-		cmd.Dir = output.RootOutputDir
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				os.Exit(exitErr.ExitCode())
-			}
-			log.Fatal(err)
-		}
-
-	case "build-tests":
-		// do we supply packages or does it just work?
-		// for now, let's supply packages...
-
-		modDir, err := gosimtool.FindGoModDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		testflags := flag.NewFlagSet(commandName("build-tests"), flag.ExitOnError)
-		race := testflags.Bool("race", false, "build in -race mode")
-		testflags.Parse(cmdArgs)
-
-		cfg.Race = *race
-
-		output, err := translate.LegacyTranslate(&translate.LegacyTranslateInput{
-			Packages: testflags.Args(),
-			Cfg:      cfg,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// tests are named after the last part of the directory, even if they
-		// have a different internal name (nice.)
-
-		groups := batchPackagesWithDifferentNames(output.Packages)
-
-		// log.Println(groups)
-
-		dstDir := filepath.Join(modDir, gosimtool.OutputDirectory, "metatest", cfg.AsDirname())
-		if err := os.MkdirAll(dstDir, 0o755); err != nil {
-			log.Fatal(err)
-		}
-
-		buildDir, err := os.MkdirTemp("", "gosimbuild")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.RemoveAll(buildDir)
-
-		for _, group := range groups {
-			// copy over existing binaries to make it faster
-			for _, pkg := range group {
-				binName := packageName(pkg) + ".test"
-				src := filepath.Join(dstDir, gosimtool.PreparedTestBinName(pkg))
-				dst := filepath.Join(buildDir, binName)
-				if err := copyFile(src, dst, 0o755); err != nil {
-					if errors.Is(err, os.ErrNotExist) {
-						// ignore missing source files, this is just an optimization
-						continue
-					}
-					log.Fatal(err)
-				}
-			}
-
-			// TODO: only for go1.23?
-			name := "go"
-			args := []string{"test"}
-			args = append(args, "-ldflags=-checklinkname=0", "-tags=linkname")
-			if *race {
-				args = append(args, "-race")
-			}
-			args = append(args, "-trimpath")
-
-			args = append(args, "-c")
-			args = append(args, "-o", buildDir)
-
-			args = append(args, group...)
-
-			cmd := exec.Command(name, args...)
-			cmd.Dir = output.RootOutputDir
-
-			// TODO: consider if we want to do this?
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-
-			if err := cmd.Run(); err != nil {
-				if exitErr, ok := err.(*exec.ExitError); ok {
-					os.Exit(exitErr.ExitCode())
-				}
-				log.Fatal(err)
-			}
-
-			for _, pkg := range group {
-				binName := packageName(pkg) + ".test"
-				src := filepath.Join(buildDir, binName)
-				dst := filepath.Join(dstDir, gosimtool.PreparedTestBinName(pkg))
-
-				// skip unchanged so we keep the old modified timestamp
-				if err := copyFileIfChanged(src, dst, 0o755); err != nil {
-					log.Fatal(err)
-				}
-
-				depBytes, err := json.MarshalIndent(output.Deps[pkg], "", "  ") // log.Println(binName, pkg, output.Deps[pkg])
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				if err := writeFileIfDifferent(depBytes, filepath.Join(dstDir, gosimtool.PreparedTestInfoName(pkg)), 0o644); err != nil {
-					log.Fatal(err)
-				}
-			}
-		}
-
-	case "viewer":
-		// TODO: document viewer
-		viewerflags := flag.NewFlagSet(commandName("viewer"), flag.ExitOnError)
-		// TODO: make this log viewing experience nicer
-		log := viewerflags.String("log", "", "path to logs from jsonlogout")
-		viewerflags.Parse(cmdArgs)
-
-		gosimviewer.Viewer(*log)
-
-	case "debug":
-		// TODO: make -headless flag write launch configuration?
-		// TODO: for -headless, make ctrl-c work?
-		// TODO: for -headless, use delve api to send initial continue?
-
-		debugflags := flag.NewFlagSet(commandName("debug"), flag.ExitOnError)
-		race := debugflags.Bool("race", false, "build in -race mode")
-		pkg := debugflags.String("package", "", "package path to debug")
-		test := debugflags.String("test", "", "full test name to debug")
-		seed := debugflags.Int("seed", 1, "seed to debug")
-		step := debugflags.Int("step", 0, "step to break at")
-		headless := debugflags.Bool("headless", false, "run headless for IDE debugging")
-		debugflags.Parse(cmdArgs)
-
-		modDir, err := gosimtool.FindGoModDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		cfg.Race = *race
-
-		output, err := translate.LegacyTranslate(&translate.LegacyTranslateInput{
-			Packages: []string{*pkg},
-			Cfg:      cfg,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if len(output.Packages) != 1 {
-			log.Fatalf("expected 1 output packages, got %v", output.Packages)
-		}
-		translated := output.Packages[0]
-
-		script := fmt.Sprintf(`continue
-stepout`)
-		scriptPath := filepath.Join(modDir, gosimtool.OutputDirectory, "debug-script")
-		if err := os.WriteFile(scriptPath, []byte(script), 0o644); err != nil {
-			log.Fatal(err)
-		}
-
-		name := "dlv"
-		flags := []string{
-			"test",
-			translated,
-			"--build-flags=-ldflags=-checklinkname=0 -tags=linkname",
-			// TODO: does this actually set linkname?
-			// TODO: pass on -race
-		}
-
-		if *headless {
-			flags = append(flags,
-				"--listen=:2345",
-				"--accept-multiclient",
-				"--headless",
-			)
-			log.Printf("running delve in headless mode, connect with vscode using a launch configuration (.vscode/launch.json) like:\n" +
-				`{
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Connect to dlv-dap server on localhost:2345",
-            "type": "go",
-            "request": "attach",
-            "mode": "remote",
-            "remotePath": "${workspaceFolder}",
-            "port": 2345,
-            "host": "127.0.0.1",
-            "debugAdapter": "dlv-dap",
-            "stopOnEntry": true,
-        }
-    ]
-}`)
-		} else {
-			flags = append(flags,
-				"--init="+scriptPath,
-			)
-			log.Println("running delve in the terminal...")
-		}
-
-		flags = append(flags,
-			"--",
-			"-test.run",
-			"^"+*test+"$",
-			"-test.v",
-			"-step-breakpoint="+fmt.Sprint(*step),
-			"-seeds="+fmt.Sprint(*seed),
-		)
-
-		cmd := exec.Command(name, flags...)
-		cmd.Dir = path.Join(modDir, gosimtool.OutputDirectory, "translated", cfg.AsDirname())
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		cmd.Stderr = os.Stderr
-
-		log.Println(cmd.Args)
-		if err := cmd.Run(); err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				os.Exit(exitErr.ExitCode())
-			}
-			log.Fatal(err)
-		}
-
-	case "prepare-selftest":
-		prepareSelftest()
-
+	switch command {
+	case "translate", "test", "build-tests", "debug", "prepare-selftest", "lookup-test":
 	default:
 		flag.Usage()
 		os.Exit(2)
 	}
+	flags := addBuildFlags(f)
+	verbose := f.Bool("v", false, "verbose test output")
+	run := f.String("run", "", "test match expression")
+	skip := f.String("skip", "", "test skip expression")
+	seeds := f.String("seeds", "1", "seeds and ranges")
+	trace := f.String("simtrace", "", "comma-separated trace categories")
+	format := f.String("logformat", "pretty", "raw|indented|pretty")
+	jsonlog := f.String("jsonlogout", "", "captured JSON log path")
+	pkg := f.String("package", "", "package to debug")
+	test := f.String("test", "", "test to debug")
+	seed := f.Int("seed", 1, "debug seed")
+	step := f.Int("step", 0, "debug breakpoint step")
+	headless := f.Bool("headless", false, "headless debugger")
+	f.Parse(arguments)
+	resolved, err := resolveBuild(command, *flags)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg, err := gosimtool.NewBuildConfig(resolved.Selection, resolved.Toolchain)
+	if err != nil {
+		log.Fatal(err)
+	}
+	patterns := f.Args()
+	if len(patterns) == 0 {
+		patterns = []string{"."}
+	}
+	switch command {
+	case "prepare-selftest":
+		prepareSelftest(cfg)
+		return
+	case "translate":
+		output, err := translate.Translate(&translate.TranslateInput{Packages: patterns, Cfg: cfg})
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(output.RootOutputDir)
+		return
+	case "lookup-test":
+		if len(patterns) != 1 {
+			log.Fatal("lookup-test requires one package")
+		}
+		deps, err := translate.InspectDependencies(&translate.TranslateInput{Packages: patterns, Cfg: cfg})
+		if err != nil {
+			log.Fatal(err)
+		}
+		if len(deps) != 1 {
+			log.Fatal("lookup-test requires one test package")
+		}
+		root, err := gosimtool.FindGoModDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+		for p, sources := range deps {
+			artifact, err := gosimtool.LookupArtifact(root, cfg.Identity, p, sources)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if err := json.NewEncoder(os.Stdout).Encode(struct {
+				Binary  string
+				Sources map[string]string
+			}{filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path), sources}); err != nil {
+				log.Fatal(err)
+			}
+		}
+		return
+	case "debug":
+		if *pkg == "" || *test == "" {
+			log.Fatal("debug requires -package and -test")
+		}
+		patterns = []string{*pkg}
+	}
+	result, err := candidate.BuildResolved(cfg, patterns)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if command == "build-tests" {
+		return
+	}
+	for _, artifact := range result.Artifacts {
+		binary := filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path)
+		args := []string{"-test.run=" + *run, "-test.skip=" + *skip, "-test.v=" + fmt.Sprint(*verbose), "-seeds=" + *seeds, "-simtrace=" + *trace, "-logformat=" + *format}
+		if *jsonlog != "" {
+			absolute, err := filepath.Abs(*jsonlog)
+			if err != nil {
+				log.Fatal(err)
+			}
+			args = append(args, "-jsonlogout="+absolute)
+		}
+		var child *exec.Cmd
+		if command == "debug" {
+			if len(result.Artifacts) != 1 {
+				log.Fatal("debug requires one test package")
+			}
+			dlv := []string{"exec", binary}
+			if *headless {
+				dlv = append(dlv, "--headless", "--listen=:2345", "--accept-multiclient")
+			}
+			dlv = append(dlv, "--", "-test.run=^"+*test+"$", "-test.v", "-seeds="+fmt.Sprint(*seed), "-step-breakpoint="+fmt.Sprint(*step))
+			child = exec.Command("dlv", dlv...)
+		} else {
+			child = exec.Command(binary, args...)
+		}
+		child.Env = append(os.Environ(), "GODEBUG=")
+		child.Stdin, child.Stdout, child.Stderr = os.Stdin, os.Stdout, os.Stdout
+		if err := child.Run(); err != nil {
+			var exit *exec.ExitError
+			if errors.As(err, &exit) {
+				os.Exit(exit.ExitCode())
+			}
+			log.Fatal(err)
+		}
+	}
 }
-
-// TODO: test with and without gosim dependency? (script test?)

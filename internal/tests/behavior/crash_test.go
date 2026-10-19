@@ -17,6 +17,9 @@ import (
 	"time"
 
 	"github.com/neria-cloud/gosim"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
+
+	simfs "github.com/neria-cloud/gosim/fs"
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
@@ -26,7 +29,7 @@ func TestCrashTimer(t *testing.T) {
 	// token to allow machine to read before, after
 	gosimruntime.TestRaceToken.Release()
 
-	m1 := gosim.NewSimpleMachine(func() {
+	m1 := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		// test a timer can fire
 		time.AfterFunc(1*time.Second, func() {
@@ -35,7 +38,7 @@ func TestCrashTimer(t *testing.T) {
 		select {}
 	})
 
-	m2 := gosim.NewSimpleMachine(func() {
+	m2 := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		// test a crashed timer does not fire
 		time.AfterFunc(5*time.Second, func() {
@@ -46,8 +49,8 @@ func TestCrashTimer(t *testing.T) {
 	})
 
 	time.Sleep(2 * time.Second)
-	m1.Crash()
-	m2.Crash()
+	testsupport.Check(t, m1.Crash())
+	testsupport.Check(t, m2.Crash())
 	time.Sleep(10 * time.Second)
 
 	if !before.Load() {
@@ -64,7 +67,7 @@ func TestCrashTimersComplicatedHeap(t *testing.T) {
 		timers = append(timers, time.NewTimer(time.Duration(i+1)*time.Second))
 	}
 
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		var timers []*time.Timer
 		for i := 0; i < 10; i++ {
 			timers = append(timers, time.NewTimer(time.Duration(i+1)*time.Second))
@@ -72,7 +75,7 @@ func TestCrashTimersComplicatedHeap(t *testing.T) {
 		select {}
 	})
 	time.Sleep(time.Millisecond)
-	m.Crash()
+	testsupport.Check(t, m.Crash())
 	for i, timer := range timers {
 		if i%2 == 0 {
 			timer.Stop()
@@ -89,14 +92,14 @@ func TestCrashSleep(t *testing.T) {
 	// token to allow machine to read before, after
 	gosimruntime.TestRaceToken.Release()
 
-	m1 := gosim.NewSimpleMachine(func() {
+	m1 := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		// test Sleep works
 		time.Sleep(1 * time.Second)
 		before.Store(true)
 	})
 
-	m2 := gosim.NewSimpleMachine(func() {
+	m2 := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		// test a crashed Sleep stops
 		time.Sleep(5 * time.Second)
@@ -105,8 +108,8 @@ func TestCrashSleep(t *testing.T) {
 	})
 
 	time.Sleep(2 * time.Second)
-	m1.Crash()
-	m2.Crash()
+	testsupport.Check(t, m1.Crash())
+	testsupport.Check(t, m2.Crash())
 	time.Sleep(10 * time.Second)
 
 	if !before.Load() {
@@ -124,7 +127,7 @@ func TestCrashSemaphore(t *testing.T) {
 	// token to allow machine to read before, after, sema
 	gosimruntime.TestRaceToken.Release()
 
-	m1 := gosim.NewSimpleMachine(func() {
+	m1 := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 
 		// test that we can acquire the semaphore
@@ -132,7 +135,7 @@ func TestCrashSemaphore(t *testing.T) {
 		before.Store(true)
 	})
 
-	m2 := gosim.NewSimpleMachine(func() {
+	m2 := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 
 		// test that an acquire can be crashed
@@ -146,8 +149,8 @@ func TestCrashSemaphore(t *testing.T) {
 	gosimruntime.Semrelease(&sema)
 
 	time.Sleep(3 * time.Second)
-	m1.Crash()
-	m2.Crash()
+	testsupport.Check(t, m1.Crash())
+	testsupport.Check(t, m2.Crash())
 
 	// after crash make sure sema still works
 	gosimruntime.Semrelease(&sema)
@@ -166,7 +169,7 @@ func TestCrashChan(t *testing.T) {
 	ch1 := make(chan int, 1)
 	ch2 := make(chan int, 1)
 
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		// make sure we can recv and send channels
 		ch2 <- <-ch1 + 1
 		// then hang
@@ -183,7 +186,7 @@ func TestCrashChan(t *testing.T) {
 
 	// wait a bit to make sure it's in the recv and crash
 	time.Sleep(2 * time.Second)
-	m.Crash()
+	testsupport.Check(t, m.Crash())
 	time.Sleep(2 * time.Second)
 
 	// test channel still works and recv won't consume our value
@@ -198,7 +201,7 @@ func TestCrashSelect(t *testing.T) {
 	ch1 := make(chan int, 1)
 	ch2 := make(chan int, 0)
 
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		// make sure that select works
 		select {
 		case x := <-ch1:
@@ -220,7 +223,7 @@ func TestCrashSelect(t *testing.T) {
 
 	// make sure we are in the select and crash
 	time.Sleep(time.Second)
-	m.Crash()
+	testsupport.Check(t, m.Crash())
 	time.Sleep(time.Second)
 
 	// make sure chans still work
@@ -237,16 +240,16 @@ func TestCrashSyscall(t *testing.T) {
 	var before, after, finally atomic.Bool
 
 	// sleeper is a helper machine that will successfully stop
-	sleeper := gosim.NewSimpleMachine(func() {
+	sleeper := testsupport.Start(t, func() {
 		time.Sleep(5 * time.Second)
 	})
 
 	// working machine
 	gosimruntime.TestRaceToken.Release()
-	waiter := gosim.NewSimpleMachine(func() {
+	waiter := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		// wait for sleeper, flag success
-		sleeper.Wait()
+		testsupport.Wait(t, sleeper)
 		before.Store(true)
 		// then sleep, flag success after
 		time.Sleep(5 * time.Second)
@@ -254,10 +257,10 @@ func TestCrashSyscall(t *testing.T) {
 	})
 
 	gosimruntime.TestRaceToken.Release()
-	crasher := gosim.NewSimpleMachine(func() {
+	crasher := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		// wait for waiter, but will get crashed before it's done
-		waiter.Wait()
+		testsupport.Wait(t, waiter)
 		after.Store(true)
 	})
 
@@ -272,8 +275,8 @@ func TestCrashSyscall(t *testing.T) {
 	}
 
 	// then crash crasher
-	crasher.Crash()
-	crasher.Wait()
+	testsupport.Check(t, crasher.Crash())
+	testsupport.Wait(t, crasher)
 	// make sure after did not trigger
 	if after.Load() {
 		t.Error("did not expect after")
@@ -284,7 +287,7 @@ func TestCrashSyscall(t *testing.T) {
 		t.Error("did not yet expect finally")
 	}
 	// make sure wait works
-	waiter.Wait()
+	testsupport.Wait(t, waiter)
 	if !finally.Load() {
 		t.Error("did expect finally")
 	}
@@ -304,7 +307,7 @@ func TestCrashStressLightly(t *testing.T) {
 			var before, after atomic.Bool
 			gosimruntime.TestRaceToken.Release()
 			// spawn a new machine that we will run for a bit and then crash
-			m := gosim.NewSimpleMachine(func() {
+			m := testsupport.Start(t, func() {
 				gosimruntime.TestRaceToken.Acquire()
 				// another goroutine for good measure
 				go func() {
@@ -337,7 +340,7 @@ func TestCrashStressLightly(t *testing.T) {
 			})
 			// run for long enough to allow before to succeed.
 			time.Sleep(3 * time.Second)
-			m.Crash()
+			testsupport.Check(t, m.Crash())
 			if !before.Load() {
 				t.Error("expected before")
 			}
@@ -385,11 +388,11 @@ func EchoServer() {
 
 func TestCrashServerTCPConnBreaks(t *testing.T) {
 	// run echo server
-	m := gosim.NewMachine(gosim.MachineConfig{
-		Label:    "a",
-		Addr:     netip.AddrFrom4([4]byte{10, 0, 0, 1}),
-		MainFunc: EchoServer,
-	})
+	m := testsupport.StartConfigured(t, gosim.MachineConfig{
+		Label: "a",
+
+		Main: EchoServer,
+	}, netip.AddrFrom4([4]byte{10, 0, 0, 1}))
 
 	// let it start listening
 	time.Sleep(time.Second)
@@ -412,7 +415,7 @@ func TestCrashServerTCPConnBreaks(t *testing.T) {
 
 	// let it sit and cash it
 	time.Sleep(time.Second)
-	m.Crash()
+	testsupport.Check(t, m.Crash())
 
 	// XXX: test without any data sent?
 
@@ -453,10 +456,10 @@ func TestCrashClientTCPConnBreaks(t *testing.T) {
 	// run echo server
 	var done atomic.Bool
 	gosimruntime.TestRaceToken.Release()
-	gosim.NewMachine(gosim.MachineConfig{
+	testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "a",
-		Addr:  netip.AddrFrom4([4]byte{10, 0, 0, 1}),
-		MainFunc: func() {
+
+		Main: func() {
 			gosimruntime.TestRaceToken.Acquire()
 
 			l, err := net.Listen("tcp", "10.0.0.1:8080") // XXX: need to specify IP? wtf?
@@ -489,18 +492,18 @@ func TestCrashClientTCPConnBreaks(t *testing.T) {
 			}
 			done.Store(true)
 		},
-	})
+	}, netip.AddrFrom4([4]byte{10, 0, 0, 1}))
 
 	// let it start listening
 	time.Sleep(time.Second)
 
-	client := gosim.NewSimpleMachine(EchoClient)
+	client := testsupport.Start(t, EchoClient)
 
 	// let it connect and do the echo
 	time.Sleep(time.Second)
 
 	// then crash the client
-	client.Crash()
+	testsupport.Check(t, client.Crash())
 
 	// wait for the server to notice
 	time.Sleep(time.Minute)
@@ -515,7 +518,7 @@ var crashTestGlobal int
 func TestCrashRestartGlobals(t *testing.T) {
 	var first atomic.Bool
 	gosimruntime.TestRaceToken.Release()
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		if crashTestGlobal != 0 {
 			t.Error("expect 0")
@@ -527,13 +530,13 @@ func TestCrashRestartGlobals(t *testing.T) {
 		first.Store(true)
 	})
 	time.Sleep(time.Second)
-	m.Crash()
+	testsupport.Check(t, m.Crash())
 	if !first.Load() {
 		t.Error("expected first")
 	}
 	var second atomic.Bool
 	gosimruntime.TestRaceToken.Release()
-	m.SetMainFunc(func() {
+	testsupport.Check(t, m.SetMain(func() {
 		gosimruntime.TestRaceToken.Acquire()
 		if crashTestGlobal != 0 {
 			t.Error("expect 0")
@@ -543,8 +546,8 @@ func TestCrashRestartGlobals(t *testing.T) {
 			t.Error("expect 1")
 		}
 		second.Store(true)
-	})
-	m.Restart()
+	}))
+	testsupport.Check(t, m.Restart())
 	time.Sleep(time.Second)
 	if !second.Load() {
 		t.Error("expected second")
@@ -554,7 +557,7 @@ func TestCrashRestartGlobals(t *testing.T) {
 func TestCrashRestartPendingDisk(t *testing.T) {
 	var first atomic.Bool
 	gosimruntime.TestRaceToken.Release()
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
@@ -580,15 +583,15 @@ func TestCrashRestartPendingDisk(t *testing.T) {
 			t.Fatal(err)
 		}
 		first.Store(true)
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 	if !first.Load() {
 		t.Error("expected first")
 	}
 	var second atomic.Bool
 	gosimruntime.TestRaceToken.Release()
-	m.SetMainFunc(func() {
+	testsupport.Check(t, m.SetMain(func() {
 		gosimruntime.TestRaceToken.Acquire()
 		contents, err := os.ReadFile("a")
 		if err != nil {
@@ -602,9 +605,9 @@ func TestCrashRestartPendingDisk(t *testing.T) {
 			t.Fatalf("expected %v, got %v", os.ErrNotExist, err)
 		}
 		second.Store(true)
-	})
-	m.Restart()
-	m.Wait()
+	}))
+	testsupport.Check(t, m.Restart())
+	testsupport.Wait(t, m)
 	if !second.Load() {
 		t.Error("expected second")
 	}
@@ -633,11 +636,11 @@ func checkEcho(t *testing.T) {
 
 func TestCrashRestartNetwork(t *testing.T) {
 	// run echo server
-	m := gosim.NewMachine(gosim.MachineConfig{
-		Label:    "a",
-		Addr:     netip.AddrFrom4([4]byte{10, 0, 0, 1}),
-		MainFunc: EchoServer,
-	})
+	m := testsupport.StartConfigured(t, gosim.MachineConfig{
+		Label: "a",
+
+		Main: EchoServer,
+	}, netip.AddrFrom4([4]byte{10, 0, 0, 1}))
 
 	// let it start listening
 	time.Sleep(time.Second)
@@ -653,7 +656,7 @@ func TestCrashRestartNetwork(t *testing.T) {
 	checkEcho(t)
 
 	// crash
-	m.Crash()
+	testsupport.Check(t, m.Crash())
 
 	// check dialing fails
 	_, err = net.Dial("tcp", "10.0.0.1:8080")
@@ -662,7 +665,7 @@ func TestCrashRestartNetwork(t *testing.T) {
 	}
 
 	// restart
-	m.Restart() // still runs the old EchoServer
+	testsupport.Check(t, m.Restart()) // still runs the old EchoServer
 
 	time.Sleep(time.Second)
 
@@ -680,16 +683,17 @@ func TestCrashRestartNetwork(t *testing.T) {
 }
 
 func TestCrashRestartFilesystemPartialInner(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
+		testsupport.Check(t, simfs.SetCrashMode(gosim.CurrentMachine(), simfs.SamplePending))
 		if err := os.WriteFile("foo", []byte("hello"), 0o644); err != nil {
 			// XXX: could this be log.Fatal?
 			t.Fatal(err)
 		}
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 	// now see what we wrote to disk. see details below on scenarios.
-	m.SetMainFunc(func() {
+	testsupport.Check(t, m.SetMain(func() {
 		contents, err := os.ReadFile("foo")
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
@@ -699,28 +703,28 @@ func TestCrashRestartFilesystemPartialInner(t *testing.T) {
 			}
 		}
 		slog.Info("read", "contents", string(contents))
-	})
-	m.RestartWithPartialDisk()
-	m.Wait()
+	}))
+	testsupport.Check(t, m.Restart())
+	testsupport.Wait(t, m)
 }
 
 func TestCrashRestartBootProgram(t *testing.T) {
 	var done atomic.Bool
 	gosimruntime.TestRaceToken.Release()
 
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		done.Store(true)
 	})
 
 	// give m time to change its boot program
 	time.Sleep(time.Second)
-	m.Crash()
+	testsupport.Check(t, m.Crash())
 	if !done.Load() {
 		t.Fatal("expected done")
 	}
 	done.Store(false)
-	m.Restart()
+	testsupport.Check(t, m.Restart())
 
 	time.Sleep(time.Second)
 	if !done.Load() {
@@ -731,25 +735,20 @@ func TestCrashRestartBootProgram(t *testing.T) {
 func TestCrashRestartNewBootProgram(t *testing.T) {
 	var done atomic.Bool
 	gosimruntime.TestRaceToken.Release()
-
-	m := gosim.NewSimpleMachine(func() {
-		gosim.CurrentMachine().SetMainFunc(func() {
-			gosimruntime.TestRaceToken.Acquire()
-			done.Store(true)
-		})
+	m := testsupport.Start(t, func() {
+		if err := gosim.CurrentMachine().SetMain(func() { done.Store(true) }); !errors.Is(err, gosim.ErrInvalidState) {
+			t.Fatal("running main replacement", err)
+		}
 	})
-
-	// give m time to change its boot program
-	time.Sleep(time.Second)
-	m.Crash()
+	testsupport.Wait(t, m)
 	if done.Load() {
-		t.Fatal("did not expect done")
+		t.Fatal("running machine changed its main")
 	}
-	m.Restart()
-
-	time.Sleep(time.Second)
+	testsupport.Check(t, m.SetMain(func() { gosimruntime.TestRaceToken.Acquire(); done.Store(true) }))
+	testsupport.Check(t, m.Restart())
+	testsupport.Wait(t, m)
 	if !done.Load() {
-		t.Fatal("expected done")
+		t.Fatal("stopped machine did not accept new main")
 	}
 }
 

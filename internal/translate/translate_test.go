@@ -5,11 +5,11 @@ import (
 	"flag"
 	"go/format"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -83,7 +83,7 @@ func TestTranslate(t *testing.T) {
 	// Build a worker with this test's exact compiler. Shared prepare-selftest
 	// artifacts may belong to another patch/family and omit its native packages.
 	binPath := filepath.Join(t.TempDir(), "gosim")
-	build := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", binPath, "./cmd/gosim")
+	build := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", binPath, "./cmd/gosim")
 	build.Dir = curModDir
 	build.Env = append(os.Environ(), "GOTOOLCHAIN=local")
 	if out, err := build.CombinedOutput(); err != nil {
@@ -138,26 +138,16 @@ func TestTranslate(t *testing.T) {
 
 	// run the tool in the work directory
 	// TODO: use a race version, optionally
-	cmd := exec.Command(binPath, "translate", "./...")
+	cmd := exec.Command(binPath, "translate", "-go="+runtime.Version(), "-features=rt,fs,net", "./...")
 	cmd.Dir = workDir
 	cmd.Env = envVars
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			os.Exit(exitErr.ExitCode())
-		}
-		log.Fatal(err)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("selected translation: %v", err)
 	}
-
-	cfg := gosimtool.LegacyBuildConfig{
-		GOOS: "linux",
-		// TODO: varying the architecture for snapshots is fine as long as we don't translate arch-specific stuff; cross-arch tests should catch problems...
-		GOARCH: runtime.GOARCH,
-		Race:   false,
-	}
-	outputPath := filepath.Join(workDir, gosimtool.OutputDirectory, "translated", cfg.AsDirname(), "test")
+	outputPath := filepath.Join(strings.TrimSpace(string(out)), "test")
 
 	// read all output files
 	if err := filepath.WalkDir(outputPath, func(path string, d fs.DirEntry, _ error) error {
@@ -171,6 +161,11 @@ func TestTranslate(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
+		// Identity and selected-family names vary; normalize only those import
+		// components, leaving the generated behavior subject to the golden.
+		outBytes = regexp.MustCompile(`/\.gosim/v2/[0-9a-f]{64}/input/`).ReplaceAll(outBytes, []byte("/.gosim/v2/IDENTITY/input/"))
+		outBytes = regexp.MustCompile(`/compat/go12[56]/`).ReplaceAll(outBytes, []byte("/compat/SELECTED/"))
 
 		pkgName := trimmedPath[:strings.Index(trimmedPath, "/")]
 		if _, ok := desiredFilesByPackage[pkgName]; !ok {

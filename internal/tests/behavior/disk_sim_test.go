@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/neria-cloud/gosim"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 )
 
 // TODO: more scenarios for either triggering or not triggering GC (pending ops, rename, delete, etc.)
@@ -78,7 +79,7 @@ func (t *gcTester) mustSync(f *os.File) {
 
 func (t *gcTester) checkMem(inode int, exists bool, links int) {
 	t.Helper()
-	got := gosim.CurrentMachine().GetInodeInfo(inode)
+	got := testsupport.Inode(t, gosim.CurrentMachine(), inode)
 	if got.MemExists != exists || got.MemLinks != links {
 		t.Errorf("inode %d: expected mem exists %v, links %d; got exists %v, links %d", inode, exists, links, got.MemExists, got.MemLinks)
 	}
@@ -86,7 +87,7 @@ func (t *gcTester) checkMem(inode int, exists bool, links int) {
 
 func (t *gcTester) checkDisk(inode int, exists bool, links int) {
 	t.Helper()
-	got := gosim.CurrentMachine().GetInodeInfo(inode)
+	got := testsupport.Inode(t, gosim.CurrentMachine(), inode)
 	if got.DiskExists != exists || got.DiskLinks != links {
 		t.Errorf("inode %d: expected disk exists %v, links %d; got exists %v, links %d", inode, exists, links, got.DiskExists, got.DiskLinks)
 	}
@@ -94,7 +95,7 @@ func (t *gcTester) checkDisk(inode int, exists bool, links int) {
 
 func (t *gcTester) checkPendingOps(inode int, ops int) {
 	t.Helper()
-	got := gosim.CurrentMachine().GetInodeInfo(inode)
+	got := testsupport.Inode(t, gosim.CurrentMachine(), inode)
 	if got.Ops != ops {
 		t.Errorf("inode %d: expected ops %d, got %d", inode, ops, got.Ops)
 	}
@@ -102,7 +103,7 @@ func (t *gcTester) checkPendingOps(inode int, ops int) {
 
 func (t *gcTester) checkOpenHandles(inode int, handles int) {
 	t.Helper()
-	got := gosim.CurrentMachine().GetInodeInfo(inode)
+	got := testsupport.Inode(t, gosim.CurrentMachine(), inode)
 	if got.Handles != handles {
 		t.Errorf("inode %d: expected handles %d, got %d", inode, handles, got.Handles)
 	}

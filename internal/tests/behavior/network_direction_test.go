@@ -4,30 +4,26 @@ package behavior_test
 
 import (
 	"errors"
-	"syscall"
 	"testing"
 
 	"github.com/neria-cloud/gosim"
+	simnet "github.com/neria-cloud/gosim/net"
 )
 
 func TestNetworkConfigDirections(t *testing.T) {
-	for _, operation := range []func(string, string) error{gosim.PartitionOneWay, gosim.RepairOneWay} {
+	for _, operation := range []func(simnet.Link) error{simnet.Partition, simnet.Repair} {
 		for _, pair := range [][2]string{{aAddr, bAddr}, {bAddr, aAddr}} {
-			if err := operation(pair[0], pair[1]); err != nil {
-				t.Fatal(err)
-			}
+			link := networkLink(pair[0], pair[1])
+			link.Direction = simnet.Forward
+			networkCheck(t, operation(link))
 		}
-		if err := operation("bad", bAddr); !errors.Is(err, syscall.EINVAL) {
+		if err := operation(simnet.Link{Direction: simnet.Forward}); !errors.Is(err, gosim.ErrInvalidConfig) {
 			t.Fatal(err)
 		}
 	}
-	networkCheck(t, gosim.Partition(aAddr, bAddr))
-	if err := gosim.RepairOneWay(aAddr, bAddr); err != nil {
-		t.Fatal(err)
-	}
-	networkCheck(t, gosim.Repair(bAddr, aAddr))
-	networkCheck(t, gosim.SetConnected(aAddr, bAddr, false))
-	networkCheck(t, gosim.Repair(aAddr, bAddr))
-	networkCheck(t, gosim.Partition(aAddr, bAddr))
-	networkCheck(t, gosim.SetConnected(bAddr, aAddr, true))
+	link := networkLink(aAddr, bAddr)
+	networkCheck(t, simnet.Partition(link))
+	link.Direction = simnet.Forward
+	networkCheck(t, simnet.Repair(link))
+	networkCheck(t, simnet.Repair(networkLink(bAddr, aAddr)))
 }

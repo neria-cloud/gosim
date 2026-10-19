@@ -1,4 +1,4 @@
-//go:build linux
+//go:build gosim_retired && linux
 
 package go125
 

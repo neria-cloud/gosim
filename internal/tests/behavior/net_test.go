@@ -14,6 +14,9 @@ import (
 	"time"
 
 	"github.com/neria-cloud/gosim"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
+
+	simnet "github.com/neria-cloud/gosim/net"
 )
 
 // TODO: at the end of each machine, also check that there are no more running goroutines/events/...?
@@ -26,10 +29,10 @@ var (
 )
 
 func TestNetTcpDial(t *testing.T) {
-	a := gosim.NewMachine(gosim.MachineConfig{
+	a := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "a",
-		Addr:  netip.MustParseAddr(aAddr),
-		MainFunc: func() {
+
+		Main: func() {
 			listener, err := net.Listen("tcp", aAddr+":1234")
 			if err != nil {
 				t.Fatal(err)
@@ -77,12 +80,12 @@ func TestNetTcpDial(t *testing.T) {
 				t.Fatal(err)
 			}
 		},
-	})
+	}, netip.MustParseAddr(aAddr))
 
-	b := gosim.NewMachine(gosim.MachineConfig{
+	b := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "b",
-		Addr:  netip.MustParseAddr(bAddr),
-		MainFunc: func() {
+
+		Main: func() {
 			// give the other a second to start listening
 			time.Sleep(time.Second)
 
@@ -123,17 +126,17 @@ func TestNetTcpDial(t *testing.T) {
 				t.Fatal(err)
 			}
 		},
-	})
+	}, netip.MustParseAddr(bAddr))
 
-	a.Wait()
-	b.Wait()
+	testsupport.Wait(t, a)
+	testsupport.Wait(t, b)
 }
 
 func TestNetTcpDisconnectBasic(t *testing.T) {
-	a := gosim.NewMachine(gosim.MachineConfig{
+	a := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "a",
-		Addr:  netip.MustParseAddr(aAddr),
-		MainFunc: func() {
+
+		Main: func() {
 			listener, err := net.Listen("tcp", aAddr+":1234")
 			if err != nil {
 				t.Fatal(err)
@@ -168,11 +171,11 @@ func TestNetTcpDisconnectBasic(t *testing.T) {
 				}()
 			}
 		},
-	})
-	b := gosim.NewMachine(gosim.MachineConfig{
+	}, netip.MustParseAddr(aAddr))
+	b := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "b",
-		Addr:  netip.MustParseAddr(bAddr),
-		MainFunc: func() {
+
+		Main: func() {
 			// give the other a second to start listening
 			time.Sleep(time.Second)
 
@@ -206,7 +209,7 @@ func TestNetTcpDisconnectBasic(t *testing.T) {
 				t.Fatal(marker, err)
 			}
 
-			if err := gosim.SetConnected(aAddr, bAddr, false); err != nil {
+			if err := simnet.Partition(networkLink(aAddr, bAddr)); err != nil {
 				t.Fatal(err)
 			}
 
@@ -247,7 +250,7 @@ func TestNetTcpDisconnectBasic(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			gosim.SetConnected(aAddr, bAddr, true)
+			networkCheck(t, simnet.Repair(networkLink(aAddr, bAddr)))
 
 			// new connection works again
 			conn, err = net.Dial("tcp", aAddr+":1234")
@@ -267,10 +270,10 @@ func TestNetTcpDisconnectBasic(t *testing.T) {
 				t.Fatal(respStr)
 			}
 		},
-	})
+	}, netip.MustParseAddr(bAddr))
 
-	a.Wait()
-	b.Wait()
+	testsupport.Wait(t, a)
+	testsupport.Wait(t, b)
 }
 
 // TODO: test hosts crash?

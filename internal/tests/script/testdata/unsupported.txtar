@@ -1,0 +1,24 @@
+# Unsupported application networking is rejected during translation.
+exec go mod tidy
+! exec gosim translate ./httpapp
+stderr 'unsupported application package net/http'
+! exec gosim translate ./grpcapp
+stderr 'unsupported application package google.golang.org/grpc'
+
+! exec gosim translate ./gcapp
+stderr 'unsupported runtime.GC'
+
+-- httpapp/app_test.go --
+package httpapp
+import ("net/http"; "testing"; _ "github.com/neria-cloud/gosim")
+func TestHTTP(t *testing.T) { _ = http.NewServeMux() }
+
+-- grpcapp/app_test.go --
+package grpcapp
+import ("google.golang.org/grpc"; "testing")
+func TestGRPC(t *testing.T) { _ = grpc.NewServer() }
+
+-- gcapp/app_test.go --
+package gcapp
+import ("runtime"; "testing"; _ "github.com/neria-cloud/gosim")
+func TestGC(t *testing.T) { runtime.GC() }

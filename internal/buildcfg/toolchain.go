@@ -121,9 +121,12 @@ func Fingerprint(tc buildspec.Toolchain) (Distribution, error) {
 	if tc.Executable != filepath.Join(tc.GOROOT, "bin", "go") {
 		return Distribution{}, fmt.Errorf("executable is outside selected distribution")
 	}
-	cache, err := os.UserCacheDir()
-	if err != nil {
-		return Distribution{}, err
+	cache := os.Getenv("GOSIMCACHE")
+	if cache == "" {
+		cache, err = os.UserCacheDir()
+		if err != nil {
+			return Distribution{}, err
+		}
 	}
 	archive, err := fetchArchive(record, filepath.Join(cache, "gosim", "distributions"))
 	if err != nil {

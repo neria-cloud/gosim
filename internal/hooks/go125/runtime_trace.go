@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 package go125
 
 func RuntimeTrace_userTaskCreate(id, parentID uint64, taskType string) {

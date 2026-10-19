@@ -16,11 +16,7 @@ func Fastrand64() uint64 {
 	if inControlledNondeterminism() {
 		return 0
 	}
-	if e := gs.get().engine; e != nil {
-		return e.RandomFor("application", CurrentMachineToken().ID).Uint64()
-	}
-	// TODO(migration): remove legacy integration fallback in Task 22.
-	return fastrand64()
+	return gs.get().engine.RandomFor("application", CurrentMachineToken().ID).Uint64()
 }
 
 //go:norace
@@ -28,11 +24,7 @@ func Fastrandn(n uint32) uint32 {
 	if inControlledNondeterminism() {
 		return 0
 	}
-	if e := gs.get().engine; e != nil {
-		return uint32(e.RandomFor("application", CurrentMachineToken().ID).Uint64N(uint64(n)))
-	}
-	// TODO(migration): remove legacy integration fallback in Task 22.
-	return fastrandn(n)
+	return uint32(gs.get().engine.RandomFor("application", CurrentMachineToken().ID).Uint64N(uint64(n)))
 }
 
 // Random is an owned domain stream. Its initial state and update algorithm are

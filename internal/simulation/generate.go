@@ -1,4 +1,4 @@
-//go:build generate
+//go:build gosim_retired && generate
 
 package simulation
 

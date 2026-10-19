@@ -843,3 +843,133 @@ Date: 2026-10-19. Previous commit: e5bd15d. Commit: the prerequisite commit cont
 - Exact-family affected ordinary/race native checks passed (`.gosim/prereq-focused125.log`, `prereq-focused126.log`, `prereq-race125.log`, `prereq-race126.log` in the prerequisite checkout). Traced race regression passes in `prereq-trace-race.log` after copying primitive provider metadata before the native upcall.
 - The complete pre-cutover common gate exited 0: `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1`, log `.gosim/prereq-gate-owned.log` in `.gosim/task22-prereq`. Both exact-family/all-feature candidate race checks pass (488.0s), along with the complete ordinary/race/native/legacy behavior/script/race-oracle/translation suites. Earlier failures and corrections remain recorded above. No certification promotion or target changes.
 - Final prerequisite size: 747 changed lines (711 additions + 36 deletions), including checklist/log and generated output, using rename-aware staged additions plus deletions; whitespace check passes.
+
+## Task 22.2.2 — Cutover retirement inventory (work in progress)
+Date: 2026-10-19. No cutover commit yet.
+
+The following files are excluded by `gosim_retired` pending bounded deletion in Tasks 26–29. Selected translation rejects retired application imports. No command enables this tag. The active entry uses generated composition/Driver; package-level legacy engine setup and syscall allocation are removed.
+
+- `internal/cryptorand/rand.go`
+- `internal/hooks/go123/doc.go`
+- `internal/hooks/go123/entrypoint.go`
+- `internal/hooks/go123/golangorg_x_sys_unix.go`
+- `internal/hooks/go123/golangorg_x_sys_unix_gen_amd64.go`
+- `internal/hooks/go123/golangorg_x_sys_unix_gen_arm64.go`
+- `internal/hooks/go123/hash_maphash.go`
+- `internal/hooks/go123/internal_abi.go`
+- `internal/hooks/go123/internal_bytealg.go`
+- `internal/hooks/go123/internal_chacha8.go`
+- `internal/hooks/go123/internal_cpu.go`
+- `internal/hooks/go123/internal_godebug.go`
+- `internal/hooks/go123/internal_poll.go`
+- `internal/hooks/go123/internal_syscall_unix.go`
+- `internal/hooks/go123/maps.go`
+- `internal/hooks/go123/math_rand.go`
+- `internal/hooks/go123/math_rand_v2.go`
+- `internal/hooks/go123/net.go`
+- `internal/hooks/go123/os.go`
+- `internal/hooks/go123/os_signal.go`
+- `internal/hooks/go123/runtime_debug.go`
+- `internal/hooks/go123/runtime_trace.go`
+- `internal/hooks/go123/sync.go`
+- `internal/hooks/go123/sync_atomic.go`
+- `internal/hooks/go123/syscall.go`
+- `internal/hooks/go123/syscall_gen_amd64.go`
+- `internal/hooks/go123/syscall_gen_arm64.go`
+- `internal/hooks/go123/time.go`
+- `internal/hooks/go123/weak.go`
+- `internal/hooks/go125/doc.go`
+- `internal/hooks/go125/entrypoint.go`
+- `internal/hooks/go125/golangorg_x_sys_unix.go`
+- `internal/hooks/go125/golangorg_x_sys_unix_gen_amd64.go`
+- `internal/hooks/go125/golangorg_x_sys_unix_gen_arm64.go`
+- `internal/hooks/go125/hash_maphash.go`
+- `internal/hooks/go125/internal_abi.go`
+- `internal/hooks/go125/internal_bytealg.go`
+- `internal/hooks/go125/internal_chacha8.go`
+- `internal/hooks/go125/internal_cpu.go`
+- `internal/hooks/go125/internal_godebug.go`
+- `internal/hooks/go125/internal_poll.go`
+- `internal/hooks/go125/internal_syscall_unix.go`
+- `internal/hooks/go125/maps.go`
+- `internal/hooks/go125/math_rand.go`
+- `internal/hooks/go125/math_rand_v2.go`
+- `internal/hooks/go125/net.go`
+- `internal/hooks/go125/os.go`
+- `internal/hooks/go125/os_signal.go`
+- `internal/hooks/go125/runtime_debug.go`
+- `internal/hooks/go125/runtime_trace.go`
+- `internal/hooks/go125/sync.go`
+- `internal/hooks/go125/sync_atomic.go`
+- `internal/hooks/go125/syscall.go`
+- `internal/hooks/go125/syscall_gen_amd64.go`
+- `internal/hooks/go125/syscall_gen_arm64.go`
+- `internal/hooks/go125/time.go`
+- `internal/hooks/go125/weak.go`
+- `internal/maps_shim/shim.go`
+- `internal/reflect/deepequal.go`
+- `internal/reflect/doc.go`
+- `internal/reflect/makefunc.go`
+- `internal/reflect/no.go`
+- `internal/reflect/swapper.go`
+- `internal/reflect/type.go`
+- `internal/reflect/value.go`
+- `internal/reflect/visiblefields.go`
+- `internal/simulation/generate.go`
+- `internal/simulation/gensyscall/main.go`
+- `internal/simulation/gosim.go`
+- `internal/simulation/gosim_gen.go`
+- `internal/simulation/linux_gen_amd64.go`
+- `internal/simulation/linux_gen_arm64.go`
+- `internal/simulation/linux_syscall.go`
+- `internal/simulation/network_ports.go`
+- `internal/simulation/os_linux.go`
+- `internal/simulation/os_other.go`
+- `internal/simulation/simulation.go`
+- `internal/simulation/syscallabi/errno.go`
+- `internal/simulation/syscallabi/poll.go`
+- `internal/simulation/syscallabi/syscall.go`
+- `internal/simulation/userspace.go`
+- `internal/synctest/synctest.go`
+- `internal/testing/match.go`
+- `internal/testing/missing.go`
+- `internal/testing/testing.go`
+- `internal/translate/cache_legacy.go`
+- `internal/translate/hooks_go123.go`
+- `internal/translate/hooks_go123_amd64_gen.go`
+- `internal/translate/hooks_go123_arm64_gen.go`
+- `internal/translate/legacy_main.go`
+
+Additional integration verification now includes public self-transition results, disabled public controls before nil/argument validation, HTTP/gRPC translation rejection, and the etcd example's explicit unsupported boundary. The formerly commented HTTP race fixture is replaced by a framed TCP exchange with an explicit completion edge and shared-state assertions for both race oracles. Golden translation uses the selected exact worker; dotless application link targets are classified from imported package metadata rather than their spelling.
+
+### Cutover integration follow-up
+- Both exact families pass the expanded ordinary candidate/translator suites (`.gosim/task22.2-candidate-translate.log`, 116.3s/36.2s); the exact125 golden pass is `.gosim/task22.2-golden125.log`. Real public machine/configuration and disabled controls are included. Additional root self-exit probes are included in the final gate.
+- New-path full behavior and nemesis metatests pass (`.gosim/task22.2-cutover-meta.log`, 68.1s/20.8s), including structured/caller/syscall/network logging, timeout diagnostics, and crash recovery. All native packages compile and native control/default tests pass (`.gosim/task22.2-native-build.log`).
+- The complete CLI script suite passes (`.gosim/task22.2-scripts-third.log`, 45.3s). Fixes preserve plain test output before JSON formatting, honor existing GOSIMCACHE for official distribution verification in the script environment, preserve higher application Gosim requirements in the generated module, and have the host metatest read/recheck freshly discovered source contents so Go's outer test cache observes those inputs. This is current-graph content verification, not a timestamp sidecar fallback. HTTP/gRPC and nested host-metatesting now assert translation rejection explicitly.
+- The full new-path gate is running with `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" ./test.sh --concurrency 1`; test.sh now selects exact go1.26.9. Completion still requires its successful exit, prerequisite commit adoption and review-budget checks. Target architecture is unchanged.
+
+
+### Race-oracle boundary audit
+The first uninterrupted cutover gate passed the complete ordinary suite, then correctly rejected runtime.GC while compiling the race oracle. Its sole call is in the already-unconditionally-skipped upstream TestNoRaceDeferAtomicStore GC-scanning regression. Moved that exact fixture into a native-only test file (retaining its existing skip) and added an executed translation-rejection fixture for runtime.GC. Other atomic race assertions remain in both oracles. This does not add simulated GC or claim skipped native coverage. The cutover gate remains incomplete until the ordinary/race rerun succeeds.
+
+### Live CLI race-report ordering
+The isolated simulation race oracle initially classified a WaitGroup test as a false positive and the following intentional race as a false negative. Direct execution showed the race reports were correct but appeared before their buffered RUN header, so the outer parser attributed them to the preceding test. CLI-owned native logging now streams test output and diagnostics during execution while retaining the identical per-run capture/checksum for metatests. Plain test lines bypass JSON formatting. The final targeted oracle passes all 146 cases, 0 false positives/0 false negatives (`.gosim/task22.2-race-oracle-stream.log`). The complete final gate is `.gosim/task22.2-cutover-gate-stream.log`, still in progress. No race suppression or known-failure waiver was added.
+
+### Control-error ownership regression
+The final cutover race gate passed the two-family candidate suite (473.0s), scripts, translator, and race oracle but failed behavior validation: fmt-wrapped provider errors crossed from the supervisor to the application without ownership copying. This was an error-result boundary defect, not the previously fixed trace metadata defect. Completion now copies diagnostic text and named sentinel identity; Submit copies and boxes that value on the caller, preserving errors.Is without introducing application synchronization or retaining provider error pointers. The exact126 native kernel race suite and real translated NetworkTrace/deterministic/seed validation pass (14.5s for the focused behavior run). The complete gate is being rerun in `.gosim/task22.2-cutover-gate-errors.log`; Task 22 remains unchecked pending its result.
+
+The subsequent ordinary gate exposed the poll adapter’s required direct syscall.Errno result identity. Numeric errno results now retain their existing scalar transport; only allocated domain errors are copied. Both exact-family native kernel and kernel-adapter race suites pass (`task22.2-control-errors-native125-final.log` and `task22.2-control-errors-native126-final.log`). Final full-gate retry: `.gosim/task22.2-cutover-gate-values.log`.
+
+## Task 22.2.2 — Atomic public API and live harness cutover complete
+Date: 2026-10-19. Prerequisite commit: 6fdb105. Target architecture unchanged.
+
+Implemented the replacement machine/fs/net/rt APIs and all active callers, framed TCP fixtures, selected composition/Driver CLI entry, exact config/content-checked artifact discovery, and 90-file retirement inventory. Removed active legacy runtime/translator entry paths. Active development patch transitions to exact go1.26.9; normal artifacts remain candidate until Task 24 enforces promotion policy.
+
+Verified:
+- `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" ./test.sh --concurrency 1` exited 0; complete ordinary/race suite, CLI scripts, translator goldens, behavior/metatesting/nemesis and both race oracles pass. Log: `.gosim/task22.2-cutover-gate-values.log`.
+- Fresh exact125/exact126 network candidate race probes exited 0 (57.175s/56.171s), supplementing cached candidate results in the final gate. Both exact-family native kernel/kernel-adapter race suites pass after the control-error ownership correction.
+- Exact125 native controls/defaults, runtime cleanup and translator golden tests passed in `.gosim/task22.2-final-native125.log`.
+- `git diff --check` clean. The cutover commit remains below 5,000 changed lines including tests, new files, retirement constraints and documentation; actual staged count is recorded below.
+
+Integration corrections and failed attempts are recorded above. No test failure is waived; skipped native GC fixture coverage is not claimed. Task 23 remains responsible for protocol 2, identity-based constructor inputs and removal of package-only runner ownership.
+Actual rename-aware staged change size including this record: 4,690 lines (2,314 additions + 2,376 deletions).

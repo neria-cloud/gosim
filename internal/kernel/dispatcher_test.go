@@ -2,6 +2,7 @@ package kernel
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 	"sync/atomic"
@@ -12,6 +13,26 @@ import (
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
+
+func TestControlErrorCopiesProviderDiagnostic(t *testing.T) {
+	for _, cause := range []error{
+		contracts.ErrNotSim, contracts.ErrWrongRun, contracts.ErrMachineNotFound,
+		contracts.ErrInvalidState, contracts.ErrNotStarted, contracts.ErrSelfTransition,
+		contracts.ErrInvalidConfig, contracts.ErrEnumerationLimit,
+	} {
+		err := fmt.Errorf("provider detail: %w", cause)
+		copied := copyControlError(err)
+		if copied.Error() != err.Error() || !errors.Is(copied, cause) {
+			t.Fatalf("lost diagnostic or sentinel: %v", copied)
+		}
+		if copied.Unwrap() == err {
+			t.Fatal("retained provider error object")
+		}
+	}
+	if err := copyControlError(errors.New("plain diagnostic")); err.Error() != "plain diagnostic" || err.Unwrap() != nil {
+		t.Fatal(err)
+	}
+}
 
 func currentContext(k *Kernel) contracts.CallContext {
 	token := simrt.CurrentMachineToken()

@@ -1,9 +1,9 @@
 # running gosim
 ! exec gosim test -run=Other -v .
-stdout 'metatest cannot be used from within gosim'
+stderr 'metatesting.*unsupported application package os/exec'
 
 ! exec gosim test -run=Self -v .
-stdout 'metatest cannot be used from within gosim'
+stderr 'metatesting.*unsupported application package os/exec'
 
 -- machinecrash_test.go --
 package behavior_test

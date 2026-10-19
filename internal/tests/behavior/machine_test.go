@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"github.com/neria-cloud/gosim"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func TestMachineCrash(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		// sleep a second in both the machine and with the crash call to make
 		// sure they start "at the same time". all global initialization code
 		// runs before.
@@ -24,7 +25,7 @@ func TestMachineCrash(t *testing.T) {
 		}
 	})
 	time.Sleep(time.Second)
-	m.Crash()
+	testsupport.Check(t, m.Crash())
 }
 
 func TestMachineGo(t *testing.T) {
@@ -54,7 +55,7 @@ func TestMachineGo(t *testing.T) {
 	}()
 
 	wg.Add(1)
-	gosim.NewSimpleMachine(func() {
+	testsupport.Start(t, func() {
 		inner := gosim.CurrentMachine()
 		if inner == global {
 			t.Error("expected global to be different from inner")
@@ -86,7 +87,7 @@ func TestMachineCurrent(t *testing.T) {
 
 	var inner gosim.Machine
 	gosimruntime.TestRaceToken.Release()
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		inner = gosim.CurrentMachine()
 		// if inner == nil {
@@ -100,7 +101,7 @@ func TestMachineCurrent(t *testing.T) {
 		}
 		gosimruntime.TestRaceToken.Release()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 	gosimruntime.TestRaceToken.Acquire()
 	if inner != m {
 		t.Error("expected inner to match m")
@@ -108,7 +109,7 @@ func TestMachineCurrent(t *testing.T) {
 
 	var inner2 gosim.Machine
 	gosimruntime.TestRaceToken.Release()
-	m2 := gosim.NewSimpleMachine(func() {
+	m2 := testsupport.Start(t, func() {
 		gosimruntime.TestRaceToken.Acquire()
 		inner2 = gosim.CurrentMachine()
 		if inner2 != gosim.CurrentMachine() {
@@ -122,21 +123,21 @@ func TestMachineCurrent(t *testing.T) {
 		}
 		gosimruntime.TestRaceToken.Release()
 	})
-	m2.Wait()
+	testsupport.Wait(t, m2)
 	gosimruntime.TestRaceToken.Acquire()
 	if inner2 != m2 {
 		t.Error("expected inner2 to match m2")
 	}
 
 	var inner3 gosim.Machine
-	m2.SetMainFunc(func() {
+	testsupport.Check(t, m2.SetMain(func() {
 		gosimruntime.TestRaceToken.Acquire()
 		inner3 = gosim.CurrentMachine()
 		gosimruntime.TestRaceToken.Release()
-	})
+	}))
 	gosimruntime.TestRaceToken.Release()
-	m2.Restart()
-	m2.Wait()
+	testsupport.Check(t, m2.Restart())
+	testsupport.Wait(t, m2)
 	gosimruntime.TestRaceToken.Acquire()
 	if inner3 != m2 {
 		t.Error("expected current machine to stay same")
@@ -146,7 +147,7 @@ func TestMachineCurrent(t *testing.T) {
 func TestMachineTimer(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	gosim.NewSimpleMachine(func() {
+	testsupport.Start(t, func() {
 		inner := gosim.CurrentMachine()
 		go func() {
 			time.AfterFunc(time.Second, func() {
@@ -186,12 +187,12 @@ func TestMachineGlobals(t *testing.T) {
 	}
 	testGlobal = 1
 
-	gosim.NewSimpleMachine(func() {
+	testsupport.Wait(t, testsupport.Start(t, func() {
 		if testGlobal != 3 {
 			t.Error("expected 3")
 		}
 		testGlobal = 2
-	}).Wait()
+	}))
 
 	if testGlobal != 1 {
 		t.Error("expected 1")
@@ -199,11 +200,11 @@ func TestMachineGlobals(t *testing.T) {
 }
 
 func TestMachineLabel(t *testing.T) {
-	m := gosim.NewMachine(gosim.MachineConfig{
-		Label:    "hello",
-		MainFunc: func() {},
+	m := testsupport.StartConfigured(t, gosim.MachineConfig{
+		Label: "hello",
+		Main:  func() {},
 	})
-	if got := m.Label(); got != "hello" {
+	if got := testsupport.Label(t, m); got != "hello" {
 		t.Errorf("expected %q, got %q", "hello", got)
 	}
 }

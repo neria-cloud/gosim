@@ -1,15 +1,12 @@
 package gosimruntime
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"log/slog"
 	mathrand "math/rand"
-	"os"
 	"reflect"
 	"runtime"
 	"slices"
@@ -355,159 +352,9 @@ func (s *scheduler) cleanup() {
 	pruneSemaphores()
 }
 
-var (
-	// TODO(migration): remove the legacy Runtime.Run integration in Task 22.
-	globalRuntime      func(func())
-	runtimeInitialized bool
-)
+var runtimeInitialized bool
 
-var benchmarkGlobals = flag.Bool("benchmark-globals", false, "benchmark global initialization cost")
-
-func initializeRuntime(rt func(func())) {
-	if runtimeInitialized {
-		panic("already initialized")
-	}
-	runtimeInitialized = true
-
-	globalRuntime = rt
-	prepareGlobals()
-	if err := initSharedGlobals(); err != nil {
-		panic(err)
-	}
-
-	if *benchmarkGlobals {
-		doBenchmarkGlobals()
-	}
-}
-
-type internalRunResult struct {
-	Seed      int64
-	Checksum  []byte
-	Failed    bool
-	LogOutput []byte
-	Err       error
-}
-
-func Seed() int64 {
-	return gs.get().seed
-}
-
-func run(f func(), seed int64, enableChecksum bool, captureLog bool, logLevelOverride string, simLogger io.Writer, extraenv []string) internalRunResult {
-	if !runtimeInitialized {
-		panic("not yet initialized")
-	}
-
-	enableChecksum = enableChecksum || *forceChecksum
-
-	logLevelStr := *logLevel
-	if logLevelOverride != "" {
-		logLevelStr = logLevelOverride
-	}
-	var logLevel slog.Level
-	if err := logLevel.UnmarshalText([]byte(logLevelStr)); err != nil {
-		panic("bad log-level " + logLevelStr)
-	}
-
-	var logOut io.Writer = simLogger
-	var logBuffer *bytes.Buffer
-	if captureLog {
-		logBuffer = &bytes.Buffer{}
-		logOut = io.MultiWriter(logBuffer, logOut)
-	}
-
-	logger := makeLogger(logOut, logLevel)
-
-	var checksummer *checksummer
-	if enableChecksum {
-		checksummer = newChecksummer(logger.slog)
-		logOut = io.MultiWriter(&checksumWriter{checksummer: checksummer}, logger.out)
-		logger = makeLogger(logOut, logLevel)
-	}
-
-	scheduler := newScheduler(seed, logger, checksummer, extraenv)
-	defer setgs(scheduler)()
-
-	InitSteps()
-
-	defaultMachine := newMachine("")
-
-	wrapper := func() {
-		InitGlobals(false, false)
-		globalRuntime(f)
-	}
-
-	scheduler.Go(wrapper, defaultMachine, scheduler.globaltoken)
-	if enableChecksum {
-		// XXX: add a top-level force-trace flag
-		// XXX: this flag is kinda sad... reorg?
-		checksummer.recordIntInt(checksumKeyRunStarted, 0, 0)
-	}
-	runErr := scheduler.Run()
-	if runErr == ErrMainReturned {
-		runErr = nil
-	}
-	var checksum []byte
-	if enableChecksum {
-		checksummer.recordIntInt(checksumKeyRunFinished, 0, 0)
-		checksum = checksummer.finalize()
-	}
-	var capturedLog []byte
-	if captureLog {
-		capturedLog = logBuffer.Bytes()
-	}
-	return internalRunResult{
-		Seed:      seed,
-		Checksum:  checksum,
-		Failed:    runErr != nil, // TODO: get rid of Failed or Err?
-		LogOutput: capturedLog,
-		Err:       runErr,
-	}
-}
-
-var sharedGlobalsInitialized bool
-
-func initSharedGlobals() error {
-	if sharedGlobalsInitialized {
-		panic("help already initialized")
-	}
-	sharedGlobalsInitialized = true
-
-	logger := makeLogger(makeConsoleLogger(os.Stderr), slog.LevelInfo)
-	scheduler := newScheduler(0, logger, nil, nil)
-
-	defer setgs(scheduler)()
-
-	defaultMachine := newMachine("")
-
-	scheduler.Go(func() {
-		InitGlobals(false, true)
-		SetAbortError(ErrMainReturned)
-	}, defaultMachine, scheduler.globaltoken)
-	if err := scheduler.Run(); err != nil && err != ErrMainReturned {
-		return err
-	}
-
-	return nil
-}
-
-func doBenchmarkGlobals() error {
-	logger := makeLogger(makeConsoleLogger(os.Stderr), slog.LevelInfo)
-	scheduler := newScheduler(0, logger, nil, nil)
-
-	defer setgs(scheduler)()
-
-	defaultMachine := newMachine("")
-
-	scheduler.Go(func() {
-		InitGlobals(true, false)
-		SetAbortError(ErrMainReturned)
-	}, defaultMachine, scheduler.globaltoken)
-	if err := scheduler.Run(); err != nil && err != ErrMainReturned {
-		return err
-	}
-
-	return nil
-}
+func Seed() int64 { return gs.get().seed }
 
 type corotask int
 
@@ -556,18 +403,12 @@ type goroutine struct {
 
 	entryFun   func()
 	entryToken RaceToken
-
-	// per-goroutine syscall struct so we don't do allocs
-	syscallCache unsafe.Pointer // *Syscall
 }
 
 func newGoroutine(id int, parent *goroutine, spawnEventID int, fun func(), machine *Machine, token RaceToken) *goroutine {
 	gs := gs.get()
 
 	g := allocGoroutine()
-	if syscallAllocator != nil {
-		g.syscallCache = syscallAllocator(id)
-	}
 	g.ID = id
 	g.parent = parent
 	g.spawnEventID = spawnEventID
@@ -628,7 +469,6 @@ func freeGoroutine(g *goroutine) {
 	g.parkPanicValue = ""
 	g.entryFun = nil
 	g.entryToken = RaceToken{}
-	g.syscallCache = nil
 	goroutinePool = append(goroutinePool, g)
 }
 
@@ -906,18 +746,6 @@ func (g *goroutine) yield() {
 func (g *goroutine) wait() {
 	checkTransition()
 	g.park(true)
-}
-
-var syscallAllocator func(goroutineId int) unsafe.Pointer
-
-func SetSyscallAllocator(f func(goroutineId int) unsafe.Pointer) {
-	syscallAllocator = f
-}
-
-//go:norace
-func GetGoroutineLocalSyscall() unsafe.Pointer {
-	g := getg()
-	return g.syscallCache
 }
 
 // Go starts a new goroutine.

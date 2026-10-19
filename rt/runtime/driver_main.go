@@ -1,7 +1,6 @@
 package gosimruntime
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,10 +11,9 @@ import (
 	"strings"
 )
 
-// TODO(migration): rename to TestMain and remove the legacy Runtime entry in Task 22.
-// TestMainDriver runs each request directly through the generated Driver. It
-// never enters the legacy scheduler before calling Driver.Run.
-func TestMainDriver(driver Driver) {
+// TestMain runs each request directly through the generated Driver. It
+// calls Driver.Run inside its owned engine.
+func TestMain(driver Driver) {
 	trace := flag.String("simtrace", "", "set of comma-separated traces to enable")
 	seedsFlag := flag.String("seeds", "1", "comma-separated list of seeds and ranges")
 	jsonLog := flag.String("jsonlogout", "", "path for captured JSON logs")
@@ -57,6 +55,10 @@ func TestMainDriver(driver Driver) {
 			}
 		}
 	}
+	// Stream headers and diagnostics while each test executes, so native race
+	// reports on stderr stay associated with the test that produced them.
+	consoleOutput = &consoleWriter{out: os.Stderr, formatted: makeConsoleLogger(os.Stderr)}
+
 	flag.CommandLine.Visit(func(f *flag.Flag) {
 		if strings.HasPrefix(f.Name, "test.") && !supportedFlags[f.Name] {
 			fatal(fmt.Errorf("flag %s is not supported by gosim", f.Name))
@@ -87,18 +89,6 @@ func TestMainDriver(driver Driver) {
 						SetAbortError(ErrTestFailed)
 					}
 				})
-				if len(result.LogOutput) > 0 {
-					writer := makeConsoleLogger(os.Stderr)
-					for _, line := range bytes.SplitAfter(result.LogOutput, []byte("\n")) {
-						if len(line) == 0 {
-							continue
-						}
-						if _, err := writer.Write(line); err != nil {
-							fatal(err)
-							return
-						}
-					}
-				}
 				if logs != nil {
 					if _, err := logs.Write(result.LogOutput); err != nil {
 						fatal(err)

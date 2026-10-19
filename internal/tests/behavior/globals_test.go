@@ -5,8 +5,8 @@ package behavior_test
 import (
 	"testing"
 
-	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/internal/tests/behavior"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 )
 
 var sharedGlobal = 10
@@ -14,12 +14,12 @@ var sharedGlobal = 10
 func TestGlobalNotShared(t *testing.T) {
 	// TODO: Ensure we run this test multiple times to proof we reset globals?
 	for i := 0; i < 2; i++ {
-		gosim.NewSimpleMachine(func() {
+		testsupport.Wait(t, testsupport.Start(t, func() {
 			if sharedGlobal != 10 {
 				t.Errorf("expected 10, got %d", sharedGlobal)
 			}
 			sharedGlobal = 11
-		}).Wait()
+		}))
 	}
 }
 

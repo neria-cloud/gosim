@@ -1,21 +1,8 @@
 //go:build ignore
 // +build ignore
 
-// TestNetTcpHttp and TestNetTcpGrpc are excluded from the gosim simulation
-// build because crypto/tls (and therefore net/http and gRPC) cannot be
-// translated in Go 1.25+. The root cause is that crypto/tls now imports
-// crypto/internal/fips140/* packages, which are internal to the Go standard
-// library module and use runtime //go:linkname directives that become
-// undefined when translated into gosim's translated/ module.
-//
-// As a result, net/http and google.golang.org/grpc are left as real (untranslated)
-// packages. Their types (net.Conn, context.Context, time.Time) are the real stdlib
-// types, which don't match the translated equivalents used by the rest of
-// translated gosim code. This causes compile errors in any translated code that
-// bridges the two type universes.
-//
-// When a path to translating crypto/tls is found (e.g. gosim stubs for the
-// fips140 packages), these tests can be moved back into net_test.go.
+// HTTP/gRPC remain rejection fixtures; the host test asserts that selected
+// translation rejects these application dependencies before compilation.
 
 package behavior_test
 
@@ -27,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"testing"
 	"time"
 
 	"google.golang.org/grpc"
@@ -34,13 +22,13 @@ import (
 
 	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/internal/tests/testpb"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 )
 
 func TestNetTcpHttp(t *testing.T) {
-	a := gosim.NewMachine(gosim.MachineConfig{
+	a := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "a",
-		Addr:  netip.MustParseAddr(aAddr),
-		MainFunc: func() {
+		Main: func() {
 			listener, err := net.Listen("tcp", aAddr+":1234")
 			if err != nil {
 				t.Fatal(err)
@@ -63,12 +51,11 @@ func TestNetTcpHttp(t *testing.T) {
 				}
 			}
 		},
-	})
+	}, netip.MustParseAddr(aAddr))
 
-	b := gosim.NewMachine(gosim.MachineConfig{
+	b := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "b",
-		Addr:  netip.MustParseAddr(bAddr),
-		MainFunc: func() {
+		Main: func() {
 			// give the other a second to start listening
 			time.Sleep(time.Second)
 
@@ -88,10 +75,10 @@ func TestNetTcpHttp(t *testing.T) {
 				t.Fatal(string(bytes))
 			}
 		},
-	})
+	}, netip.MustParseAddr(bAddr))
 
-	a.Wait()
-	b.Wait()
+	testsupport.Wait(t, a)
+	testsupport.Wait(t, b)
 }
 
 type testServer struct{}
@@ -103,10 +90,9 @@ func (s *testServer) Echo(ctx context.Context, req *testpb.EchoRequest) (*testpb
 }
 
 func TestNetTcpGrpc(t *testing.T) {
-	a := gosim.NewMachine(gosim.MachineConfig{
+	a := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "a",
-		Addr:  netip.MustParseAddr(aAddr),
-		MainFunc: func() {
+		Main: func() {
 			listener, err := net.Listen("tcp", aAddr+":1234")
 			if err != nil {
 				t.Fatal(err)
@@ -124,12 +110,11 @@ func TestNetTcpGrpc(t *testing.T) {
 				t.Fatal(err)
 			}
 		},
-	})
+	}, netip.MustParseAddr(aAddr))
 
-	b := gosim.NewMachine(gosim.MachineConfig{
+	b := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "b",
-		Addr:  netip.MustParseAddr(bAddr),
-		MainFunc: func() {
+		Main: func() {
 			// give the other a second to start listening
 			time.Sleep(time.Second)
 
@@ -150,8 +135,8 @@ func TestNetTcpGrpc(t *testing.T) {
 
 			client.Close()
 		},
-	})
+	}, netip.MustParseAddr(bAddr))
 
-	a.Wait()
-	b.Wait()
+	testsupport.Wait(t, a)
+	testsupport.Wait(t, b)
 }

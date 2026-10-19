@@ -7,12 +7,10 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"syscall"
 	"testing"
 	"time"
 
-	zapslog "github.com/tommoulard/zap-slog"
-	"go.uber.org/zap"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 
 	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/internal/gosimlog"
@@ -28,9 +26,9 @@ func TestLogMachineGoroutineTime(t *testing.T) {
 
 	log.Printf("hi %s", "there")
 	go func() {
-		gosim.NewMachine(gosim.MachineConfig{
+		testsupport.StartConfigured(t, gosim.MachineConfig{
 			Label: "inside",
-			MainFunc: func() {
+			Main: func() {
 				time.Sleep(10 * time.Second)
 				log.Print("hey")
 				go func() {
@@ -63,12 +61,12 @@ func TestLogForPrettyTest(t *testing.T) {
 	start := time.Now()
 	time.Sleep(20 * time.Second)
 
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		slog.Info("warn", "ok", "now", "delay", time.Since(start))
 		log.Println("before")
 		panic("help")
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 	log.Println("never")
 }
 
@@ -84,33 +82,29 @@ func TestLogDuringInit(t *testing.T) {
 	// logs in above init() should print once for main
 
 	// logs should print for this machine also
-	gosim.NewMachine(gosim.MachineConfig{
-		Label:    "logm",
-		MainFunc: func() {},
-	}).Wait()
+	testsupport.Wait(t, testsupport.StartConfigured(t, gosim.MachineConfig{
+		Label: "logm",
+		Main:  func() {},
+	}))
 }
 
 func TestLogTraceSyscall(t *testing.T) {
-	// should print ENOSYS
-	// TODO: test this with a known number and make it work both on arm64 and amd64
-	syscall.Syscall(9999, 0, 0, 0)
-
 	// should print open, write, close
 	if err := os.WriteFile("hello", []byte("world"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func c(z *zap.Logger) {
+func c(z *slog.Logger) {
 	slog.Info("hello from slog")
-	z.Info("hello from zap")
+	z.Info("hello from logger")
 }
 
-func b(z *zap.Logger) {
+func b(z *slog.Logger) {
 	c(z)
 }
 
-func a(z *zap.Logger, count int) {
+func a(z *slog.Logger, count int) {
 	if count == 0 {
 		b(z)
 	} else {
@@ -121,10 +115,7 @@ func a(z *zap.Logger, count int) {
 func TestLogTraceStacks(t *testing.T) {
 	log.Println("hello from log")
 
-	z, err := zap.NewProduction(zapslog.WrapCore(slog.Default()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	z := slog.Default().With("component", "stack-test")
 
 	// print some logs with interesting stacks
 	a(z, 0)

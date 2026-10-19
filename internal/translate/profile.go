@@ -297,7 +297,11 @@ func (p PackagePolicies) validateDeclarations(pkg *packages.Package, file *ast.F
 			if err != nil {
 				return err
 			}
-			targetPolicy, err := p.packagePolicy(target.Pkg, !strings.Contains(strings.Split(target.Pkg, "/")[0], "."))
+			standard := !strings.Contains(strings.Split(target.Pkg, "/")[0], ".")
+			if imported := pkg.Imports[target.Pkg]; imported != nil {
+				standard = standardPackage(imported)
+			}
+			targetPolicy, err := p.packagePolicy(target.Pkg, standard)
 			if err != nil || targetPolicy.Mode != "translate" {
 				return fmt.Errorf("unreviewed native linkname %s.%s -> %s", pkg.PkgPath, fields[1], fields[2])
 			}

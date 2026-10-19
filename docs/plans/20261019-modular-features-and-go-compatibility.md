@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–21 (including their recorded children) and Tasks 22.1 and 22.2.1 implemented and verified; the atomic Task 22.2.2 cutover and remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–22 (including their recorded children) implemented and verified; Tasks 23–33 remain unchecked.
 
 ## Important notices
 
@@ -581,18 +581,18 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§4 complete public catalog and native/sim split; T§5 control transport; T§6 flows; T§9 Driver.  
 **Budget:** 3,000–4,900 changed lines. **Dependency:** 8–11, 21.
 
-- [ ] Replace root Machine/MachineConfig/API with the target signatures: `Machine{runID,machineID uint64}`, `MachineConfig{Label string; Main func()}`, error-returning NewMachine/Start/Stop/Crash/Restart/SetMain/Wait/Destroy, ExitSelf/CrashSelf, State/Label/ID/RunID. NewMachine is unstarted; callers configure features then explicitly Start.
-- [ ] Implement every public fs/net/rt method and value type from T§4, including Snapshot/CrashIterator/ErrEnumerationLimit, copied link policy groups and Info metadata. Native variants return ErrNotSim/zero info as specified; value/default helpers remain usable.
-- [ ] Delete root fs/network/runtime controls and deprecated constructors/methods, without forwarding aliases. Update all repository API users and fixtures atomically: MainFunc to Main; check errors; move Addr/configuration into simnet; use fs crash controls/snapshots; update nemesis to configure crash policy before crash.
-- [ ] Convert existing HTTP-based race/nemesis fixtures whose purpose is generic I/O/lifecycle into supported raw-TCP equivalents before switching the full suite. Preserve explicit expected-rejection tests for unsupported HTTP/gRPC behavior; Task 25 adds the complete feature applicability matrix. The cutover commit itself must be green.
-- [ ] Switch normal translated execution and the repository integration harness to generated composition/kernel/Driver. Remove temporary legacy provider-port adapters and old translator selection branches. Kernel.Run executes inside the Driver's active Engine; never nest schedulers.
-- [ ] Detach all old simulation/hook/shim imports from reachable production entry points. For superseded files awaiting bounded deletion, add the retirement-only build constraint described above, including their tests; no execution path can enable it. List exact files for Tasks 26–29.
-- [ ] Keep regular command results candidate during this development cutover; source is not yet promoted. Task 24 activates final rejection of normal commands for pending tuples; do not label development artifacts certified.
+- [x] Replace root Machine/MachineConfig/API with the target signatures: `Machine{runID,machineID uint64}`, `MachineConfig{Label string; Main func()}`, error-returning NewMachine/Start/Stop/Crash/Restart/SetMain/Wait/Destroy, ExitSelf/CrashSelf, State/Label/ID/RunID. NewMachine is unstarted; callers configure features then explicitly Start.
+- [x] Implement every public fs/net/rt method and value type from T§4, including Snapshot/CrashIterator/ErrEnumerationLimit, copied link policy groups and Info metadata. Native variants return ErrNotSim/zero info as specified; value/default helpers remain usable.
+- [x] Delete root fs/network/runtime controls and deprecated constructors/methods, without forwarding aliases. Update all repository API users and fixtures atomically: MainFunc to Main; check errors; move Addr/configuration into simnet; use fs crash controls/snapshots; update nemesis to configure crash policy before crash.
+- [x] Convert existing HTTP-based race/nemesis fixtures whose purpose is generic I/O/lifecycle into supported raw-TCP equivalents before switching the full suite. Preserve explicit expected-rejection tests for unsupported HTTP/gRPC behavior; Task 25 adds the complete feature applicability matrix. The cutover commit itself must be green.
+- [x] Switch normal translated execution and the repository integration harness to generated composition/kernel/Driver. Remove temporary legacy provider-port adapters and old translator selection branches. Kernel.Run executes inside the Driver's active Engine; never nest schedulers.
+- [x] Detach all old simulation/hook/shim imports from reachable production entry points. For superseded files awaiting bounded deletion, add the retirement-only build constraint described above, including their tests; no execution path can enable it. List exact files for Tasks 26–29.
+- [x] Keep regular command results candidate during this development cutover; source is not yet promoted. Task 24 activates final rejection of normal commands for pending tuples; do not label development artifacts certified.
 
 #### Verification
 
-- [ ] All updated public API examples, pre-start configuration, native ErrNotSim behavior, root/self exits, post-crash controls and failure diagnostics pass via real translated entry points.
-- [ ] Full ordinary/race suites run on the new kernel via candidate harness; common commit gate passes. Search finds no root forwarding wrappers, old active engine path or live old simulation import.
+- [x] All updated public API examples, pre-start configuration, native ErrNotSim behavior, root/self exits, post-crash controls and failure diagnostics pass via real translated entry points.
+- [x] Full ordinary/race suites run on the new kernel via candidate harness; common commit gate passes. Search finds no root forwarding wrappers, old active engine path or live old simulation import.
 
 #### Execution split recorded before Task 22 implementation
 
@@ -617,8 +617,8 @@ The public API, caller migration, and live execution switch remain one atomic ch
 **Files/references:** Parent Task 22, T§4–6 and T§9. **Dependency:** 22.1.
 **Budget:** 3,000–4,900 changed lines; if actual size exceeds the cap, record a further buildable split before executing it.
 
-- [ ] Complete every remaining parent Task 22 implementation checkbox, including all callers, raw-TCP fixtures, generated Driver CLI/harness wiring and exact retirement inventory.
-- [ ] Run every parent Task 22 verification and the common gate; only then mark the parent complete. Record the exact development-toolchain transition required by the selected worker.
+- [x] Complete every remaining parent Task 22 implementation checkbox, including all callers, raw-TCP fixtures, generated Driver CLI/harness wiring and exact retirement inventory.
+- [x] Run every parent Task 22 verification and the common gate; only then mark the parent complete. Record the exact development-toolchain transition required by the selected worker.
 
 #### Further execution split recorded during integration discovery
 
@@ -637,8 +637,8 @@ The expanded integration graph exposed missing deterministic hash/x/sys hooks, L
 
 **Files/references:** All remaining parent 22/22.2 files and checks. **Dependency:** 22.2.1.
 
-- [ ] Finish public APIs/callers, TCP fixtures, CLI/config/artifact discovery, Driver entry, and retirement inventory as one buildable cutover.
-- [ ] Complete every parent verification through the new exact-go1.26.9 candidate harness, then mark parent 22/22.2 complete. Keep Task 23 protocol/ownership checks distinct.
+- [x] Finish public APIs/callers, TCP fixtures, CLI/config/artifact discovery, Driver entry, and retirement inventory as one buildable cutover.
+- [x] Complete every parent verification through the new exact-go1.26.9 candidate harness, then mark parent 22/22.2 complete. Keep Task 23 protocol/ownership checks distinct.
 
 ### Task 23: Replace metatesting and prebuilt discovery with identity-checked ownership
 

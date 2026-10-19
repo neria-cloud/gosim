@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 package translate
 
 // TODO(migration): remove the v1 cache path when Task 22 cuts integration over to v2 translation.

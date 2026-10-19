@@ -13,7 +13,6 @@ import (
 // The selected profile marks binding as shared translated run state. It never
 // enters native engine storage. The harness installs it before machine init and
 // clears it after teardown; the single-active-run invariant prevents overlap.
-// TODO(migration): Task 21 applies the selected profile's SharedGlobals record.
 var binding struct {
 	kernel     *kernel.Kernel
 	dispatcher *kernel.Dispatcher
@@ -58,6 +57,33 @@ func CurrentRef() contracts.MachineRef {
 //
 //go:norace
 func Submit(route kernel.RouteID, inv *kernel.Invocation) error {
+	return submit(route, inv, 3)
+}
+
+// Call submits a copied, generated request for a public control method. Capture
+// that method's caller rather than the generic transport frame in diagnostics.
+func Call[T any](request interface{ Invocation() kernel.Invocation }, decode func(kernel.Result) (T, error)) (T, error) {
+	inv := request.Invocation()
+	if err := submit(inv.Route, &inv, 4); err != nil {
+		var zero T
+		return zero, err
+	}
+	return decode(inv.TakeResult())
+}
+
+// Require must precede public-side validation of optional feature arguments.
+// The dispatcher aborts disabled operations before returning to application code.
+func Require(feature contracts.Feature, operation string) error {
+	inv := (kernel.RequireRequest{Feature: feature, Operation: operation}).Invocation()
+	if err := submit(inv.Route, &inv, 4); err != nil {
+		return err
+	}
+	_, err := kernel.DecodeRequireResult(inv.TakeResult())
+	return err
+}
+
+//go:norace
+func submit(route kernel.RouteID, inv *kernel.Invocation, callerSkip int) error {
 	ref := CurrentRef()
 	if ref.ID == 0 {
 		return contracts.ErrNotSim
@@ -67,7 +93,7 @@ func Submit(route kernel.RouteID, inv *kernel.Invocation) error {
 	}
 	token := simrt.CurrentMachineToken()
 	var pc [1]uintptr
-	runtime.Callers(2, pc[:])
+	runtime.Callers(callerSkip, pc[:])
 	inv.Context = contracts.CallContext{Epoch: contracts.EpochRef{Machine: ref, Epoch: token.Epoch}, PC: pc[0]}
 	return binding.dispatcher.Submit(inv)
 }

@@ -322,26 +322,6 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 			},
 		})
 	}
-	var onceInits []dst.Stmt
-	for _, info := range t.collect.maps {
-		if info.onceName != "" && info.onceFn != "" {
-			// help how oculd one  be non-empty?
-			onceInits = append(onceInits, &dst.ExprStmt{
-				X: &dst.CallExpr{
-					Fun:  &dst.SelectorExpr{X: dst.NewIdent(info.onceName), Sel: dst.NewIdent("Do")},
-					Args: []dst.Expr{dst.NewIdent(info.onceFn)},
-				},
-			})
-		}
-	}
-	if len(onceInits) > 0 {
-		inits = append(inits, &dst.IfStmt{
-			Cond: dst.NewIdent("initializeShared"),
-			Body: &dst.BlockStmt{
-				List: onceInits,
-			},
-		})
-	}
 
 	dstFile := &dst.File{
 		Name: dst.NewIdent(pkgName),

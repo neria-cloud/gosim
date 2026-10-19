@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 // Package synctest is a gosim stub for Go 1.25's internal/synctest package.
 // The real internal/synctest is a stdlib internal package that cannot be
 // imported outside the standard library. Gosim redirects imports of

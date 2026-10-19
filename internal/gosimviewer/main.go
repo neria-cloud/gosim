@@ -12,13 +12,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/neria-cloud/gosim/internal/gosimlog"
-	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
 type Server struct {
@@ -306,19 +304,10 @@ func (s *Server) Viewer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Viewer(logs string) {
-	gomoddir, err := gosimtool.FindGoModDir()
-	if err != nil {
-		log.Fatalf("could not find go mod dir: %s", err)
-	}
-	cfg := gosimtool.LegacyBuildConfig{
-		GOOS:   "linux",
-		GOARCH: runtime.GOARCH,
-		Race:   false, // TODO: somehow get this from the log
-	}
+func Viewer(logs, source string) {
 	s := &Server{
 		// TODO: somehow get this from the log (and other packages as well)
-		Base: filepath.Join(gomoddir, gosimtool.OutputDirectory, "translated", cfg.AsDirname()),
+		Base: source,
 
 		LogsByStep: make(map[int]*gosimlog.Log),
 	}

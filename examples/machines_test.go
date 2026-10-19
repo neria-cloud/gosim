@@ -3,75 +3,91 @@
 package examples_test
 
 import (
+	"bufio"
 	"fmt"
-	"io"
-	"log"
-	"net/http"
+	"net"
 	"net/netip"
 	"testing"
 	"time"
 
 	"github.com/neria-cloud/gosim"
+	simnet "github.com/neria-cloud/gosim/net"
 )
 
-var count = 0
+var count int
 
 func server() {
-	log.Printf("starting server")
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	listener, err := net.Listen("tcp", "10.0.0.1:8080")
+	if err != nil {
+		panic(err)
+	}
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			panic(err)
+		}
 		count++
-		log.Printf("got a request from %s", r.RemoteAddr)
-		fmt.Fprintf(w, "hello from the server! request: %d", count)
-	})
-	http.ListenAndServe("10.0.0.1:80", nil)
+		if _, err := fmt.Fprintf(conn, "hello from the server! request: %d\n", count); err != nil {
+			panic(err)
+		}
+		if err := conn.Close(); err != nil {
+			panic(err)
+		}
+	}
 }
 
-func request() {
-	log.Println("making a request")
-	resp, err := http.Get("http://10.0.0.1/")
+func request(t *testing.T, want int) {
+	t.Helper()
+	conn, err := net.DialTimeout("tcp", "10.0.0.1:8080", 10*time.Second)
 	if err != nil {
-		log.Println(err)
-		return
+		t.Fatal(err)
 	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
+	if err := conn.SetDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	body, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
-		log.Println(err)
-		return
+		t.Fatal(err)
 	}
-
-	log.Println(string(body))
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if body != fmt.Sprintf("hello from the server! request: %d\n", want) {
+		t.Fatal(body)
+	}
+	t.Log(body)
 }
 
 func TestMachines(t *testing.T) {
-	// run the server
-	serverMachine := gosim.NewMachine(gosim.MachineConfig{
-		Label:    "server",
-		Addr:     netip.MustParseAddr("10.0.0.1"),
-		MainFunc: server,
-	})
-
-	// let the server start
+	m, err := gosim.NewMachine(gosim.MachineConfig{Label: "server", Main: server})
+	if err != nil {
+		t.Fatal(err)
+	}
+	serverAddress := netip.MustParseAddr("10.0.0.1")
+	if err := simnet.ConfigureMachine(m, simnet.MachineConfig{Addr: serverAddress}); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(time.Second)
-
-	// make some requests to see them work
-	request()
-	request()
-
-	// restart the server
-	log.Println("restarting the server")
-	serverMachine.Crash()
-	serverMachine.Restart()
+	request(t, 1)
+	request(t, 2)
+	if err := m.Crash(); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Restart(); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(time.Second)
-
-	// make a new request to see a reset count
-	request()
-
-	// add some latency
-	log.Println("adding latency")
-	gosim.SetDelay("10.0.0.1", "11.0.0.1", time.Second)
-
-	// make another request to see the latency
-	request()
+	request(t, 1)
+	clientAddress, err := simnet.Address(gosim.CurrentMachine())
+	if err != nil {
+		t.Fatal(err)
+	}
+	delay := simnet.LatencyConfig{Min: 200 * time.Millisecond, Max: 200 * time.Millisecond, Lambda: 5}
+	if err := simnet.SetLinkPolicy(simnet.Link{From: serverAddress, To: clientAddress}, simnet.LinkPolicy{Latency: &delay}); err != nil {
+		t.Fatal(err)
+	}
+	request(t, 2)
 }

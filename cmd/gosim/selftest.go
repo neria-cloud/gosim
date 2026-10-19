@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -9,14 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"golang.org/x/tools/go/packages"
-
+	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
-	"github.com/neria-cloud/gosim/internal/translate"
 )
 
 // prepareSelftest prepares for running tests in the gosim module.
-func prepareSelftest() {
+func prepareSelftest(cfg gosimtool.BuildConfig) {
 	modDir, err := gosimtool.FindGoModDir()
 	if err != nil {
 		log.Fatal(err)
@@ -41,14 +40,13 @@ func prepareSelftest() {
 		}
 	}
 	// do the build
-	name := "go"
 	args := []string{"test"}
 	args = append(args, "-ldflags=-checklinkname=0", "-tags=linkname")
 	args = append(args, "-race")
 	args = append(args, "-c")
 	args = append(args, "-o", buildDir)
 	args = append(args, "./internal/tests/race/testdata")
-	cmd := exec.Command(name, args...)
+	cmd := buildcfg.Command(cfg.Toolchain, modDir, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -84,62 +82,34 @@ func prepareSelftest() {
 // version for the script tests in ./internal/tests to make them interact nicely
 // with the go test cache.
 func copyModuleForScriptTest(modDir string) {
-	pkgs, err := packages.Load(&packages.Config{
-		Mode:  packages.NeedImports | packages.NeedFiles | packages.NeedDeps | packages.NeedName | packages.NeedEmbedFiles,
-		Tests: false,
-	}, gosimtool.Module+"/...")
+	var files []string
+	wanted := make(map[string]bool)
+	err := filepath.WalkDir(modDir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(modDir, path)
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if rel == ".git" || filepath.Ext(rel) == ".md" {
+			return nil
+		}
+		if !entry.Type().IsRegular() {
+			return fmt.Errorf("nonregular source input %s", path)
+		}
+		files = append(files, path)
+		return nil
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	keep := make(map[string]bool)
-	for _, pkg := range translate.TranslatedRuntimePackages {
-		keep[pkg] = true
-	}
-
-	var mark func(pkg *packages.Package)
-	seen := make(map[*packages.Package]bool)
-	mark = func(pkg *packages.Package) {
-		if !strings.HasPrefix(pkg.PkgPath, gosimtool.Module) {
-			return
-		}
-
-		if seen[pkg] {
-			return
-		}
-		seen[pkg] = true
-
-		for _, dep := range pkg.Imports {
-			mark(dep)
-		}
-	}
-
-	for _, pkg := range pkgs {
-		if (strings.Contains(pkg.PkgPath, "/internal/") || strings.HasSuffix(pkg.PkgPath, "/internal")) && !keep[pkg.PkgPath] {
-			// log.Println("skipping internal", pkg.PkgPath)
-			continue
-		}
-		if pkg.Name == "main" {
-			// log.Println("skipping main", pkg.PkgPath)
-			continue
-		}
-		// log.Println(pkg.PkgPath)
-		mark(pkg)
-	}
-
-	var files []string
-	wanted := make(map[string]bool)
-
-	for pkg := range seen {
-		// log.Println("marked", pkg.PkgPath)
-		// log.Println(pkg.GoFiles)
-		files = append(files, pkg.GoFiles...)
-		files = append(files, pkg.IgnoredFiles...)
-		files = append(files, pkg.EmbedFiles...)
-	}
-
-	files = append(files, filepath.Join(modDir, "go.mod"))
-	files = append(files, filepath.Join(modDir, "go.sum"))
 
 	extractedModDir := filepath.Join(modDir, gosimtool.OutputDirectory, "scripttest/mod")
 
@@ -155,6 +125,9 @@ func copyModuleForScriptTest(modDir string) {
 	}
 
 	err = filepath.WalkDir(extractedModDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		if d.IsDir() {
 			return nil
 		}

@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 // Package rand provides a deterministic replacement for crypto/rand
 // when running under gosim simulation.
 //

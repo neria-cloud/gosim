@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/neria-cloud/gosim"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 )
 
 func TestMachineHostname(t *testing.T) {
@@ -19,9 +20,9 @@ func TestMachineHostname(t *testing.T) {
 		t.Errorf("bad name %q, expected %q", name, expected)
 	}
 
-	m := gosim.NewMachine(gosim.MachineConfig{
+	m := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "hello123",
-		MainFunc: func() {
+		Main: func() {
 			name, err := os.Hostname()
 			if err != nil {
 				t.Fatal(err)
@@ -33,7 +34,7 @@ func TestMachineHostname(t *testing.T) {
 		},
 	})
 
-	m.Wait()
+	testsupport.Wait(t, m)
 }
 
 func TestGetpagesize(t *testing.T) {
@@ -56,9 +57,9 @@ func TestSyscallsDuringInit(t *testing.T) {
 		t.Errorf("bad name %q, expected %q", globalHostname, expected)
 	}
 
-	m := gosim.NewMachine(gosim.MachineConfig{
+	m := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "hello123",
-		MainFunc: func() {
+		Main: func() {
 			expected := "hello123"
 			if globalHostname != expected {
 				t.Errorf("bad name %q, expected %q", globalHostname, expected)
@@ -66,5 +67,5 @@ func TestSyscallsDuringInit(t *testing.T) {
 		},
 	})
 
-	m.Wait()
+	testsupport.Wait(t, m)
 }

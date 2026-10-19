@@ -422,6 +422,12 @@ func selectedModuleFiles(project string, original *modfile.File, frameworkRoot, 
 		if major != "" {
 			v = strings.TrimPrefix(strings.TrimPrefix(major, "/"), ".") + ".0.0"
 		}
+		// The original application remains a dependency of this private module.
+		// Preserve its higher framework requirement so MVS does not demand a
+		// go.mod update while reloading application dependencies read-only.
+		if old := versions[item.path]; semver.Compare(old, v) > 0 {
+			v = old
+		}
 		if err := mod.AddRequire(item.path, v); err != nil {
 			return nil, err
 		}

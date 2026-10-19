@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 package go125
 
 func InternalCpu_getisar0() uint64 {

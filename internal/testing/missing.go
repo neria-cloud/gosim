@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 package testing
 
 func AllocsPerRun(runs int, f func()) (avg float64) {

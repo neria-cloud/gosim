@@ -7,47 +7,13 @@ package nemesis
 import (
 	"log"
 	"math/rand"
+	"net/netip"
 	"time"
 
 	"github.com/neria-cloud/gosim"
+	simfs "github.com/neria-cloud/gosim/fs"
+	simnet "github.com/neria-cloud/gosim/net"
 )
-
-/*
-// Nemsis sleeps a random goroutine for 1 simulated second. It starts after
-// calling Yield n times to give goroutines some time to get started.
-//
-// TODO: Wait some random number of simulated seconds instead of yielding?
-// TODO: Do not export this function. It is too specific?
-func Nemesis(n int) {
-	// figure out how many steps we are running (external argument?)
-	for i := 0; i < n; i++ {
-		gosim.Yield()
-	}
-	other := gosimruntime.PickRandomOtherGoroutine() // XXX: make this pick a runnable goroutine instead?
-	gosimruntime.PauseGoroutine(other)
-	// XXX: what if other has stopped here? make sure it doesn't break
-	// slog.Info("sleeping goroutine", "id", g.ID, "selected", g.selected)
-	time.Sleep(time.Second)
-	gosimruntime.ResumeGoroutine(other)
-
-	// sleep for rand(steps)... or, call Yield N times
-	// pause random goroutine gosimruntime.PickRandomOtherGoroutine()
-	// sleep (clock) for 1s gosimruntime.PauseGoroutine
-	// unpause that goroutine gosimruntime.ContinueGoroutine
-}
-
-func Restarter(n int, machines []gosim.Machine) {
-	// XXX: figure out which machines exist and are reasonable candidates?
-	for i := 0; i < n; i++ {
-		gosim.Yield()
-	}
-	i := rand.Intn(len(machines))
-	m := machines[i]
-	m.Crash()
-	time.Sleep(5 * time.Second)
-	m.Restart()
-}
-*/
 
 // A Scenario is a potentially challenging scenario that can be run and
 // introduce chaos to running machines or a network to see if they keep behaving
@@ -95,7 +61,9 @@ func (p PartitionMachines) Run() {
 
 	for _, a := range a {
 		for _, b := range b {
-			gosim.SetConnected(a, b, false)
+			if err := simnet.Partition(simnet.Link{From: netip.MustParseAddr(a), To: netip.MustParseAddr(b)}); err != nil {
+				panic(err)
+			}
 		}
 	}
 
@@ -105,7 +73,9 @@ func (p PartitionMachines) Run() {
 
 	for _, a := range a {
 		for _, b := range b {
-			gosim.SetConnected(a, b, true)
+			if err := simnet.Repair(simnet.Link{From: netip.MustParseAddr(a), To: netip.MustParseAddr(b)}); err != nil {
+				panic(err)
+			}
 		}
 	}
 }
@@ -125,13 +95,24 @@ func (r RestartRandomly) Run() {
 	}
 	m := r.Machines[rand.Intn(len(r.Machines))]
 
-	log.Printf("restart randomly: crashing machine %s", m.Label())
+	label, err := m.Label()
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("restart randomly: crashing machine %s", label)
+	if err := simfs.SetCrashMode(m, simfs.SamplePending); err != nil {
+		panic(err)
+	}
 
-	m.Crash()
+	if err := m.Crash(); err != nil {
+		panic(err)
+	}
 	time.Sleep(r.Downtime)
 
-	log.Printf("restart randomly: restarting machine %s", m.Label())
-	m.RestartWithPartialDisk()
+	log.Printf("restart randomly: restarting machine %s", label)
+	if err := m.Restart(); err != nil {
+		panic(err)
+	}
 }
 
 type funcScenario func()

@@ -1,10 +1,12 @@
 package script_test
 
 import (
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/rogpeppe/go-internal/gotooltest"
@@ -46,10 +48,15 @@ func TestScript(t *testing.T) {
 			"golang.org/x/sys",
 			"golang.org/x/tools",
 			"mvdan.cc/gofumpt",
+			"google.golang.org/grpc",
 		}); err != nil {
 			return err
 		}
 
+		config := fmt.Sprintf(`{"schema":1,"toolchain":%q,"features":["rt","fs","net"],"simulation_os":"linux"}`, runtime.Version())
+		if err := os.WriteFile(filepath.Join(e.WorkDir, "gosim.json"), []byte(config), 0o644); err != nil {
+			return err
+		}
 		// add /bin to PATH in tests
 		binDir := filepath.Join(curModDir, gosimtool.OutputDirectory, "scripttest", "bin")
 		// add dependencies on /bin

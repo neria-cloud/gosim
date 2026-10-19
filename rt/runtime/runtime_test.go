@@ -1,12 +1,10 @@
 package gosimruntime
 
 import (
-	"os"
 	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
-	"unsafe"
 )
 
 func TestIsSim(t *testing.T) {
@@ -36,16 +34,6 @@ func expectNumGoroutines(t *testing.T, situation string) {
 	}
 }
 
-func init() {
-	SetSyscallAllocator(func(goroutineId int) unsafe.Pointer {
-		return nil
-	})
-	initializeRuntime(func(f func()) {
-		f()
-		SetAbortError(ErrMainReturned)
-	})
-}
-
 // TODO: Rewrite to use another API? Could add a call to dump goroutines to metatesting...?
 func TestCleanupGoroutines(t *testing.T) {
 	expectNumGoroutines(t, "start")
@@ -68,7 +56,23 @@ func TestCleanupGoroutines(t *testing.T) {
 			waiting.Send(struct{}{})
 		}
 	}
-	run(f, 1, false, false, "INFO", makeConsoleLogger(os.Stderr), nil)
+	e := testEngine(t)
+	if err := e.Run(func() {
+		token, err := e.PrepareMachine(1, 1, "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		done := NewChan[struct{}](0)
+		e.PublishMachine(token, func() { f(); done.Send(struct{}{}) })
+		done.Recv()
+		e.CancelMachine(token)
+		e.DisposeMachine(token)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	expectNumGoroutines(t, "end")
 	if hit.Load() != 5 {

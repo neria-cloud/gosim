@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 package translate
 
 var hooksGo123 = map[PackageSelector]PackageSelector{

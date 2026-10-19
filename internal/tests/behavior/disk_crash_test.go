@@ -7,10 +7,12 @@ import (
 	"io"
 	"log"
 	"os"
-	"sync"
 	"testing"
 
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
+
 	"github.com/neria-cloud/gosim"
+	simfs "github.com/neria-cloud/gosim/fs"
 )
 
 // XXX: check errors on all file ops?
@@ -20,16 +22,16 @@ import (
 // add a helper that call Crash (many) times and compares scenarios
 
 func TestCrashDiskBasic(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
 		}
 		a.Write([]byte("a"))
 		a.Close()
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -42,7 +44,7 @@ func TestCrashDiskBasic(t *testing.T) {
 }
 
 func TestCrashDiskSingleFileMultipleWrite(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
@@ -64,9 +66,9 @@ func TestCrashDiskSingleFileMultipleWrite(t *testing.T) {
 		a.Write([]byte("a"))
 		a.Write([]byte("b"))
 		a.Close()
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -79,7 +81,7 @@ func TestCrashDiskSingleFileMultipleWrite(t *testing.T) {
 }
 
 func TestCrashDiskMultipleFileMultipleWrite(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
@@ -111,9 +113,9 @@ func TestCrashDiskMultipleFileMultipleWrite(t *testing.T) {
 		b.Write([]byte("d"))
 		a.Close()
 		b.Close()
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -131,7 +133,7 @@ func TestCrashDiskMultipleFileMultipleWrite(t *testing.T) {
 }
 
 func TestCrashDiskFileSync(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
@@ -139,9 +141,9 @@ func TestCrashDiskFileSync(t *testing.T) {
 		a.Write([]byte("a"))
 		a.Sync()
 		a.Close()
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -152,7 +154,7 @@ func TestCrashDiskFileSync(t *testing.T) {
 }
 
 func TestCrashDiskWriteRename(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
@@ -160,9 +162,9 @@ func TestCrashDiskWriteRename(t *testing.T) {
 		a.Write([]byte("a"))
 		a.Close()
 		os.Rename("a", "b")
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -178,7 +180,7 @@ func TestCrashDiskWriteRename(t *testing.T) {
 }
 
 func TestCrashDiskWriteRenameSyncFile(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
@@ -188,9 +190,9 @@ func TestCrashDiskWriteRenameSyncFile(t *testing.T) {
 		a.Sync()
 		a.Close()
 		os.Rename("a", "b")
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -202,7 +204,7 @@ func TestCrashDiskWriteRenameSyncFile(t *testing.T) {
 }
 
 func TestCrashDiskWriteRenameSyncDir(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
@@ -216,9 +218,9 @@ func TestCrashDiskWriteRenameSyncDir(t *testing.T) {
 			t.Fatal(err)
 		}
 		d.Sync()
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -233,7 +235,7 @@ func TestCrashDiskWriteRenameSyncDir(t *testing.T) {
 // XXX: deps for reads/writes to same name??? what if rename a,b -> rename b,c???
 
 func TestCrashDiskWriteRenameSyncFileAndDir(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
@@ -248,9 +250,9 @@ func TestCrashDiskWriteRenameSyncFileAndDir(t *testing.T) {
 			t.Fatal(err)
 		}
 		d.Sync()
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -260,7 +262,7 @@ func TestCrashDiskWriteRenameSyncFileAndDir(t *testing.T) {
 }
 
 func TestCrashDiskWriteRenameTwiceSyncFile(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
@@ -271,9 +273,9 @@ func TestCrashDiskWriteRenameTwiceSyncFile(t *testing.T) {
 		a.Close()
 		os.Rename("a", "b")
 		os.Rename("b", "c")
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -286,7 +288,7 @@ func TestCrashDiskWriteRenameTwiceSyncFile(t *testing.T) {
 }
 
 func TestCrashDiskTwoFiles(t *testing.T) {
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		a, err := os.OpenFile("a", os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			t.Fatal(err)
@@ -300,9 +302,9 @@ func TestCrashDiskTwoFiles(t *testing.T) {
 		}
 		b.Write([]byte("b"))
 		b.Close()
-		gosim.CurrentMachine().Crash()
+		gosim.CrashSelf()
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 
 	disks := extractDisks(t, m)
 
@@ -386,29 +388,27 @@ func matches(a, b map[string][]byte) bool {
 	return true
 }
 
-// XXX: norace because mu and all are shared, m.Run has is its own context. should fix somehow
-//
-//go:norace
 func extractDisks(t *testing.T, m gosim.Machine) []map[string][]byte {
-	var mu sync.Mutex
+	iterator, err := simfs.CrashStates(m, simfs.EnumerateOptions{MaxStates: 1 << 20})
+	testsupport.Check(t, err)
+	defer func() { testsupport.Check(t, iterator.Close()) }()
 	var all []map[string][]byte
-
-	iter := m.IterDiskCrashStates(func() {
-		// XXX: this lock should (not) be necessary?
-		mu.Lock()
-		defer mu.Unlock()
-		read := readFiles(t)
-		all = append(all, read)
-	})
-
-	for m := range iter {
-		m.Wait()
-		// XXX: should stop m here so its background stuff doesnt clog us up
-		// m.Crash() // XXX: use m.Shutdown instead
+	for {
+		snapshot, ok, err := iterator.Next()
+		testsupport.Check(t, err)
+		if !ok {
+			break
+		}
+		result := make(chan map[string][]byte, 1)
+		recovered, err := gosim.NewMachine(gosim.MachineConfig{Main: func() { result <- readFiles(t) }})
+		testsupport.Check(t, err)
+		testsupport.Check(t, simfs.Restore(recovered, snapshot))
+		testsupport.Check(t, snapshot.Close())
+		testsupport.Check(t, recovered.Start())
+		testsupport.Wait(t, recovered)
+		all = append(all, <-result)
+		testsupport.Check(t, recovered.Destroy())
 	}
-	// XXX: this lock should (not) be necessary?
-	mu.Lock()
-	defer mu.Unlock()
 	return all
 }
 

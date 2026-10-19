@@ -5,7 +5,7 @@ output: prefixed
 vars:
   # GOSIM: go run github.com/neria-cloud/gosim/cmd/gosim
   GOSIM: $(pwd)/.gosim/gosimtool
-  SIMPACKAGES: ./internal/tests/behavior ./nemesis
+  SIMPACKAGES: ./internal/tests/behavior ./nemesis ./examples
 
 tasks:
   fix-fmt:
@@ -23,7 +23,7 @@ tasks:
   gosim-tool:
     run: once
     cmds:
-      - mkdir -p ./.gosim && go build -o ./.gosim/gosimtool ./cmd/gosim
+      - mkdir -p ./.gosim && go build -ldflags=-checklinkname=0 -tags=linkname -o ./.gosim/gosimtool ./cmd/gosim
 
   gosim-prepare-selftest:
     run: once

@@ -3,6 +3,7 @@ package basicgosim
 
 import (
 	"log"
+	_ "test/directives/testpkg"
 	_ "unsafe"
 )
 
@@ -18,6 +19,7 @@ package basicgosim
 
 import (
 	"translated/log"
+	_ "translated/test/directives/testpkg"
 	_ "unsafe"
 )
 

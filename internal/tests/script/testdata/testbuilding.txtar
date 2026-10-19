@@ -1,12 +1,12 @@
 # This tests verifies the metatest test binary building and caching logic.
 
-# Inner test should work
-exec gosim test -v .
-stdout 'inside gosim hello'
-
 # Cached metatest fails without binary
 ! exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
 stdout 'Could not find pre-built gosim test binary'
+
+# Inner test should work
+exec gosim test -v .
+stdout 'inside gosim hello'
 
 # Uncached metatest works
 exec go test -ldflags=-checklinkname=0 -tags=linkname -v -count=1 .
@@ -26,13 +26,17 @@ exec go test -ldflags=-checklinkname=0 -tags=linkname -v -count=1 .
 stdout 'looks like an uncached test run.*build-tests'
 stdout 'inside gosim hello'
 
-# Touch input file
+# Touching unchanged input preserves a content-checked artifact
 exec touch test_test.go
+exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
+stdout 'inside gosim hello'
+
+# Changing source invalidates the package artifact
+cp changed.go.txt test_test.go
 
 # Cached metatest no longer works
 ! exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
-stdout 'Using pre-built gosim test binary'
-stdout 'changed'
+stdout 'Could not find pre-built gosim test binary'
 
 # Uncached metatest still works
 exec go test -ldflags=-checklinkname=0 -tags=linkname -v -count=1 .
@@ -73,3 +77,11 @@ import (
 func TestHello(t *testing.T) {
     t.Log("inside gosim hello")
 }
+
+-- changed.go.txt --
+//go:build sim
+
+package behavior_test
+
+import "testing"
+func TestHello(t *testing.T) { t.Log("inside gosim hello changed") }

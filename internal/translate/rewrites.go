@@ -78,10 +78,7 @@ func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
 
 	// rewrite specific selectors
 	selector := PackageSelector{Pkg: ident.Path, Selector: ident.Name}
-	selectedReplacements := replacements
-	if t.profile != nil {
-		selectedReplacements = t.profile.replacements
-	}
+	selectedReplacements := t.profile.replacements
 	replacement, ok := selectedReplacements[selector]
 	if !ok {
 		// rewrite entire packages
@@ -185,8 +182,6 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 
 						parts[2] = fmt.Sprintf("%s.%s", newPkg, name)
 						decl.Decs.Start[i] = strings.Join(parts, " ")
-					} else if t.acceptedLinknames[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] == (PackageSelector{Pkg: pkg, Selector: name}) {
-						slog.Debug("keeping linkname", "pkg", t.pkgPath, "name", decl.Name.Name, "targetPkg", pkg, "targetName", name)
 					} else if strings.HasPrefix(pkg, "gosimnotranslate/") {
 						parts[2] = fmt.Sprintf("%s.%s", strings.TrimPrefix(pkg, "gosimnotranslate/"), name)
 						decl.Decs.Start[i] = strings.Join(parts, " ")
@@ -221,10 +216,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 		// XXX: something similar for... other "bad" calls?
 
 		if linkTo, ok := t.hooks[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
-			selector := RewriteSelector(t.pkgPath, decl.Name.Name)
-			if t.profile != nil {
-				selector = linkTo.Selector
-			}
+			selector := linkTo.Selector
 
 			pkg := linkTo.Pkg
 			if replaced, ok := t.replacedPkgs[pkg]; ok {
@@ -236,14 +228,12 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 				decl.Name.Name, pkg, selector))
 			t.needsUnsafe = true
 
-		} else if t.profile != nil && t.profile.definitions[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] || t.profile == nil && decl.Name.Name == "newUnixFile" {
+		} else if t.profile != nil && t.profile.definitions[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] {
 			// need a go:linkname that is not required in the standard library...
 			decl.Decs.Start = append(decl.Decs.Start, fmt.Sprintf("//go:linkname %s",
 				decl.Name.Name))
 			t.needsUnsafe = true
 
-		} else if t.keepAsmPkgs[t.pkgPath] {
-			slog.Debug("keeping asm header", "pkg", t.pkgPath, "name", decl.Name.Name)
 		} else {
 			slog.Error("missing function body", "pkg", t.pkgPath, "name", decl.Name.Name)
 			panic(fmt.Errorf("missing function body %s.%s", t.pkgPath, decl.Name.Name))

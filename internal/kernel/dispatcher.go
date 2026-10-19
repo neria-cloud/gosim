@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"syscall"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
@@ -26,6 +27,36 @@ type (
 		Errno  uintptr
 	}
 )
+
+// controlErrorResult contains copied diagnostic values, never a provider-owned
+// error object. Completion is deliberately not application synchronization.
+type controlErrorResult struct {
+	message string
+	cause   contracts.Sentinel
+}
+
+func (e controlErrorResult) Error() string { return e.message }
+func (e controlErrorResult) Unwrap() error {
+	if e.cause == "" {
+		return nil
+	}
+	return e.cause
+}
+
+func copyControlError(err error) controlErrorResult {
+	result := controlErrorResult{message: err.Error()}
+	for _, cause := range []error{
+		contracts.ErrNotSim, contracts.ErrWrongRun, contracts.ErrMachineNotFound,
+		contracts.ErrInvalidState, contracts.ErrNotStarted, contracts.ErrSelfTransition,
+		contracts.ErrInvalidConfig, contracts.ErrEnumerationLimit,
+	} {
+		if errors.Is(err, cause) {
+			result.cause = cause.(contracts.Sentinel)
+			break
+		}
+	}
+	return result
+}
 
 type invocationLease struct {
 	epoch      contracts.EpochRef
@@ -66,9 +97,14 @@ func (d *Dispatcher) Submit(inv *Invocation) error {
 	inv.Sema, inv.Result = 0, Result{}
 	d.incoming.Send(inv)
 	simrt.Semacquire(&inv.Sema, false)
-	if err, ok := inv.Result.Value.(error); ok {
+	if err, ok := inv.Result.Value.(controlErrorResult); ok {
 		inv.Result.Value = nil
+		// Copy and box on the caller before instrumented Error/Unwrap reads.
 		return err
+	}
+	if errno, ok := inv.Result.Value.(syscall.Errno); ok {
+		inv.Result.Value = nil
+		return errno // modeled numeric errors already have value ownership
 	}
 	return nil
 }
@@ -192,6 +228,11 @@ func (d *Dispatcher) Complete(id uint64, result Result) error {
 		d.kernel.engine.WriteTrace(tokenFor(inv.Context.Epoch), inv.Context.GoroutineID, inv.Context.PC, "ret  "+inv.Route.String())
 	}
 	clearInvocation(inv)
+	if err, ok := result.Value.(error); ok {
+		if _, numeric := err.(syscall.Errno); !numeric {
+			result.Value = copyControlError(err)
+		}
+	}
 	inv.Result = result
 	delete(d.live, id)
 	delete(d.envelopes, inv)

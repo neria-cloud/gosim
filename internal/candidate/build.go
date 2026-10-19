@@ -66,6 +66,18 @@ func Build(config buildspec.Config, options buildspec.BuildOptions, patterns []s
 	if err != nil {
 		return result, err
 	}
+	return BuildResolved(result.Config, patterns)
+}
+
+// BuildResolved uses the same validated identity for every command in a batch.
+func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (result BuildResult, err error) {
+	if err := cfg.Validate(); err != nil {
+		return result, err
+	}
+	if cfg.Identity.Certification != "candidate" {
+		return result, fmt.Errorf("candidate builder requires unpromoted identity")
+	}
+	result.Config = cfg
 	output, err := translate.Translate(&translate.TranslateInput{Packages: patterns, Cfg: result.Config})
 	if err != nil {
 		return result, err
@@ -99,7 +111,7 @@ func Build(config buildspec.Config, options buildspec.BuildOptions, patterns []s
 				return manifest, err
 			}
 			args := []string{"test", "-c", "-trimpath", "-mod=readonly", "-ldflags=-checklinkname=0", "-tags=linkname,sim", "-o", filepath.Join(stage, "testbin")}
-			if options.Race {
+			if cfg.Identity.Race {
 				args = append(args, "-race")
 			}
 			args = append(args, pkg)

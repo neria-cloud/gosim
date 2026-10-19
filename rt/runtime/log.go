@@ -1,6 +1,7 @@
 package gosimruntime
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -119,4 +120,26 @@ func makeConsoleLogger(out io.Writer) io.Writer {
 	default:
 		panic(logformatFlag)
 	}
+}
+
+// consoleOutput is owned by the native CLI process. Metatest/API runs leave it
+// nil and return captured output only; it never carries translated values.
+var consoleOutput io.Writer
+
+type consoleWriter struct{ out, formatted io.Writer }
+
+func (w *consoleWriter) Write(p []byte) (int, error) {
+	for _, line := range bytes.SplitAfter(p, []byte("\n")) {
+		if len(line) == 0 {
+			continue
+		}
+		output := w.out
+		if bytes.HasPrefix(bytes.TrimSpace(line), []byte("{")) {
+			output = w.formatted
+		}
+		if _, err := output.Write(line); err != nil {
+			return 0, err
+		}
+	}
+	return len(p), nil
 }

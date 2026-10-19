@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/neria-cloud/gosim/internal/gosimlog"
-	"github.com/neria-cloud/gosim/internal/race"
 	"github.com/neria-cloud/gosim/metatesting"
 )
 
@@ -139,12 +138,6 @@ func formatLogsWithExtra(logs []*gosimlog.Log) []string {
 }
 
 func TestLogTraceSyscall(t *testing.T) {
-	if race.Enabled {
-		// TODO: repair, which will need a reasonable plan for printing data
-		// buffers using syscallabi API.
-		t.Skip("logging arguments causes race")
-	}
-
 	mt := metatesting.ForCurrentPackage(t)
 
 	// no logs without simtrace
@@ -171,15 +164,24 @@ func TestLogTraceSyscall(t *testing.T) {
 
 	// TODO: support snapshotting these logs?
 	if diff := cmp.Diff(formatLogsWithExtra(gosimlog.ParseLog(run.LogOutput)), []string{
-		"1 main/3 INFO unsupported syscall unknown (9999) 0 0 0 0 0 0",
-		`2 main/3 INFO call SysOpenat dirfd="AT_FDCWD" path="hello" flags="O_WRONLY|O_TRUNC|O_CREAT|O_CLOEXEC" mode="0o644"`,
-		"3 main/3 INFO ret  SysOpenat fd=5 err=null",
-		"4 main/3 INFO call SysFcntl",
-		"5 main/3 INFO ret  SysFcntl",
-		`6 main/3 INFO call SysWrite fd=5 p="world"`,
-		"7 main/3 INFO ret  SysWrite n=5 err=null",
-		"8 main/3 INFO call SysClose fd=5",
-		"9 main/3 INFO ret  SysClose err=null",
+		"1 main/2 INFO call FcntlInt",
+		"2 main/2 INFO ret  FcntlInt",
+		"3 main/2 INFO call FcntlInt",
+		"4 main/2 INFO ret  FcntlInt",
+		"5 main/2 INFO call FcntlInt",
+		"6 main/2 INFO ret  FcntlInt",
+		"7 main/2 INFO call Uname",
+		"8 main/2 INFO ret  Uname",
+		"9 main/3 INFO call Require",
+		"10 main/3 INFO ret  Require",
+		"11 main/3 INFO call Openat",
+		"12 main/3 INFO ret  Openat",
+		"13 main/3 INFO call FcntlInt",
+		"14 main/3 INFO ret  FcntlInt",
+		"15 main/3 INFO call Write",
+		"16 main/3 INFO ret  Write",
+		"17 main/3 INFO call Close",
+		"18 main/3 INFO ret  Close",
 	}); diff != "" {
 		t.Error("diff", diff)
 	}
@@ -232,13 +234,13 @@ func TestLogTraceStacks(t *testing.T) {
 			Msg: "hello from slog",
 		},
 		{
-			Msg: "hello from zap",
+			Msg: "hello from logger",
 		},
 		{
 			Msg: "hello from slog",
 		},
 		{
-			Msg: "hello from zap",
+			Msg: "hello from logger",
 		},
 	}); diff != "" {
 		t.Error("diff", diff)
@@ -264,7 +266,7 @@ func TestLogTraceStacks(t *testing.T) {
 			Stack: []string{"c", "b", "a", "ImplTestLogTraceStacks"},
 		},
 		{
-			Msg:   "hello from zap",
+			Msg:   "hello from logger",
 			Stack: []string{"c", "b", "a", "ImplTestLogTraceStacks"},
 		},
 		{
@@ -272,7 +274,7 @@ func TestLogTraceStacks(t *testing.T) {
 			Stack: []string{"c", "b", "a", "a", "a", "a", "ImplTestLogTraceStacks"},
 		},
 		{
-			Msg:   "hello from zap",
+			Msg:   "hello from logger",
 			Stack: []string{"c", "b", "a", "a", "a", "a", "ImplTestLogTraceStacks"},
 		},
 	}); diff != "" {

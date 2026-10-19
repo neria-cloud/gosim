@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/neria-cloud/gosim"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 )
 
 // TODO: t.Fail, t.FailNow, log.Fatal, fmt.Print, slog.Log, os.Exit
@@ -57,12 +58,12 @@ func TestPanicInsideMachine(t *testing.T) {
 		t.Skip()
 	}
 
-	m := gosim.NewSimpleMachine(func() {
+	m := testsupport.Start(t, func() {
 		log.Println("before")
 		panic("help")
 		log.Println("after")
 	})
-	m.Wait()
+	testsupport.Wait(t, m)
 	log.Println("never")
 }
 
@@ -283,7 +284,7 @@ func TestSimulationTimeoutOverride(t *testing.T) {
 		t.Skip()
 	}
 
-	gosim.SetSimulationTimeout(5 * time.Minute)
+	testsupport.Timeout(t, 5*time.Minute)
 
 	log.Println("before")
 	start := time.Now()

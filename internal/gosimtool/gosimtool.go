@@ -12,10 +12,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"golang.org/x/mod/modfile"
 
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/race"
 )
 
@@ -23,28 +23,6 @@ const (
 	Module          = "github.com/neria-cloud/gosim"
 	OutputDirectory = ".gosim"
 )
-
-// TODO(migration): remove the old command/prebuilt configuration in Task 22.
-type LegacyBuildConfig struct {
-	GOOS   string
-	GOARCH string
-	Race   bool
-}
-
-func (b LegacyBuildConfig) AsDirname() string {
-	name := fmt.Sprintf("%s_%s", b.GOOS, b.GOARCH)
-	if b.Race {
-		name += "_race"
-	}
-	return name
-}
-
-// TODO(migration): remove the timestamp-based integration result in Task 22.
-type LegacyTranslateOutput struct {
-	RootOutputDir string
-	Packages      []string                        // TODO: combine all this in a struct? also include input name?
-	Deps          map[string]map[string]time.Time // pkg -> path -> time
-}
 
 func FindGoMod() (string, *modfile.File, error) {
 	baseDir, err := os.Getwd()
@@ -189,93 +167,74 @@ var (
 	buildOnce   = make(map[string]*sync.Once)
 )
 
+// TODO(migration): Task 23 adds the explicit expected identity parameter and
+// removes package-only build ownership. The worker already reloads current
+// sources and verifies the complete identity/package/content artifact.
 func GetPathForPrecompiledTestBinary(t *testing.T, pkg string) string {
-	didBuild := false
-
+	t.Helper()
+	invoke := func(command string) string {
+		var child *exec.Cmd
+		args := []string{command}
+		if race.Enabled {
+			args = append(args, "-race")
+		}
+		args = append(args, pkg)
+		if worker := os.Getenv("GOSIMTOOL"); worker != "" {
+			child = exec.Command(worker, args...)
+		} else {
+			args = append([]string{"run", "-ldflags=-checklinkname=0", "-tags=linkname", Module + "/cmd/gosim"}, args...)
+			child = exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), args...)
+		}
+		child.Env = append(os.Environ(), "GOTOOLCHAIN=local", "PATH="+filepath.Join(runtime.GOROOT(), "bin")+string(filepath.ListSeparator)+os.Getenv("PATH"))
+		output, err := child.Output()
+		if err != nil {
+			var exit *exec.ExitError
+			var detail string
+			if errors.As(err, &exit) {
+				detail = string(exit.Stderr)
+			}
+			t.Fatalf("Could not find pre-built gosim test binary for %s: %v\n%s", pkg, err, detail)
+		}
+		return strings.TrimSpace(string(output))
+	}
 	if isUncachedTestRun() {
-		// TODO: figure out if we should pass -race or not?
 		buildOnceMu.Lock()
-		once, ok := buildOnce[pkg]
-		if !ok {
+		once := buildOnce[pkg]
+		if once == nil {
 			once = new(sync.Once)
 			buildOnce[pkg] = once
 		}
 		buildOnceMu.Unlock()
-
-		didBuild = true
 		once.Do(func() {
-			var name string
-			var flags []string
-			if prebuilt, ok := os.LookupEnv("GOSIMTOOL"); ok {
-				name = prebuilt
-			} else {
-				name = "go"
-				flags = []string{"run", Module + "/cmd/gosim"}
-			}
-			flags = append(flags, "build-tests")
-			if race.Enabled {
-				flags = append(flags, "-race")
-			}
-			flags = append(flags, pkg)
-			cmd := exec.Command(name, flags...)
-			t.Logf("looks like an uncached test run... running `%s`", strings.Join(cmd.Args, " "))
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				t.Fatalf("gosim build-tests failed: %s\n\n%s", err, string(out))
-			}
+			t.Log("looks like an uncached test run... running gosim build-tests", pkg)
+			invoke("build-tests")
 		})
 	}
-
-	goModDir, err := FindGoModDir()
-	if err != nil {
-		t.Fatalf("Could not find containing go module: %s", err)
+	var lookup struct {
+		Binary  string
+		Sources map[string]string
 	}
-
-	// TODO: test this race stuff somehow. make test output if race is enabled?
-	cfg := LegacyBuildConfig{
-		GOOS:   "linux",
-		GOARCH: runtime.GOARCH,
-		Race:   race.Enabled,
+	if err := json.Unmarshal([]byte(invoke("lookup-test")), &lookup); err != nil {
+		t.Fatal(err)
 	}
-
-	outDir := filepath.Join(goModDir, OutputDirectory, "metatest", cfg.AsDirname())
-	path := filepath.Join(outDir, PreparedTestBinName(GetNewPackageName(pkg)))
-	infoPath := filepath.Join(outDir, PreparedTestInfoName(GetNewPackageName(pkg)))
-
-	if _, err := os.Stat(path); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			t.Fatalf("Could not find pre-built gosim test binary for package %q. Pre-building is necessary to support the go test cache. "+
-				"Pre-build the test binary using `go run %s/cmd/gosim build-tests %s` or "+
-				"run `go test` with `-count=1` to disable the go test cache and build during the test.", pkg, Module, pkg)
-		}
-	}
-
-	if !didBuild {
-		t.Logf("Using pre-built gosim test binary %q", path)
-
-		// TODO: only do this once per binary?
-		// TODO: maybe this is less than optimal... now if files get touched but the binary doesn't change
-		// we still re-run tests... worthwhile trade-off to catch misuse?
-
-		// check if the precompiled test binary is up-to-date "enough"
-		bytes, err := os.ReadFile(infoPath)
+	// Observe the freshly discovered inputs in this host test process as well.
+	// Go's outer test-result cache cannot see filesystem reads in the worker.
+	for source, digest := range lookup.Sources {
+		data, err := os.ReadFile(source)
 		if err != nil {
-			t.Fatalf("failed to read info file: %s", err)
+			t.Fatal(err)
 		}
-		var deps map[string]time.Time
-		if err := json.Unmarshal(bytes, &deps); err != nil {
-			t.Fatalf("failed to parse info file: %s", err)
+		if buildspec.Hash(data) != digest {
+			t.Fatalf("source changed during artifact lookup: %s", source)
 		}
-		for dep, ts := range deps {
-			info, err := os.Stat(dep)
-			if err != nil {
-				t.Fatalf("failed to stat dependency %q: %s", dep, err)
-			}
-			if !ts.Equal(info.ModTime()) {
-				t.Fatalf("Pre-built gosim test binary is out of date. Update binaries with gosim build-tests or run an uncached run with -count=1. See the documentation for metatesting. Input %q changed: %s vs %s.", dep, ts, info.ModTime())
-			}
+		if _, err := os.ReadDir(filepath.Dir(source)); err != nil {
+			t.Fatal(err)
 		}
 	}
-
+	path := lookup.Binary
+	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
+		t.Fatalf("invalid prebuilt worker response %q", path)
+	}
+	t.Logf("Using pre-built gosim test binary %q", path)
 	return path
 }

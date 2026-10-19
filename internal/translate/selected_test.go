@@ -111,7 +111,7 @@ func TestWork(t *testing.T) { if Work() != 2 { t.Fatal("work") } }
 		t.Fatal(first.Packages, second.Packages)
 	}
 	a, b := readTree(t, first.RootOutputDir), readTree(t, second.RootOutputDir)
-	if !bytes.Contains(a["test/gosim_meta_test.go"], []byte("TestMainDriver")) || !bytes.Contains(a["test/gosim_meta_test.go"], []byte(".Driver{}")) {
+	if !bytes.Contains(a["test/gosim_meta_test.go"], []byte("TestMain")) || !bytes.Contains(a["test/gosim_meta_test.go"], []byte(".Driver{}")) {
 		t.Fatal("test metadata did not select generated Driver")
 	}
 	if _, ok := a["math/big/arith_decl_pure.go"]; !ok {

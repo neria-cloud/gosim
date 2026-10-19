@@ -1,3 +1,5 @@
+//go:build gosim_retired
+
 package go123
 
 func OsSignal_signalWaitUntilIdle() {
