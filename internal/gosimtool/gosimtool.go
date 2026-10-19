@@ -8,13 +8,12 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"sync"
 	"testing"
 
 	"golang.org/x/mod/modfile"
 
+	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/race"
 )
@@ -154,87 +153,138 @@ func PreparedTestBinName(pkg string) string {
 	return strings.ReplaceAll(pkg, "/", "-") + ".test"
 }
 
-func PreparedTestInfoName(pkg string) string {
-	return strings.ReplaceAll(pkg, "/", "-") + ".info"
-}
-
 func GetNewPackageName(pkg string) string {
 	return "translated/" + ReplaceSpecialPackages(pkg)
 }
 
-var (
-	buildOnceMu sync.Mutex
-	buildOnce   = make(map[string]*sync.Once)
-)
-
-// TODO(migration): Task 23 adds the explicit expected identity parameter and
-// removes package-only build ownership. The worker already reloads current
-// sources and verifies the complete identity/package/content artifact.
-func GetPathForPrecompiledTestBinary(t *testing.T, pkg string) string {
+// invokeTestWorker requires the host metatest and worker to use the selected
+// exact patch. A mismatch reports the rebuild command; it never bootstraps a
+// different toolchain behind the caller's back.
+func invokeTestWorker(t *testing.T, patch, command string, args ...string) []byte {
 	t.Helper()
-	invoke := func(command string) string {
-		var child *exec.Cmd
-		args := []string{command}
-		if race.Enabled {
-			args = append(args, "-race")
-		}
-		args = append(args, pkg)
-		if worker := os.Getenv("GOSIMTOOL"); worker != "" {
-			child = exec.Command(worker, args...)
-		} else {
-			args = append([]string{"run", "-ldflags=-checklinkname=0", "-tags=linkname", Module + "/cmd/gosim"}, args...)
-			child = exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), args...)
-		}
-		child.Env = append(os.Environ(), "GOTOOLCHAIN=local", "PATH="+filepath.Join(runtime.GOROOT(), "bin")+string(filepath.ListSeparator)+os.Getenv("PATH"))
-		output, err := child.Output()
-		if err != nil {
-			var exit *exec.ExitError
-			var detail string
-			if errors.As(err, &exit) {
-				detail = string(exit.Stderr)
-			}
-			t.Fatalf("Could not find pre-built gosim test binary for %s: %v\n%s", pkg, err, detail)
-		}
-		return strings.TrimSpace(string(output))
-	}
-	if isUncachedTestRun() {
-		buildOnceMu.Lock()
-		once := buildOnce[pkg]
-		if once == nil {
-			once = new(sync.Once)
-			buildOnce[pkg] = once
-		}
-		buildOnceMu.Unlock()
-		once.Do(func() {
-			t.Log("looks like an uncached test run... running gosim build-tests", pkg)
-			invoke("build-tests")
-		})
-	}
-	var lookup struct {
-		Binary  string
-		Sources map[string]string
-	}
-	if err := json.Unmarshal([]byte(invoke("lookup-test")), &lookup); err != nil {
+	tc, err := buildcfg.Resolve(patch)
+	if err != nil {
 		t.Fatal(err)
 	}
-	// Observe the freshly discovered inputs in this host test process as well.
-	// Go's outer test-result cache cannot see filesystem reads in the worker.
-	for source, digest := range lookup.Sources {
+	if err := buildcfg.ValidateWorker(tc); err != nil {
+		t.Fatal(err)
+	}
+	var child *exec.Cmd
+	args = append([]string{command}, args...)
+	if worker := os.Getenv("GOSIMTOOL"); worker != "" {
+		child = exec.Command(worker, args...)
+		child.Env = buildcfg.Command(tc, "", "version").Env
+	} else {
+		args = append([]string{"run", "-ldflags=-checklinkname=0", "-tags=linkname", Module + "/cmd/gosim"}, args...)
+		child = buildcfg.Command(tc, "", args...)
+	}
+	output, err := child.Output()
+	if err != nil {
+		var exit *exec.ExitError
+		var detail string
+		if errors.As(err, &exit) {
+			detail = string(exit.Stderr)
+		}
+		t.Fatalf("Could not find pre-built gosim test binary: %v\n%s", err, detail)
+	}
+	return output
+}
+
+// ResolveTestIdentity resolves config in the host process so the outer Go test
+// cache observes it, then asks the exact worker for the complete source identity.
+func ResolveTestIdentity(t *testing.T, configPath string) buildspec.Identity {
+	t.Helper()
+	if configPath == "" {
+		configPath = os.Getenv("GOSIM_CONFIG")
+	}
+	if configPath == "" {
+		root, err := FindGoModDir()
+		if err != nil {
+			t.Fatal(err)
+		}
+		configPath = filepath.Join(root, "gosim.json")
+	}
+	cfg, err := buildcfg.Load(configPath, buildcfg.Overrides{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"-config", configPath}
+	if race.Enabled {
+		args = append(args, "-race")
+	}
+	var id buildspec.Identity
+	if err := json.Unmarshal(invokeTestWorker(t, cfg.Toolchain, "resolve-build", args...), &id); err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
+// GetPathForPrecompiledTestBinary reloads the current dependency closure and
+// verifies exactly the supplied identity, package digest and artifact bytes.
+func GetPathForPrecompiledTestBinary(t *testing.T, pkg string, identity buildspec.Identity) string {
+	t.Helper()
+	digest, err := buildspec.Digest(identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"-go", identity.Toolchain, "-features", strings.Join(identity.Features, ",")}
+	if identity.Race {
+		args = append(args, "-race")
+	}
+	args = append(args, pkg)
+	if isUncachedTestRun() {
+		t.Log("looks like an uncached test run... running gosim build-tests", pkg)
+		invokeTestWorker(t, identity.Toolchain, "build-tests", args...)
+	}
+	var lookup struct {
+		Binary   string
+		Sources  map[string]string
+		Identity buildspec.Identity
+	}
+	if err := json.Unmarshal(invokeTestWorker(t, identity.Toolchain, "lookup-test", args...), &lookup); err != nil {
+		t.Fatal(err)
+	}
+	actual, err := buildspec.Digest(lookup.Identity)
+	if err != nil || actual != digest {
+		t.Fatalf("prebuilt identity mismatch: %v", err)
+	}
+	// Worker reads alone are invisible to Go's outer test-result cache.
+	for source, want := range lookup.Sources {
 		data, err := os.ReadFile(source)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if buildspec.Hash(data) != digest {
+		if buildspec.Hash(data) != want {
 			t.Fatalf("source changed during artifact lookup: %s", source)
 		}
 		if _, err := os.ReadDir(filepath.Dir(source)); err != nil {
 			t.Fatal(err)
 		}
 	}
-	path := lookup.Binary
-	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
-		t.Fatalf("invalid prebuilt worker response %q", path)
+	if !filepath.IsAbs(lookup.Binary) || filepath.Clean(lookup.Binary) != lookup.Binary {
+		t.Fatalf("invalid prebuilt worker response %q", lookup.Binary)
 	}
-	t.Logf("Using pre-built gosim test binary %q", path)
-	return path
+	t.Logf("Using pre-built gosim test binary %q", lookup.Binary)
+	return lookup.Binary
+}
+
+// ManifestForBinary verifies the complete artifact once more before launch.
+func ManifestForBinary(binary string, identity buildspec.Identity) (Manifest, error) {
+	dir := filepath.Dir(binary)
+	data, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
+	if err != nil {
+		return Manifest{}, err
+	}
+	m, err := decodeManifest(data)
+	if err != nil {
+		return Manifest{}, err
+	}
+	m, err = VerifyArtifact(dir, identity, m.PackageDigests)
+	if err != nil {
+		return Manifest{}, err
+	}
+	if filepath.Join(dir, m.Binary.Path) != binary {
+		return Manifest{}, fmt.Errorf("manifest binary path mismatch")
+	}
+	return m, nil
 }

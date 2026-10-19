@@ -11,7 +11,7 @@ import (
 
 func TestCrashRestartFilesystemPartial(t *testing.T) {
 	contentsCount := make(map[string]int)
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	for seed := int64(0); seed < 100; seed++ {
 		// XXX: this testing API is clunky...
 		// config := gosim.ConfigWithNSeeds(100)

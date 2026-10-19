@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–22 (including their recorded children) implemented and verified; Tasks 23–33 remain unchecked.
+**Status:** in progress; Tasks 1–23 (including their recorded children) implemented and verified; Tasks 24–33 remain unchecked.
 
 ## Important notices
 
@@ -646,15 +646,15 @@ The expanded integration graph exposed missing deterministic hash/x/sys hooks, L
 **References:** T§9 metatesting/Driver/manifests; I: metatesting; T§10 stale cache/replay checks.  
 **Budget:** 1,500–3,000 changed lines. **Dependency:** 20–22.
 
-- [ ] Implement `Options{ConfigPath string}`, `ForPackage(t,opts)`, `ForOtherPackage(t,pkg,opts)`, `newRunner(path,expected Manifest)` and idempotent MetaT.Close. Replace the current ForCurrentPackage/ForOtherPackage callers; no old constructor aliases remain.
-- [ ] Remove package-only global runner caching. Each constructor owns one child, serializes requests and registers cleanup that closes pipes and waits/reaps the child, including failed startup/handshake.
-- [ ] Exchange protocol 2 `{identity_digest,toolchain}` before test requests. Add BuildDigest/ReplayRevision result metadata and verify the binary's actual runtime identity. Keep existing ListTests/RunAllTests/Run behaviors where signatures are retained.
-- [ ] Replace timestamp-only prebuilt info with identity/package/content manifests; implement the target GetPathForPrecompiledTestBinary signature and package-specific artifact selection. Update selftest copied modules and txtar tests to carry explicit config and exact toolchain selection.
+- [x] Implement `Options{ConfigPath string}`, `ForPackage(t,opts)`, `ForOtherPackage(t,pkg,opts)`, `newRunner(path,expected Manifest)` and idempotent MetaT.Close. Replace the current ForCurrentPackage/ForOtherPackage callers; no old constructor aliases remain.
+- [x] Remove package-only global runner caching. Each constructor owns one child, serializes requests and registers cleanup that closes pipes and waits/reaps the child, including failed startup/handshake.
+- [x] Exchange protocol 2 `{identity_digest,toolchain}` before test requests. Add BuildDigest/ReplayRevision result metadata and verify the binary's actual runtime identity. Keep existing ListTests/RunAllTests/Run behaviors where signatures are retained.
+- [x] Replace timestamp-only prebuilt info with identity/package/content manifests; implement the target GetPathForPrecompiledTestBinary signature and package-specific artifact selection. Update selftest copied modules and txtar tests to carry explicit config and exact toolchain selection.
 
 #### Verification
 
-- [ ] Wrong patch/identity/protocol, source changes preserving mtime, same package under different features, race/nonrace artifacts, concurrent runner requests, child crash and early cleanup tests pass without leaked processes.
-- [ ] Run common commit gate with prebuilt simulation and race-oracle binaries prepared through the same candidate identity.
+- [x] Wrong patch/identity/protocol, source changes preserving mtime, same package under different features, race/nonrace artifacts, concurrent runner requests, child crash and early cleanup tests pass without leaked processes.
+- [x] Run common commit gate with prebuilt simulation and race-oracle binaries prepared through the same candidate identity.
 
 ### Task 24: Enforce exact toolchains and expose the internal certification workflow
 

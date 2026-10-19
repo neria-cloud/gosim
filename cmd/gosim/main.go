@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/candidate"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/gosimviewer"
@@ -169,7 +170,7 @@ func main() {
 		return
 	}
 	switch command {
-	case "translate", "test", "build-tests", "debug", "prepare-selftest", "lookup-test":
+	case "translate", "test", "build-tests", "debug", "prepare-selftest", "lookup-test", "resolve-build":
 	default:
 		flag.Usage()
 		os.Exit(2)
@@ -201,6 +202,11 @@ func main() {
 		patterns = []string{"."}
 	}
 	switch command {
+	case "resolve-build":
+		if err := json.NewEncoder(os.Stdout).Encode(resolved.Identity); err != nil {
+			log.Fatal(err)
+		}
+		return
 	case "prepare-selftest":
 		prepareSelftest(cfg)
 		return
@@ -232,9 +238,10 @@ func main() {
 				log.Fatal(err)
 			}
 			if err := json.NewEncoder(os.Stdout).Encode(struct {
-				Binary  string
-				Sources map[string]string
-			}{filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path), sources}); err != nil {
+				Binary   string
+				Sources  map[string]string
+				Identity buildspec.Identity
+			}{filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path), sources, cfg.Identity}); err != nil {
 				log.Fatal(err)
 			}
 		}

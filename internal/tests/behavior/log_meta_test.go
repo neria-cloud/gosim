@@ -37,7 +37,7 @@ func parseLog(t *testing.T, log []byte) []map[string]any {
 }
 
 func TestLogMachineGoroutineTime(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test: "TestLogMachineGoroutineTime",
 		Seed: 1,
@@ -59,7 +59,7 @@ func TestLogMachineGoroutineTime(t *testing.T) {
 }
 
 func TestLogSLog(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test: "TestLogSLog",
 		Seed: 1,
@@ -78,7 +78,7 @@ func TestLogSLog(t *testing.T) {
 }
 
 func TestLogStdoutStderr(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test: "TestLogStdoutStderr",
 		Seed: 1,
@@ -100,7 +100,7 @@ func TestLogStdoutStderr(t *testing.T) {
 }
 
 func TestLogDuringInit(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test: "TestLogDuringInit",
 		Seed: 1,
@@ -138,7 +138,7 @@ func formatLogsWithExtra(logs []*gosimlog.Log) []string {
 }
 
 func TestLogTraceSyscall(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	// no logs without simtrace
 	run, err := mt.Run(t, &metatesting.RunConfig{
@@ -215,7 +215,7 @@ func extractStacksUntilTest(logs []*gosimlog.Log) []MsgAndStack {
 }
 
 func TestLogTraceStacks(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	// no stacks without simtrace stack
 	run, err := mt.Run(t, &metatesting.RunConfig{
@@ -283,7 +283,7 @@ func TestLogTraceStacks(t *testing.T) {
 }
 
 func TestLogBacktraceFor(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	// stacks with simtrace stack
 	run, err := mt.Run(t, &metatesting.RunConfig{

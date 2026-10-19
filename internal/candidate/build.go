@@ -144,7 +144,6 @@ func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (result BuildRe
 
 // Run verifies stored bytes before launch and returned identity before accepting
 // results.
-// TODO(migration): remove the temporary request shape in Task 23 for protocol 2.
 func Run(ctx context.Context, artifact gosimtool.Artifact, config simrt.RunConfig) (simrt.RunResult, error) {
 	results, err := runRequests(ctx, artifact, []simrt.RunConfig{config})
 	if err != nil {
@@ -165,6 +164,14 @@ func runRequests(ctx context.Context, artifact gosimtool.Artifact, configs []sim
 		return nil, err
 	}
 	var requests bytes.Buffer
+	digest, err := buildspec.Digest(manifest.Identity)
+	if err != nil {
+		return nil, err
+	}
+	hello := simrt.MetatestHandshake{Protocol: 2, IdentityDigest: digest, Toolchain: manifest.Identity.Toolchain}
+	if err := json.NewEncoder(&requests).Encode(hello); err != nil {
+		return nil, err
+	}
 	for _, config := range configs {
 		if err := json.NewEncoder(&requests).Encode(config); err != nil {
 			return nil, err
@@ -179,11 +186,11 @@ func runRequests(ctx context.Context, artifact gosimtool.Artifact, configs []sim
 	if err != nil {
 		return nil, fmt.Errorf("candidate process: %w\n%s", err, stderr.Bytes())
 	}
-	digest, err := buildspec.Digest(manifest.Identity)
-	if err != nil {
-		return nil, err
-	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
+	var peer simrt.MetatestHandshake
+	if err := decoder.Decode(&peer); err != nil || peer != hello {
+		return nil, fmt.Errorf("candidate protocol/identity mismatch: %v", err)
+	}
 	results := make([]simrt.RunResult, len(configs))
 	for i := range configs {
 		if err := decoder.Decode(&results[i]); err != nil {

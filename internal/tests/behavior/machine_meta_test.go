@@ -10,7 +10,7 @@ import (
 )
 
 func TestMachineCrashRuns(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	counts := make(map[int]int)
 	for seed := int64(0); seed < 50; seed++ {
 		run, err := mt.Run(t, &metatesting.RunConfig{

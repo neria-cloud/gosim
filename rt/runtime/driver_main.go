@@ -7,6 +7,7 @@ import (
 	"io"
 	"maps"
 	"os"
+	"runtime"
 	"slices"
 	"strings"
 )
@@ -32,8 +33,27 @@ func TestMain(driver Driver) {
 		})
 	}
 	if *metatest {
-		// TODO(migration): Task 23 adds the identity/protocol-2 handshake.
 		input, output := json.NewDecoder(os.Stdin), json.NewEncoder(os.Stdout)
+		identified, ok := driver.(interface{ BuildIdentity() (string, string) })
+		if !ok {
+			fatal(fmt.Errorf("metatest Driver has no build identity"))
+			return
+		}
+		digest, toolchain := identified.BuildIdentity()
+		if digest == "" || toolchain != runtime.Version() {
+			fatal(fmt.Errorf("metatest binary runtime identity mismatch"))
+			return
+		}
+		hello := MetatestHandshake{Protocol: 2, IdentityDigest: digest, Toolchain: runtime.Version()}
+		if err := output.Encode(hello); err != nil {
+			fatal(err)
+			return
+		}
+		var peer MetatestHandshake
+		if err := input.Decode(&peer); err != nil || peer != hello {
+			fatal(fmt.Errorf("metatest protocol/identity mismatch: %v", err))
+			return
+		}
 		for {
 			var request RunConfig
 			if err := input.Decode(&request); err != nil {

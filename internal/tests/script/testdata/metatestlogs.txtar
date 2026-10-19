@@ -20,7 +20,7 @@ import (
 )
 
 func TestOk(t *testing.T) {
-    mt := metatesting.ForCurrentPackage(t)
+    mt := metatesting.ForPackage(t, metatesting.Options{})
 	_, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestOk",
 		Seed:     1,
@@ -31,7 +31,7 @@ func TestOk(t *testing.T) {
 }
 
 func TestBad(t *testing.T) {
-    mt := metatesting.ForCurrentPackage(t)
+    mt := metatesting.ForPackage(t, metatesting.Options{})
 	res, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestBad",
 		Seed:     1,

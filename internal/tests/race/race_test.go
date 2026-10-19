@@ -45,7 +45,7 @@ func TestRaceSim(t *testing.T) {
 		t.Skip("race.Enabled is false")
 	}
 
-	path := gosimtool.GetPathForPrecompiledTestBinary(t, gosimtool.Module+"/internal/tests/race/testdata")
+	path := gosimtool.GetPathForPrecompiledTestBinary(t, gosimtool.Module+"/internal/tests/race/testdata", gosimtool.ResolveTestIdentity(t, ""))
 	checkTests(t, exec.Command(path, "-test.v"))
 }
 

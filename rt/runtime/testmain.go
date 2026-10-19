@@ -51,6 +51,13 @@ type Driver interface {
 	TestEntrypoint(match, skip string, tests []Test) bool
 }
 
+// MetatestHandshake binds the request stream to one generated binary.
+type MetatestHandshake struct {
+	Protocol       int    `json:"protocol"`
+	IdentityDigest string `json:"identity_digest"`
+	Toolchain      string `json:"toolchain"`
+}
+
 // subset of flags defined by the testing package that we parse
 // and support.
 var supportedFlags = map[string]bool{

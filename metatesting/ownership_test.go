@@ -8,39 +8,44 @@ import (
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
-func TestRunnerLastOwnerReapsProcess(t *testing.T) {
-	var runner *MetaT
+func TestConstructorsOwnIndependentChildren(t *testing.T) {
+	var parent, duplicate, child *MetaT
 	pkg := gosimtool.Module + "/internal/tests/behavior"
 	t.Run("parent", func(t *testing.T) {
-		runner = ForOtherPackage(t, pkg)
-		if ForOtherPackage(t, pkg) != runner {
-			t.Fatal("duplicate acquisition replaced worker")
+		parent = ForOtherPackage(t, pkg, Options{})
+		duplicate = ForOtherPackage(t, pkg, Options{})
+		if duplicate == parent || duplicate.cmd.Process.Pid == parent.cmd.Process.Pid {
+			t.Fatal("constructors shared a worker")
 		}
 		t.Run("child", func(t *testing.T) {
-			if ForOtherPackage(t, pkg) != runner {
-				t.Fatal("live owners did not share worker")
-			}
-			if _, err := runner.ListTests(); err != nil {
+			child = ForOtherPackage(t, pkg, Options{})
+			if _, err := child.ListTests(); err != nil {
 				t.Fatal(err)
 			}
 		})
-		if runner.cmd.ProcessState != nil {
-			t.Fatal("child cleanup reaped parent's worker")
+		if child.cmd.ProcessState == nil {
+			t.Fatal("child cleanup did not reap worker")
 		}
-		result, err := runner.Run(t, &RunConfig{Test: "TestHello", Seed: 1})
+		if parent.cmd.ProcessState != nil {
+			t.Fatal("child cleanup reaped parent worker")
+		}
+		result, err := parent.Run(t, &RunConfig{Test: "TestHello", Seed: 1})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if result.Failed {
 			t.Fatal(result.Err)
 		}
+		if err := duplicate.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if err := duplicate.Close(); err != nil {
+			t.Fatal("second close", err)
+		}
 	})
-	if runner.cmd.ProcessState == nil || !runner.cmd.ProcessState.Exited() {
-		t.Fatal("last owner did not join worker and stderr copier")
-	}
-	runnerMapMu.Lock()
-	defer runnerMapMu.Unlock()
-	if runnerMap[pkg] != nil || len(runner.owners) != 0 {
-		t.Fatal("closed worker retained in registry")
+	for _, r := range []*MetaT{parent, duplicate, child} {
+		if r.cmd.ProcessState == nil || !r.cmd.ProcessState.Exited() {
+			t.Fatal("cleanup did not join worker")
+		}
 	}
 }

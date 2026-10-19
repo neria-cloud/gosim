@@ -12,7 +12,7 @@ import (
 )
 
 func TestTFatalAborts(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestTFatalAborts",
@@ -39,7 +39,7 @@ func TestTFatalAborts(t *testing.T) {
 }
 
 func TestPanicAbortsOther(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestPanicAbortsOther",
@@ -66,7 +66,7 @@ func TestPanicAbortsOther(t *testing.T) {
 }
 
 func TestPanic(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestPanic",
@@ -93,7 +93,7 @@ func TestPanic(t *testing.T) {
 }
 
 func TestPanicInsideMachine(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestPanicInsideMachine",
@@ -120,7 +120,7 @@ func TestPanicInsideMachine(t *testing.T) {
 }
 
 func TestTErrorDoesNotAbort(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestTErrorDoesNotAbort",
@@ -149,7 +149,7 @@ func TestTErrorDoesNotAbort(t *testing.T) {
 }
 
 func TestSimulationTimeout(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestSimulationTimeout",
@@ -186,7 +186,7 @@ func TestSimulationTimeout(t *testing.T) {
 }
 
 func TestSimulationTimeoutOverride(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestSimulationTimeoutOverride",

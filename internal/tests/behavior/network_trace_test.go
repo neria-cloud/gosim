@@ -11,7 +11,7 @@ import (
 )
 
 func TestNetworkTrace(t *testing.T) {
-	runner := metatesting.ForCurrentPackage(t)
+	runner := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := runner.Run(t, &metatesting.RunConfig{Test: "TestNetworkConfigValidation", Seed: 1, Simtrace: "network"})
 	if err != nil {
 		t.Fatal(err)

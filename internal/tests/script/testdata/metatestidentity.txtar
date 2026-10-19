@@ -1,0 +1,65 @@
+# Alternate the same package's feature/race artifacts through explicit Options.
+exec go run makeconfig.go
+exec gosim build-tests -config rt.json .
+exec gosim build-tests -config net.json .
+env META_CONFIG=rt.json
+env EXPECT_FEATURES=[rt]
+exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
+stdout 'PASS'
+env META_CONFIG=net.json
+env EXPECT_FEATURES='[rt net]'
+exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
+stdout 'PASS'
+exec gosim build-tests -config net.json -race .
+exec go test -ldflags=-checklinkname=0 -tags=linkname -race -v .
+stdout 'PASS'
+
+# Invoke a prebuilt host metatest directly so Go's outer result cache cannot
+# bypass source checking when content changes preserve timestamps and size.
+env META_CONFIG=rt.json
+env EXPECT_FEATURES=[rt]
+exec go test -ldflags=-checklinkname=0 -tags=linkname -c -o meta.test .
+exec ./meta.test -test.v
+stdout 'PASS'
+exec cp -p probe_test.go stamp
+cp changed.txt probe_test.go
+exec touch -r stamp probe_test.go
+! exec ./meta.test -test.v
+stdout 'Could not find pre-built gosim test binary'
+
+-- makeconfig.go --
+//go:build ignore
+
+package main
+import("encoding/json";"os";"runtime")
+func main(){
+ for name,features:=range map[string][]string{"rt.json":{"rt"},"net.json":{"rt","net"}}{
+  data,err:=json.Marshal(struct{Schema int `json:"schema"`;Toolchain string `json:"toolchain"`;Features []string `json:"features"`}{1,runtime.Version(),features});if err!=nil{panic(err)}
+  if err:=os.WriteFile(name,data,0600);err!=nil{panic(err)}
+ }
+}
+-- meta_test.go --
+//go:build !sim
+
+package fixture
+import("os";"strings";"testing";"github.com/neria-cloud/gosim/metatesting")
+func TestMeta(t *testing.T){
+ mt:=metatesting.ForPackage(t,metatesting.Options{ConfigPath:os.Getenv("META_CONFIG")})
+ result,err:=mt.Run(t,&metatesting.RunConfig{Test:"TestProbe",Seed:1});if err!=nil{t.Fatal(err)}
+ if result.Failed||result.BuildDigest==""||result.ReplayRevision==""{t.Fatal(result)}
+ for _,want:=range []string{"features="+os.Getenv("EXPECT_FEATURES")} {
+  if !strings.Contains(string(result.LogOutput),want){t.Fatalf("missing %q in %s",want,result.LogOutput)}
+ }
+}
+-- probe_test.go --
+//go:build sim
+
+package fixture
+import("testing";"github.com/neria-cloud/gosim/rt")
+func TestProbe(t *testing.T){info:=rt.Info();t.Logf("features=%v marker=A",info.Features)}
+-- changed.txt --
+//go:build sim
+
+package fixture
+import("testing";"github.com/neria-cloud/gosim/rt")
+func TestProbe(t *testing.T){info:=rt.Info();t.Logf("features=%v marker=B",info.Features)}

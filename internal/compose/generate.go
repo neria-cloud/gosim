@@ -219,6 +219,8 @@ const timeoutNS int64 = 600 * 1e9
 type Driver struct{}
 var _ simrt.Driver = Driver{}
 
+func (Driver) BuildIdentity() (string, string) { return IdentityDigest, Toolchain }
+
 func (Driver) TestEntrypoint(match, skip string, tests []simrt.Test) bool {
  return simtesting.Entrypoint(match, skip, tests)
 }

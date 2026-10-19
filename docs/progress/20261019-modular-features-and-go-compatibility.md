@@ -973,3 +973,23 @@ Verified:
 
 Integration corrections and failed attempts are recorded above. No test failure is waived; skipped native GC fixture coverage is not claimed. Task 23 remains responsible for protocol 2, identity-based constructor inputs and removal of package-only runner ownership.
 Actual rename-aware staged change size including this record: 4,690 lines (2,314 additions + 2,376 deletions).
+
+## Task 23 — Identity-checked metatest ownership (in progress)
+Task 22 cutover commit: 8290c26 (4,690 changed lines).
+
+Replaced package-global runner/build ownership with constructor-owned children, Options.ConfigPath, explicit expected build identities, content verification before launch and a bidirectional protocol-2 handshake. Generated Driver exposes immutable identity without initializing application globals; the native test main checks its actual compiler version. Requests serialize per runner, results verify build/replay metadata, and Close interrupts blocked I/O and waits/reaps exactly once. Startup failures close/reap and join the handshake goroutine. Candidate probes use the same protocol. Existing callers and script fixtures use the replacement constructors.
+
+Verified so far:
+- All native packages compile.
+- Protocol race tests pass on both exact patches, including mismatched protocol/patch/digest, changed binary bytes, concurrent requests/Close, crashes, result mismatch and early cleanup. Tests verify children are already reaped via wait status.
+- Real CLI scripts for logging, prebuilt discovery, alternate feature/race configs and same-size/same-mtime source changes pass (52.806s).
+- Fresh rt+net candidate race probes pass on exact126 (60.116s) and exact125 (91.230s).
+- Common ordinary/race gate is running in `.gosim/task23-gate.log`; no Task 23 boxes are checked yet.
+
+Small related correction: CheckSeeds now honors its existing numSeeds argument instead of hard-coding five. Copied selftest source/config setup already landed in Task 22 and is exercised by the updated scripts. Target architecture unchanged.
+
+The first Task 23 gate passed the ordinary suite; its race pass was intentionally stopped (exit 143) after target review found an unnecessary cross-patch worker bootstrap in the new lookup helper. T§11 postpones that facility. Host metatests now require the selected exact patch and report the existing explicit rebuild error on mismatch. Explicit GOSIMTOOL is never replaced automatically. Final gate: `.gosim/task23-gate-final.log`; source remains frozen during validation.
+
+### Task 23 complete
+`TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" ./test.sh --concurrency 1` exited 0. Final log: `.gosim/task23-gate-final.log`. Both exact-family candidate suites, complete ordinary/race suites, independent child ownership, actual reaping, request serialization, protocol/result mismatch rejection, config/feature/race artifact selection and same-mtime source invalidation pass. Race behavior 164.373s, metatesting 46.681s, scripts 72.414s; ordinary behavior 115.523s and metatesting 36.990s. No failures waived. `git diff --check` clean. Target unchanged.
+Actual rename-aware commit size including this record: 900 changed lines (679 additions + 221 deletions).

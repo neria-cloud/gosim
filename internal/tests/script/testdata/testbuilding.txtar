@@ -55,7 +55,7 @@ import (
 )
 
 func TestSelf(t *testing.T) {
-    mt := metatesting.ForCurrentPackage(t)
+    mt := metatesting.ForPackage(t, metatesting.Options{})
 	_, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestHello",
 		Seed:     1,

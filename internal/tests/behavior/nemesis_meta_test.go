@@ -4,7 +4,7 @@ package behavior_test
 
 /*
 func TestNemesisDelay(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	counts := make(map[float64]int)
 	for seed := int64(0); seed < 200; seed++ {
 		run, err := mt.Run(t, &metatesting.RunConfig{
@@ -28,7 +28,7 @@ func TestNemesisDelay(t *testing.T) {
 }
 
 func TestNemesisCrash(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	counts := make(map[float64]int)
 	for seed := int64(0); seed < 200; seed++ {
 		run, err := mt.Run(t, &metatesting.RunConfig{
