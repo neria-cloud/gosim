@@ -13,6 +13,7 @@ import (
 )
 
 func TestRuntimeFamilyABIDelta(t *testing.T) {
+	t.Parallel()
 	for _, item := range []struct {
 		p      spec.Profile
 		result string
@@ -53,6 +54,7 @@ func TestRuntimeFamilyABIDelta(t *testing.T) {
 }
 
 func TestGo126RuntimePolicy(t *testing.T) {
+	t.Parallel()
 	p, m := p126.Descriptor(), p126.PolicyManifest()
 	if err := m.Validate(p); err != nil {
 		t.Fatal(err)
@@ -78,6 +80,7 @@ func TestGo126RuntimePolicy(t *testing.T) {
 }
 
 func TestPinnedRuntimePushesObjectRaceSymbols(t *testing.T) {
+	t.Parallel()
 	if runtime.Version() != "go1.25.14" && runtime.Version() != "go1.26.9" {
 		t.Skip("pinned source audit")
 	}

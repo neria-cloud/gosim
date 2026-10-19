@@ -34,6 +34,7 @@ func open(t *testing.T, i *Instance, ctx contracts.CallContext, path string, fla
 }
 func bytesView(value string) abi.ByteView { return abi.ByteView{Ptr: []byte(value)} }
 func TestFileOpsOffsetsDurabilityAndBorrowing(t *testing.T) {
+	t.Parallel()
 	i, ctx, table := ioFixture(t)
 	fd := open(t, i, ctx, "data", openCreate|2|openCloseExec)
 	resource, err := table.Lookup(fd)
@@ -96,6 +97,7 @@ func TestFileOpsOffsetsDurabilityAndBorrowing(t *testing.T) {
 }
 
 func TestFileOpsDirectoriesAndCapabilities(t *testing.T) {
+	t.Parallel()
 	i, ctx, _ := ioFixture(t)
 	must(t, i.Mkdirat(ctx, atFDCWD, "sub", 0o700))
 	if err := i.Mkdirat(ctx, atFDCWD, "sub", 0o700); !errors.Is(err, syscall.EEXIST) {
@@ -169,6 +171,7 @@ type failingAllocation struct{ contracts.DescriptorTable }
 
 func (failingAllocation) Allocate(contracts.Resource) (int, error) { return 0, syscall.EMFILE }
 func TestFileDescriptorOwnerFailuresAndCleanup(t *testing.T) {
+	t.Parallel()
 	i, ctx, table := ioFixture(t)
 	foreign, err := table.Allocate(wrongOwner{})
 	must(t, err)
@@ -219,6 +222,7 @@ func TestFileDescriptorOwnerFailuresAndCleanup(t *testing.T) {
 }
 
 func TestMappingSurvivesUnlinkCloseAndCleansUp(t *testing.T) {
+	t.Parallel()
 	i, ctx, table := ioFixture(t)
 	fd := open(t, i, ctx, "mapped", openCreate|2)
 	_, err := i.Pwrite(ctx, fd, bytesView("data"), 0)
@@ -275,6 +279,7 @@ func TestMappingSurvivesUnlinkCloseAndCleansUp(t *testing.T) {
 }
 
 func TestStatErrorPreservesErrno(t *testing.T) {
+	t.Parallel()
 	for _, err := range []error{nil, syscall.ENOENT, syscall.ENOTDIR, syscall.EACCES} {
 		if got := statError(err); got != err {
 			t.Fatalf("statError(%v)=%v", err, got)

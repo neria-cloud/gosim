@@ -47,7 +47,7 @@ class MatrixTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             job = matrix.enumerate_jobs(["darwin/arm64"], matrix.PATCHES, smoke=True)[0]
             with patch.object(matrix, "snapshot", return_value={}), patch.object(matrix, "checked", side_effect=RuntimeError("worker failed")):
-                result = matrix.execute(job, Path(tmp), argparse.Namespace(native=True), {}, [], {}, {})
+                result = matrix.execute(job, Path(tmp), argparse.Namespace(native=True, worker_concurrency=2), {}, [], {}, {})
             self.assertEqual(result["status"], "failed")
             path = Path(tmp) / matrix.job_name(job) / "execution.json"
             self.assertIn("worker failed", json.loads(path.read_text())["error"])
@@ -66,7 +66,7 @@ class MatrixTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp, patch.object(matrix, "checked", side_effect=command):
             images = {(job["platform"], job["patch"]): {"image": "sha256:image", "base_image": "base"}}
-            result = matrix.execute(job, Path(tmp), argparse.Namespace(native=False), {}, ["docker"], {"Architecture": "aarch64"}, images)
+            result = matrix.execute(job, Path(tmp), argparse.Namespace(native=False, worker_concurrency=2), {}, ["docker"], {"Architecture": "aarch64"}, images)
         self.assertEqual(result["status"], "failed")
         self.assertIn("suite failed", result["error"])
         self.assertEqual([cmd[1] for cmd in calls], ["create", "start", "cp", "cp", "rm"])

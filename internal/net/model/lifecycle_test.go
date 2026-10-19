@@ -60,6 +60,7 @@ func connect(t *testing.T, events *testEvents, a, b *Stack) (*Stream, *Stream, *
 }
 
 func TestAddressReservationRollbackAndRestart(t *testing.T) {
+	t.Parallel()
 	rng := &scriptedRandom{}
 	n := testNetwork(t, rng)
 	owner := contracts.MachineRef{RunID: 1, ID: 1}
@@ -121,6 +122,7 @@ func TestAddressReservationRollbackAndRestart(t *testing.T) {
 }
 
 func TestStalePacketsAfterRestartAndPortReuse(t *testing.T) {
+	t.Parallel()
 	n, events, a, b := liveNetwork(t)
 	client, server, _ := connect(t, events, a, b)
 	stale := Packet{ConnId: client.id, Kind: PacketKindStreamClose, SourceEpoch: a.ref, DestinationEpoch: b.ref, ConnectionGeneration: client.generation}
@@ -182,6 +184,7 @@ func TestStalePacketsAfterRestartAndPortReuse(t *testing.T) {
 }
 
 func TestGracefulFinalCloseAndCrashSilence(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []contracts.StopKind{contracts.StopGraceful, contracts.StopCrash} {
 		t.Run(map[contracts.StopKind]string{contracts.StopGraceful: "graceful", contracts.StopCrash: "crash"}[kind], func(t *testing.T) {
 			n, events, a, b := liveNetwork(t)
@@ -229,6 +232,7 @@ func TestGracefulFinalCloseAndCrashSilence(t *testing.T) {
 }
 
 func TestQuiesceRearmsQueueForSurvivingDestination(t *testing.T) {
+	t.Parallel()
 	n, events, a, b := liveNetwork(t)
 	if err := n.SetDelay(testPair, time.Second); err != nil {
 		t.Fatal(err)
@@ -250,6 +254,7 @@ func TestQuiesceRearmsQueueForSurvivingDestination(t *testing.T) {
 }
 
 func TestListenerCloseDrainsWholeBacklog(t *testing.T) {
+	t.Parallel()
 	_, events, a, b := liveNetwork(t)
 	listener, err := b.OpenListener(80)
 	if err != nil {
@@ -292,6 +297,7 @@ func (r *readinessRecorder) Notify(ref contracts.EpochRef, _ int, mask contracts
 }
 
 func TestStreamDataPollingAndTimerRetirement(t *testing.T) {
+	t.Parallel()
 	_, events, a, b := liveNetwork(t)
 	client, server, _ := connect(t, events, a, b)
 	sink := &readinessRecorder{}
@@ -346,6 +352,7 @@ func TestStreamDataPollingAndTimerRetirement(t *testing.T) {
 }
 
 func TestDirectedPolicyCopiesAndAtomicUpdates(t *testing.T) {
+	t.Parallel()
 	n := testNetwork(t, &scriptedRandom{})
 	latency := LatencyConfig{Min: 10, Max: 20, Lambda: 3}
 	loss := LossConfig{FailProbability: .2, RepairProbability: .3}
@@ -379,6 +386,7 @@ func TestDirectedPolicyCopiesAndAtomicUpdates(t *testing.T) {
 }
 
 func TestNetworkRandomStreamIndependence(t *testing.T) {
+	t.Parallel()
 	run := func(noise bool) []timeIndex {
 		events := newTestEvents()
 		rng := gosimruntime.NewDomainRandom(19, "net", 0)
@@ -405,6 +413,7 @@ func TestNetworkRandomStreamIndependence(t *testing.T) {
 }
 
 func TestSymmetricFieldUpdateFailsWithoutMutationOrTrace(t *testing.T) {
+	t.Parallel()
 	n := testNetwork(t, &scriptedRandom{})
 	latency := LatencyConfig{Min: 10, Max: 20, Lambda: 1}
 	if err := n.SetLinkPolicy(testPair.Flip(), DirectionOneWay, &latency, nil); err != nil {
@@ -419,6 +428,7 @@ func TestSymmetricFieldUpdateFailsWithoutMutationOrTrace(t *testing.T) {
 }
 
 func TestDetachRetiresStackEvents(t *testing.T) {
+	t.Parallel()
 	n, events, a, b := liveNetwork(t)
 	_, server, _ := connect(t, events, a, b)
 	stale := events.pending[server.keepaliveTimer.event].fn

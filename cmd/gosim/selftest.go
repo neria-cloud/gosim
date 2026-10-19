@@ -97,7 +97,7 @@ func copyModuleForScriptTest(modDir string) error {
 			return err
 		}
 		if entry.IsDir() {
-			if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" {
+			if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" || rel == "test-reports" {
 				return filepath.SkipDir
 			}
 			return nil

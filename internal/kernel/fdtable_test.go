@@ -90,6 +90,7 @@ func TestSharedDescriptorCapabilitiesAndFcntlOwnership(t *testing.T) {
 }
 
 func TestDescriptorFinalizeContinuesInOrder(t *testing.T) {
+	t.Parallel()
 	table := NewFDTable(contracts.EpochRef{})
 	var order []int
 	var resources []*dataResource

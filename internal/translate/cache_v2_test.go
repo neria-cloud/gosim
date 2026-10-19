@@ -135,6 +135,7 @@ func TestV2CacheRoundTripCorruptionAndReplacement(t *testing.T) {
 }
 
 func TestV2NeverLooksUpOldFormatKey(t *testing.T) {
+	t.Parallel()
 	db, err := cache.NewDB(filepath.Join(t.TempDir(), "cache.sqlite"))
 	if err != nil {
 		t.Fatal(err)
@@ -168,6 +169,7 @@ func TestV2NeverLooksUpOldFormatKey(t *testing.T) {
 }
 
 func TestV2IdentityDimensions(t *testing.T) {
+	t.Parallel()
 	base := cacheIdentity()
 	original, err := computeTranslateToolHash(base)
 	if err != nil {
@@ -220,6 +222,7 @@ func TestV2IdentityDimensions(t *testing.T) {
 }
 
 func TestV2SourceContentAndSelectedInputs(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	write := func(name, content string) string {
 		t.Helper()

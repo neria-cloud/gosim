@@ -11,6 +11,7 @@ import (
 )
 
 func TestGo126PolicyDeltas(t *testing.T) {
+	t.Parallel()
 	p, m := p126.Descriptor(), p126.PolicyManifest()
 	sources := make(map[string]bool)
 	for _, source := range p126.VerificationOrigin().Files {

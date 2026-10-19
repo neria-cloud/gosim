@@ -38,6 +38,7 @@ func linkedLock(uintptr, int, *syscall.Flock_t) error
 func linkedXLock(uintptr, int, *unix.Flock_t) error
 
 func TestLinuxLayouts(t *testing.T) {
+	t.Parallel()
 	for name, pair := range map[string][2]uintptr{
 		"stat-size": {unsafe.Sizeof(kh.Stat_t{}), unsafe.Sizeof(syscall.Stat_t{})}, "xstat-size": {unsafe.Sizeof(kh.XStat_t{}), unsafe.Sizeof(unix.Stat_t{})},
 		"stat-mode": {unsafe.Offsetof(kh.Stat_t{}.Mode), unsafe.Offsetof(syscall.Stat_t{}.Mode)}, "xstat-atim": {unsafe.Offsetof(kh.XStat_t{}.Atim), unsafe.Offsetof(unix.Stat_t{}.Atim)},

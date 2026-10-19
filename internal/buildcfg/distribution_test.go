@@ -54,6 +54,7 @@ func distributionFixture(t *testing.T) (string, []byte, archiveRecord) {
 }
 
 func TestDistributionRejectsChangedContent(t *testing.T) {
+	t.Parallel()
 	for _, mutation := range []string{"source", "compiler", "extra", "missing", "symlink", "archive"} {
 		t.Run(mutation, func(t *testing.T) {
 			root, data, record := distributionFixture(t)
@@ -102,6 +103,7 @@ func TestDistributionRejectsChangedContent(t *testing.T) {
 }
 
 func TestDistributionAllowsOnlyVerifiedModuleCopies(t *testing.T) {
+	t.Parallel()
 	root, data, record := distributionFixture(t)
 	copy := filepath.Join(root, "src/_go.mod")
 	if err := os.WriteFile(copy, []byte("module std\n"), 0o600); err != nil {

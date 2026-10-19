@@ -45,6 +45,7 @@ func profileSelection(t *testing.T, features ...string) buildspec.Selection {
 }
 
 func TestPoliciesSelectedMetadata(t *testing.T) {
+	t.Parallel()
 	for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
 		t.Run(strings.Join(features, ","), func(t *testing.T) {
 			s := profileSelection(t, features...)
@@ -80,6 +81,7 @@ func TestPoliciesSelectedMetadata(t *testing.T) {
 }
 
 func TestPoliciesRejectForgedSelection(t *testing.T) {
+	t.Parallel()
 	for name, change := range map[string]func(*buildspec.Selection){
 		"empty":   func(s *buildspec.Selection) { *s = buildspec.Selection{} },
 		"profile": func(s *buildspec.Selection) { s.Identity.Profile = "go124" },
@@ -141,6 +143,7 @@ func typedBoundary(t *testing.T, path, source string, standard bool) *packages.P
 }
 
 func TestTypedProfileBoundaries(t *testing.T) {
+	t.Parallel()
 	s := profileSelection(t, "rt")
 	policies, err := Policies(s)
 	if err != nil {
@@ -196,6 +199,7 @@ func f() int64{return 1}`, ""},
 }
 
 func TestHookedSourceAndOwnedNativeImports(t *testing.T) {
+	t.Parallel()
 	s := profileSelection(t, "rt")
 	p, err := Policies(s)
 	if err != nil {
@@ -236,6 +240,7 @@ var X=reflect.TypeOf(1)`
 }
 
 func TestProviderAndRetiredImportBoundaries(t *testing.T) {
+	t.Parallel()
 	s := profileSelection(t, "rt", "fs", "net")
 	p, err := Policies(s)
 	if err != nil {

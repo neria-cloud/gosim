@@ -42,6 +42,7 @@ func selection(t *testing.T, features ...string) buildspec.Selection {
 }
 
 func TestGeneratedImportSetsAndConcurrentPublication(t *testing.T) {
+	t.Parallel()
 	for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
 		t.Run(strings.Join(features, ","), func(t *testing.T) {
 			s := selection(t, features...)
@@ -99,6 +100,7 @@ func TestGeneratedImportSetsAndConcurrentPublication(t *testing.T) {
 }
 
 func TestRejectCompositionTampering(t *testing.T) {
+	t.Parallel()
 	s := selection(t, "rt")
 	for _, test := range []string{"imports", "body", "extra-source", "symlink", "digest", "traversal", "files"} {
 		t.Run(test, func(t *testing.T) {
@@ -171,6 +173,7 @@ func TestRejectCompositionTampering(t *testing.T) {
 // This executes generated composition with native input packages to verify the
 // Driver/Engine boundary. Task 21.4 separately proves actual AST-translated code.
 func TestNativeGeneratedDriver(t *testing.T) {
+	t.Parallel()
 	root, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)

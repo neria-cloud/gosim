@@ -9,6 +9,7 @@ import (
 )
 
 func TestViewsBoundAndBorrowMemory(t *testing.T) {
+	t.Parallel()
 	data := []byte{1, 2, 3, 4}
 	var view abi.ByteView = abi.NewSliceView(&data[0], uintptr(len(data)))
 	into := make([]byte, 8)
@@ -39,6 +40,7 @@ func TestViewsBoundAndBorrowMemory(t *testing.T) {
 }
 
 func TestViewSliceRejectsOutOfBounds(t *testing.T) {
+	t.Parallel()
 	view := abi.ByteView{Ptr: []byte{1, 2}}
 	for _, slice := range []func(){func() { view.Slice(-1, 1) }, func() { view.Slice(0, 3) }, func() { view.SliceFrom(3) }} {
 		func() {
@@ -53,6 +55,7 @@ func TestViewSliceRejectsOutOfBounds(t *testing.T) {
 }
 
 func TestBoolWireRepresentation(t *testing.T) {
+	t.Parallel()
 	if abi.BoolToUintptr(false) != 0 || abi.BoolToUintptr(true) != 1 || abi.BoolFromUintptr(0) || !abi.BoolFromUintptr(2) {
 		t.Fatal("boolean wire representation changed")
 	}

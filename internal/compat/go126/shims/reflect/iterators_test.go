@@ -12,6 +12,7 @@ type iteratorRecord struct {
 func (r iteratorRecord) Example() int { return r.A }
 
 func TestGo126Iterators(t *testing.T) {
+	t.Parallel()
 	value := ValueOf(&iteratorRecord{A: 42, B: "value"}).Elem()
 	names := ""
 	for field := range value.Type().Fields() {

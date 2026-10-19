@@ -26,6 +26,7 @@ func formatLogsWithExtra(logs []*gosimlog.Log) []string {
 }
 
 func TestLogTraceSyscall(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	// no logs without simtrace

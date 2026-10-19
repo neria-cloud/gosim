@@ -36,6 +36,9 @@ var (
 // The expected output of the translation is stored with the testdata/ (next to
 // each input file) and checked or rewritten depending on the -rewrite flag.
 func TestTranslate(t *testing.T) {
+	if !*rewrite && !*useworkdir {
+		t.Parallel()
+	}
 	entries, err := os.ReadDir("./testdata")
 	if err != nil {
 		t.Fatal(err)
@@ -212,6 +215,7 @@ func TestTranslate(t *testing.T) {
 }
 
 func TestRenameFile(t *testing.T) {
+	t.Parallel()
 	cfg := gosimtool.BuildConfig{Identity: buildspec.Identity{SimulationOS: "linux", SimulationArch: "amd64"}}
 
 	testcases := []struct {

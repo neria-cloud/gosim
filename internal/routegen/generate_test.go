@@ -17,6 +17,7 @@ import (
 )
 
 func TestInventoryCoversLegacyRoutes(t *testing.T) {
+	t.Parallel()
 	m, err := Load()
 	if err != nil {
 		t.Fatal(err)
@@ -78,6 +79,7 @@ func TestInventoryCoversLegacyRoutes(t *testing.T) {
 }
 
 func TestInvalidRouteSchemas(t *testing.T) {
+	t.Parallel()
 	cases := []func(*Manifest){
 		func(m *Manifest) { m.Schema++ },
 		func(m *Manifest) { m.Routes[1].ID = m.Routes[0].ID },
@@ -108,6 +110,7 @@ func TestInvalidRouteSchemas(t *testing.T) {
 }
 
 func TestGeneratedOutputIsCurrent(t *testing.T) {
+	t.Parallel()
 	for _, family := range []struct{ id, patch string }{{"go125", "go1.25.14"}, {"go126", "go1.26.9"}} {
 		t.Run(family.id, func(t *testing.T) {
 			tc, err := buildcfg.Resolve(family.patch)
@@ -133,6 +136,7 @@ func TestGeneratedOutputIsCurrent(t *testing.T) {
 }
 
 func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
+	t.Parallel()
 	tc, err := buildcfg.Resolve("go1.25.14")
 	if err != nil {
 		t.Fatal(err)
@@ -231,6 +235,7 @@ func readOutputTree(t *testing.T, root string) map[string][]byte {
 }
 
 func TestArm64GenerationPreservesAMD64(t *testing.T) {
+	t.Parallel()
 	tc, err := buildcfg.Resolve("go1.25.14")
 	if err != nil {
 		t.Fatal(err)

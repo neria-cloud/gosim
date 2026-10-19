@@ -12,6 +12,7 @@ import (
 )
 
 func TestTFatalAborts(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
@@ -39,6 +40,7 @@ func TestTFatalAborts(t *testing.T) {
 }
 
 func TestPanicAbortsOther(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
@@ -66,6 +68,7 @@ func TestPanicAbortsOther(t *testing.T) {
 }
 
 func TestPanic(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
@@ -93,6 +96,7 @@ func TestPanic(t *testing.T) {
 }
 
 func TestPanicInsideMachine(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
@@ -120,6 +124,7 @@ func TestPanicInsideMachine(t *testing.T) {
 }
 
 func TestTErrorDoesNotAbort(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
@@ -149,6 +154,7 @@ func TestTErrorDoesNotAbort(t *testing.T) {
 }
 
 func TestSimulationTimeout(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{
@@ -186,6 +192,7 @@ func TestSimulationTimeout(t *testing.T) {
 }
 
 func TestSimulationTimeoutOverride(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	run, err := mt.Run(t, &metatesting.RunConfig{

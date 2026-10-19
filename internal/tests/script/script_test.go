@@ -16,6 +16,10 @@ import (
 )
 
 func TestScript(t *testing.T) {
+	if os.Getenv("GOSIM_TEST_LARGE") != "1" {
+		t.Skip("run with make test-large")
+	}
+
 	p := testscript.Params{
 		Dir: "testdata",
 	}

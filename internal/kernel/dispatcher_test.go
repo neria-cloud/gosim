@@ -15,6 +15,7 @@ import (
 )
 
 func TestControlErrorCopiesProviderDiagnostic(t *testing.T) {
+	t.Parallel()
 	for _, cause := range []error{
 		contracts.ErrNotSim, contracts.ErrWrongRun, contracts.ErrMachineNotFound,
 		contracts.ErrInvalidState, contracts.ErrNotStarted, contracts.ErrSelfTransition,

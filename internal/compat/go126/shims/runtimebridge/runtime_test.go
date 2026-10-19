@@ -10,6 +10,7 @@ import (
 )
 
 func TestSimulatedProcessorQueries(t *testing.T) {
+	t.Parallel()
 	if Runtime_NumCPU() != 1 {
 		t.Fatal("host CPU count escaped")
 	}

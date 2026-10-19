@@ -14,6 +14,7 @@ import (
 )
 
 func TestPinnedModuleGraphAndSources(t *testing.T) {
+	t.Parallel()
 	tc := currentToolchain()
 	pins := p125.PolicyManifest().Modules
 	if err := spec.VerifyModules(tc, "../../..", pins); err != nil {
@@ -40,6 +41,7 @@ func TestPinnedModuleGraphAndSources(t *testing.T) {
 }
 
 func TestModuleContentTampering(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	source := filepath.Join(dir, "source.go")
 	mod := filepath.Join(dir, "go.mod")

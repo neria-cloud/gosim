@@ -13,6 +13,7 @@ import (
 )
 
 func TestFeatureSets(t *testing.T) {
+	t.Parallel()
 	for _, names := range [][]string{{"rt"}, {"fs", "rt"}, {"net", "rt"}, {"net", "rt", "fs"}} {
 		features, err := ParseFeatures(names)
 		if err != nil || !features.Has(RT) {
@@ -41,6 +42,7 @@ func TestFeatureSets(t *testing.T) {
 }
 
 func TestProviderOrderingAndOwnership(t *testing.T) {
+	t.Parallel()
 	fsProvider, netProvider := &fakeProvider{feature: FS}, &fakeProvider{feature: Net}
 	input := []Provider{netProvider, fsProvider}
 	ordered, err := OrderProviders(FeatureSet(RT|FS|Net), input)
@@ -101,6 +103,7 @@ func TestProviderOrderingAndOwnership(t *testing.T) {
 }
 
 func TestRecordingLifecycleAndPortContracts(t *testing.T) {
+	t.Parallel()
 	var calls []string
 	ports := &fakePorts{}
 	provider := &fakeProvider{feature: FS, log: &calls}
@@ -157,6 +160,7 @@ func TestRecordingLifecycleAndPortContracts(t *testing.T) {
 }
 
 func TestControlValueValidationAndCopying(t *testing.T) {
+	t.Parallel()
 	for _, dir := range []string{"", "relative", "/nul\x00path"} {
 		if err := ValidateFSConfig(FSConfig{WorkingDir: dir}); err == nil {
 			t.Fatalf("accepted working dir %q", dir)
@@ -199,6 +203,7 @@ func TestControlValueValidationAndCopying(t *testing.T) {
 }
 
 func TestProductionDependencyBoundary(t *testing.T) {
+	t.Parallel()
 	cmd := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, "", "list", "-deps", "github.com/neria-cloud/gosim/internal/contracts")
 	output, err := cmd.Output()
 	if err != nil {

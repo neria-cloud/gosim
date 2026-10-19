@@ -10,6 +10,7 @@ import (
 )
 
 func TestConfigOverridesReplaceAndOwnFeatures(t *testing.T) {
+	t.Parallel()
 	path := filepath.Join(t.TempDir(), "gosim.json")
 	if err := os.WriteFile(path, []byte(`{"schema":1,"toolchain":"go1.25.14","features":["rt","net"]}`), 0o600); err != nil {
 		t.Fatal(err)
@@ -34,6 +35,7 @@ func TestConfigOverridesReplaceAndOwnFeatures(t *testing.T) {
 }
 
 func TestConfigRejectsInvalidInput(t *testing.T) {
+	t.Parallel()
 	for _, input := range []string{
 		``, `null`, `[]`, `{}`, `{"schema":2}`, `{"schema":1,"toolchain":"go1.26.9","features":["rt"],"unknown":true}`,
 		`{"schema":1,"toolchain":"go1.26.9","features":["rt"]} {}`,

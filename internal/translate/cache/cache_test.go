@@ -28,6 +28,7 @@ func mustGet(t *testing.T, db *cache.DB, key string, value string) {
 }
 
 func TestDB(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 
 	file := path.Join(dir, "cache.sqlite3")

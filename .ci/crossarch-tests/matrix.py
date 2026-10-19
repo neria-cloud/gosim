@@ -48,7 +48,7 @@ def source_files(root):
     for current, directories, names in os.walk(root):
         relative = Path(current).relative_to(root)
         directories[:] = [n for n in directories if n not in {".git", ".gosim"}
-                          and not (relative == Path(".") and n == "docs")]
+                          and not (relative == Path(".") and n in {"docs", "test-reports"})]
         for name in names:
             path = Path(current) / name
             rel = path.relative_to(root).as_posix()
@@ -65,7 +65,7 @@ def source_files(root):
 
 def snapshot(destination, expected):
     """Copy identical executable inputs; declare only the copied tuples pending."""
-    shutil.copytree(ROOT, destination, ignore=shutil.ignore_patterns(".git", ".gosim"))
+    shutil.copytree(ROOT, destination, ignore=shutil.ignore_patterns(".git", ".gosim", "test-reports"))
     if source_files(destination) != expected:
         raise RuntimeError("source changed while copying validation workspace")
     metadata = {}
@@ -107,6 +107,13 @@ def memory_limit():
     if sys.platform == "darwin":
         return int(checked(["sysctl", "-n", "hw.memsize"]))
     return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+
+
+def worker_budget(requested_jobs, cpus, memory, count):
+    """Share host capacity between isolated tuples and workers within each tuple."""
+    capacity = min(max(1, cpus // 2), max(1, memory // (4 * 1024**3)), count)
+    jobs = min(requested_jobs or capacity, capacity)
+    return jobs, min(4, max(1, cpus // jobs), max(1, memory // jobs // (2 * 1024**3)))
 
 
 def validate_evidence(directory, job, mode, image):
@@ -176,7 +183,8 @@ def execute(job, run, args, inputs, docker, daemon, images):
     status = directory / "execution.json"
     status.write_text(json.dumps(record, indent=2) + "\n")
     try:
-        common = ["--patch", job["patch"], "--platform", job["platform"], "--features", job["features"]]
+        common = ["--patch", job["patch"], "--platform", job["platform"], "--features", job["features"],
+                  "--concurrency", str(args.worker_concurrency)]
         if job["race"]:
             common += ["--race"]
         if args.native:
@@ -196,7 +204,7 @@ def execute(job, run, args, inputs, docker, daemon, images):
             cache = "gosim-matrix-" + job["platform"].replace("/", "-") + "-" + job["patch"]
             container = checked(docker + ["create", "--platform", job["platform"],
                                           "--mount", f"type=volume,source={cache},target=/cache",
-                                          "-e", "GOMAXPROCS=2", image, *common, "--evidence", "/evidence",
+                                          "-e", "GOMAXPROCS=" + str(args.worker_concurrency), image, *common, "--evidence", "/evidence",
                                           "--mode", mode, "--image", image], log).strip()
             record["container_id"] = container
             failures = []
@@ -238,12 +246,13 @@ def main(argv=None):
     parser.add_argument("--platform", choices=(*PLATFORMS, "all"), required=True)
     parser.add_argument("--toolchains", default=",".join(PATCHES))
     parser.add_argument("--output", default=".gosim/certification")
-    parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument("--jobs", type=int, default=None,
+                        help="maximum concurrent tuples (default: CPU/memory bounded)")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--smoke", action="store_true", help="one ordinary rt tuple per platform; never a full matrix")
     args = parser.parse_args(argv)
     patches = args.toolchains.split(",")
-    if not patches or len(set(patches)) != len(patches) or any(p not in PATCHES for p in patches) or args.jobs < 1:
+    if not patches or len(set(patches)) != len(patches) or any(p not in PATCHES for p in patches) or (args.jobs is not None and args.jobs < 1):
         parser.error("require unique pinned toolchains and a positive job limit")
     platforms = PLATFORMS if args.platform == "all" else (args.platform,)
     jobs = enumerate_jobs(platforms, patches, args.smoke)
@@ -262,16 +271,18 @@ def main(argv=None):
     (run / "source.json").write_text(json.dumps(inputs, sort_keys=True, indent=2) + "\n")
     docker, daemon, images = [], {}, {}
     available_memory = memory_limit()
+    available_cpus = os.cpu_count() or 1
     plan = {"schema": 1, "jobs": jobs, "smoke": args.smoke, "status": "preparing"}
     manifest = run / "matrix.json"
     manifest.write_text(json.dumps(plan, indent=2) + "\n")
     try:
         if not args.native:
             docker = ["docker", "--context", args.context]
-            daemon = json.loads(checked(docker + ["info", "--format", '{"Architecture":{{json .Architecture}},"OSType":{{json .OSType}},"MemTotal":{{json .MemTotal}},"Name":{{json .Name}}}' ], run / "readiness.log"))
+            daemon = json.loads(checked(docker + ["info", "--format", '{"Architecture":{{json .Architecture}},"OSType":{{json .OSType}},"MemTotal":{{json .MemTotal}},"NCPU":{{json .NCPU}},"Name":{{json .Name}}}' ], run / "readiness.log"))
             if daemon["OSType"] != "linux":
                 raise RuntimeError("Docker daemon is not Linux")
             available_memory = int(daemon["MemTotal"])
+            available_cpus = int(daemon["NCPU"])
             source = run / "image-source"
             candidate_metadata = snapshot(source, inputs)
             for job in jobs:
@@ -283,8 +294,9 @@ def main(argv=None):
         plan.update(status="failed", preparation_error=str(error))
         manifest.write_text(json.dumps(plan, indent=2) + "\n")
         raise
-    concurrency = min(args.jobs, max(1, available_memory // (4 * 1024**3)), len(jobs))
+    concurrency, args.worker_concurrency = worker_budget(args.jobs, available_cpus, available_memory, len(jobs))
     plan = {"schema": 1, "jobs": jobs, "concurrency": concurrency, "memory_bytes": available_memory,
+            "worker_concurrency": args.worker_concurrency, "cpus": available_cpus,
             "smoke": args.smoke, "status": "running"}
     manifest = run / "matrix.json"
     manifest.write_text(json.dumps(plan, indent=2) + "\n")

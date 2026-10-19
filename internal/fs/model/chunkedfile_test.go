@@ -11,6 +11,7 @@ import (
 )
 
 func TestMakeChunks(t *testing.T) {
+	t.Parallel()
 	data := make([]byte, chunkSize*8)
 	if _, err := rand.Read(data); err != nil {
 		t.Fatal(err)
@@ -122,6 +123,7 @@ func (c *checker) read(t *testing.T, from, to int) {
 }
 
 func TestFileRead(t *testing.T) {
+	t.Parallel()
 	data := make([]byte, chunkSize*8)
 	if _, err := rand.Read(data); err != nil {
 		t.Fatal(err)
@@ -186,6 +188,7 @@ func (f *checker) free() {
 }
 
 func TestFileWrite(t *testing.T) {
+	t.Parallel()
 	f := newChecker()
 	f.resize(chunkSize * 3)
 	f.read(t, 0, 2*chunkSize)

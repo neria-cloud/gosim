@@ -15,6 +15,7 @@ import (
 )
 
 func TestNativeControls(t *testing.T) {
+	t.Parallel()
 	m := gosim.CurrentMachine()
 	if gosim.IsSim() || m.ID() != 0 || m.RunID() != 0 || !reflect.DeepEqual(rt.Info(), rt.RunInfo{}) {
 		t.Fatal("native run metadata")
@@ -61,6 +62,7 @@ func TestNativeControls(t *testing.T) {
 }
 
 func TestControlDefaults(t *testing.T) {
+	t.Parallel()
 	c := simnet.DefaultConfig()
 	if c.Latency.Min != 0 || c.Latency.Max != 100*time.Millisecond || c.Latency.Lambda != 5 || c.Loss.FailProbability != 0 || c.Loss.RepairProbability != 1 {
 		t.Fatal(c)

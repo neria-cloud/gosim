@@ -10,6 +10,7 @@ import (
 )
 
 func TestTimerHeap(t *testing.T) {
+	t.Parallel()
 	baseTime := time.Date(2010, 5, 1, 10, 3, 1, 100, time.UTC).UnixNano()
 
 	heap := newTimerHeap()
@@ -53,6 +54,7 @@ func TestTimerHeap(t *testing.T) {
 }
 
 func TestCheckTimerHeap(t *testing.T) {
+	t.Parallel()
 	rapid.Check(t, checkTimerHeap)
 }
 

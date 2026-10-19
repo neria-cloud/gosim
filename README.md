@@ -154,7 +154,34 @@ The reviewed [go125](internal/compat/go125/profile/capabilities.json) and [go126
 
 ## Development and certification
 
-For incremental work, run ordinary checks on an exact patch:
+Run ordinary native and simulation checks on the local host with `make test`.
+It uses the pinned Go 1.26.9 toolchain by default and does not start Docker,
+Colima, VMs, cross-architecture jobs, or the full race suite. Independent tests
+run in parallel with two package processes and two parallel tests per package.
+Use `make test UNIT_PACKAGES=2 UNIT_PARALLEL=4` to adjust these limits or
+`make test GOSIM_TOOLCHAIN=go1.25.14` to select the other pinned patch.
+
+Reports are written to `test-reports/unit/<run>/`, with `test-reports/unit/latest/`
+pointing to the latest run. Each run includes `report.md`, a test timeline,
+JSON events, full logs and per-package JUnit XML. `TEST_REPORTS_DIR` selects the
+report directory. Use `make test-race` for the separate local race pass at final
+verification; its reports are under `test-reports/unit-race/`.
+
+`make test-large` opts into the expensive candidate feature sweep, selected
+translation toolchain sweep, and CLI script fixtures. It runs only those suites,
+with their workers launched by the parent tests. They remain skipped in ordinary
+and race runs. Large runs use the same reporting format under
+`test-reports/large/<run>/` and `test-reports/large/latest/`, with the same
+`UNIT_PARALLEL`, `UNIT_PACKAGES`, and `TEST_REPORTS_DIR` settings. No VMs or
+cross-architecture jobs are started.
+
+Local reports describe the isolated source snapshot taken at startup. Edits to
+the working checkout during a run are listed in the command log and verification
+record; they do not invalidate results for that snapshot. Changes inside the
+tested copy still fail verification. The standalone verification entry below
+also rejects changes to the working checkout.
+
+The underlying verification entry also accepts an exact patch:
 
 ```sh
 GOSIM_TOOLCHAIN=go1.25.14 ./.ci/verify-step.sh --ordinary
@@ -165,7 +192,7 @@ GOSIM_TOOLCHAIN=go1.26.9 ./.ci/verify-step.sh --ordinary
 
 On an already pending checkout, focused simulation checks can use the matching CLI's `internal-candidate test` command. Those builds are visibly candidate output. The internal `certify` command runs one tuple and records its suites; it never promotes support automatically.
 
-The final matrix runner verifies observed architectures, pins Docker image digests, retains logs and artifacts, and caps concurrency by available memory:
+The final matrix runner verifies observed architectures, pins Docker image digests, retains logs and artifacts, and shares the available CPU and memory budget between concurrent tuples and their test workers. `--jobs` caps the tuple count:
 
 ```sh
 ./.ci/crossarch-tests/run-matrix.sh --platform all --dry-run

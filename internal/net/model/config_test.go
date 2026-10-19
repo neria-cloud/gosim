@@ -33,6 +33,7 @@ func localRequest(kind ControlKind) ControlRequest {
 }
 
 func TestConfigDefaultsValidation(t *testing.T) {
+	t.Parallel()
 	want := Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}}
 	if DefaultConfig() != want {
 		t.Fatal(DefaultConfig())
@@ -84,6 +85,7 @@ func TestConfigDefaultsValidation(t *testing.T) {
 }
 
 func TestConfigSnapshotsAndAtomicity(t *testing.T) {
+	t.Parallel()
 	n := testNetwork(t, &scriptedRandom{})
 	key := edgeKey(testPair)
 	if n.config != DefaultConfig() {
@@ -158,6 +160,7 @@ func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 }
 
 func TestConfigIndependentGroupInheritance(t *testing.T) {
+	t.Parallel()
 	n := testNetwork(t, &scriptedRandom{})
 	r := localRequest(SetPairCurve)
 	r.Lambda = 3

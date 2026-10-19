@@ -56,4 +56,4 @@ tasks:
 
   test:
     cmds:
-      - ./test.sh --concurrency 1
+      - ./test.sh

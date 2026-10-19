@@ -5,6 +5,7 @@ package synctest
 import "testing"
 
 func TestUnbubbledProbes(t *testing.T) {
+	t.Parallel()
 	value := 0
 	if IsInBubble() || Associate(&value) != Unbubbled || IsAssociated(&value) || Acquire() != nil {
 		t.Fatal("invented bubble association")
@@ -19,6 +20,7 @@ func TestUnbubbledProbes(t *testing.T) {
 }
 
 func TestBubbleOperationsReject(t *testing.T) {
+	t.Parallel()
 	for name, f := range map[string]func(){"Run": func() { Run(func() { t.Error("unsupported bubble executed callback") }) }, "Wait": Wait, "non-nil": func() { (&Bubble{}).Run(func() { t.Error("forged bubble") }) }} {
 		t.Run(name, func(t *testing.T) {
 			defer func() {

@@ -22,6 +22,7 @@ func fixtureIdentity() buildspec.Identity {
 }
 
 func TestCanonicalIdentityOwnsOrderedInputs(t *testing.T) {
+	t.Parallel()
 	id := fixtureIdentity()
 	want, err := Digest(id)
 	if err != nil {
@@ -41,6 +42,7 @@ func TestCanonicalIdentityOwnsOrderedInputs(t *testing.T) {
 }
 
 func TestEveryIdentityDimensionChangesDigest(t *testing.T) {
+	t.Parallel()
 	base := fixtureIdentity()
 	original, err := Digest(base)
 	if err != nil {
@@ -85,6 +87,7 @@ func TestEveryIdentityDimensionChangesDigest(t *testing.T) {
 }
 
 func TestIdentityRejectsInvalidMetadata(t *testing.T) {
+	t.Parallel()
 	for _, mutate := range []func(*buildspec.Identity){
 		func(id *buildspec.Identity) { id.Features = []string{"rt", "rt"} },
 		func(id *buildspec.Identity) { id.ProviderRevisions = nil },
@@ -104,6 +107,7 @@ func TestIdentityRejectsInvalidMetadata(t *testing.T) {
 }
 
 func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	write := func(name, data string) {
 		t.Helper()

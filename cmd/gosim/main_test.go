@@ -7,6 +7,7 @@ import (
 )
 
 func TestGroup(t *testing.T) {
+	t.Parallel()
 	grouped := batchPackagesWithDifferentNames([]string{
 		"hello",
 		"github.com/bar",

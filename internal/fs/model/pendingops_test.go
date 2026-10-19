@@ -7,6 +7,7 @@ import (
 )
 
 func TestPendingOps(t *testing.T) {
+	t.Parallel()
 	type testStep struct {
 		flushDeps []int // flush these deps
 		flushOps  []int // expect these ops

@@ -12,6 +12,7 @@ import (
 )
 
 func TestCommandCertificationParity(t *testing.T) {
+	t.Parallel()
 	config := buildspec.Config{Schema: 1, Toolchain: runtime.Version(), Features: []string{"rt"}, SimulationOS: "linux"}
 	data, _ := json.Marshal(config)
 	path := filepath.Join(t.TempDir(), "gosim.json")

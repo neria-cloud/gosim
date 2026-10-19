@@ -70,6 +70,12 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 4. No unchecked new error, import cycle, ignored failed suite, leaked metatest process, or stale generated output. A new gate cannot silently skip because prebuilt artifacts are missing. Record unresolved infrastructure blockers as gaps and do not mark dependent work done.
 5. Review `git diff --check` and rename-aware changed-line count; commit only the task's files. Keep this plan's checkboxes and execution log current. Final source must contain no temporary migration/retirement mechanism.
 
+## User-requested test disablement and pause
+
+The user paused the implementation goal and explicitly disabled `TestCandidateWorker`, `TestSelectedTranslation` / `TestSelectedTranslationWorker`, and the complete `TestScript` group. Their bodies and fixtures remain in place behind unconditional, explained `t.Skip` calls. `TestCandidate` is also skipped so its launcher cannot start the disabled worker. This instruction overrides the earlier requirements to execute these groups; do not silently re-enable them when resuming.
+
+The previous-source matrix finished all 48 jobs successfully before disablement. These test-source edits change the executable-input fingerprint, so those reports are retained as historical evidence and are not promoted for the edited checkout. Tasks 32–33 remain incomplete and the goal remains paused. This bounded disablement is checked only by confirming the named tests skip on both exact patches; no full suite or matrix restart is authorized by this request.
+
 ## Task list
 
 ### Task 1: Establish build specification, profile metadata and configuration contracts

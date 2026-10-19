@@ -60,6 +60,7 @@ func TestCommandRejectsUnapprovedEnvironment(t *testing.T) {
 }
 
 func TestWorkerMismatchGivesRebuildCommand(t *testing.T) {
+	t.Parallel()
 	tc := buildspec.Toolchain{Version: "go1.25.14", HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
 	if runtime.Version() == tc.Version {
 		tc.Version = "go1.26.9"
@@ -74,6 +75,7 @@ func TestWorkerMismatchGivesRebuildCommand(t *testing.T) {
 }
 
 func TestPinnedDistributionScope(t *testing.T) {
+	t.Parallel()
 	for _, version := range []string{"go1.25.14", "go1.26.9"} {
 		for _, host := range [][2]string{{"linux", "amd64"}, {"linux", "arm64"}, {"darwin", "arm64"}} {
 			r, err := distributionRecord(version, host[0], host[1])
@@ -91,6 +93,7 @@ func TestPinnedDistributionScope(t *testing.T) {
 }
 
 func TestCommandRejectsUnapprovedFlags(t *testing.T) {
+	t.Parallel()
 	tc := buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
 	for _, flags := range [][]string{
 		{"-tags=go1.27"},

@@ -18,6 +18,10 @@ import (
 )
 
 func TestSelectedTranslation(t *testing.T) {
+	if os.Getenv("GOSIM_TEST_LARGE") != "1" {
+		t.Skip("run with make test-large")
+	}
+
 	root, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)
@@ -43,6 +47,10 @@ func TestSelectedTranslation(t *testing.T) {
 }
 
 func TestSelectedTranslationWorker(t *testing.T) {
+	if os.Getenv("GOSIM_TEST_LARGE") != "1" {
+		t.Skip("run with make test-large")
+	}
+
 	if os.Getenv("GOSIM_TRANSLATION_WORKER") != "1" {
 		return
 	}

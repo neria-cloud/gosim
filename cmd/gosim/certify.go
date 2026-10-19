@@ -6,11 +6,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildrun"
@@ -25,23 +28,35 @@ type (
 	SuiteResult         = buildspec.SuiteResult
 )
 
+type suiteOptions struct {
+	concurrency int
+	parallel    int
+	packages    int
+	json        bool
+}
+
 func runCertificationCommand(command string, args []string) {
 	f := flag.NewFlagSet("internal-candidate "+command, flag.ExitOnError)
 	flags := addBuildFlags(f)
 	options := MatrixOptions{}
+	suite := suiteOptions{}
+	f.IntVar(&suite.concurrency, "concurrency", min(4, runtime.GOMAXPROCS(0)), "maximum concurrent test workers")
+	f.IntVar(&suite.parallel, "test-parallel", 0, "parallel native tests per package (zero divides the worker budget)")
+	f.IntVar(&suite.packages, "test-packages", 0, "parallel native packages (zero divides the worker budget)")
+	f.BoolVar(&suite.json, "json", false, "stream Go JSON events for persistent test reports")
 	f.StringVar(&options.OutputDir, "output", ".gosim/certification", "evidence output directory")
 	f.StringVar(&options.ExecutionMode, "execution-mode", "native", "native|container-native|container-emulated")
 	f.StringVar(&options.ContainerImageDigest, "image-digest", "", "resolved container image sha256 digest")
 	f.Parse(args)
-	if f.NArg() != 0 {
-		fmt.Fprintln(os.Stderr, "unexpected certification arguments")
+	if f.NArg() != 0 || suite.concurrency < 1 || suite.parallel < 0 || suite.packages < 0 {
+		fmt.Fprintln(os.Stderr, "require no positional arguments and positive -concurrency")
 		os.Exit(2)
 	}
 	var err error
 	if command == "verify" {
-		err = verifyStep(*flags, options.OutputDir)
+		err = verifyStep(*flags, options.OutputDir, suite)
 	} else {
-		_, err = certify(*flags, options)
+		_, err = certify(*flags, options, suite)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -51,7 +66,7 @@ func runCertificationCommand(command string, args []string) {
 
 // certify records one declared pending tuple. Reports stay candidate and never
 // edit reviewed profile metadata. Package applicability comes from one registry.
-func certify(flags BuildFlags, options MatrixOptions) (report CertificationReport, err error) {
+func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (report CertificationReport, err error) {
 	resolved, err := resolveBuild("internal-candidate", flags)
 	if err != nil {
 		return report, err
@@ -84,7 +99,7 @@ func certify(flags BuildFlags, options MatrixOptions) (report CertificationRepor
 		}
 		err = errors.Join(err, marshalErr)
 	}()
-	report.Suites, err = runFullSuite(cfg, dir)
+	report.Suites, err = runFullSuite(cfg, dir, suite)
 	if err != nil {
 		return report, err
 	}
@@ -94,7 +109,7 @@ func certify(flags BuildFlags, options MatrixOptions) (report CertificationRepor
 
 // verifyStep and certify share the full suite runner; neither recurses through
 // the shell entry point or claims compatibility promotion.
-func verifyStep(flags BuildFlags, output string) error {
+func verifyStep(flags BuildFlags, output string, suite suiteOptions) error {
 	if err := exec.Command("./.ci/gofmt", "check").Run(); err != nil {
 		return err
 	}
@@ -115,14 +130,14 @@ func verifyStep(flags BuildFlags, output string) error {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
-		if _, err := runFullSuite(cfg, dir); err != nil {
+		if _, err := runFullSuite(cfg, dir, suite); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func runFullSuite(cfg gosimtool.BuildConfig, dir string) (results []SuiteResult, err error) {
+func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (results []SuiteResult, err error) {
 	if err := prepareSelftest(cfg); err != nil {
 		return results, err
 	}
@@ -150,26 +165,43 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string) (results []SuiteResult,
 	if buildErr != nil {
 		return results, buildErr
 	}
-	var execution bytes.Buffer
+	var commands []*exec.Cmd
+	var converters []*exec.Cmd
 	for _, artifact := range built.Artifacts {
 		if strings.Contains(artifact.Manifest.PackageDigests[0].Path, "/internal_/tests/race/testdata") {
 			continue
 		} // intentionally racy oracle is checked by native harness
-		cmd := exec.Command(filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path), "-test.v")
-		output, runErr := cmd.CombinedOutput()
-		execution.Write(output)
-		if runErr != nil {
-			err = errors.Join(err, runErr)
+		binary := filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path)
+		cmd := exec.Command(binary, "-test.v")
+		var converter *exec.Cmd
+		if suite.json {
+			pkg := strings.TrimPrefix(artifact.Manifest.PackageDigests[0].Path, "translated/"+gosimtool.Module+"/")
+			pkg = strings.ReplaceAll(pkg, "internal_", "internal")
+			converter = buildcfg.Command(cfg.Toolchain, "", "tool", "test2json", "-t", "-p", gosimtool.Module+"/simulation/"+pkg)
 		}
+		commands = append(commands, cmd)
+		converters = append(converters, converter)
 	}
-	if writeErr := os.WriteFile(filepath.Join(dir, "execute.log"), execution.Bytes(), 0o644); writeErr != nil {
+	var stream io.Writer
+	if suite.json {
+		stream = os.Stdout
+	}
+	var outputLock sync.Mutex
+	execution, err := runTestJobs(len(commands), suite.concurrency, func(i int) ([]byte, error) {
+		if converters[i] != nil {
+			return captureSimulationCommand(commands[i], converters[i], &outputLock, stream)
+		}
+		return captureCommand(commands[i], &outputLock, stream)
+	})
+	if writeErr := os.WriteFile(filepath.Join(dir, "execute.log"), execution, 0o644); writeErr != nil {
 		return results, writeErr
 	}
-	results = append(results, SuiteResult{Name: "execute", Passed: err == nil, LogDigest: buildspec.Hash(execution.Bytes())})
+	results = append(results, SuiteResult{Name: "execute", Passed: err == nil, LogDigest: buildspec.Hash(execution)})
 	if err != nil {
 		return results, err
 	}
 	args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "-timeout=30m", "-count=1"}
+	args = append(args, suite.nativeFlags()...)
 	if full {
 		args = append(args, "./...")
 	} else {
@@ -202,7 +234,7 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string) (results []SuiteResult,
 		return results, err
 	}
 	cmd.Env = append(cmd.Env, "GOSIM_CONFIG="+configPath, "GOSIMTOOL="+worker)
-	result, err := runLogged(cmd, dir, "native")
+	result, err := runLogged(cmd, dir, "native", stream)
 	results = append(results, result)
 	if err != nil || full {
 		return results, err
@@ -212,13 +244,14 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string) (results []SuiteResult,
 		return results, err
 	}
 	args = []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "-timeout=30m", "-count=1"}
+	args = append(args, suite.nativeFlags()...)
 	if cfg.Identity.Race {
 		args = append(args, "-race")
 	}
 	args = append(args, units...)
 	unitCommand := buildcfg.Command(cfg.Toolchain, "", args...)
 	unitCommand.Env = cmd.Env
-	result, err = runLogged(unitCommand, dir, "native-units")
+	result, err = runLogged(unitCommand, dir, "native-units", stream)
 	results = append(results, result)
 	if err != nil {
 		return results, err
@@ -226,18 +259,61 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string) (results []SuiteResult,
 	// Full native testing includes all candidate workers. Reduced certification
 	// also executes its isolated negative, replay and generated-graph checks.
 	args = []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "-timeout=25m", "./internal/candidate", "-run=^TestCandidateWorker$/^" + strings.Join(cfg.Identity.Features, ",") + "$", "-count=1", "-v"}
+	args = append(args, suite.nativeFlags()...)
 	if cfg.Identity.Race {
 		args = append(args, "-race")
 	}
 	cmd = buildcfg.Command(cfg.Toolchain, "", args...)
 	cmd.Env = append(cmd.Env, "GOSIM_CANDIDATE_WORKER=1")
-	result, err = runLogged(cmd, dir, "boundaries")
+	result, err = runLogged(cmd, dir, "boundaries", stream)
 	results = append(results, result)
 	return results, err
 }
 
-func runLogged(cmd *exec.Cmd, dir, name string) (SuiteResult, error) {
-	output, err := cmd.CombinedOutput()
+// Divide one budget between package processes and parallel tests in each
+// process, rather than allowing both levels to multiply the worker count.
+func nativeTestParallelFlags(concurrency int) []string {
+	packages := max(1, concurrency/2)
+	return []string{"-p=" + strconv.Itoa(packages), "-parallel=" + strconv.Itoa(max(1, concurrency/packages))}
+}
+
+// Simulation engines cannot share a process. Run independent binaries with a
+// bounded pool and merge their logs in input order, regardless of finish order.
+func runTestCommands(commands []*exec.Cmd, concurrency int, stream ...io.Writer) ([]byte, error) {
+	var outputLock sync.Mutex
+	return runTestJobs(len(commands), concurrency, func(i int) ([]byte, error) {
+		return captureCommand(commands[i], &outputLock, stream...)
+	})
+}
+
+func runTestJobs(count, concurrency int, run func(int) ([]byte, error)) ([]byte, error) {
+	if concurrency < 1 {
+		return nil, fmt.Errorf("test concurrency must be positive")
+	}
+	outputs := make([][]byte, count)
+	errs := make([]error, count)
+	jobs := make(chan int)
+	var wg sync.WaitGroup
+	for range min(concurrency, count) {
+		wg.Go(func() {
+			for i := range jobs {
+				outputs[i], errs[i] = run(i)
+				if errs[i] != nil {
+					errs[i] = fmt.Errorf("test worker %d: %w", i, errs[i])
+				}
+			}
+		})
+	}
+	for i := range count {
+		jobs <- i
+	}
+	close(jobs)
+	wg.Wait()
+	return bytes.Join(outputs, nil), errors.Join(errs...)
+}
+
+func runLogged(cmd *exec.Cmd, dir, name string, stream ...io.Writer) (SuiteResult, error) {
+	output, err := captureCommand(cmd, new(sync.Mutex), stream...)
 	// Preserve stdout/stderr even on failure; a failed report remains incomplete.
 	if writeErr := os.WriteFile(filepath.Join(dir, name+".log"), output, 0o644); writeErr != nil {
 		return SuiteResult{}, errors.Join(err, writeErr)
@@ -265,4 +341,62 @@ func candidateWrapper() (string, error) {
 		return "", err
 	}
 	return destination, nil
+}
+
+// Each command buffers partial lines before taking the shared output lock.
+// Parallel test2json processes must never interleave bytes in a JSON event.
+type eventWriter struct {
+	pending []byte
+	mu      *sync.Mutex
+	out     io.Writer
+}
+
+func (w *eventWriter) Write(p []byte) (int, error) {
+	w.pending = append(w.pending, p...)
+	for {
+		end := bytes.IndexByte(w.pending, '\n')
+		if end < 0 {
+			break
+		}
+		w.mu.Lock()
+		_, err := w.out.Write(w.pending[:end+1])
+		w.mu.Unlock()
+		if err != nil {
+			return 0, err
+		}
+		w.pending = w.pending[end+1:]
+	}
+	return len(p), nil
+}
+
+func captureCommand(cmd *exec.Cmd, mu *sync.Mutex, stream ...io.Writer) ([]byte, error) {
+	if len(stream) == 0 || stream[0] == nil {
+		return cmd.CombinedOutput()
+	}
+	var output bytes.Buffer
+	events := &eventWriter{mu: mu, out: stream[0]}
+	cmd.Stdout = io.MultiWriter(&output, events)
+	cmd.Stderr = cmd.Stdout
+	err := cmd.Run()
+	if len(events.pending) > 0 {
+		mu.Lock()
+		_, writeErr := events.out.Write(events.pending)
+		mu.Unlock()
+		err = errors.Join(err, writeErr)
+	}
+	return output.Bytes(), err
+}
+
+func (s suiteOptions) nativeFlags() []string {
+	flags := nativeTestParallelFlags(s.concurrency)
+	if s.packages > 0 {
+		flags[0] = "-p=" + strconv.Itoa(s.packages)
+	}
+	if s.parallel > 0 {
+		flags[1] = "-parallel=" + strconv.Itoa(s.parallel)
+	}
+	if s.json {
+		flags = append(flags, "-json")
+	}
+	return flags
 }

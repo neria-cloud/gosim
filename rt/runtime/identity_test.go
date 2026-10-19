@@ -7,6 +7,7 @@ import (
 )
 
 func TestProcessRunIDExhaustion(t *testing.T) {
+	t.Parallel()
 	var counter atomic.Uint64
 	counter.Store(math.MaxUint64 - 1)
 	if id, err := reserveRunID(&counter); err != nil || id != math.MaxUint64 {

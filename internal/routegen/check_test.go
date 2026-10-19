@@ -11,6 +11,7 @@ import (
 )
 
 func TestCheckProfileDoesNotRepairStaleFiles(t *testing.T) {
+	t.Parallel()
 	tc, err := buildcfg.Resolve("go1.26.9")
 	if err != nil {
 		t.Fatal(err)

@@ -8,6 +8,7 @@ import (
 )
 
 func TestCopyPublishesFreshInodeAndPreservesOnFailure(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	src, dst := filepath.Join(dir, "source"), filepath.Join(dir, "worker")
 	if err := os.WriteFile(src, []byte("new executable"), 0o600); err != nil {

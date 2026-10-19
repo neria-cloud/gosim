@@ -16,6 +16,7 @@ import (
 )
 
 func TestAdapterSourceAndLayoutDrift(t *testing.T) {
+	t.Parallel()
 	tc, err := buildcfg.Resolve("go1.25.14")
 	if err != nil {
 		t.Fatal(err)
@@ -73,6 +74,7 @@ func TestAdapterSourceAndLayoutDrift(t *testing.T) {
 }
 
 func TestAdapterInventoryAndProviderBoundary(t *testing.T) {
+	t.Parallel()
 	classified := map[string]bool{}
 	for _, pkg := range []string{"syscall", "golang.org/x/sys/unix"} {
 		for _, symbol := range adapterSymbols(pkg) {
@@ -123,6 +125,7 @@ func TestAdapterInventoryAndProviderBoundary(t *testing.T) {
 }
 
 func TestArchitectureRouteParity(t *testing.T) {
+	t.Parallel()
 	tc, err := buildcfg.Resolve("go1.25.14")
 	if err != nil {
 		t.Fatal(err)

@@ -8,6 +8,7 @@ import (
 )
 
 func TestOpenResolvedDirectory(t *testing.T) {
+	t.Parallel()
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
 	app, err := fs.Getdirinode(RootInode, "/app")

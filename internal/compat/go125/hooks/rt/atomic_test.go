@@ -5,6 +5,7 @@ package rt
 import "testing"
 
 func TestAtomicInt32(t *testing.T) {
+	t.Parallel()
 	value := int32(12)
 	if old := SyncAtomic_AndInt32(&value, 10); old != 12 || value != 8 {
 		t.Fatalf("And old=%d value=%d", old, value)
@@ -28,6 +29,7 @@ func TestAtomicInt32(t *testing.T) {
 }
 
 func TestAtomicInt64(t *testing.T) {
+	t.Parallel()
 	value := int64(12)
 	if old := SyncAtomic_AndInt64(&value, 10); old != 12 || value != 8 {
 		t.Fatalf("And old=%d value=%d", old, value)
@@ -51,6 +53,7 @@ func TestAtomicInt64(t *testing.T) {
 }
 
 func TestAtomicUint32(t *testing.T) {
+	t.Parallel()
 	value := uint32(12)
 	if old := SyncAtomic_AndUint32(&value, 10); old != 12 || value != 8 {
 		t.Fatalf("And old=%d value=%d", old, value)
@@ -74,6 +77,7 @@ func TestAtomicUint32(t *testing.T) {
 }
 
 func TestAtomicUint64(t *testing.T) {
+	t.Parallel()
 	value := uint64(12)
 	if old := SyncAtomic_AndUint64(&value, 10); old != 12 || value != 8 {
 		t.Fatalf("And old=%d value=%d", old, value)
@@ -97,6 +101,7 @@ func TestAtomicUint64(t *testing.T) {
 }
 
 func TestAtomicUintptr(t *testing.T) {
+	t.Parallel()
 	value := uintptr(12)
 	if old := SyncAtomic_AndUintptr(&value, 10); old != 12 || value != 8 {
 		t.Fatalf("And old=%d value=%d", old, value)

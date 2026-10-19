@@ -123,6 +123,7 @@ func TestMapAndRandomHooks(t *testing.T) {
 }
 
 func TestHooksDoNotImportPrivateNativeFacade(t *testing.T) {
+	t.Parallel()
 	// Generated hook packages live in another module. Only the public native
 	// runtime and ABI are legal native dependencies across that boundary.
 	paths, err := filepath.Glob("*.go")

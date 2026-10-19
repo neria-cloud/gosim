@@ -29,6 +29,7 @@ func sendTestPacket(n *Network, pair HostPair) *Packet {
 }
 
 func TestNetworkPartitionAdmissionAndOrdering(t *testing.T) {
+	t.Parallel()
 	rng := &scriptedRandom{exponentials: []float64{1, 0, 1, 0}}
 	n := testNetwork(t, rng)
 	attachTestEndpoints(n, testPair.SourceHost, testPair.DestHost)
@@ -102,6 +103,7 @@ func TestNetworkPartitionAdmissionAndOrdering(t *testing.T) {
 }
 
 func TestNetworkFiveHostIsolation(t *testing.T) {
+	t.Parallel()
 	rng := &scriptedRandom{}
 	n := testNetwork(t, rng)
 	hosts := make([]netip.Addr, 5)
@@ -173,6 +175,7 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 }
 
 func TestNetworkDirectedConnectivity(t *testing.T) {
+	t.Parallel()
 	for _, reverse := range []bool{false, true} {
 		rng := &scriptedRandom{exponentials: []float64{0, 0}}
 		n := testNetwork(t, rng)
@@ -227,6 +230,7 @@ func TestNetworkDirectedConnectivity(t *testing.T) {
 }
 
 func TestNetworkDropsWithoutSampling(t *testing.T) {
+	t.Parallel()
 	rng := &scriptedRandom{}
 	n := testNetwork(t, rng)
 	attachTestEndpoints(n, testPair.SourceHost)
@@ -251,6 +255,7 @@ func TestNetworkDropsWithoutSampling(t *testing.T) {
 }
 
 func TestNetworkCounterExhaustion(t *testing.T) {
+	t.Parallel()
 	for _, which := range []string{"generation", "sequence"} {
 		t.Run(which, func(t *testing.T) {
 			n := testNetwork(t, &scriptedRandom{exponentials: []float64{0}})
@@ -272,6 +277,7 @@ func TestNetworkCounterExhaustion(t *testing.T) {
 }
 
 func TestNetworkSampledOrderAcrossGlobalUpdates(t *testing.T) {
+	t.Parallel()
 	rng := &scriptedRandom{exponentials: []float64{100, 0, 0}}
 	n := testNetwork(t, rng)
 	attachTestEndpoints(n, testPair.SourceHost, testPair.DestHost)
@@ -291,6 +297,7 @@ func TestNetworkSampledOrderAcrossGlobalUpdates(t *testing.T) {
 }
 
 func TestNetworkSelfPair(t *testing.T) {
+	t.Parallel()
 	rng := &scriptedRandom{exponentials: []float64{0}}
 	n := testNetwork(t, rng)
 	addr := testPair.SourceHost
@@ -310,6 +317,7 @@ func TestNetworkSelfPair(t *testing.T) {
 
 // Also run under gosim with -simtrace=network to exercise enabled formatting.
 func TestTraceDoesNotSample(t *testing.T) {
+	t.Parallel()
 	rng := &scriptedRandom{}
 	n := testNetwork(t, rng)
 	r := localRequest(SetPairCurve)

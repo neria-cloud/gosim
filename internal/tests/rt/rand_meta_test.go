@@ -11,6 +11,7 @@ import (
 )
 
 func TestMetaRandDifferentBySeed(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 	tests, err := mt.ListTests()
 	if err != nil {
@@ -42,6 +43,7 @@ func TestMetaRandDifferentBySeed(t *testing.T) {
 }
 
 func TestMetaRandDeterministic(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 	tests, err := mt.ListTests()
 	if err != nil {

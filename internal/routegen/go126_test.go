@@ -12,6 +12,7 @@ import (
 )
 
 func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
+	t.Parallel()
 	tc, err := buildcfg.Resolve("go1.26.9")
 	if err != nil {
 		t.Fatal(err)
@@ -115,6 +116,7 @@ func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
 // Listener capability probes are handwritten adapters, not generated syscall
 // wrappers. Check their first-operation gate alongside the generated wrappers.
 func TestListenerProbeGate(t *testing.T) {
+	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		data, err := os.ReadFile(filepath.Join("../../internal/compat", family, "hooks/net/listen.go"))
 		if err != nil {

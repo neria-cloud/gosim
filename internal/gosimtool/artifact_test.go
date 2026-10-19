@@ -39,6 +39,7 @@ func fixtureBuild(directory string, id buildspec.Identity, packages []PackageDig
 }
 
 func TestArtifactCanonicalIdentityAndPackageSeparation(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	id := artifactIdentity()
 	packages := append(artifactPackages("z"), artifactPackages("a")...)
@@ -100,6 +101,7 @@ func TestArtifactCanonicalIdentityAndPackageSeparation(t *testing.T) {
 }
 
 func TestArtifactContentChecksAndFailedReplacement(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	id := artifactIdentity()
 	packages := artifactPackages("sample")
@@ -162,6 +164,7 @@ func TestArtifactContentChecksAndFailedReplacement(t *testing.T) {
 }
 
 func TestArtifactBuilderMustMatchManifest(t *testing.T) {
+	t.Parallel()
 	id := artifactIdentity()
 	packages := artifactPackages("sample")
 	for name, mutate := range map[string]func(string, *Manifest){
@@ -203,6 +206,7 @@ func TestArtifactBuilderMustMatchManifest(t *testing.T) {
 }
 
 func TestArtifactPathTraversalAndSymlinks(t *testing.T) {
+	t.Parallel()
 	for _, name := range []string{"", ".", "..", "../outside", "/outside", "a/../outside", "a//b", "./a", "C:/outside", "a\\b", "a\x00b", "manifest.json", "manifest.json/a"} {
 		t.Run(fmt.Sprintf("%q", name), func(t *testing.T) {
 			dir := t.TempDir()
@@ -264,6 +268,7 @@ func TestArtifactPathTraversalAndSymlinks(t *testing.T) {
 }
 
 func TestArtifactConcurrentBuilds(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	id := artifactIdentity()
 	packages := artifactPackages("same")
@@ -344,6 +349,7 @@ func TestArtifactProcessHelper(t *testing.T) {
 }
 
 func TestArtifactLockAcrossProcesses(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	var commands []*exec.Cmd
 	var outputs []*bytes.Buffer
@@ -371,6 +377,7 @@ func TestArtifactLockAcrossProcesses(t *testing.T) {
 }
 
 func TestArtifactManifestRejectsUnknownAndTrailingData(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	id := artifactIdentity()
 	packages := artifactPackages("schema")
@@ -391,6 +398,7 @@ func TestArtifactManifestRejectsUnknownAndTrailingData(t *testing.T) {
 }
 
 func TestArtifactNamespaceAndLockRejectSymlinks(t *testing.T) {
+	t.Parallel()
 	id := artifactIdentity()
 	packages := artifactPackages("symlink")
 	root, outside := t.TempDir(), t.TempDir()

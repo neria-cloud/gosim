@@ -1,6 +1,9 @@
 package gosimruntime
 
 import (
+	"context"
+	"os"
+	"os/exec"
 	"runtime"
 	"sync/atomic"
 	"testing"
@@ -29,6 +32,7 @@ func expectNumGoroutines(t *testing.T, situation string) {
 		if time.Since(start) >= 1*time.Second {
 			t.Errorf("too many goroutines at %s, expected %d", situation, baseNumGoroutines)
 			t.Log(dump())
+			return
 		}
 		time.Sleep(1 * time.Millisecond)
 	}
@@ -36,6 +40,23 @@ func expectNumGoroutines(t *testing.T, situation string) {
 
 // TODO: Rewrite to use another API? Could add a call to dump goroutines to metatesting...?
 func TestCleanupGoroutines(t *testing.T) {
+	// Count only this test's goroutines: t.Parallel leaves other test goroutines
+	// parked in the parent process even while a serial test is running.
+	if os.Getenv("GOSIM_CLEANUP_TEST_CHILD") != "1" {
+		t.Parallel()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		executable, err := os.Executable()
+		if err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.CommandContext(ctx, executable, "-test.run=^TestCleanupGoroutines$")
+		cmd.Env = append(os.Environ(), "GOSIM_CLEANUP_TEST_CHILD=1")
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("isolated cleanup check: %v\n%s", err, output)
+		}
+		return
+	}
 	expectNumGoroutines(t, "start")
 
 	var hit atomic.Int32

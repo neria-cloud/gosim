@@ -41,6 +41,7 @@ func must(t *testing.T, err error) {
 }
 
 func TestEnumerationBudgetAndLookahead(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	crashWithPending(t, s)
 	if _, err := s.Enumerate(ref1, 0); !errors.Is(err, contracts.ErrInvalidConfig) {
@@ -76,6 +77,7 @@ func TestEnumerationBudgetAndLookahead(t *testing.T) {
 }
 
 func TestExactBudgetIsExhaustion(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	i := start(t, s, ref1, 1, false)
 	stop(t, i, contracts.StopCrash)
@@ -91,6 +93,7 @@ func TestExactBudgetIsExhaustion(t *testing.T) {
 }
 
 func TestReturnedSnapshotsSurviveDestroyAndOtherRestores(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	crashWithPending(t, s)
 	id := enumerate(t, s, ref1, 100)
@@ -131,6 +134,7 @@ func TestReturnedSnapshotsSurviveDestroyAndOtherRestores(t *testing.T) {
 }
 
 func TestRestoreAtomicAndRetainedAcrossFailedPrepare(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	crashWithPending(t, s)
 	id := enumerate(t, s, ref1, 100)
@@ -159,6 +163,7 @@ func TestRestoreAtomicAndRetainedAcrossFailedPrepare(t *testing.T) {
 }
 
 func TestRecoveryIDsAndSessionCleanup(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	crashWithPending(t, s)
 	id := enumerate(t, s, ref1, 1)
@@ -201,6 +206,7 @@ func TestRecoveryIDsAndSessionCleanup(t *testing.T) {
 }
 
 func TestNextSnapshotAllocationFailureDoesNotAdvance(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	crashWithPending(t, s)
 	id := enumerate(t, s, ref1, 100)
@@ -219,6 +225,7 @@ func TestNextSnapshotAllocationFailureDoesNotAdvance(t *testing.T) {
 }
 
 func TestSessionCloseReleasesStagedAndActiveModels(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	staged := prepare(t, s, ref1, 1, false)
 	active := start(t, s, contracts.MachineRef{RunID: 1, ID: 2}, 1, false)
@@ -230,6 +237,7 @@ func TestSessionCloseReleasesStagedAndActiveModels(t *testing.T) {
 }
 
 func TestFailedRestartKeepsCrashImageAndIterators(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	crashWithPending(t, s)
 	id := enumerate(t, s, ref1, 100)
@@ -265,6 +273,7 @@ func TestFailedRestartKeepsCrashImageAndIterators(t *testing.T) {
 }
 
 func TestPrepareMissingRestoredWorkingDirectoryIsAtomic(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	target := contracts.MachineRef{RunID: 1, ID: 2}
 	must(t, s.ConfigureMachine(target, contracts.FSConfig{WorkingDir: "/etc"}))

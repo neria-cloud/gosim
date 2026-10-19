@@ -6,6 +6,7 @@ import (
 )
 
 func TestEmbedPatternsAndSelection(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		text string
 		want []string

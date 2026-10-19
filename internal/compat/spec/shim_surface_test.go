@@ -12,6 +12,7 @@ import (
 )
 
 func TestPinnedPublicShimInterfaces(t *testing.T) {
+	t.Parallel()
 	family := ""
 	switch runtime.Version() {
 	case "go1.25.14":

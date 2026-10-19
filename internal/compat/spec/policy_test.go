@@ -15,6 +15,7 @@ import (
 )
 
 func TestFamiliesPackagePolicies(t *testing.T) {
+	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
 			p, m := p125.Descriptor(), p125.PolicyManifest()
@@ -60,6 +61,7 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 }
 
 func TestFamiliesNativeBridges(t *testing.T) {
+	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
 			p, m := p125.Descriptor(), p125.PolicyManifest()
@@ -108,6 +110,7 @@ func TestFamiliesNativeBridges(t *testing.T) {
 }
 
 func TestMinimalImportInitClassification(t *testing.T) {
+	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
 			m := p125.PolicyManifest()
@@ -164,6 +167,7 @@ func TestMinimalImportInitClassification(t *testing.T) {
 }
 
 func TestPolicyFixtures(t *testing.T) {
+	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
 			p, m := p125.Descriptor(), p125.PolicyManifest()
@@ -237,6 +241,7 @@ func TestPolicyFixtures(t *testing.T) {
 }
 
 func TestOwnedNativeImportAudit(t *testing.T) {
+	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
 			p, m := p125.Descriptor(), p125.PolicyManifest()
@@ -289,6 +294,7 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 }
 
 func TestPolicyManifestRejectsInvalidOwnership(t *testing.T) {
+	t.Parallel()
 	p := p125.Descriptor()
 	cases := []func(*spec.PolicyManifest){
 		func(m *spec.PolicyManifest) { m.SharedGlobals[0].Package = "example.test/application" },
@@ -323,6 +329,7 @@ func hasNativeDirective(group *ast.CommentGroup) bool {
 }
 
 func TestInitProbeSourceEvidence(t *testing.T) {
+	t.Parallel()
 	sources := make(map[string]bool)
 	for _, source := range p125.VerificationOrigin().Files {
 		sources[source.Path] = true

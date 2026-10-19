@@ -6,6 +6,51 @@ Gosim is a deterministic Go simulation testing framework. It translates applicat
 
 The exact initial toolchain targets are `go1.25.14` and `go1.26.9`. The module's Go 1.25 language minimum does not authorize other patches. Normal CLI commands require matching certified tuple/source evidence; internal candidate commands require declared pending tuples.
 
+### Running tests and reading results
+
+Use `make test` for ordinary local native and simulation tests. It runs in an
+isolated source snapshot, uses Go 1.26.9 by default, and starts no Docker, Colima,
+VMs, or cross-architecture jobs. For a single-test fix, run only the relevant
+test unless broader validation is explicitly requested.
+
+**Run `make test-race` or `make test-large` only when the user's instruction
+explicitly includes an item to run and check that suite.** A general request to
+test, fix tests, finish a task, or perform final verification does not authorize
+either suite. This restriction also applies to aliases and equivalent commands
+such as `make test-unit-race`, `./test.sh`, direct race commands, and direct
+invocation of the large suites. Do not enable them through environment variables
+or invoke a matrix to bypass this restriction.
+
+| Command | Scope | Latest results |
+| --- | --- | --- |
+| `make test` | Ordinary local tests; expensive suites remain skipped | `test-reports/unit/latest/` |
+| `make test-race` | Local race suite; requires explicit instruction | `test-reports/unit-race/latest/` |
+| `make test-large` | Candidate feature sweep, selected-translation toolchain sweep, and CLI script fixtures; requires explicit instruction | `test-reports/large/latest/` |
+| `make test-report-tools` | Reporting and orchestration unit checks | Terminal output |
+
+Each reported run is preserved in `test-reports/<suite>/<run>/`; `latest` points
+to the latest run for that suite. Read `report.md` for totals and failures,
+`timeline.md` or `timeline.json` for timings and parallel execution, and the
+reported per-package `.log` files for failure details. Runs also retain raw
+`events.json`, per-package JSON and JUnit XML, `console.log`, and command logs.
+The terminal prints the exact report directory and failing log paths. Check the
+exit status and report for failures/errors; distinguish skips from passed tests.
+
+Use `UNIT_PACKAGES` and `UNIT_PARALLEL` to set package and test concurrency
+(currently 2 and 4), `GOSIM_TOOLCHAIN` to select the exact supported patch, and
+`TEST_REPORTS_DIR` to change the report root. For example:
+
+```sh
+make test UNIT_PACKAGES=2 UNIT_PARALLEL=4 GOSIM_TOOLCHAIN=go1.25.14
+```
+
+Local results apply to the startup snapshot. Concurrent checkout edits are
+recorded in command logs and `.gosim/verification/<patch>/gate-*/verification.json`;
+changes inside the tested snapshot fail verification. The standalone verification
+entry also rejects changes to the working checkout.
+
+### Lower-level commands
+
 ```sh
 # Build an exact worker; retain linkname flags.
 GOTOOLCHAIN=go1.25.14 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
@@ -14,7 +59,7 @@ GOTOOLCHAIN=go1.25.14 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosi
 GOSIM_TOOLCHAIN=go1.25.14 ./.ci/verify-step.sh --ordinary
 GOSIM_TOOLCHAIN=go1.26.9 ./.ci/verify-step.sh --ordinary
 
-# Complete ordinary/race verification; use for final verification.
+# Complete ordinary/race verification; only with explicit instruction to run and check race tests.
 GOSIM_TOOLCHAIN=go1.25.14 ./test.sh
 GOSIM_TOOLCHAIN=go1.26.9 ./test.sh
 
@@ -30,7 +75,7 @@ GOTOOLCHAIN=go1.25.14 go test -ldflags=-checklinkname=0 -tags=linkname ./interna
 python3 -B -m unittest discover -s .ci/crossarch-tests -p '*_test.py'
 ```
 
-The verification entry creates an isolated copy, verifies equal executable inputs and resets only the copy's excluded status/evidence metadata to pending. It leaves the original profiles unchanged and does not promote results. Independent copies keep concurrent patches from overwriting selftest artifacts. During the modularization plan, full race suites are deferred to final verification by user instruction.
+The verification entry creates an isolated copy, verifies equal executable inputs and resets only the copy's excluded status/evidence metadata to pending. It leaves the original profiles unchanged and does not promote results. Independent copies keep concurrent patches from overwriting selftest artifacts. Final verification does not override the explicit-instruction requirement for race and large suites.
 
 Do not run bare native `go test ./...` against stale or missing prebuilt simulation workers. Metatesting requires matching patch/features/race manifests and a matching CLI. `build-tests` and `prepare-selftest` use the same explicit build selection; the verification entry handles preparation.
 

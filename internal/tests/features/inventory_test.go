@@ -15,6 +15,7 @@ import (
 )
 
 func TestFeatureApplicabilityAndPreservedInventory(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct{ features, packages []string }{
 		{[]string{"rt"}, []string{"./internal/tests/rt"}},
 		{[]string{"rt", "fs"}, []string{"./internal/tests/rt", "./internal/tests/fs"}},
@@ -63,6 +64,7 @@ func TestFeatureApplicabilityAndPreservedInventory(t *testing.T) {
 }
 
 func TestNativeUnitsExcludeDisabledModels(t *testing.T) {
+	t.Parallel()
 	for _, names := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}} {
 		packages, err := NativePackages(names)
 		if err != nil {

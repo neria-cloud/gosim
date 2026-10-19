@@ -75,6 +75,7 @@ var (
 )
 
 func TestDescriptorCapabilityContracts(t *testing.T) {
+	t.Parallel()
 	resource := &fakeResource{owner: Net}
 	var table DescriptorTable = &fakeDescriptors{}
 	fd, err := table.Allocate(resource)

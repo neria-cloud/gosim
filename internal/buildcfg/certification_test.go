@@ -24,6 +24,7 @@ func certificationFixture(t *testing.T) (buildspec.Identity, spec.Profile, build
 }
 
 func TestCertificationRejectsFalseStaleAndIncompleteEvidence(t *testing.T) {
+	t.Parallel()
 	id, profile, report := certificationFixture(t)
 	accepted, err := CertifiedIdentity(id, profile, []buildspec.CertificationReport{report})
 	if err != nil || accepted.Certification != "certified" || accepted.EvidenceDigest != report.ResultDigest {
@@ -68,6 +69,7 @@ func TestCertificationRejectsFalseStaleAndIncompleteEvidence(t *testing.T) {
 }
 
 func TestApplicationGraphSeparatesArtifactsNotFrameworkCertification(t *testing.T) {
+	t.Parallel()
 	id, profile, report := certificationFixture(t)
 	before, _ := buildspec.Digest(id)
 	id.ModuleGraphDigest = strings.Repeat("b", 64)
@@ -81,6 +83,7 @@ func TestApplicationGraphSeparatesArtifactsNotFrameworkCertification(t *testing.
 }
 
 func TestReducedReportRequiresApplicableNativeAndBoundarySuites(t *testing.T) {
+	t.Parallel()
 	_, _, report := certificationFixture(t)
 	report.Identity.Features = []string{"rt"}
 	report.Identity.ProviderRevisions = nil

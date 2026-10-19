@@ -10,6 +10,7 @@ import (
 )
 
 func TestCrashRestartFilesystemPartial(t *testing.T) {
+	t.Parallel()
 	contentsCount := make(map[string]int)
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 	for seed := int64(0); seed < 100; seed++ {

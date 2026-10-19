@@ -7,6 +7,7 @@ import (
 )
 
 func TestQueuePurgeKeepsTotalOrderAndClearsReferences(t *testing.T) {
+	t.Parallel()
 	events := newTestEvents()
 	var delivered []uint64
 	q := newDelayQueue(events, events, func(p *Packet) { delivered = append(delivered, p.ArrivalTime.index); freePacket(p) })
@@ -55,6 +56,7 @@ func TestQueuePurgeKeepsTotalOrderAndClearsReferences(t *testing.T) {
 }
 
 func TestQueuePurgeRecalculatesWakeup(t *testing.T) {
+	t.Parallel()
 	events := newTestEvents()
 	var delivered []*Packet
 	q := newDelayQueue(events, events, func(p *Packet) { delivered = append(delivered, p) })

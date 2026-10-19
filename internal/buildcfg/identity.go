@@ -187,7 +187,7 @@ func hashSources(root string, paths []string) (string, error) {
 				return nil
 			}
 			if entry.IsDir() {
-				if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" {
+				if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" || rel == "test-reports" {
 					return filepath.SkipDir
 				}
 				return nil

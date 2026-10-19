@@ -33,6 +33,7 @@ func (r *scriptedRandom) ExpFloat64() float64 {
 }
 
 func TestFaultDrawOrder(t *testing.T) {
+	t.Parallel()
 	rng := &scriptedRandom{uniforms: []float64{0.1, 0.1, 0.8, 0.9, 0.2, 0.9}}
 	n := testNetwork(t, rng)
 	key := edgeKey(testPair)
@@ -64,6 +65,7 @@ func TestFaultDrawOrder(t *testing.T) {
 }
 
 func TestLatencySampling(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name   string
 		c      LatencyConfig

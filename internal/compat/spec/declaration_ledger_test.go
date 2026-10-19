@@ -143,6 +143,7 @@ func ownedDeclarations(t *testing.T, pkg string, ctx build.Context) map[string]s
 }
 
 func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
+	t.Parallel()
 	ledger := readDeclarationLedger(t)
 	for _, family := range []struct {
 		name       string
@@ -207,6 +208,7 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 }
 
 func TestPinnedRemovedHookDeclarations(t *testing.T) {
+	t.Parallel()
 	if runtime.Version() != "go1.25.14" && runtime.Version() != "go1.26.9" {
 		t.Skip("exact pinned source check")
 	}
@@ -231,6 +233,7 @@ func TestPinnedRemovedHookDeclarations(t *testing.T) {
 }
 
 func TestExecutableAdaptersHaveBoundedFamilySelection(t *testing.T) {
+	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		root := filepath.Join("..", family)
 		err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
@@ -294,6 +297,7 @@ func TestExecutableAdaptersHaveBoundedFamilySelection(t *testing.T) {
 }
 
 func TestAuditedShimLimitationsAreNamed(t *testing.T) {
+	t.Parallel()
 	for _, family := range []struct {
 		p spec.Profile
 		m spec.PolicyManifest

@@ -18,6 +18,7 @@ import (
 )
 
 func TestLinuxArm64SourceBuildsForNativeDarwin(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" {
 		t.Skip("Darwin arm64 native worker probe")
 	}

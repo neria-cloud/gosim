@@ -20,10 +20,13 @@ def main():
     parser.add_argument("--evidence", required=True)
     parser.add_argument("--mode", default="native")
     parser.add_argument("--image", default="")
+    parser.add_argument("--concurrency", type=int, default=2)
     args = parser.parse_args()
+    if args.concurrency < 1:
+        parser.error("concurrency must be positive")
     evidence = Path(args.evidence).resolve()
     evidence.mkdir(parents=True, exist_ok=True)
-    env = dict(os.environ, GOTOOLCHAIN=args.patch, GOENV="off")
+    env = dict(os.environ, GOTOOLCHAIN=args.patch, GOENV="off", GOMAXPROCS=str(args.concurrency))
     observed = json.loads(subprocess.check_output(
         ["go", "env", "-json", "GOVERSION", "GOROOT", "GOHOSTOS", "GOHOSTARCH", "GOARCH"], env=env))
     observed["uname_system"] = platform.system()
@@ -41,7 +44,8 @@ def main():
     subprocess.run([str(selected_go), "build", "-ldflags=-checklinkname=0", "-tags=linkname",
                     "-o", str(binary), "./cmd/gosim"], env=env, check=True)
     command = [str(binary), "internal-candidate", "certify", "-go", args.patch,
-               "-features", args.features, "-output", str(evidence), "-execution-mode", args.mode]
+               "-features", args.features, "-output", str(evidence), "-execution-mode", args.mode,
+               "-concurrency", str(args.concurrency)]
     if args.race:
         command.append("-race")
     if args.image:

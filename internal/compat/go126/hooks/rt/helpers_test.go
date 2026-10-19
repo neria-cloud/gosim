@@ -19,6 +19,7 @@ import (
 func nativeChaChaBlock(*[4]uint64, *[32]uint64, uint32)
 
 func TestChaCha8MatchesSelectedRuntime(t *testing.T) {
+	t.Parallel()
 	r := rand.New(rand.NewPCG(17, 23))
 	for sample := 0; sample < 64; sample++ {
 		seed := [4]uint64{r.Uint64(), r.Uint64(), r.Uint64(), r.Uint64()}
@@ -34,6 +35,7 @@ func TestChaCha8MatchesSelectedRuntime(t *testing.T) {
 }
 
 func TestByteHelpersMatchStandardLibrary(t *testing.T) {
+	t.Parallel()
 	corpus := []string{"", "a", "aa", "ab", "ba", "\x00\xff\xc0", "é世", strings.Repeat("ab", 70)}
 	r := rand.New(rand.NewPCG(19, 29))
 	for i := 0; i < 60; i++ {

@@ -9,6 +9,7 @@ import (
 )
 
 func TestConstructorsOwnIndependentChildren(t *testing.T) {
+	t.Parallel()
 	var parent, duplicate, child *MetaT
 	pkg := gosimtool.Module + "/internal/tests/rt"
 	t.Run("parent", func(t *testing.T) {

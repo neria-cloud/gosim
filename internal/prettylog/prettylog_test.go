@@ -66,6 +66,9 @@ func TestPrettyLog(t *testing.T) {
 		}
 
 		t.Run(name, func(t *testing.T) {
+			if !*rewrite && !*rewriteInput {
+				t.Parallel()
+			}
 			input, err := os.ReadFile(path.Join("testdata", name))
 			if err != nil {
 				t.Fatal(err)

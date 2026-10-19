@@ -111,6 +111,7 @@ func stop(t *testing.T, i *Instance, kind contracts.StopKind) {
 var ref1 = contracts.MachineRef{RunID: 1, ID: 1}
 
 func TestSessionControlsBeforeStartAndAtomicConfig(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	if s.Controls().FSControl != s || s.Controls().NetControl != nil {
 		t.Fatal("incorrect control ownership")
@@ -176,6 +177,7 @@ func TestSessionControlsBeforeStartAndAtomicConfig(t *testing.T) {
 }
 
 func TestPrepareAbortPreservesDiskAndRandom(t *testing.T) {
+	t.Parallel()
 	s, ports := newSession(t)
 	p := prepare(t, s, ref1, 1, false)
 	initial := p.instance.model
@@ -209,6 +211,7 @@ func TestPrepareAbortPreservesDiskAndRandom(t *testing.T) {
 }
 
 func TestCrashVersusGracefulAndSettleOnce(t *testing.T) {
+	t.Parallel()
 	for _, kind := range []contracts.StopKind{contracts.StopCrash, contracts.StopGraceful} {
 		s, ports := newSession(t)
 		i := start(t, s, ref1, 1, false)
@@ -244,6 +247,7 @@ func TestCrashVersusGracefulAndSettleOnce(t *testing.T) {
 }
 
 func TestSamplePendingSelectedAtCrashAndNotRestart(t *testing.T) {
+	t.Parallel()
 	s, ports := newSession(t)
 	if err := s.SetCrashMode(ref1, 1); err != nil {
 		t.Fatal(err)
@@ -272,6 +276,7 @@ func TestSamplePendingSelectedAtCrashAndNotRestart(t *testing.T) {
 }
 
 func TestInvalidAndStaleLifecycle(t *testing.T) {
+	t.Parallel()
 	s, _ := newSession(t)
 	if _, err := NewProvider().Open(contracts.Ports{}); !errors.Is(err, contracts.ErrInvalidConfig) {
 		t.Fatal(err)

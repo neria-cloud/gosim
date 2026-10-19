@@ -12,6 +12,7 @@ import (
 )
 
 func TestCoroYieldFinishAndSkippedDefers(t *testing.T) {
+	t.Parallel()
 	for i := 0; i < 100; i++ {
 		var c Coro
 		stage := 0
@@ -39,6 +40,7 @@ func TestCoroYieldFinishAndSkippedDefers(t *testing.T) {
 }
 
 func TestUpcallRunsAndResumes(t *testing.T) {
+	t.Parallel()
 	var c Upcallcoro
 	stage := 0
 	c.Start(func() {
@@ -57,6 +59,7 @@ func TestUpcallRunsAndResumes(t *testing.T) {
 }
 
 func TestIdentityAndFamilyIsolation(t *testing.T) {
+	t.Parallel()
 	id := Identity()
 	if id.Toolchain != runtime.Version() || id.HostOS != runtime.GOOS || id.HostArch != runtime.GOARCH || !buildspec.ValidDigest(id.SourceDigest) {
 		t.Fatalf("identity=%+v", id)
@@ -79,6 +82,7 @@ func TestIdentityAndFamilyIsolation(t *testing.T) {
 }
 
 func TestUnsupportedFamilyFailsExplicitly(t *testing.T) {
+	t.Parallel()
 	for _, pkg := range []string{"hostabi", "compat/selected"} {
 		cmd := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, "", "build", "github.com/neria-cloud/gosim/internal/"+pkg)
 		// Deliberate negative compile probe: normal GoCommand rejects user

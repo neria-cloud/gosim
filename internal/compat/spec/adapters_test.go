@@ -14,6 +14,7 @@ import (
 )
 
 func TestAdapterMetadataAndFingerprints(t *testing.T) {
+	t.Parallel()
 	for _, p := range []spec.Profile{p125.Descriptor(), p126.Descriptor()} {
 		t.Run(p.ID, func(t *testing.T) {
 			if err := p.Validate(); err != nil {
@@ -49,6 +50,7 @@ func currentToolchain() buildspec.Toolchain {
 }
 
 func TestPinnedAdapterSourceVerification(t *testing.T) {
+	t.Parallel()
 	tc := currentToolchain()
 	for _, candidate := range []struct {
 		p          spec.Profile
@@ -131,6 +133,7 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 }
 
 func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	write := func(path, data string) {
 		t.Helper()
@@ -176,6 +179,7 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 }
 
 func TestGo125ShimBindings(t *testing.T) {
+	t.Parallel()
 	shims := p125.ShimManifest()
 	if err := spec.VerifyShimBindings("../../..", shims); err != nil {
 		t.Fatal(err)
@@ -192,6 +196,7 @@ func TestGo125ShimBindings(t *testing.T) {
 }
 
 func TestGo126ShimBindings(t *testing.T) {
+	t.Parallel()
 	shims := p126.ShimManifest()
 	if err := spec.VerifyShimBindings("../../..", shims); err != nil {
 		t.Fatal(err)

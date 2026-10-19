@@ -83,6 +83,7 @@ func TestReflectedMapBoundary(t *testing.T) {
 }
 
 func TestNativeContainersRejected(t *testing.T) {
+	t.Parallel()
 	for _, value := range []any{map[int]int{}, make(chan int), gosimruntime.Chan[int]{}} {
 		mustPanic(t, func() { ValueOf(value) })
 		mustPanic(t, func() { TypeOf(value) })
@@ -90,6 +91,7 @@ func TestNativeContainersRejected(t *testing.T) {
 }
 
 func TestOrdinaryValuesStayWrapped(t *testing.T) {
+	t.Parallel()
 	type record struct {
 		Number int
 		Label  string
@@ -126,6 +128,7 @@ func mustPanic(t *testing.T, f func()) {
 }
 
 func TestDeepEqualBytes(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		a, b  []byte
 		equal bool

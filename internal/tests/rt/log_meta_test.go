@@ -36,6 +36,7 @@ func parseLog(t *testing.T, log []byte) []map[string]any {
 }
 
 func TestLogMachineGoroutineTime(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test: "TestLogMachineGoroutineTime",
@@ -58,6 +59,7 @@ func TestLogMachineGoroutineTime(t *testing.T) {
 }
 
 func TestLogSLog(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test: "TestLogSLog",
@@ -77,6 +79,7 @@ func TestLogSLog(t *testing.T) {
 }
 
 func TestLogStdoutStderr(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test: "TestLogStdoutStderr",
@@ -99,6 +102,7 @@ func TestLogStdoutStderr(t *testing.T) {
 }
 
 func TestLogDuringInit(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := mt.Run(t, &metatesting.RunConfig{
 		Test: "TestLogDuringInit",
@@ -151,6 +155,7 @@ func extractStacksUntilTest(logs []*gosimlog.Log) []MsgAndStack {
 }
 
 func TestLogTraceStacks(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	// no stacks without simtrace stack
@@ -219,6 +224,7 @@ func TestLogTraceStacks(t *testing.T) {
 }
 
 func TestLogBacktraceFor(t *testing.T) {
+	t.Parallel()
 	mt := metatesting.ForPackage(t, metatesting.Options{})
 
 	// stacks with simtrace stack

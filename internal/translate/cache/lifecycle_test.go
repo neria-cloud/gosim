@@ -12,6 +12,7 @@ import (
 )
 
 func TestDeleteLastUseRetentionAndUnchangedSchema(t *testing.T) {
+	t.Parallel()
 	file := filepath.Join(t.TempDir(), "cache.sqlite")
 	db, err := cache.NewDB(file)
 	if err != nil {

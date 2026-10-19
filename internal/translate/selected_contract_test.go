@@ -28,6 +28,7 @@ func selectedTestConfig(t *testing.T) gosimtool.BuildConfig {
 }
 
 func TestSelectedBuildConfigOwnershipAndValidation(t *testing.T) {
+	t.Parallel()
 	cfg := selectedTestConfig(t)
 	selection := cfg.Selection
 	owned, err := gosimtool.NewBuildConfig(selection, cfg.Toolchain)
@@ -80,6 +81,7 @@ func TestSelectedBuildConfigOwnershipAndValidation(t *testing.T) {
 }
 
 func TestSelectedInputPublication(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "go.mod")
 	data := bytes.Repeat([]byte("module bytes\n"), 4096)
@@ -132,6 +134,7 @@ func TestSelectedInputPublication(t *testing.T) {
 }
 
 func TestSelectedModulePaths(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module github.com/neria-cloud/gosim\ngo 1.25.0\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -166,6 +169,7 @@ func TestSelectedModulePaths(t *testing.T) {
 }
 
 func TestSelectedGraphDropsOnlyHookBodies(t *testing.T) {
+	t.Parallel()
 	p, err := Policies(profileSelection(t, "rt"))
 	if err != nil {
 		t.Fatal(err)
@@ -203,6 +207,7 @@ func TestSelectedGraphDropsOnlyHookBodies(t *testing.T) {
 }
 
 func TestSelectedTranslationReturnsInputErrors(t *testing.T) {
+	t.Parallel()
 	for _, input := range []*TranslateInput{nil, {}, {Packages: []string{"."}}} {
 		if _, err := Translate(input); err == nil {
 			t.Fatal("invalid input accepted")
@@ -215,6 +220,7 @@ func TestSelectedTranslationReturnsInputErrors(t *testing.T) {
 }
 
 func TestSelectedPushedDefinitions(t *testing.T) {
+	t.Parallel()
 	p, err := Policies(profileSelection(t, "rt"))
 	if err != nil {
 		t.Fatal(err)

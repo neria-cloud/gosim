@@ -11,6 +11,7 @@ import (
 )
 
 func TestLookupArtifactUsesExactCurrentInputs(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	id := artifactIdentity()
 	sources := map[string]string{filepath.Join(root, "app.go"): buildspec.Hash([]byte("source"))}
@@ -70,6 +71,7 @@ func TestLookupArtifactUsesExactCurrentInputs(t *testing.T) {
 }
 
 func TestLookupArtifactRejectsLinkedNamespace(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	id := artifactIdentity()
 	sources := map[string]string{filepath.Join(root, "app.go"): buildspec.Hash([]byte("source"))}
@@ -96,6 +98,7 @@ func TestLookupArtifactRejectsLinkedNamespace(t *testing.T) {
 }
 
 func TestPackageSourceDigestIsCanonicalAndValidated(t *testing.T) {
+	t.Parallel()
 	a, b := filepath.Join(t.TempDir(), "a.go"), filepath.Join(t.TempDir(), "b.go")
 	digest := buildspec.Hash([]byte("source"))
 	first, err := PackageSourceDigest("pkg", map[string]string{a: digest, b: digest})

@@ -33,6 +33,7 @@ func fixture() (Profile, buildspec.Identity) {
 }
 
 func TestSelectFeatureProvidersAndOwnInputs(t *testing.T) {
+	t.Parallel()
 	for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
 		p, id := fixture()
 		id.Features = slices.Clone(features)
@@ -57,6 +58,7 @@ func TestSelectFeatureProvidersAndOwnInputs(t *testing.T) {
 }
 
 func TestCertificationRequiresExactSourceEvidence(t *testing.T) {
+	t.Parallel()
 	p, id := fixture()
 	id.Certification, id.EvidenceDigest = "certified", strings.Repeat("b", 64)
 	if _, err := p.Select(id); err == nil {
@@ -91,6 +93,7 @@ func TestCertificationRequiresExactSourceEvidence(t *testing.T) {
 }
 
 func TestProfileRejectsIncompleteOrAmbiguousMetadata(t *testing.T) {
+	t.Parallel()
 	for _, change := range []func(*Profile){
 		func(p *Profile) { p.Hooks = nil },
 		func(p *Profile) { p.Tuples = append(p.Tuples, p.Tuples[0]) },
@@ -113,6 +116,7 @@ func TestProfileRejectsIncompleteOrAmbiguousMetadata(t *testing.T) {
 }
 
 func TestVerifyHooksAgainstActiveToolchain(t *testing.T) {
+	t.Parallel()
 	tc := buildspec.Toolchain{
 		Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH,
 	}

@@ -71,6 +71,7 @@ func compareCrashOrder(t *testing.T, pending *pendingOps) {
 }
 
 func TestCrashPlanDeepAndCopiedResults(t *testing.T) {
+	t.Parallel()
 	const count = 100000
 	p := &crashPlan{}
 	for i := 0; i < count; i++ {
@@ -103,6 +104,7 @@ func TestCrashPlanDeepAndCopiedResults(t *testing.T) {
 }
 
 func TestCrashDependencyCountOverflow(t *testing.T) {
+	t.Parallel()
 	key := depKey{inode: 1}
 	defer func() {
 		if recover() == nil {
@@ -113,6 +115,7 @@ func TestCrashDependencyCountOverflow(t *testing.T) {
 }
 
 func TestCrashImageEmptyPlan(t *testing.T) {
+	t.Parallel()
 	fs := NewEmptyFilesystem()
 	image := fs.FreezeCrash()
 	it := image.IterCrashes()
@@ -133,6 +136,7 @@ func TestCrashImageEmptyPlan(t *testing.T) {
 }
 
 func TestCrashImageRetention(t *testing.T) {
+	t.Parallel()
 	fs := NewEmptyFilesystem()
 	inode, err := fs.OpenFile(RootInode, "a", os.O_CREATE|os.O_RDWR)
 	if err != nil {
@@ -190,6 +194,7 @@ func TestCrashImageRetention(t *testing.T) {
 }
 
 func TestCrashSnapshotDependencyMetadata(t *testing.T) {
+	t.Parallel()
 	p := newPendingOps()
 	first := p.addOpInternal()
 	first.fsOp = &allocOp{inode: 1}
@@ -223,6 +228,7 @@ func TestCrashSnapshotDependencyMetadata(t *testing.T) {
 }
 
 func TestCrashRandomIndependentAndDependencyValid(t *testing.T) {
+	t.Parallel()
 	p := &crashPlan{ops: []plannedOp{
 		{op: &allocOp{inode: 1}, stores: []depKey{{inode: 1}}},
 		{op: &allocOp{inode: 2}, depends: []depKey{{inode: 1}}},
@@ -250,6 +256,7 @@ func TestCrashRandomIndependentAndDependencyValid(t *testing.T) {
 }
 
 func TestChunkCopyOnWriteReleasesOldReference(t *testing.T) {
+	t.Parallel()
 	a := chunkedFileFromBytes([]byte("original"))
 	chunk := a.chunks[0]
 	b := a.Clone()
@@ -266,6 +273,7 @@ func TestChunkCopyOnWriteReleasesOldReference(t *testing.T) {
 }
 
 func TestCrashImageOwnsDirectoryOperations(t *testing.T) {
+	t.Parallel()
 	fs := NewEmptyFilesystem()
 	inode, err := fs.OpenFile(RootInode, "before", os.O_CREATE|os.O_RDWR)
 	if err != nil {
@@ -300,6 +308,7 @@ func TestCrashImageOwnsDirectoryOperations(t *testing.T) {
 }
 
 func TestCrashCloneDoesNotRetainMappings(t *testing.T) {
+	t.Parallel()
 	fs := NewEmptyFilesystem()
 	inode, err := fs.OpenFile(RootInode, "mapped", os.O_CREATE|os.O_RDWR)
 	if err != nil {

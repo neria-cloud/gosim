@@ -11,6 +11,7 @@ import (
 // This list follows target section 7's service contracts, independently of the
 // generator's adapter symbol table. Shared FcntlInt is descriptor-dispatched.
 func TestTargetServiceRouteCoverage(t *testing.T) {
+	t.Parallel()
 	m, err := Load()
 	if err != nil {
 		t.Fatal(err)

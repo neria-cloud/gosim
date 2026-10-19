@@ -15,6 +15,7 @@ import (
 )
 
 func TestContextCancelsBeforeCleanup(t *native.T) {
+	t.Parallel()
 	var simulated T
 	ctx := simulated.Context()
 	if ctx != simulated.Context() || ctx.Err() != nil {

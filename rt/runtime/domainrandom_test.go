@@ -7,6 +7,7 @@ import (
 )
 
 func TestDomainRandomKnownVector(t *testing.T) {
+	t.Parallel()
 	// Independent SHA-256/64-bit multiplication vector, including negative seed
 	// encoding and uint64 little-endian length prefixes for each input field.
 	r := NewDomainRandom(-123, "fs", 7)
@@ -21,6 +22,7 @@ func TestDomainRandomKnownVector(t *testing.T) {
 }
 
 func TestDomainRandomBoundedAndFloatDraws(t *testing.T) {
+	t.Parallel()
 	for _, bound := range []uint64{1, 3, 255, 1<<63 + 1, math.MaxUint64} {
 		r := NewDomainRandom(8, "net", 9)
 		for i := 0; i < 1000; i++ {

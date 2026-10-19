@@ -10,6 +10,7 @@ import (
 )
 
 func TestArchitectureHookSelection(t *testing.T) {
+	t.Parallel()
 	for _, family := range []struct {
 		name       string
 		descriptor func(string) (spec.Profile, error)

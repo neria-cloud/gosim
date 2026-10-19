@@ -10,6 +10,7 @@ import (
 )
 
 func TestGeneratedPayloadBoundaries(t *testing.T) {
+	t.Parallel()
 	buffer := []byte("input")
 	request := WriteRequest{FD: 1, From: abi.NewSliceView(&buffer[0], uintptr(len(buffer)))}
 	inv := request.Invocation()
@@ -56,6 +57,7 @@ func TestGeneratedPayloadBoundaries(t *testing.T) {
 }
 
 func TestGeneratedTypedResults(t *testing.T) {
+	t.Parallel()
 	got, err := DecodeReadResult(Result{Value: ReadResult{Count: 4}})
 	if err != nil || got.Count != 4 {
 		t.Fatalf("decode=%+v %v", got, err)

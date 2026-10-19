@@ -11,6 +11,7 @@ import (
 )
 
 func TestNetworkTrace(t *testing.T) {
+	t.Parallel()
 	runner := metatesting.ForPackage(t, metatesting.Options{})
 	run, err := runner.Run(t, &metatesting.RunConfig{Test: "TestNetworkConfigValidation", Seed: 1, Simtrace: "network"})
 	if err != nil {
@@ -73,6 +74,7 @@ func TestNetworkTrace(t *testing.T) {
 }
 
 func TestRestartDiscardsQueuedOldPacket(t *testing.T) {
+	t.Parallel()
 	runner := metatesting.ForPackage(t, metatesting.Options{})
 	result, err := runner.Run(t, &metatesting.RunConfig{Test: "TestRestartReusesEndpointWithoutOldConnection", Seed: 1, Simtrace: "network"})
 	if err != nil || result.Failed {
