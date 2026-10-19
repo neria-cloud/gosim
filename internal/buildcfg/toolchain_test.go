@@ -57,18 +57,15 @@ func TestCommandRejectsUnapprovedEnvironment(t *testing.T) {
 	}
 }
 
-func TestWorkerMismatchGivesRebuildCommand(t *testing.T) {
+func TestWorkerMismatchPointsToLauncher(t *testing.T) {
 	t.Parallel()
 	tc := buildspec.Toolchain{Version: "go1.25.14", HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
 	if runtime.Version() == tc.Version {
 		tc.Version = "go1.26.9"
 	}
 	err := ValidateWorker(tc)
-	if err == nil || !strings.Contains(err.Error(), "GOTOOLCHAIN="+tc.Version+" go build -ldflags=-checklinkname=0 -tags=linkname") {
+	if err == nil || !strings.Contains(err.Error(), "use the gosim launcher to select a matching worker") || !strings.Contains(err.Error(), tc.Version) {
 		t.Fatalf("missing actionable mismatch error: %v", err)
-	}
-	if !strings.HasSuffix(err.Error(), "github.com/neria-cloud/gosim/cmd/gosim") {
-		t.Fatalf("rebuild command must also work from an application module: %v", err)
 	}
 }
 

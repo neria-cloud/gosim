@@ -1,4 +1,4 @@
-package main
+package gosimcli
 
 import (
 	"errors"
@@ -19,44 +19,48 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 		return err
 	}
 
-	buildDir, err := os.MkdirTemp("", "gosimbuild")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(buildDir)
-
-	// Prepare the racetest binary
-	raceBuildPath := filepath.Join(buildDir, "testdata.test")
-	raceFinalPath := filepath.Join(modDir, gosimtool.OutputDirectory, "racetest", "testdata.test")
-	if err := os.MkdirAll(filepath.Dir(raceFinalPath), 0o755); err != nil {
-		return err
-	}
-	// try to reuse the old binary
-	if err := copyFile(raceFinalPath, raceBuildPath, 0o755); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("copy source: %w", err)
+	// The native race oracle is needed only for an explicitly selected race run.
+	if cfg.Identity.Race {
+		buildDir, err := os.MkdirTemp("", "gosimbuild")
+		if err != nil {
+			return err
 		}
-	}
-	// do the build
-	args := []string{"test"}
-	args = append(args, "-ldflags=-checklinkname=0", "-tags=linkname")
-	args = append(args, "-race")
-	args = append(args, "-c")
-	args = append(args, "-o", buildDir)
-	args = append(args, "./internal/tests/race/testdata")
-	cmd := buildcfg.Command(cfg.Toolchain, modDir, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	// place the binary
-	if err := copyFileIfChanged(raceBuildPath, raceFinalPath, 0o755); err != nil {
-		return fmt.Errorf("copy final: %w", err)
-	}
+		defer os.RemoveAll(buildDir)
 
-	if err := gosimtool.RecordNativeArtifact(raceFinalPath, cfg.Identity); err != nil {
-		return err
+		// Prepare the racetest binary
+		raceBuildPath := filepath.Join(buildDir, "testdata.test")
+		raceFinalPath := filepath.Join(modDir, gosimtool.OutputDirectory, "racetest", "testdata.test")
+		if err := os.MkdirAll(filepath.Dir(raceFinalPath), 0o755); err != nil {
+			return err
+		}
+		// try to reuse the old binary
+		if err := copyFile(raceFinalPath, raceBuildPath, 0o755); err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("copy source: %w", err)
+			}
+		}
+		// do the build
+		args := []string{"test"}
+		args = append(args, "-ldflags=-checklinkname=0", "-tags=linkname")
+		args = append(args, "-race")
+		args = append(args, "-c")
+		args = append(args, "-o", buildDir)
+		args = append(args, "./internal/tests/race/testdata")
+		cmd := buildcfg.Command(cfg.Toolchain, modDir, args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+		// place the binary
+		if err := copyFileIfChanged(raceBuildPath, raceFinalPath, 0o755); err != nil {
+			return fmt.Errorf("copy final: %w", err)
+		}
+
+		if err := gosimtool.RecordNativeArtifact(raceFinalPath, cfg.Identity); err != nil {
+			return err
+		}
+
 	}
 
 	// Prepare the gosim binary

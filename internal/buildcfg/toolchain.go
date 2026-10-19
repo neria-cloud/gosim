@@ -135,8 +135,7 @@ func validateExecutable(tc buildspec.Toolchain) error {
 
 func ValidateWorker(tc buildspec.Toolchain) error {
 	if runtime.Compiler != "gc" || runtime.Version() != tc.Version || runtime.GOOS != tc.HostOS || runtime.GOARCH != tc.HostArch {
-		// TODO(not planned): automatic cross-toolchain worker bootstrap.
-		return fmt.Errorf("worker is %s %s/%s; rebuild using GOTOOLCHAIN=%s go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool github.com/neria-cloud/gosim/cmd/gosim", runtime.Version(), runtime.GOOS, runtime.GOARCH, tc.Version)
+		return fmt.Errorf("worker is %s %s/%s, resolved compiler is %s %s/%s; use the gosim launcher to select a matching worker", runtime.Version(), runtime.GOOS, runtime.GOARCH, tc.Version, tc.HostOS, tc.HostArch)
 	}
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {

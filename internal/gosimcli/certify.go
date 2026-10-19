@@ -1,7 +1,8 @@
-package main
+package gosimcli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -20,6 +21,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/tests/features"
+	"github.com/neria-cloud/gosim/internal/workerboot"
 )
 
 type (
@@ -36,8 +38,9 @@ type suiteOptions struct {
 	large       bool
 }
 
-func runCertificationCommand(command string, args []string) {
-	f := flag.NewFlagSet("internal-candidate "+command, flag.ExitOnError)
+func runCertificationCommand(ctx context.Context, command string, args []string, streams workerboot.Streams) (int, error) {
+	f := flag.NewFlagSet("internal-candidate "+command, flag.ContinueOnError)
+	f.SetOutput(streams.Err)
 	flags := addBuildFlags(f)
 	options := MatrixOptions{}
 	suite := suiteOptions{}
@@ -57,30 +60,38 @@ func runCertificationCommand(command string, args []string) {
 	f.StringVar(&options.OutputDir, "output", defaultOutput, "suite output directory")
 	f.StringVar(&options.ExecutionMode, "execution-mode", "native", "native|container-native|container-emulated")
 	f.StringVar(&options.ContainerImageDigest, "image-digest", "", "resolved container image sha256 digest")
-	f.Parse(args)
+	if err := f.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0, nil
+		}
+		return 2, err
+	}
 	if f.NArg() != 0 || suite.concurrency < 1 || suite.parallel < 0 || suite.packages < 0 || (ordinary && flags.Options.Race) {
-		fmt.Fprintln(os.Stderr, "require no positional arguments, positive -concurrency, and one test mode")
-		os.Exit(2)
+		return 2, fmt.Errorf("require no positional arguments, positive -concurrency, and one test mode")
 	}
 	var err error
 	if command == "verify" {
-		err = verifyStep(*flags, options.OutputDir, suite)
+		err = verifyStepContext(ctx, *flags, options.OutputDir, suite)
 	} else {
-		_, err = certify(*flags, options, suite)
+		_, err = certifyContext(ctx, *flags, options, suite)
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return 1, err
 	}
+	return 0, nil
 }
 
 // certify is a manually invoked exact-build report. It never edits profile
 // metadata or controls ordinary use. Package applicability comes from one registry.
-func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (report CertificationReport, err error) {
+func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (CertificationReport, error) {
+	return certifyContext(context.Background(), flags, options, suite)
+}
+
+func certifyContext(ctx context.Context, flags BuildFlags, options MatrixOptions, suite suiteOptions) (report CertificationReport, err error) {
 	if err := validateCertificationSelection(runtime.GOARCH, flags.Options.Race); err != nil {
 		return report, err
 	}
-	resolved, err := resolveBuild("internal-candidate", flags)
+	resolved, err := resolveBuildForContext(ctx, "internal-candidate", flags)
 	if err != nil {
 		return report, err
 	}
@@ -138,10 +149,14 @@ func validateCertificationSelection(hostArch string, race bool) error {
 // verifyStep runs only the requested local test mode and writes suite logs.
 // It does not create a certification report or implicitly add race/large suites.
 func verifyStep(flags BuildFlags, output string, suite suiteOptions) error {
+	return verifyStepContext(context.Background(), flags, output, suite)
+}
+
+func verifyStepContext(ctx context.Context, flags BuildFlags, output string, suite suiteOptions) error {
 	if suite.large {
 		return fmt.Errorf("large suites are separate; use make test-large explicitly")
 	}
-	resolved, err := resolveBuild("internal-candidate", flags)
+	resolved, err := resolveBuildForContext(ctx, "internal-candidate", flags)
 	if err != nil {
 		return err
 	}

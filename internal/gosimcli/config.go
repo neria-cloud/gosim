@@ -1,4 +1,4 @@
-package main
+package gosimcli
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/selected"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
+	"github.com/neria-cloud/gosim/internal/workerboot"
 )
 
 type BuildFlags struct {
@@ -20,11 +21,14 @@ type BuildFlags struct {
 	Overrides  buildcfg.Overrides
 	Options    buildspec.BuildOptions
 }
+type resolutionKey struct{}
+
 type ResolvedBuild struct {
-	Config    buildspec.Config
-	Toolchain buildspec.Toolchain
-	Identity  buildspec.Identity
-	Selection buildspec.Selection
+	Resolution buildspec.Resolution
+	Config     buildspec.Config
+	Toolchain  buildspec.Toolchain
+	Identity   buildspec.Identity
+	Selection  buildspec.Selection
 }
 
 func addBuildFlags(f *flag.FlagSet) *BuildFlags {
@@ -37,6 +41,10 @@ func addBuildFlags(f *flag.FlagSet) *BuildFlags {
 }
 
 func resolveBuild(command string, flags BuildFlags) (ResolvedBuild, error) {
+	return resolveBuildForContext(context.Background(), command, flags)
+}
+
+func resolveBuildForContext(ctx context.Context, command string, flags BuildFlags) (ResolvedBuild, error) {
 	var r ResolvedBuild
 	path := flags.ConfigPath
 	if path == "" {
@@ -57,7 +65,14 @@ func resolveBuild(command string, flags BuildFlags) (ResolvedBuild, error) {
 	if request.Legacy {
 		fmt.Fprintln(os.Stderr, "gosim: legacy schema-1 toolchain override; migrate gosim.json to schema 2 for automatic Go selection")
 	}
-	resolution, err := buildcfg.Discover(context.Background(), "", request.ExplicitToolchain)
+	invocation, handed := ctx.Value(resolutionKey{}).(workerboot.Invocation)
+	resolution := invocation.Resolution
+	if !handed {
+		resolution, err = buildcfg.ResolveRunningProcess(ctx, "")
+	}
+	if err == nil && request.ExplicitToolchain != "" && request.ExplicitToolchain != resolution.Toolchain.Version {
+		err = fmt.Errorf("worker compiler differs from requested override; use the gosim launcher")
+	}
 	tc := resolution.Toolchain
 	config := request.Config
 	if err != nil {
@@ -70,11 +85,14 @@ func resolveBuild(command string, flags BuildFlags) (ResolvedBuild, error) {
 		return r, err
 	}
 	profile := selected.Profile()
-	inputs, err := buildcfg.Fingerprint(tc)
+	inputs := invocation.Fingerprints
+	if !handed {
+		inputs, err = buildcfg.Fingerprint(tc)
+	}
 	if err != nil {
 		return r, err
 	}
-	contract, err := spec.CheckContracts(context.Background(), resolution, profile, flags.Options, inputs, "")
+	contract, err := spec.CheckContracts(ctx, resolution, profile, flags.Options, inputs, "")
 	if err != nil {
 		return r, err
 	}
@@ -87,5 +105,5 @@ func resolveBuild(command string, flags BuildFlags) (ResolvedBuild, error) {
 	if err != nil {
 		return r, err
 	}
-	return ResolvedBuild{Config: config, Toolchain: tc, Identity: id, Selection: selection}, nil
+	return ResolvedBuild{Config: config, Resolution: resolution, Toolchain: tc, Identity: id, Selection: selection}, nil
 }

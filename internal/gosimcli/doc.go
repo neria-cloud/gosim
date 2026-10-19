@@ -42,4 +42,4 @@ runs ordinary tests by default or only race tests with -race. Repository test
 scripts use immutable source copies without rewriting certification metadata.
 CI invokes make test and publishes test-reports; it does not invoke certify.
 */
-package main
+package gosimcli

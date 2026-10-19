@@ -35,9 +35,9 @@ References: target §§4.3, 6, 8, 12.
 
 References: target §§3, 4.4, 5.1–5.3, 8, 12.
 
-- [ ] Move command implementation into gosimcli; add direct worker entry and family-independent launcher.
-- [ ] Implement application-selected Gosim source resolution, content-keyed cache, cancellable locking/publication, protocol verification and process forwarding.
-- [ ] Test cache hit/miss, isolation, concurrency, interruption, replacements and error paths; commit.
+- [x] Move command implementation into gosimcli; add direct worker entry and family-independent launcher.
+- [x] Implement application-selected Gosim source resolution, content-keyed cache, cancellable locking/publication, protocol verification and process forwarding.
+- [x] Test cache hit/miss, isolation, concurrency, interruption, replacements and error paths; commit.
 
 ### Task 5: Workspace graph and metatest integration
 
