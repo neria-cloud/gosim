@@ -50,6 +50,7 @@ type randomKey struct {
 // Engine owns one scheduler and all native machine allocations in a run.
 // Its methods run on the serialized supervisor (or through a native upcall).
 type Engine struct {
+	capture         *runCapture
 	timeoutTimer    *Timer
 	config          EngineConfig
 	scheduler       *scheduler
@@ -370,6 +371,11 @@ func (e *Engine) Run(supervise func()) (result error) {
 		e.running = false
 		e.result = result
 	}()
+	restore, err := e.startCapture()
+	if err != nil {
+		return err
+	}
+	defer restore()
 	if !runtimeInitialized {
 		prepareGlobals() // layouts only; the published boot owns application init
 		runtimeInitialized = true

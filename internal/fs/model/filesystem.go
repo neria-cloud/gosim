@@ -810,6 +810,15 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 		return 0, err
 	}
 
+	// A trailing slash has already resolved a directory, including the root.
+	// Do not look up an empty directory entry (or create one for an empty path).
+	if name == "" {
+		if path == "" {
+			return 0, syscall.ENOENT
+		}
+		name = "."
+	}
+
 	dir, ok := fs.mem.getDir(dirInode)
 	if !ok {
 		return 0, syscall.ENOTDIR

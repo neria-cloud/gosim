@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–20 (including their recorded children) implemented and verified. Task 21.1 is also implemented and verified; remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–20 (including their recorded children) implemented and verified. Tasks 21.1–21.2 are also implemented and verified; remaining tasks are unchecked.
 
 ## Important notices
 
@@ -552,8 +552,8 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§3 composition graph; T§9 Driver and GeneratedComposition; T§12 Generate.
 **Budget:** 1,500–3,500 changed lines. **Dependency:** 21.1.
 
-- [ ] Implement Generate/ValidateImports before package loading, selected hooks/shims and enabled provider constructors only. Generate one Engine/kernel/control/root/cleanup flow implementing Driver.
-- [ ] Verify all feature combinations, family-specific imports, invalid selection/output paths, initialization ordering and failed-run cleanup through generated source probes; run common commit gate. Actual translated execution remains required in 21.4.
+- [x] Implement Generate/ValidateImports before package loading, selected hooks/shims and enabled provider constructors only. Generate one Engine/kernel/control/root/cleanup flow implementing Driver.
+- [x] Verify all feature combinations, family-specific imports, invalid selection/output paths, initialization ordering and failed-run cleanup through generated source probes; run common commit gate. Actual translated execution remains required in 21.4.
 
 ### Task 21.3: Connect immutable translation inputs and the v2 cache
 
@@ -917,6 +917,8 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | — | — | None recorded during planning | Architectural clarifications are listed separately above |
 
 ## NOT PLANNED CHANGES
+
+- Task 21.2: the generated filesystem probe exposed an existing `internal/fs/model/filesystem.go` OpenFile bug: resolved trailing-slash directories (including `/`) were looked up as empty entries. Normalize the resolved final component to `.` for nonempty paths and reject empty paths with ENOENT; retain ENOTDIR for a regular file with trailing slash. Added model regression tests and retained `/` in the generated Driver probe. Diff: the Task 21.2 commit's `internal/fs/model/{filesystem.go,open_directory_test.go}` changes.
 
 Task 1 uses small additional files inside the declared packages for shared canonicalization/command policy, archive verification, and hook-source inspection. This avoids the spec/buildcfg import cycle and keeps archive verification independently testable. Pinned distribution metadata is stored in `internal/buildcfg/distributions.json`; these hashes are trust anchors, not certification evidence. The plan is tracked in the actual checkout, despite the planning notice describing it as ignored. No behavioral changes outside Task 1 were needed. See its implementation commit and progress record for validation and size.
 
