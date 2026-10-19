@@ -11,9 +11,9 @@ User constraints: implement the full target; commit logical major changes; no ce
 
 References: target §§1–4.1, 5.1, 8, 12.
 
-- [ ] Implement stable family registry, default/legacy configuration handling, ordinary Go discovery and frozen application/output command contexts.
-- [ ] Remove distribution allowlist/download admission; fingerprint installed toolchain content.
-- [ ] Focused native tests for discovery, version parsing, config and commands pass; commit.
+- [x] Implement stable family registry, default/legacy configuration handling, ordinary Go discovery and frozen application/output command contexts.
+- [x] Remove distribution allowlist/download admission; fingerprint installed toolchain content.
+- [x] Focused native tests for discovery, version parsing, config and commands pass; commit.
 
 ### Task 2: Evidence-independent identities and support selection
 

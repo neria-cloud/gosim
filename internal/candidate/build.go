@@ -29,7 +29,8 @@ func Resolve(config buildspec.Config, options buildspec.BuildOptions) (gosimtool
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
-	tc, err := buildcfg.Resolve(config.Toolchain)
+	resolution, err := buildcfg.ResolveRunningProcess(context.Background(), "")
+	tc := resolution.Toolchain
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}

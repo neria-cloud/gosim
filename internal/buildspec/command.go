@@ -1,6 +1,7 @@
 package buildspec
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -33,18 +34,18 @@ func CheckEnvironment(tc Toolchain) error {
 	if root := os.Getenv("GOROOT"); root != "" && root != tc.GOROOT && root != workerGOROOT {
 		return fmt.Errorf("unapproved environment setting GOROOT=%q", root)
 	}
-	if v := os.Getenv("GOTOOLCHAIN"); v != "" && v != "local" {
-		if err := ValidateVersion(v); err != nil {
-			return fmt.Errorf("GOTOOLCHAIN must not auto-upgrade: %w", err)
-		}
-	}
+
 	return nil
 }
 
 // GoCommand is shared with host profile inspection to avoid a spec/buildcfg
 // dependency cycle. The public buildcfg.Command delegates to it.
 func GoCommand(tc Toolchain, dir string, args ...string) *exec.Cmd {
-	cmd := exec.Command(tc.Executable, args...)
+	return OutputCommand(context.Background(), tc, dir, args...)
+}
+
+func OutputCommand(ctx context.Context, tc Toolchain, dir string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, tc.Executable, args...)
 	cmd.Dir = dir
 	if !filepath.IsAbs(tc.Executable) || !filepath.IsAbs(tc.GOROOT) {
 		cmd.Err = fmt.Errorf("toolchain executable and GOROOT must be absolute")
@@ -57,7 +58,7 @@ func GoCommand(tc Toolchain, dir string, args ...string) *exec.Cmd {
 	}
 	replaced := map[string]string{
 		"PATH":        filepath.Dir(tc.Executable) + string(os.PathListSeparator) + os.Getenv("PATH"),
-		"GOTOOLCHAIN": tc.Version, "GOROOT": tc.GOROOT, "GOOS": tc.HostOS, "GOARCH": tc.HostArch,
+		"GOTOOLCHAIN": "local", "GOROOT": tc.GOROOT, "GOOS": tc.HostOS, "GOARCH": tc.HostArch,
 		"GOENV": "off", "GOFLAGS": "", "GOEXPERIMENT": "", "GODEBUG": "", "GOWORK": "off",
 		"GOAMD64": "v1", "GOARM64": "v8.0",
 	}
@@ -73,6 +74,22 @@ func GoCommand(tc Toolchain, dir string, args ...string) *exec.Cmd {
 		"GOEXPERIMENT", "GODEBUG", "GOWORK", "GOAMD64", "GOARM64",
 	} {
 		cmd.Env = append(cmd.Env, key+"="+replaced[key])
+	}
+	return cmd
+}
+
+// ApplicationCommand preserves the workspace selected by Go during discovery.
+// OutputCommand deliberately isolates generated modules from that workspace.
+func ApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec.Cmd {
+	cmd := OutputCommand(ctx, r.Toolchain, r.Context.Directory, args...)
+	work := r.Context.GoWork
+	if work == "" {
+		work = "off"
+	}
+	for i, entry := range cmd.Env {
+		if strings.HasPrefix(entry, "GOWORK=") {
+			cmd.Env[i] = "GOWORK=" + work
+		}
 	}
 	return cmd
 }

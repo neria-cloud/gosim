@@ -72,7 +72,7 @@ func TestCandidateWorker(t *testing.T) {
 	tuple := os.Getenv("GOSIM_LARGE_TUPLE")
 	if tuple == "" || tuple == "rt,fs,net" {
 		t.Run("unsupported-etcd", func(t *testing.T) {
-			cfg := buildspec.Config{Schema: 1, Toolchain: runtime.Version(), Features: []string{"rt", "fs", "net"}, SimulationOS: "linux"}
+			cfg := buildspec.Config{Schema: 2, Features: []string{"rt", "fs", "net"}, SimulationOS: "linux"}
 			_, err := Build(cfg, buildspec.BuildOptions{}, []string{"./examples/etcd"})
 			if err == nil || (!strings.Contains(err.Error(), "net/http") && !strings.Contains(err.Error(), "google.golang.org/grpc")) {
 				t.Fatalf("expected explicit HTTP/gRPC rejection for etcd: %v", err)
@@ -127,7 +127,7 @@ func TestCandidateWorker(t *testing.T) {
 	}
 	for _, features := range featureSets {
 		t.Run(strings.Join(features, ","), func(t *testing.T) {
-			cfg := buildspec.Config{Schema: 1, Toolchain: runtime.Version(), Features: features, SimulationOS: "linux"}
+			cfg := buildspec.Config{Schema: 2, Features: features, SimulationOS: "linux"}
 			if err := os.Chdir(root); err != nil {
 				t.Fatal(err)
 			}

@@ -4,7 +4,6 @@ package buildspec
 
 type Config struct {
 	Schema       int      `json:"schema"`
-	Toolchain    string   `json:"toolchain"`
 	Features     []string `json:"features"`
 	SimulationOS string   `json:"simulation_os"`
 }
@@ -68,4 +67,23 @@ type BuildOptions struct {
 	Race        bool
 	Tags        []string
 	Experiments string
+}
+
+// Fingerprints identify installed inputs, not an allowlist of distribution archives.
+type Fingerprints struct {
+	ToolchainDigest string `json:"toolchain_digest"`
+	StdlibDigest    string `json:"stdlib_digest"`
+}
+
+type ModuleContext struct {
+	Directory   string `json:"directory"`
+	GoMod       string `json:"go_mod"`
+	GoWork      string `json:"go_work"`
+	GraphDigest string `json:"graph_digest"`
+}
+
+type Resolution struct {
+	Schema    int           `json:"schema"`
+	Toolchain Toolchain     `json:"toolchain"`
+	Context   ModuleContext `json:"context"`
 }

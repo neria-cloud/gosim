@@ -29,7 +29,7 @@ func TestCommandPinsExecutableAndEnvironment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := strings.Join([]string{tc.Version, root, "off", "off", tc.HostOS + "/" + tc.HostArch, "", root, "env", "GOVERSION", ""}, "\n")
+	want := strings.Join([]string{"local", root, "off", "off", tc.HostOS + "/" + tc.HostArch, "", root, "env", "GOVERSION", ""}, "\n")
 	if string(out) != want {
 		t.Fatalf("child received %q, want %q", out, want)
 	}
@@ -41,8 +41,6 @@ func TestCommandRejectsUnapprovedEnvironment(t *testing.T) {
 		{"GOFLAGS", "-tags=go1.27"},
 		{"GOEXPERIMENT", "noswissmap"},
 		{"GODEBUG", "randseednop=0"},
-		{"GOTOOLCHAIN", "auto"},
-		{"GOTOOLCHAIN", "go1.26.9+auto"},
 		{"GOAMD64", "v3"},
 		{"GOARM64", "v9.0"},
 		{"GOROOT", "/modified"},
@@ -71,24 +69,6 @@ func TestWorkerMismatchGivesRebuildCommand(t *testing.T) {
 	}
 	if !strings.HasSuffix(err.Error(), "github.com/neria-cloud/gosim/cmd/gosim") {
 		t.Fatalf("rebuild command must also work from an application module: %v", err)
-	}
-}
-
-func TestPinnedDistributionScope(t *testing.T) {
-	t.Parallel()
-	for _, version := range []string{"go1.25.14", "go1.26.9"} {
-		for _, host := range [][2]string{{"linux", "amd64"}, {"linux", "arm64"}, {"darwin", "arm64"}} {
-			r, err := distributionRecord(version, host[0], host[1])
-			if err != nil || !buildspec.ValidDigest(r.SHA256) || r.Size <= 0 || r.Filename != version+"."+host[0]+"-"+host[1]+".tar.gz" {
-				t.Fatalf("bad trust anchor: %+v, %v", r, err)
-			}
-		}
-	}
-	if _, err := Resolve("go1.26.0"); err == nil {
-		t.Fatal("development baseline became a supported distribution")
-	}
-	if _, err := distributionRecord("go1.26.9", "darwin", "amd64"); err == nil {
-		t.Fatal("accepted unplanned platform")
 	}
 }
 

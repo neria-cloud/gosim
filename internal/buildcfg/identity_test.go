@@ -131,10 +131,10 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 	build := func() buildspec.Identity {
 		t.Helper()
 		id, err := identityForSource(
-			buildspec.Config{Schema: 1, Toolchain: base.Toolchain, Features: base.Features, SimulationOS: "linux"},
+			buildspec.Config{Schema: 2, Features: base.Features, SimulationOS: "linux"},
 			buildspec.Toolchain{Version: base.Toolchain, HostOS: base.HostOS, HostArch: base.HostArch},
 			spec.Profile{ID: base.Profile, Revision: base.AdapterRevision}, buildspec.BuildOptions{},
-			Distribution{ArchiveDigest: base.DistributionDigest, SourceDigest: base.StdlibDigest}, root, base.ModuleGraphDigest)
+			buildspec.Fingerprints{ToolchainDigest: base.DistributionDigest, StdlibDigest: base.StdlibDigest}, root, base.ModuleGraphDigest)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -234,7 +234,7 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 			cmd.Env[i] = "GOARCH="
 		}
 	}
-	config := buildspec.Config{Schema: 1, Toolchain: cfg.Identity.Toolchain, Features: cfg.Identity.Features, SimulationOS: cfg.Identity.SimulationOS}
+	config := buildspec.Config{Schema: 2, Features: cfg.Identity.Features, SimulationOS: cfg.Identity.SimulationOS}
 	configData, _ := json.Marshal(config)
 	configPath, err := filepath.Abs(filepath.Join(dir, "gosim.json"))
 	if err != nil {

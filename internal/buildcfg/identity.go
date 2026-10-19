@@ -25,9 +25,6 @@ func Identity(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile
 	if err != nil {
 		return buildspec.Identity{}, err
 	}
-	if cfg.Toolchain != tc.Version {
-		return buildspec.Identity{}, fmt.Errorf("config and resolved toolchain differ")
-	}
 	if err := buildspec.CheckEnvironment(tc); err != nil {
 		return buildspec.Identity{}, err
 	}
@@ -58,10 +55,10 @@ func Identity(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile
 	return identityForSource(cfg, tc, profile, opts, distribution, root, graph)
 }
 
-func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile, opts buildspec.BuildOptions, dist Distribution, root, graph string) (buildspec.Identity, error) {
+func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile, opts buildspec.BuildOptions, dist buildspec.Fingerprints, root, graph string) (buildspec.Identity, error) {
 	id := buildspec.Identity{
 		Schema: 1, Toolchain: tc.Version, Profile: profile.ID, AdapterRevision: profile.Revision,
-		DistributionDigest: dist.ArchiveDigest, StdlibDigest: dist.SourceDigest,
+		DistributionDigest: dist.ToolchainDigest, StdlibDigest: dist.StdlibDigest,
 		HostOS: tc.HostOS, HostArch: tc.HostArch, SimulationOS: cfg.SimulationOS, SimulationArch: tc.HostArch,
 		Features: cfg.Features, Race: opts.Race, Experiments: opts.Experiments,
 		Tags: []string{"linkname", "sim"}, ModuleGraphDigest: graph, Certification: "candidate",

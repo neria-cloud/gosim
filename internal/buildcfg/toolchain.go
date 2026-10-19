@@ -1,6 +1,8 @@
 package buildcfg
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,51 +15,97 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
-type Distribution struct {
-	ArchiveDigest, SourceDigest, VerificationOrigin string
+// Discover lets the caller's Go command perform its normal module/workspace and
+// GOTOOLCHAIN resolution before freezing a concrete executable for this operation.
+func Discover(ctx context.Context, directory, explicitVersion string) (buildspec.Resolution, error) {
+	if explicitVersion != "" {
+		if err := buildspec.ValidateVersion(explicitVersion); err != nil {
+			return buildspec.Resolution{}, err
+		}
+	}
+	launcher, err := exec.LookPath("go")
+	if err != nil {
+		return buildspec.Resolution{}, err
+	}
+	env := os.Environ()
+	if explicitVersion != "" {
+		env = append(withoutEnv(withoutEnv(env, "GOTOOLCHAIN"), "GOROOT"), "GOTOOLCHAIN="+explicitVersion)
+	}
+	r, err := discoverWith(ctx, launcher, directory, env)
+	if err == nil && explicitVersion != "" && r.Toolchain.Version != explicitVersion {
+		return r, fmt.Errorf("Go resolved %s, explicitly requested %s", r.Toolchain.Version, explicitVersion)
+	}
+	return r, err
+}
+
+func discoverWith(ctx context.Context, launcher, directory string, env []string) (buildspec.Resolution, error) {
+	var result buildspec.Resolution
+	directory, err := filepath.Abs(directory)
+	if err != nil {
+		return result, err
+	}
+	cmd := exec.CommandContext(ctx, launcher, "env", "-json", "GOVERSION", "GOROOT", "GOHOSTOS", "GOHOSTARCH", "GOMOD", "GOWORK")
+	cmd.Dir, cmd.Env = directory, env
+	var diagnostics bytes.Buffer
+	cmd.Stderr = &diagnostics
+	data, err := cmd.Output()
+	if err != nil {
+		return result, fmt.Errorf("resolve Go in %s: %w\n%s", directory, err, diagnostics.Bytes())
+	}
+	var info struct{ GOVERSION, GOROOT, GOHOSTOS, GOHOSTARCH, GOMOD, GOWORK string }
+	if err := json.Unmarshal(data, &info); err != nil {
+		return result, fmt.Errorf("decode Go resolution: %w", err)
+	}
+	if err := buildspec.ValidateVersion(info.GOVERSION); err != nil {
+		return result, err
+	}
+	if info.GOHOSTOS != runtime.GOOS || info.GOHOSTARCH != runtime.GOARCH {
+		return result, fmt.Errorf("resolved Go host %s/%s differs from local %s/%s", info.GOHOSTOS, info.GOHOSTARCH, runtime.GOOS, runtime.GOARCH)
+	}
+	if err := buildspec.ValidatePlatform(info.GOHOSTOS, info.GOHOSTARCH, "linux", info.GOHOSTARCH); err != nil {
+		return result, err
+	}
+	root, err := filepath.EvalSymlinks(info.GOROOT)
+	if err != nil {
+		return result, err
+	}
+	root, err = filepath.Abs(root)
+	if err != nil {
+		return result, err
+	}
+	tc := buildspec.Toolchain{Executable: filepath.Join(root, "bin", "go"), Version: info.GOVERSION, GOROOT: root, HostOS: info.GOHOSTOS, HostArch: info.GOHOSTARCH}
+	// Check the resolved executable directly. Do not re-enter the launcher's module.
+	version := exec.CommandContext(ctx, tc.Executable, "version")
+	version.Env = append(withoutEnv(withoutEnv(env, "GOTOOLCHAIN"), "GOROOT"), "GOTOOLCHAIN=local", "GOROOT="+root)
+	actual, err := version.Output()
+	want := "go version " + tc.Version + " " + tc.HostOS + "/" + tc.HostArch
+	if err != nil || strings.TrimSpace(string(actual)) != want {
+		return result, fmt.Errorf("selected Go executable identity mismatch: got %q, expected %q: %v", actual, want, err)
+	}
+	if info.GOWORK == "" {
+		info.GOWORK = "off"
+	}
+	result = buildspec.Resolution{Schema: 1, Toolchain: tc, Context: buildspec.ModuleContext{Directory: directory, GoMod: info.GOMOD, GoWork: info.GOWORK}}
+	return result, nil
 }
 
 func Resolve(exact string) (buildspec.Toolchain, error) {
-	if err := buildspec.ValidateVersion(exact); err != nil {
-		return buildspec.Toolchain{}, err
-	}
-	if _, err := distributionRecord(exact, runtime.GOOS, runtime.GOARCH); err != nil {
-		return buildspec.Toolchain{}, err
-	}
-	// The launcher may locate/download the exact toolchain, but cannot select a
-	// newer version. All subsequent work invokes the resolved executable itself.
-	launcher, err := exec.LookPath("go")
+	r, err := Discover(context.Background(), "", exact)
+	return r.Toolchain, err
+}
+
+// ResolveRunningProcess respects the compiler Go already chose for a native test.
+func ResolveRunningProcess(ctx context.Context, directory string) (buildspec.Resolution, error) {
+	root := runtime.GOROOT()
+	env := append(withoutEnv(withoutEnv(os.Environ(), "GOTOOLCHAIN"), "GOROOT"), "GOTOOLCHAIN=local", "GOROOT="+root)
+	r, err := discoverWith(ctx, filepath.Join(root, "bin", "go"), directory, env)
 	if err != nil {
-		return buildspec.Toolchain{}, err
+		return r, fmt.Errorf("resolve running Go test context; re-run go test if module requirements changed: %w", err)
 	}
-	launcher, err = filepath.Abs(launcher)
-	if err != nil {
-		return buildspec.Toolchain{}, err
+	if r.Toolchain.Version != runtime.Version() {
+		return r, fmt.Errorf("running test compiler %s differs from installed %s; re-run go test", runtime.Version(), r.Toolchain.Version)
 	}
-	tc := buildspec.Toolchain{Executable: launcher, Version: exact, GOROOT: runtime.GOROOT(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
-	cmd := Command(tc, "", "env", "-json", "GOVERSION", "GOROOT", "GOHOSTOS", "GOHOSTARCH")
-	// GOROOT must come from the selected distribution, not the launcher's root.
-	cmd.Env = withoutEnv(cmd.Env, "GOROOT")
-	data, err := cmd.Output()
-	if err != nil {
-		return tc, fmt.Errorf("resolve %s: %w", exact, err)
-	}
-	var info struct{ GOVERSION, GOROOT, GOHOSTOS, GOHOSTARCH string }
-	if err := json.Unmarshal(data, &info); err != nil {
-		return tc, err
-	}
-	if info.GOVERSION != exact || info.GOHOSTOS != runtime.GOOS || info.GOHOSTARCH != runtime.GOARCH {
-		return tc, fmt.Errorf("toolchain resolved to %s %s/%s, requested %s %s/%s", info.GOVERSION, info.GOHOSTOS, info.GOHOSTARCH, exact, runtime.GOOS, runtime.GOARCH)
-	}
-	tc.GOROOT, err = filepath.EvalSymlinks(info.GOROOT)
-	if err != nil {
-		return tc, err
-	}
-	tc.Executable = filepath.Join(tc.GOROOT, "bin", "go")
-	if err := validateExecutable(tc); err != nil {
-		return tc, err
-	}
-	return tc, nil
+	return r, nil
 }
 
 func withoutEnv(env []string, key string) []string {
@@ -113,25 +161,12 @@ func Command(tc buildspec.Toolchain, dir string, args ...string) *exec.Cmd {
 	return buildspec.GoCommand(tc, dir, args...)
 }
 
-func Fingerprint(tc buildspec.Toolchain) (Distribution, error) {
-	record, err := distributionRecord(tc.Version, tc.HostOS, tc.HostArch)
-	if err != nil {
-		return Distribution{}, err
+func Fingerprint(tc buildspec.Toolchain) (buildspec.Fingerprints, error) {
+	if err := buildspec.ValidateVersion(tc.Version); err != nil {
+		return buildspec.Fingerprints{}, err
 	}
 	if tc.Executable != filepath.Join(tc.GOROOT, "bin", "go") {
-		return Distribution{}, fmt.Errorf("executable is outside selected distribution")
+		return buildspec.Fingerprints{}, fmt.Errorf("executable is outside selected distribution")
 	}
-	cache := os.Getenv("GOSIMCACHE")
-	if cache == "" {
-		cache, err = os.UserCacheDir()
-		if err != nil {
-			return Distribution{}, err
-		}
-	}
-	archive, err := fetchArchive(record, filepath.Join(cache, "gosim", "distributions"))
-	if err != nil {
-		return Distribution{}, err
-	}
-	defer archive.Close()
-	return verifyDistribution(tc.GOROOT, archive, record)
+	return fingerprintInstalled(tc.GOROOT)
 }

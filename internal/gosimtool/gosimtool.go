@@ -1,6 +1,7 @@
 package gosimtool
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -208,12 +209,19 @@ func ResolveTestIdentity(t *testing.T, configPath string) buildspec.Identity {
 	if err != nil {
 		t.Fatal(err)
 	}
+	resolution, err := buildcfg.ResolveRunningProcess(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.ExplicitToolchain != "" && cfg.ExplicitToolchain != resolution.Toolchain.Version {
+		t.Fatal("configured compiler differs from running Go test; migrate config to schema 2")
+	}
 	args := []string{"-config", configPath}
 	if hostabi.RaceEnabled {
 		args = append(args, "-race")
 	}
 	var id buildspec.Identity
-	if err := json.Unmarshal(invokeTestWorker(t, cfg.Toolchain, "resolve-build", args...), &id); err != nil {
+	if err := json.Unmarshal(invokeTestWorker(t, resolution.Toolchain.Version, "resolve-build", args...), &id); err != nil {
 		t.Fatal(err)
 	}
 	return id

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,12 +49,17 @@ func resolveBuild(command string, flags BuildFlags) (ResolvedBuild, error) {
 			path = ""
 		}
 	}
-	config, err := buildcfg.Load(path, flags.Overrides)
+	request, err := buildcfg.Load(path, flags.Overrides)
 	if err != nil {
 		return r, err
 	}
 	// packages.Load resolves go from the worker PATH before applying Config.Env.
-	tc, err := buildcfg.Resolve(config.Toolchain)
+	if request.Legacy {
+		fmt.Fprintln(os.Stderr, "gosim: legacy schema-1 toolchain override; migrate gosim.json to schema 2 for automatic Go selection")
+	}
+	resolution, err := buildcfg.Discover(context.Background(), "", request.ExplicitToolchain)
+	tc := resolution.Toolchain
+	config := request.Config
 	if err != nil {
 		return r, err
 	}

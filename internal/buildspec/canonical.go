@@ -5,19 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"slices"
 )
-
-var exactVersion = regexp.MustCompile(`^go1\.(25|26)\.(0|[1-9][0-9]*)$`)
-
-func ValidateVersion(v string) error {
-	// TODO(not planned): custom/devel toolchains and other Go families.
-	if !exactVersion.MatchString(v) {
-		return fmt.Errorf("toolchain %q must be an exact go1.25.N or go1.26.N release", v)
-	}
-	return nil
-}
 
 func Features(names []string) ([]string, error) {
 	seen := make(map[string]bool)
