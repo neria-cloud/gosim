@@ -76,7 +76,7 @@ func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
 	*/
 
 	// rewrite specific selectors
-	selector := packageSelector{Pkg: ident.Path, Selector: ident.Name}
+	selector := PackageSelector{Pkg: ident.Path, Selector: ident.Name}
 	replacement, ok := replacements[selector]
 	if !ok {
 		// rewrite entire packages
@@ -136,7 +136,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 		if strings.HasPrefix(val, "//go:linkname") {
 			hasLinkname = true
 
-			if _, ok := t.hooks[packageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
+			if _, ok := t.hooks[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
 				decl.Decs.Start[i] = "//"
 				hasLinkname = false
 				continue
@@ -161,7 +161,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 
 						parts[2] = fmt.Sprintf("%s.%s", newPkg, name)
 						decl.Decs.Start[i] = strings.Join(parts, " ")
-					} else if t.acceptedLinknames[packageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] == (packageSelector{Pkg: pkg, Selector: name}) {
+					} else if t.acceptedLinknames[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] == (PackageSelector{Pkg: pkg, Selector: name}) {
 						slog.Debug("keeping linkname", "pkg", t.pkgPath, "name", decl.Name.Name, "targetPkg", pkg, "targetName", name)
 					} else if strings.HasPrefix(pkg, "gosimnotranslate/") {
 						parts[2] = fmt.Sprintf("%s.%s", strings.TrimPrefix(pkg, "gosimnotranslate/"), name)
@@ -176,7 +176,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 	}
 
 	if decl.Body != nil {
-		if _, ok := t.hooks[packageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
+		if _, ok := t.hooks[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
 			// take over!
 			decl.Body = nil
 		}
@@ -193,7 +193,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 		// XXX: detect all these not implemented ones? output them?
 		// XXX: something similar for... other "bad" calls?
 
-		if linkTo, ok := t.hooks[packageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
+		if linkTo, ok := t.hooks[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
 			selector := RewriteSelector(t.pkgPath, decl.Name.Name)
 
 			pkg := linkTo.Pkg

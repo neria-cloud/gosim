@@ -1,6 +1,6 @@
 package translate
 
-var hooksGo123 = map[packageSelector]packageSelector{
+var hooksGo123 = map[PackageSelector]PackageSelector{
 	{Pkg: "golang.org/x/sys/unix", Selector: "RawSyscall"}:        {Pkg: hooksGo123Package},
 	{Pkg: "golang.org/x/sys/unix", Selector: "RawSyscall6"}:       {Pkg: hooksGo123Package},
 	{Pkg: "golang.org/x/sys/unix", Selector: "RawSyscallNoError"}: {Pkg: hooksGo123Package},
@@ -224,9 +224,9 @@ var hooksGo123 = map[packageSelector]packageSelector{
 	{Pkg: "time", Selector: "runtimeIsBubbled"}: {Pkg: hooksGo123Package},
 }
 
-var hooksGensyscallGo123ByArch = map[string]map[packageSelector]packageSelector{}
+var hooksGensyscallGo123ByArch = map[string]map[PackageSelector]PackageSelector{}
 
-var acceptedgo123Linknames = map[packageSelector]packageSelector{
+var acceptedgo123Linknames = map[PackageSelector]PackageSelector{
 	{Pkg: "hash/maphash", Selector: "runtime_memhash"}: {Pkg: "runtime", Selector: "memhash"},
 	// Go 1.25: vgetrandom links to runtime.vgetrandom for fast random data via vDSO.
 	// The real runtime.vgetrandom is available in the translated binary; pass through.

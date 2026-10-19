@@ -2,7 +2,7 @@
 package translate
 
 func init() {
-	hooksGensyscallGo123ByArch["amd64"] = map[packageSelector]packageSelector{
+	hooksGensyscallGo123ByArch["amd64"] = map[PackageSelector]PackageSelector{
 		{Pkg: "golang.org/x/sys/unix", Selector: "accept4"}:     {Pkg: hooksGo123Package},
 		{Pkg: "golang.org/x/sys/unix", Selector: "bind"}:        {Pkg: hooksGo123Package},
 		{Pkg: "golang.org/x/sys/unix", Selector: "Chdir"}:       {Pkg: hooksGo123Package},

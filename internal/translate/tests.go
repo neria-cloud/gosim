@@ -79,9 +79,9 @@ func (t *packageTranslator) rewriteTestFunc(c *dstutil.Cursor) {
 	file.Decls = newDecls
 }
 
-func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []packageSelector, runtime string) (*dst.File, error) {
+func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []PackageSelector, runtime string) (*dst.File, error) {
 	var elts []dst.Expr
-	slices.SortFunc(tests, func(a, b packageSelector) int {
+	slices.SortFunc(tests, func(a, b PackageSelector) int {
 		if d := cmp.Compare(a.Pkg, b.Pkg); d != 0 {
 			return d
 		}

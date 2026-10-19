@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–19 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–20 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -505,18 +505,18 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§9 / complete SQLite DDL, key/value/TTL schemas, manifest and build flow; T§12 cacheGet; planning clarification on per-package paths.  
 **Budget:** 2,000–3,500 changed lines. **Dependency:** 1, 19.
 
-- [ ] Implement T§9 CacheEntryV2 and TranslatePackageResult/PackageGlobalInfo serialization exactly; introduce the `gosim-translation-v2` namespace. Retain the sole STRICT cache table and primary key, with no migration/ORM/new table.
-- [ ] Implement encode/decode/cacheGet/cachePut, DB.Delete and locked Cache.Delete. Hash ordered compiled source/non-Go/dependency/module/build inputs using length-delimited SHA-256; preserve hourly last-used touch and seven-day retention. Corrupt entries become observable misses; SQLite I/O errors remain build failures.
-- [ ] Implement canonical manifest records and content verification. Use `.gosim/v2/<identity>/packages/<package-build-digest>/manifest.json` for each binary so independent package builds do not overwrite one another; keep T§9's manifest value schema.
-- [ ] Materialize through process-unique staging under a per-artifact host lock and atomic publication. Reject path traversal, verify binary/generated-file/package hashes, and do not overwrite a complete artifact on failure. Candidate and certified artifacts have distinct identities/namespaces.
-- [ ] Wire helpers into host-level tests now; switch the translator and BuildConfig/Deps types to them in Task 21, avoiding a half-migrated public cache format.
+- [x] Implement T§9 CacheEntryV2 and TranslatePackageResult/PackageGlobalInfo serialization exactly; introduce the `gosim-translation-v2` namespace. Retain the sole STRICT cache table and primary key, with no migration/ORM/new table.
+- [x] Implement encode/decode/cacheGet/cachePut, DB.Delete and locked Cache.Delete. Hash ordered compiled source/non-Go/dependency/module/build inputs using length-delimited SHA-256; preserve hourly last-used touch and seven-day retention. Corrupt entries become observable misses; SQLite I/O errors remain build failures.
+- [x] Implement canonical manifest records and content verification. Use `.gosim/v2/<identity>/packages/<package-build-digest>/manifest.json` for each binary so independent package builds do not overwrite one another; keep T§9's manifest value schema.
+- [x] Materialize through process-unique staging under a per-artifact host lock and atomic publication. Reject path traversal, verify binary/generated-file/package hashes, and do not overwrite a complete artifact on failure. Candidate and certified artifacts have distinct identities/namespaces.
+- [x] Wire helpers into host-level tests now; switch the translator and BuildConfig/Deps types to them in Task 21, avoiding a half-migrated public cache format.
 
 **Unchanged DDL:** `CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY NOT NULL, timestamp INT, contents BLOB) STRICT;`. **Envelope:** `CacheEntryV2{Format uint32, IdentityDigest string, PackageDigest string, Result TranslatePackageResult}`. Existing old-format entries are never decoded.
 
 #### Verification
 
-- [ ] Cache hit/miss/corrupt/old-format/TTL, every identity dimension, source-content-with-unchanged-mtime, path traversal, concurrent same-artifact builds and different-package same-identity builds pass.
-- [ ] Run common commit gate; no new persistent schema appears.
+- [x] Cache hit/miss/corrupt/old-format/TTL, every identity dimension, source-content-with-unchanged-mtime, path traversal, concurrent same-artifact builds and different-package same-identity builds pass.
+- [x] Run common commit gate; no new persistent schema appears.
 
 ### Task 21: Generate optional composition and connect profile-driven translation
 
@@ -1016,3 +1016,6 @@ Task 19.2.2 also fixes executable publication in `cmd/gosim/main.go` after the c
 + if err := dst.Close(); err != nil { return err }
 + return os.Rename(dst.Name(), to)
 ```
+
+
+Task 20 mechanically exports the existing `packageSelector` record as target `PackageSelector`, updating translator references and the still-live legacy generator template/output. No alias or new public user API is added. It moves v1 hashing/cache helpers into `internal/translate/cache_legacy.go` with explicit Task 21 removal ownership, so the intermediate full-suite path does not consume a partially wired v2 identity. The current cache wrapper captured its timestamp at construction; it now computes the same hourly-coarsened last-used time per Get/Put/Clean, preserving seven-day retention for a long-lived build. These are implementation details required by the target cache schema/lifetime; no architecture change.

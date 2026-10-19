@@ -246,7 +246,7 @@ var PublicExportHacks = map[string][]string{
 }
 
 // XXX: replace the package instead
-var replacements = map[packageSelector]packageSelector{
+var replacements = map[PackageSelector]PackageSelector{
 	{Pkg: "runtime", Selector: "SetFinalizer"}: {Pkg: gosimruntimePackage, Selector: "SetFinalizer"},
 	{Pkg: "runtime", Selector: "GOOS"}:         {Pkg: gosimruntimePackage, Selector: "GOOS"},
 	{Pkg: "runtime", Selector: "Gosched"}:      {Pkg: gosimruntimePackage, Selector: "Yield"},
@@ -689,14 +689,14 @@ func translatePackages(cache *cache.Cache, listPatterns []string, rootOutputDir 
 		}
 	}
 
-	translateToolHash := computeTranslateToolHash(cfg)
+	translateToolHash := legacyTranslateToolHash(cfg)
 
 	numWorkers := 32
 
 	packageHashes := make(map[string]Hash)
 
 	buildInParallel(packageGraph, numWorkers, packageHashes, func(pkgId string, importHashes map[string]Hash) Hash {
-		return computePackageHash(translateToolHash, pkgById[pkgId], importHashes)
+		return legacyPackageHash(translateToolHash, pkgById[pkgId], importHashes)
 	})
 
 	allResults := make(map[string]*TranslatePackageResult)
@@ -706,7 +706,7 @@ func translatePackages(cache *cache.Cache, listPatterns []string, rootOutputDir 
 	for pkgId, hash := range packageHashes {
 		pkg := pkgById[pkgId]
 
-		res, err := cacheGet(cache, hash)
+		res, err := legacyCacheGet(cache, hash)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -740,7 +740,7 @@ func translatePackages(cache *cache.Cache, listPatterns []string, rootOutputDir 
 	for pkgId, res := range allResults {
 		hash := packageHashes[pkgId]
 		if !cacheHits[hash] {
-			if err := cachePut(cache, hash, res); err != nil {
+			if err := legacyCachePut(cache, hash, res); err != nil {
 				log.Fatal(err)
 			}
 		}

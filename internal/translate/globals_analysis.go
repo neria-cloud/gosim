@@ -19,10 +19,10 @@ type globalsCollector struct {
 	shouldShare   map[string]bool
 	tests         []string
 
-	dontTranslate map[packageSelector]bool
+	dontTranslate map[PackageSelector]bool
 }
 
-func collectGlobalsAndTests(files []*dst.File, astMap decorator.AstMap, pkgPath string, typesInfo *types.Info, dontTranslate map[packageSelector]bool) *globalsCollector {
+func collectGlobalsAndTests(files []*dst.File, astMap decorator.AstMap, pkgPath string, typesInfo *types.Info, dontTranslate map[PackageSelector]bool) *globalsCollector {
 	c := &globalsCollector{
 		typesInfo: typesInfo,
 		astMap:    astMap,
@@ -40,7 +40,7 @@ func collectGlobalsAndTests(files []*dst.File, astMap decorator.AstMap, pkgPath 
 	return c
 }
 
-var globalsDontTranslateGo123 = map[packageSelector]bool{
+var globalsDontTranslateGo123 = map[PackageSelector]bool{
 	{Pkg: "crypto/sha512", Selector: "_K"}: true,
 	// {pkg: "sync/atomic", selector: "firstStoreInProgress"}: true, // no way... universe strikes once again
 	{Pkg: "encoding/json", Selector: "fieldCache"}:   true,
@@ -111,7 +111,7 @@ func (t *globalsCollector) collectGlobalsDecl(genDecl *dst.GenDecl) {
 
 			shouldShare := false
 
-			if t.dontTranslate[packageSelector{Pkg: t.pkgPath, Selector: name.Name}] {
+			if t.dontTranslate[PackageSelector{Pkg: t.pkgPath, Selector: name.Name}] {
 				shouldShare = true
 			}
 

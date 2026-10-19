@@ -74,15 +74,13 @@ func (d *DB) Clean(timestamp time.Time) error {
 }
 
 type Cache struct {
-	mu  sync.Mutex
-	db  *DB
-	now time.Time
+	mu sync.Mutex
+	db *DB
 }
 
 func NewCache(db *DB) *Cache {
 	return &Cache{
-		db:  db,
-		now: time.Now().Truncate(time.Hour),
+		db: db,
 	}
 }
 
@@ -94,7 +92,7 @@ func (c *Cache) Get(key string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := c.db.Touch(key, c.now); err != nil {
+	if err := c.db.Touch(key, time.Now().Truncate(time.Hour)); err != nil {
 		return nil, err
 	}
 	return blob, nil
@@ -104,12 +102,24 @@ func (c *Cache) Put(key string, blob []byte) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return c.db.Put(key, c.now, blob)
+	return c.db.Put(key, time.Now().Truncate(time.Hour), blob)
 }
 
 func (c *Cache) Clean() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return c.db.Clean(c.now.Add(-7 * 24 * time.Hour))
+	return c.db.Clean(time.Now().Truncate(time.Hour).Add(-7 * 24 * time.Hour))
+}
+
+// Delete allows a corrupt immutable entry to be replaced on the next miss.
+func (d *DB) Delete(key string) error {
+	_, err := d.db.Exec("DELETE FROM cache WHERE key = ?", key)
+	return err
+}
+
+func (c *Cache) Delete(key string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.db.Delete(key)
 }

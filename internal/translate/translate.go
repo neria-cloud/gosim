@@ -64,7 +64,7 @@ func (gi *GlobalInfo) merge(pkg string, globals *PackageGlobalInfo) {
 type TranslatePackageResult struct {
 	PackageName     string
 	PackagePath     string
-	CollectedTests  []packageSelector
+	CollectedTests  []PackageSelector
 	GlobalInfo      *PackageGlobalInfo
 	TranslatedFiles map[string][]byte
 }
@@ -134,7 +134,7 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 
 	// build meta-test
 	if kind == PackageKindTestBinary {
-		var collectedTests []packageSelector
+		var collectedTests []PackageSelector
 		var packageName string
 
 		for _, dep := range args.pkg.Imports {
@@ -278,7 +278,7 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 	if kind == PackageKindForTest || kind == PackageKindTests {
 		for _, test := range globals.tests {
 			testFuncs[test] = true
-			results.CollectedTests = append(results.CollectedTests, packageSelector{Pkg: args.pkg.PkgPath, Selector: test})
+			results.CollectedTests = append(results.CollectedTests, PackageSelector{Pkg: args.pkg.PkgPath, Selector: test})
 			globalInfo.Rewritten[test] = "Impl" + test
 		}
 	}
@@ -416,7 +416,7 @@ type translateCollect struct {
 	maps               []mapInitializer
 }
 
-type packageSelector struct {
+type PackageSelector struct {
 	Pkg      string
 	Selector string
 }
@@ -429,8 +429,8 @@ type packageTranslator struct {
 	replacedPkgs  map[string]string
 	pkgPath       string
 
-	hooks             map[packageSelector]packageSelector
-	acceptedLinknames map[packageSelector]packageSelector
+	hooks             map[PackageSelector]PackageSelector
+	acceptedLinknames map[PackageSelector]PackageSelector
 	keepAsmPkgs       map[string]bool
 
 	collect             translateCollect

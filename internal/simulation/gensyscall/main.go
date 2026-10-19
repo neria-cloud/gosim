@@ -461,7 +461,7 @@ var _ unsafe.Pointer
 	writeFormattedGoFile(path.Join(rootDir, "internal/translate/hooks_"+version+"_"+arch+"_gen.go"), `package translate
 
 func init() {
-	hooksGensyscall`+uppercase(version)+`ByArch["`+arch+`"] = map[packageSelector]packageSelector{
+	hooksGensyscall`+uppercase(version)+`ByArch["`+arch+`"] = map[PackageSelector]PackageSelector{
 `+translateTexts.output()+`}
 }
 `)
