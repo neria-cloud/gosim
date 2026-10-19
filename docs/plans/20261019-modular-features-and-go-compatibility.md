@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** Tasks 1–32 (including their recorded children) complete. All 48 current-source tuples are certified and normal-command acceptance passed on both exact patches; Task 33 final closure remains. Race and large suites ran under the user’s explicit authorization.
+**Status:** complete. Tasks 1–33 and all recorded child tasks are verified; all 48 current-source tuples are certified. Fresh normal CLI/metatesting/debug acceptance passed on both exact patches, and the final architectural/wiring audit found no unresolved required gap. Race and large suites ran under the user’s explicit authorization.
 
 ## Important notices
 
@@ -884,23 +884,23 @@ Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for 
 **References:** target **ALL sections T§1–12**, full declaration inventory, brainstorm D1–D7, and every planning clarification.  
 **Budget:** 500–3,000 changed lines for verification fixes; split larger fixes before completion. **Dependency:** every preceding task.
 
-- [ ] Verify public API delta: every T§4 value type, method signature, native/sim implementation, error contract and removed old API matches; examples/nemesis and external-module tests use only the new API.
-- [ ] Verify runtime/ABI delta: every retained I primitive and T§8 Engine/Random/view/facade method exists; selected host ABI, deterministic streams, machine isolation, memory borrowing, abort and single-active-run behavior match.
-- [ ] Verify contracts/kernel delta: all T§5 records, interface methods, service ownership, dispatcher/completion, descriptors/polling/process routes and T§6 lifecycle/failure flows match the implementation and T§12 algorithms.
-- [ ] Verify filesystem delta: all T§7 FileOps/FSControl methods, staged ownership, immutable crash images, synchronous iterator, state budget, restore/reference lifetime and known capability classifications match; no promised lock/permission support is fabricated.
-- [ ] Verify network delta: all SocketOps/NetControl methods, staged addresses, directed policy, traffic-driven faults, epochs/connection generations, graceful final packets and crash cleanup match T§4/6/7.
-- [ ] Verify Go compatibility delta: each I hook/shim has an accounted-for destination; both families select at compile time, exact ABI/layout/module policy checks exist, unsupported imports/probes fail correctly, and no shared/old fallback remains.
-- [ ] Verify build/translation delta: every T§9 Config/Identity/Tuple/Selection/BuildConfig/Driver structure and method exists; providers are generated before package loading; host vs simulated platform and native vs translated boundaries remain separate; all commands use the pinned executable.
-- [ ] Verify database/cache/artifact delta: the sole unchanged STRICT SQLite table/index and seven-day/hourly-touch policy match; CacheEntryV2, hash inputs, corrupt-entry handling, package manifests, locks/atomic publication, protocol and replay identities match T§9 and the artifact-path clarification. No unplanned ORM/table/store exists.
-- [ ] Verify metatesting/testing/CI delta: child ownership/reaping, handshake/content checks, suite applicability, 48 exact certified tuples, actual architecture/emulation labels and mandatory negative/import/race coverage are real and current.
-- [ ] Verify documentation/scope delta: no compatibility wrapper, migration/retirement tag, fake success stub, host fallback, unclassified probe, unaccounted declaration or silently deferred requirement survives. Every T§11 exclusion has its specified rejection/capability behavior and `TODO(not planned)` note where relevant.
-- [ ] Review **every entry in NOT IMPLEMENTED GAPS**. Fix it according to target/plan or document an explicit user-approved deferral. Mark an unresolved too-complex item `[_]` with reason/evidence; do not declare this task or the overall implementation complete while a required gap remains. Re-run invalidated certification after source fixes.
-- [ ] Verify **all methods/components are wired for actual use**: CLI/config → selected profile → composition/translation → pinned compile → Driver/Engine → kernel/provider sessions → public controls and typed syscalls → cleanup/replay/metatest results. Run supported public entry-point examples for every feature set and both families; trace constructor/route reachability, including negative disabled routes. No required component may exist only in tests or unreachable code.
+- [x] Verify public API delta: every T§4 value type, method signature, native/sim implementation, error contract and removed old API matches; examples/nemesis and external-module tests use only the new API.
+- [x] Verify runtime/ABI delta: every retained I primitive and T§8 Engine/Random/view/facade method exists; selected host ABI, deterministic streams, machine isolation, memory borrowing, abort and single-active-run behavior match.
+- [x] Verify contracts/kernel delta: all T§5 records, interface methods, service ownership, dispatcher/completion, descriptors/polling/process routes and T§6 lifecycle/failure flows match the implementation and T§12 algorithms.
+- [x] Verify filesystem delta: all T§7 FileOps/FSControl methods, staged ownership, immutable crash images, synchronous iterator, state budget, restore/reference lifetime and known capability classifications match; no promised lock/permission support is fabricated.
+- [x] Verify network delta: all SocketOps/NetControl methods, staged addresses, directed policy, traffic-driven faults, epochs/connection generations, graceful final packets and crash cleanup match T§4/6/7.
+- [x] Verify Go compatibility delta: each I hook/shim has an accounted-for destination; both families select at compile time, exact ABI/layout/module policy checks exist, unsupported imports/probes fail correctly, and no shared/old fallback remains.
+- [x] Verify build/translation delta: every T§9 Config/Identity/Tuple/Selection/BuildConfig/Driver structure and method exists; providers are generated before package loading; host vs simulated platform and native vs translated boundaries remain separate; all commands use the pinned executable.
+- [x] Verify database/cache/artifact delta: the sole unchanged STRICT SQLite table/index and seven-day/hourly-touch policy match; CacheEntryV2, hash inputs, corrupt-entry handling, package manifests, locks/atomic publication, protocol and replay identities match T§9 and the artifact-path clarification. No unplanned ORM/table/store exists.
+- [x] Verify metatesting/testing/CI delta: child ownership/reaping, handshake/content checks, suite applicability, 48 exact certified tuples, actual architecture/emulation labels and mandatory negative/import/race coverage are real and current.
+- [x] Verify documentation/scope delta: no compatibility wrapper, migration/retirement tag, fake success stub, host fallback, unclassified probe, unaccounted declaration or silently deferred requirement survives. Every T§11 exclusion has its specified rejection/capability behavior and `TODO(not planned)` note where relevant.
+- [x] Review **every entry in NOT IMPLEMENTED GAPS**. Fix it according to target/plan or document an explicit user-approved deferral. Mark an unresolved too-complex item `[_]` with reason/evidence; do not declare this task or the overall implementation complete while a required gap remains. Re-run invalidated certification after source fixes.
+- [x] Verify **all methods/components are wired for actual use**: CLI/config → selected profile → composition/translation → pinned compile → Driver/Engine → kernel/provider sessions → public controls and typed syscalls → cleanup/replay/metatest results. Run supported public entry-point examples for every feature set and both families; trace constructor/route reachability, including negative disabled routes. No required component may exist only in tests or unreachable code.
 
 #### Verification
 
-- [ ] The final common commit gate passes, architecture/route/declaration ledgers have no unexplained omissions, and every required gap is fixed or explicitly approved as deferred.
-- [ ] Certification evidence matches final executable fingerprints; rerun affected jobs if this task changed them. Record final commits and validation evidence before checking this task complete.
+- [x] The final common commit gate passes, architecture/route/declaration ledgers have no unexplained omissions, and every required gap is fixed or explicitly approved as deferred.
+- [x] Certification evidence matches final executable fingerprints; rerun affected jobs if this task changed them. Record final commits and validation evidence before checking this task complete.
 
 ## Validation Commands
 
@@ -1043,6 +1043,10 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | Fixed | T§2/9/10; Task 32.2.3 | Opt-in workers could skip while certification recorded passed boundary coverage | Ordinary reports are validation-only and cannot promote; matrix invokes selected-tuple make test-large and requires terminal worker/subtest passes. Focused checks, both ordinary gates and large validation passed |
 
 ## NOT PLANNED CHANGES
+
+### User-requested README feature inventory during final verification
+
+`README.md`: added the full package/feature/status/comment inventory from `docs/reports/turmoil-featres-diff.md`, updating historical names and one-way network support against current source. The 42-row documentation-only table does not alter certification fingerprints. Subsequent user presentation edits/staging are preserved outside the final closure commit. The user also requested the separate certification-performance issue, filed as https://github.com/neria-cloud/gosim/issues/2; optimization is follow-up work, not a change to this plan's acceptance scope.
 
 ### Task 30 — Collect Docker evidence without host bind mounts
 
