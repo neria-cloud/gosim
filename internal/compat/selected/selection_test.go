@@ -22,10 +22,11 @@ func TestResolveArchitectureAndOwnedMetadata(t *testing.T) {
 			}
 			d := strings.Repeat("a", 64)
 			id := buildspec.Identity{
-				Schema: 1, Toolchain: patch, Profile: p.ID, AdapterRevision: p.Revision,
-				DistributionDigest: d, StdlibDigest: d, RuntimeRevision: d, HostOS: "linux", HostArch: arch, SimulationOS: "linux", SimulationArch: arch,
-				Features: []string{"rt"}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d, Certification: "candidate",
+				Schema: 2, Toolchain: patch, Profile: p.ID, AdapterRevision: p.Revision,
+				ToolchainDigest: d, StdlibDigest: d, ContractDigest: d, RuntimeRevision: d, HostOS: "linux", HostArch: arch, SimulationOS: "linux", SimulationArch: arch,
+				Features: []string{"rt"}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
 			}
+			id.ContractDigest, _ = p.ContractDigest()
 			s, err := p.Select(id)
 			if err != nil {
 				t.Fatal(err)

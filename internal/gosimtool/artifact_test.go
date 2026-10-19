@@ -19,7 +19,7 @@ import (
 
 func artifactIdentity() buildspec.Identity {
 	d := strings.Repeat("a", 64)
-	return buildspec.Identity{Schema: 1, Toolchain: "go1.26.9", Profile: "go126", DistributionDigest: d, StdlibDigest: d, AdapterRevision: d, RuntimeRevision: d, HostOS: "darwin", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64", Features: []string{"rt"}, Tags: []string{"sim", "linkname"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d, Certification: "candidate"}
+	return buildspec.Identity{Schema: 2, Toolchain: "go1.26.9", Profile: "go126", ToolchainDigest: d, StdlibDigest: d, ContractDigest: d, AdapterRevision: d, RuntimeRevision: d, HostOS: "darwin", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64", Features: []string{"rt"}, Tags: []string{"sim", "linkname"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d}
 }
 
 func artifactPackages(name string) []PackageDigest {
@@ -35,7 +35,7 @@ func fixtureBuild(directory string, id buildspec.Identity, packages []PackageDig
 	if err := os.WriteFile(filepath.Join(directory, "sample.test"), binary, 0o755); err != nil {
 		return Manifest{}, err
 	}
-	return Manifest{Schema: 1, Identity: id, PackageDigests: packages, Binary: ArtifactFile{Path: "sample.test", SHA256: buildspec.Hash(binary)}, GeneratedFiles: []ArtifactFile{{Path: "src/sample.go", SHA256: buildspec.Hash(source)}}}, nil
+	return Manifest{Schema: 2, Identity: id, PackageDigests: packages, Binary: ArtifactFile{Path: "sample.test", SHA256: buildspec.Hash(binary)}, GeneratedFiles: []ArtifactFile{{Path: "src/sample.go", SHA256: buildspec.Hash(source)}}}, nil
 }
 
 func TestArtifactCanonicalIdentityAndPackageSeparation(t *testing.T) {
@@ -82,15 +82,14 @@ func TestArtifactCanonicalIdentityAndPackageSeparation(t *testing.T) {
 	if err != nil || sameContentDir == a.Directory {
 		t.Fatal("same-content packages collided", err)
 	}
-	promoted := id
-	promoted.Certification = "certified"
-	promoted.EvidenceDigest = strings.Repeat("b", 64)
-	promotedDir, err := ArtifactDirectory(root, promoted, packages)
-	if err != nil || promotedDir == a.Directory {
-		t.Fatal("certification namespace collision", err)
+	otherPatch := id
+	otherPatch.Toolchain = "go1.26.1"
+	otherDir, err := ArtifactDirectory(root, otherPatch, packages)
+	if err != nil || otherDir == a.Directory {
+		t.Fatal("patch identity collision", err)
 	}
-	if _, err := VerifyArtifact(a.Directory, promoted, packages); err == nil {
-		t.Fatal("candidate accepted as certified")
+	if _, err := VerifyArtifact(a.Directory, otherPatch, packages); err == nil {
+		t.Fatal("accepted artifact compiled by another patch")
 	}
 	if _, err := VerifyArtifact(a.Directory, id, other); err == nil {
 		t.Fatal("wrong source package set accepted")
@@ -168,7 +167,7 @@ func TestArtifactBuilderMustMatchManifest(t *testing.T) {
 	id := artifactIdentity()
 	packages := artifactPackages("sample")
 	for name, mutate := range map[string]func(string, *Manifest){
-		"schema":    func(_ string, m *Manifest) { m.Schema = 2 },
+		"schema":    func(_ string, m *Manifest) { m.Schema = 1 },
 		"identity":  func(_ string, m *Manifest) { m.Identity.RuntimeRevision = strings.Repeat("b", 64) },
 		"package":   func(_ string, m *Manifest) { m.PackageDigests = artifactPackages("wrong") },
 		"binary":    func(_ string, m *Manifest) { m.Binary.SHA256 = strings.Repeat("b", 64) },

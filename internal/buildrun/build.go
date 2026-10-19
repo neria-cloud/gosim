@@ -51,7 +51,7 @@ func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (result BuildRe
 		}
 		inputs := []gosimtool.PackageDigest{input}
 		artifact, err := gosimtool.BuildArtifact(project, result.Config.Identity, inputs, func(stage string) (gosimtool.Manifest, error) {
-			manifest := gosimtool.Manifest{Schema: 1, Identity: result.Config.Identity, PackageDigests: inputs}
+			manifest := gosimtool.Manifest{Schema: 2, Identity: result.Config.Identity, PackageDigests: inputs}
 			source := filepath.Join(stage, "source")
 			if err := os.Mkdir(source, 0o755); err != nil {
 				return manifest, err

@@ -90,8 +90,8 @@ func PackageBuildDigest(packages []PackageDigest) (string, error) {
 }
 
 func normalizeManifest(m Manifest) (Manifest, error) {
-	if m.Schema != 1 {
-		return Manifest{}, fmt.Errorf("unsupported manifest schema %d", m.Schema)
+	if m.Schema != 2 {
+		return Manifest{}, fmt.Errorf("unsupported manifest schema %d; rebuild artifacts", m.Schema)
 	}
 	var err error
 	m.Identity, err = buildspec.NormalizeIdentity(m.Identity)

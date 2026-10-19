@@ -74,12 +74,7 @@ func resolveBuild(command string, flags BuildFlags) (ResolvedBuild, error) {
 	if err != nil {
 		return r, err
 	}
-	if command != "internal-candidate" {
-		id, err = buildcfg.CertifiedIdentity(id, profile, selected.Evidence())
-		if err != nil {
-			return r, err
-		}
-	}
+
 	selection, err := profile.Select(id)
 	if err != nil {
 		return r, err

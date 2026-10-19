@@ -20,13 +20,9 @@ func TestAdapterMetadataAndFingerprints(t *testing.T) {
 			if err := p.Validate(); err != nil {
 				t.Fatal(err)
 			}
-			if len(p.Tuples) != 24 {
-				t.Fatalf("tuples=%d", len(p.Tuples))
-			}
-			for _, tuple := range p.Tuples {
-				if tuple.Status != "pending" || tuple.SourceDigest != "" || tuple.ResultDigest != "" {
-					t.Fatalf("unearned certification: %+v", tuple)
-				}
+			support, err := buildspec.LookupProfile(p.ID)
+			if err != nil || support.Family != p.Support.Family {
+				t.Fatal("invalid family support", err)
 			}
 			digest, err := spec.SourceRevision("../../..", p.ID)
 			if err != nil {
@@ -39,8 +35,8 @@ func TestAdapterMetadataAndFingerprints(t *testing.T) {
 	}
 	p := p125.Descriptor()
 	p.Hooks[0].Symbol = "mutation"
-	p.Tuples[0].Features[0] = "mutation"
-	if p125.Descriptor().Hooks[0].Symbol == "mutation" || p125.Descriptor().Tuples[0].Features[0] == "mutation" {
+	p.Support.Family = "mutation"
+	if p125.Descriptor().Hooks[0].Symbol == "mutation" || p125.Descriptor().Support.Family == "mutation" {
 		t.Fatal("descriptor state leaked")
 	}
 }

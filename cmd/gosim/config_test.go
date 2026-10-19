@@ -4,36 +4,32 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
-func TestCommandCertificationParity(t *testing.T) {
-	t.Parallel()
+func TestCommandDoesNotRequireCertification(t *testing.T) {
 	config := buildspec.Config{Schema: 2, Features: []string{"rt"}, SimulationOS: "linux"}
-	data, _ := json.Marshal(config)
+	data, err := json.Marshal(config)
+	if err != nil {
+		t.Fatal(err)
+	}
 	path := filepath.Join(t.TempDir(), "gosim.json")
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	flags := BuildFlags{ConfigPath: path}
-	for _, command := range []string{"translate", "test", "build-tests", "debug", "prepare-selftest", "lookup-test", "resolve-build"} {
-		t.Run(command, func(t *testing.T) {
-			if _, err := resolveBuild(command, flags); err == nil || !strings.Contains(err.Error(), "pending") {
-				t.Fatalf("normal command accepted pending tuple: %v", err)
-			}
-		})
+	normal, err := resolveBuild("test", BuildFlags{ConfigPath: path})
+	if err != nil {
+		t.Fatal("ordinary command blocked without current certification", err)
 	}
-	selected, err := resolveBuild("internal-candidate", flags)
-	if err != nil || selected.Identity.Certification != "candidate" {
-		t.Fatal(selected, err)
+	candidate, err := resolveBuild("internal-candidate", BuildFlags{ConfigPath: path})
+	if err != nil {
+		t.Fatal(err)
 	}
-	features := []string{"rt", "net"}
-	flags.Overrides.Features = &features
-	selected, err = resolveBuild("internal-candidate", flags)
-	if err != nil || strings.Join(selected.Identity.Features, ",") != "rt,net" {
-		t.Fatal("override did not replace features", selected, err)
+	a, _ := buildspec.Digest(normal.Identity)
+	b, _ := buildspec.Digest(candidate.Identity)
+	if a != b {
+		t.Fatal("internal helper uses a different build identity/support policy")
 	}
 }

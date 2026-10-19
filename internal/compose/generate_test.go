@@ -26,14 +26,15 @@ func selection(t *testing.T, features ...string) buildspec.Selection {
 	}
 	d := strings.Repeat("a", 64)
 	id := buildspec.Identity{
-		Schema: 1, Toolchain: patch, Profile: p.ID, AdapterRevision: p.Revision, DistributionDigest: d, StdlibDigest: d, RuntimeRevision: d,
-		HostOS: runtime.GOOS, HostArch: runtime.GOARCH, SimulationOS: "linux", SimulationArch: runtime.GOARCH, Features: features, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d, Certification: "candidate",
+		Schema: 2, Toolchain: patch, Profile: p.ID, AdapterRevision: p.Revision, ToolchainDigest: d, StdlibDigest: d, ContractDigest: d, RuntimeRevision: d,
+		HostOS: runtime.GOOS, HostArch: runtime.GOARCH, SimulationOS: "linux", SimulationArch: runtime.GOARCH, Features: features, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
 	}
 	for _, f := range features {
 		if f != "rt" {
 			id.ProviderRevisions = append(id.ProviderRevisions, buildspec.Revision{Name: f, Digest: d})
 		}
 	}
+	id.ContractDigest, _ = p.ContractDigest()
 	s, err := p.Select(id)
 	if err != nil {
 		t.Fatal(err)

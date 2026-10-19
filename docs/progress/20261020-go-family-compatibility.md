@@ -23,3 +23,11 @@ Validation:
 - gofmt/gofumpt for changed Go files and `git diff --check` passed.
 
 Notes: ordinary command certification/tuple admission remains until Task 2; automatic worker bootstrap remains Task 4. `ConfigRequest.Legacy` is an additional process-local field allowing migration diagnostics at the CLI boundary without printing from library configuration code. No certification or cross-platform jobs ran.
+
+## Task 2 — Evidence-independent identities and family admission — 2026-10-20
+
+Implemented schema-2 executable/artifact identities, actual toolchain and contract digests, family support selection with no tuple/evidence lookup, and removal of embedded certification from generated runtime configuration. Kept the public Certified field deprecated/false. Exact manual reports now bind a framework digest and cannot substitute ordinary validation for large coverage. Removed active tuple validators and profile evidence embedding; historical files remain. Advanced metatest handshake to protocol 3 and replay revision to v3; old schemas and wrong-patch artifacts are rejected.
+
+Verified focused native tests for canonical identities, report validation (in-memory only), family selection, adapter metadata, composition imports, artifact publication/corruption/locks, lookup isolation, translation-cache identities, and metatest protocol/reaping. Ordinary CLI resolution without current certification passed both Go 1.26.9 and default Go 1.25.5. Initial checks found stale fixture fields and the old negative schema value; fixed them and reran affected checks successfully. Regenerated family source revisions after metadata changes; formatting and diff checks passed.
+
+Remaining planned work: full layout/constant contract inventories and compatibility-cache execution (Task 3); automatic worker/bootstrap and workspace integration (Tasks 4–5); ordinary test orchestration still calls the old entry until Task 6, so no full-suite command has been run. No certification or cross-platform execution occurred.

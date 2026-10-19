@@ -13,22 +13,18 @@ import (
 func fixture() (Profile, buildspec.Identity) {
 	d := strings.Repeat("a", 64)
 	id := buildspec.Identity{
-		Schema: 1, Toolchain: "go1.26.9", Profile: "go126", DistributionDigest: d, StdlibDigest: d,
+		Schema: 2, Toolchain: "go1.26.9", Profile: "go126", ToolchainDigest: d, StdlibDigest: d, ContractDigest: d,
 		AdapterRevision: d, RuntimeRevision: d, HostOS: "linux", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64",
-		Features: []string{"rt"}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d, Certification: "candidate",
+		Features: []string{"rt"}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
 	}
 	p := Profile{
-		ID: "go126", Revision: d,
+		ID: "go126", Revision: d, Support: buildspec.FamilySupport{Family: "1.26", Profile: "go126"},
 		Hooks:           []Hook{{Package: "runtime", Symbol: "Gosched", Signature: "func()", Target: module + "/internal/compat/go126/hooks/rt.Gosched", Owner: "rt"}},
 		Packages:        []PackagePolicy{{Path: "runtime", Mode: "bridge", Reason: "explicit runtime hooks"}},
 		RuntimePackages: []string{module + "/internal/kernel"},
 	}
-	for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
-		p.Tuples = append(p.Tuples, buildspec.Tuple{
-			Toolchain: id.Toolchain, HostOS: id.HostOS, HostArch: id.HostArch, SimulationOS: id.SimulationOS, SimulationArch: id.SimulationArch,
-			Features: features, Status: "pending",
-		})
-	}
+
+	id.ContractDigest, _ = p.ContractDigest()
 	return p, id
 }
 
@@ -57,38 +53,29 @@ func TestSelectFeatureProvidersAndOwnInputs(t *testing.T) {
 	}
 }
 
-func TestCertificationRequiresExactSourceEvidence(t *testing.T) {
+func TestFamilySelectionNeedsNoPatchEvidence(t *testing.T) {
 	t.Parallel()
 	p, id := fixture()
-	id.Certification, id.EvidenceDigest = "certified", strings.Repeat("b", 64)
-	if _, err := p.Select(id); err == nil {
-		t.Fatal("certified selection accepted pending tuple")
-	}
-	source, err := buildspec.SourceDigest(id)
-	if err != nil {
-		t.Fatal(err)
-	}
-	p.Tuples[0].Status, p.Tuples[0].SourceDigest, p.Tuples[0].ResultDigest = "certified", source, id.EvidenceDigest
-	if _, err := p.Select(id); err != nil {
-		t.Fatal(err)
-	}
-	for _, change := range []func(*buildspec.Identity){
-		func(id *buildspec.Identity) { id.RuntimeRevision = strings.Repeat("c", 64) },
-		func(id *buildspec.Identity) { id.EvidenceDigest = strings.Repeat("c", 64) },
-		func(id *buildspec.Identity) { id.Race = true },
-		func(id *buildspec.Identity) { id.Toolchain = "go1.26.8" },
-		func(id *buildspec.Identity) { id.AdapterRevision = strings.Repeat("c", 64) },
-		func(id *buildspec.Identity) { id.DebugPolicyDigest = strings.Repeat("c", 64) },
-	} {
-		copy := id
-		change(&copy)
-		if _, err := p.Select(copy); err == nil {
-			t.Fatalf("accepted stale/mismatched certification: %+v", copy)
+	for _, patch := range []string{"go1.26.0", "go1.26.1", "go1.26.9", "go1.26.999"} {
+		id.Toolchain = patch
+		if _, err := p.Select(id); err != nil {
+			t.Fatal(patch, err)
 		}
 	}
-	id.Certification, id.EvidenceDigest = "candidate", ""
+	original := id.ContractDigest
+	id.ContractDigest = strings.Repeat("c", 64)
 	if _, err := p.Select(id); err == nil {
-		t.Fatal("candidate path accepted tuple not pending")
+		t.Fatal("accepted wrong contract digest")
+	}
+	id.ContractDigest = original
+	id.Toolchain = "go1.25.1"
+	if _, err := p.Select(id); err == nil {
+		t.Fatal("accepted wrong family")
+	}
+	id.Toolchain = "go1.26.1"
+	id.AdapterRevision = strings.Repeat("b", 64)
+	if _, err := p.Select(id); err == nil {
+		t.Fatal("accepted wrong adapter revision")
 	}
 }
 
@@ -96,10 +83,7 @@ func TestProfileRejectsIncompleteOrAmbiguousMetadata(t *testing.T) {
 	t.Parallel()
 	for _, change := range []func(*Profile){
 		func(p *Profile) { p.Hooks = nil },
-		func(p *Profile) { p.Tuples = append(p.Tuples, p.Tuples[0]) },
-		func(p *Profile) { p.Tuples[0].Toolchain = "go1.25.14" },
-		func(p *Profile) { p.Tuples[0].Status = "certified" },
-		func(p *Profile) { p.Tuples[0].ResultDigest = strings.Repeat("a", 64) },
+		func(p *Profile) { p.Support.Profile = "go125" },
 		func(p *Profile) { p.Packages[0].Mode = "skip" },
 		func(p *Profile) { p.Packages[0].Reason = "" },
 		func(p *Profile) { p.Hooks = append(p.Hooks, p.Hooks[0]) },

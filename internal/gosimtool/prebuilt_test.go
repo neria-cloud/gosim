@@ -47,8 +47,8 @@ func TestLookupArtifactUsesExactCurrentInputs(t *testing.T) {
 			id.Features = []string{"rt", "fs"}
 			id.ProviderRevisions = []buildspec.Revision{{Name: "fs", Digest: strings.Repeat("b", 64)}}
 		},
-		"certified": func(id *buildspec.Identity, _ *string, _ map[string]string) {
-			id.Certification, id.EvidenceDigest = "certified", strings.Repeat("c", 64)
+		"toolchain": func(id *buildspec.Identity, _ *string, _ map[string]string) {
+			id.Toolchain = "go1.26.1"
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

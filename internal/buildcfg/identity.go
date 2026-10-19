@@ -56,14 +56,17 @@ func Identity(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile
 }
 
 func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile, opts buildspec.BuildOptions, dist buildspec.Fingerprints, root, graph string) (buildspec.Identity, error) {
+	contract, err := profile.ContractDigest()
+	if err != nil {
+		return buildspec.Identity{}, err
+	}
 	id := buildspec.Identity{
-		Schema: 1, Toolchain: tc.Version, Profile: profile.ID, AdapterRevision: profile.Revision,
-		DistributionDigest: dist.ToolchainDigest, StdlibDigest: dist.StdlibDigest,
+		Schema: 2, ContractDigest: contract, Toolchain: tc.Version, Profile: profile.ID, AdapterRevision: profile.Revision,
+		ToolchainDigest: dist.ToolchainDigest, StdlibDigest: dist.StdlibDigest,
 		HostOS: tc.HostOS, HostArch: tc.HostArch, SimulationOS: cfg.SimulationOS, SimulationArch: tc.HostArch,
 		Features: cfg.Features, Race: opts.Race, Experiments: opts.Experiments,
-		Tags: []string{"linkname", "sim"}, ModuleGraphDigest: graph, Certification: "candidate",
+		Tags: []string{"linkname", "sim"}, ModuleGraphDigest: graph,
 	}
-	var err error
 	id.RuntimeRevision, err = hashSources(root, []string{"rt/runtime", "internal/contracts", "internal/kernel", "internal/control"})
 	if err != nil {
 		return id, err

@@ -44,7 +44,7 @@ func TestMain(driver Driver) {
 			fatal(fmt.Errorf("metatest binary runtime identity mismatch"))
 			return
 		}
-		hello := MetatestHandshake{Protocol: 2, IdentityDigest: digest, Toolchain: runtime.Version()}
+		hello := MetatestHandshake{Protocol: 3, IdentityDigest: digest, Toolchain: runtime.Version()}
 		if err := output.Encode(hello); err != nil {
 			fatal(err)
 			return

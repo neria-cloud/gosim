@@ -57,8 +57,8 @@ func Hash(data []byte) string {
 // NormalizeIdentity returns an owned copy. Only the fixed build-policy tags are
 // allowed: release tags and arbitrary feature-changing user tags are not inputs.
 func NormalizeIdentity(id Identity) (Identity, error) {
-	if id.Schema != 1 {
-		return Identity{}, fmt.Errorf("unsupported identity schema %d", id.Schema)
+	if id.Schema != 2 {
+		return Identity{}, fmt.Errorf("unsupported identity schema %d; rebuild artifacts", id.Schema)
 	}
 	if err := ValidateVersion(id.Toolchain); err != nil {
 		return Identity{}, err
@@ -74,9 +74,15 @@ func NormalizeIdentity(id Identity) (Identity, error) {
 	if id.Experiments != "" {
 		return Identity{}, fmt.Errorf("nondefault GOEXPERIMENT is unsupported")
 	}
-	if id.Profile != "go"+id.Toolchain[2:3]+id.Toolchain[4:6] {
+	version, _ := ParseGoVersion(id.Toolchain)
+	family, err := LookupFamily(version)
+	if err != nil {
+		return Identity{}, err
+	}
+	if id.Profile != family.Profile {
 		return Identity{}, fmt.Errorf("profile %q does not match %s", id.Profile, id.Toolchain)
 	}
+
 	id.Tags = slices.Clone(id.Tags)
 	slices.Sort(id.Tags)
 	for i, tag := range id.Tags {
@@ -103,7 +109,8 @@ func NormalizeIdentity(id Identity) (Identity, error) {
 		id.ProviderRevisions = []Revision{}
 	}
 	for _, field := range []struct{ name, value string }{
-		{"distribution", id.DistributionDigest},
+		{"toolchain", id.ToolchainDigest},
+		{"contract", id.ContractDigest},
 		{"stdlib", id.StdlibDigest},
 		{"adapter", id.AdapterRevision},
 		{"runtime", id.RuntimeRevision},
@@ -115,13 +122,7 @@ func NormalizeIdentity(id Identity) (Identity, error) {
 			return Identity{}, fmt.Errorf("invalid %s digest", field.name)
 		}
 	}
-	if id.Certification != "candidate" && id.Certification != "certified" {
-		return Identity{}, fmt.Errorf("invalid certification status %q", id.Certification)
-	}
-	if (id.Certification == "candidate" && id.EvidenceDigest != "") ||
-		(id.Certification == "certified" && !ValidDigest(id.EvidenceDigest)) {
-		return Identity{}, fmt.Errorf("evidence digest does not match certification status")
-	}
+
 	return id, nil
 }
 
@@ -148,7 +149,6 @@ func SourceDigest(id Identity) (string, error) {
 	if _, err := NormalizeIdentity(id); err != nil {
 		return "", err
 	}
-	id.Certification, id.EvidenceDigest = "candidate", ""
-	id.ModuleGraphDigest = Hash([]byte("gosim-certification-application-graph-v1"))
+	id.ModuleGraphDigest = Hash([]byte("gosim-framework-application-graph-v2"))
 	return Digest(id)
 }

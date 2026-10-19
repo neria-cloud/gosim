@@ -6,5 +6,6 @@ type RunInfo struct {
 	Features                                             []string
 	HostOS, HostArch, SimulationOS, SimulationArch       string
 	BuildDigest, ReplayRevision                          string
-	Certified                                            bool
+	// Deprecated: certification is an external report, not runtime state. Always false.
+	Certified bool
 }

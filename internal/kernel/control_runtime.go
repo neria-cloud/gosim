@@ -68,7 +68,7 @@ func (k *Kernel) runInfo() InfoResult {
 		AdapterRevision: k.config.Identity.SourceDigest, RuntimeRevision: k.config.RuntimeRevision,
 		Features: features, HostOS: k.config.Identity.HostOS, HostArch: k.config.Identity.HostArch,
 		SimulationOS: "linux", SimulationArch: k.config.Identity.HostArch, BuildDigest: k.config.BuildDigest,
-		ReplayRevision: simrt.ReplayRevision, Certified: k.config.Certified,
+		ReplayRevision: simrt.ReplayRevision,
 	}
 }
 

@@ -69,14 +69,21 @@ func runCertificationCommand(command string, args []string) {
 // certify records one declared pending tuple. Reports stay candidate and never
 // edit reviewed profile metadata. Package applicability comes from one registry.
 func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (report CertificationReport, err error) {
-	if err := validateCertificationSelection(runtime.GOARCH, flags.Options.Race, suite.large); err != nil {
+	if err := validateCertificationSelection(runtime.GOARCH, flags.Options.Race); err != nil {
 		return report, err
 	}
 	resolved, err := resolveBuild("internal-candidate", flags)
 	if err != nil {
 		return report, err
 	}
-	report = CertificationReport{Schema: 1, ValidationOnly: !suite.large, Tuple: buildspec.TupleFor(resolved.Identity), Identity: resolved.Identity, ExecutionMode: options.ExecutionMode, WorkerArch: runtime.GOARCH, ContainerImageDigest: options.ContainerImageDigest}
+	if !suite.large {
+		return report, fmt.Errorf("manual certification requires explicit -large coverage; use verify for ordinary tests")
+	}
+	report = CertificationReport{Schema: 2, Tuple: buildspec.TupleFor(resolved.Identity), Identity: resolved.Identity, ExecutionMode: options.ExecutionMode, WorkerArch: runtime.GOARCH, ContainerImageDigest: options.ContainerImageDigest}
+	report.FrameworkDigest, err = buildspec.SourceDigest(resolved.Identity)
+	if err != nil {
+		return report, err
+	}
 	if err := buildspec.ValidateExecution(resolved.Identity, runtime.GOARCH, options.ExecutionMode, options.ContainerImageDigest); err != nil {
 		return report, err
 	}
@@ -112,10 +119,9 @@ func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (repor
 	return report, buildspec.ValidateReport(report)
 }
 
-// Ordinary validation uses this runner too and remains available on every host.
-// Only ARM64 builds without race instrumentation may produce certification.
-func validateCertificationSelection(hostArch string, race, large bool) error {
-	if large && (hostArch != "arm64" || race) {
+// Only ARM64 builds without race instrumentation may produce manual certification.
+func validateCertificationSelection(hostArch string, race bool) error {
+	if hostArch != "arm64" || race {
 		return fmt.Errorf("AMD64 and race certification are disabled; use ARM64 without race")
 	}
 	return nil

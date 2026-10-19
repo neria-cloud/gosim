@@ -22,7 +22,7 @@ import (
 
 func cacheIdentity() buildspec.Identity {
 	d := strings.Repeat("a", 64)
-	return buildspec.Identity{Schema: 1, Toolchain: "go1.26.9", Profile: "go126", DistributionDigest: d, StdlibDigest: d, AdapterRevision: d, RuntimeRevision: d, HostOS: "darwin", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64", Features: []string{"rt"}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d, Certification: "candidate"}
+	return buildspec.Identity{Schema: 2, Toolchain: "go1.26.9", Profile: "go126", ToolchainDigest: d, StdlibDigest: d, ContractDigest: d, AdapterRevision: d, RuntimeRevision: d, HostOS: "darwin", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64", Features: []string{"rt"}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d}
 }
 
 func cacheEntry(t *testing.T, key Hash) CacheEntryV2 {
@@ -183,7 +183,7 @@ func TestV2IdentityDimensions(t *testing.T) {
 			case reflect.String:
 				v.SetString(strings.Repeat("b", 64))
 			case reflect.Int:
-				v.SetInt(2)
+				v.SetInt(1)
 			case reflect.Bool:
 				v.SetBool(true)
 			case reflect.Slice:
@@ -201,10 +201,9 @@ func TestV2IdentityDimensions(t *testing.T) {
 		})
 	}
 	id := cacheIdentity()
-	id.Certification = "certified"
-	id.EvidenceDigest = strings.Repeat("b", 64)
+	id.Toolchain = "go1.26.1"
 	if got, err := computeTranslateToolHash(id); err != nil || got == original {
-		t.Fatal("promotion reused candidate cache", err)
+		t.Fatal("patch change reused translation cache", err)
 	}
 	id = cacheIdentity()
 	id.Tags = []string{"sim", "linkname"}

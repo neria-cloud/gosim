@@ -32,7 +32,6 @@ type (
 		Imports                                                                                          []sourceImport
 		Constructors                                                                                     []string
 		Features, IdentityDigest, Toolchain, Profile, HostOS, HostArch, AdapterRevision, RuntimeRevision string
-		Certified                                                                                        bool
 	}
 )
 
@@ -54,7 +53,7 @@ func render(selection buildspec.Selection) ([]byte, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	data := compositionData{IdentityDigest: digest, Toolchain: id.Toolchain, Profile: id.Profile, HostOS: id.HostOS, HostArch: id.HostArch, AdapterRevision: id.AdapterRevision, RuntimeRevision: id.RuntimeRevision, Certified: id.Certification == "certified", Features: "contracts.RT"}
+	data := compositionData{IdentityDigest: digest, Toolchain: id.Toolchain, Profile: id.Profile, HostOS: id.HostOS, HostArch: id.HostArch, AdapterRevision: id.AdapterRevision, RuntimeRevision: id.RuntimeRevision, Features: "contracts.RT"}
 	imports := map[string]string{
 		gosimtool.Module + "/internal/logging":   "logging",
 		gosimtool.Module + "/internal/contracts": "contracts", gosimtool.Module + "/internal/control": "control",
@@ -242,7 +241,7 @@ func (Driver) Run(config simrt.RunConfig, main func()) simrt.RunResult {
  });err!=nil {record(err);engine.Close();return engine.RunResult(IdentityDigest,failure)}
  runErr:=engine.Run(func(){
   providers:=[]contracts.Provider{ {{range .Constructors}}{{.}},{{end}} }
-  k,err:=kernel.New(kernel.Config{Identity:expected,RuntimeRevision:{{printf "%q" .RuntimeRevision}},BuildDigest:IdentityDigest,Certified:{{.Certified}},Features:contracts.FeatureSet({{.Features}}),TimeoutNS:timeoutNS},engine,providers)
+  k,err:=kernel.New(kernel.Config{Identity:expected,RuntimeRevision:{{printf "%q" .RuntimeRevision}},BuildDigest:IdentityDigest,Features:contracts.FeatureSet({{.Features}}),TimeoutNS:timeoutNS},engine,providers)
   if err!=nil {record(err);return}
   control.Bind(k)
   defer func(){record(k.Close());control.Bind(nil)}()

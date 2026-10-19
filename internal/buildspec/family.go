@@ -96,3 +96,13 @@ func ValidateVersion(raw string) error {
 	_, err = LookupFamily(v)
 	return err
 }
+
+// LookupProfile finds a registered metadata family without importing adapters.
+func LookupProfile(profile string) (FamilySupport, error) {
+	for _, family := range SupportedFamilies() {
+		if family.Profile == profile {
+			return family, nil
+		}
+	}
+	return FamilySupport{}, fmt.Errorf("unsupported Go profile %q", profile)
+}

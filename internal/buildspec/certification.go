@@ -20,24 +20,22 @@ type SuiteResult struct {
 }
 
 type CertificationReport struct {
-	Schema               int           `json:"schema"`
-	ValidationOnly       bool          `json:"validation_only,omitempty"`
-	Tuple                Tuple         `json:"tuple"`
-	Identity             Identity      `json:"identity"`
-	ExecutionMode        string        `json:"execution_mode"`
-	WorkerArch           string        `json:"worker_arch"`
-	ContainerImageDigest string        `json:"container_image_digest"`
-	Suites               []SuiteResult `json:"suites"`
-	ResultDigest         string        `json:"result_digest"`
+	FrameworkDigest      string             `json:"framework_digest"`
+	Schema               int                `json:"schema"`
+	Tuple                CertificationTuple `json:"tuple"`
+	Identity             Identity           `json:"identity"`
+	ExecutionMode        string             `json:"execution_mode"`
+	WorkerArch           string             `json:"worker_arch"`
+	ContainerImageDigest string             `json:"container_image_digest"`
+	Suites               []SuiteResult      `json:"suites"`
+	ResultDigest         string             `json:"result_digest"`
 }
 
-func TupleFor(id Identity) Tuple {
-	return Tuple{Toolchain: id.Toolchain, HostOS: id.HostOS, HostArch: id.HostArch, SimulationOS: id.SimulationOS, SimulationArch: id.SimulationArch, Features: slices.Clone(id.Features), Race: id.Race, Experiments: id.Experiments, Status: "pending"}
+func TupleFor(id Identity) CertificationTuple {
+	return CertificationTuple{Toolchain: id.Toolchain, HostOS: id.HostOS, HostArch: id.HostArch, SimulationOS: id.SimulationOS, SimulationArch: id.SimulationArch, Features: slices.Clone(id.Features), Race: id.Race, Experiments: id.Experiments}
 }
 
-func SameTuple(a, b Tuple) bool {
-	a.Status, a.SourceDigest, a.ResultDigest = "", "", ""
-	b.Status, b.SourceDigest, b.ResultDigest = "", "", ""
+func SameTuple(a, b CertificationTuple) bool {
 	a.Features, _ = Features(a.Features)
 	b.Features, _ = Features(b.Features)
 	x, _ := json.Marshal(a)
@@ -57,16 +55,21 @@ func ReportDigest(report CertificationReport) (string, error) {
 }
 
 func ValidateReport(report CertificationReport) error {
-	if report.Schema != 1 {
+	if report.Schema != 2 {
 		return fmt.Errorf("unsupported certification report schema")
 	}
 	id, err := NormalizeIdentity(report.Identity)
 	if err != nil {
 		return err
 	}
-	if id.Certification != "candidate" || report.Tuple.Status != "pending" || report.Tuple.SourceDigest != "" || report.Tuple.ResultDigest != "" || !SameTuple(report.Tuple, TupleFor(id)) {
-		return fmt.Errorf("report must describe one unpromoted candidate tuple")
+	if !SameTuple(report.Tuple, TupleFor(id)) {
+		return fmt.Errorf("report tuple does not match executed identity")
 	}
+	source, err := SourceDigest(id)
+	if err != nil || source != report.FrameworkDigest {
+		return fmt.Errorf("report framework identity mismatch")
+	}
+
 	if err := ValidateExecution(report.Identity, report.WorkerArch, report.ExecutionMode, report.ContainerImageDigest); err != nil {
 		return err
 	}
@@ -82,7 +85,7 @@ func ValidateReport(report CertificationReport) error {
 			return fmt.Errorf("missing required suite %s", name)
 		}
 	}
-	if !report.ValidationOnly && !seen["large"] {
+	if !seen["large"] {
 		return fmt.Errorf("missing required large suite; ordinary validation cannot certify a tuple")
 	}
 	if len(id.Features) < 3 {

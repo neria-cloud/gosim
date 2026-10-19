@@ -11,7 +11,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed hooks_*.json hooks.json tuples.json evidence.json policies.json origin.json bridges.json native_imports.json capabilities.json shims.json probes.json modules.json shared_globals.json
+//go:embed hooks_*.json hooks.json policies.json origin.json bridges.json native_imports.json capabilities.json shims.json probes.json modules.json shared_globals.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
@@ -31,6 +31,7 @@ func DescriptorForArch(arch string) (spec.Profile, error) {
 	}
 	p := spec.Profile{
 		ID: "go126", Revision: Revision,
+		Support: support(),
 		RuntimePackages: []string{
 			"github.com/neria-cloud/gosim/rt/runtime", "github.com/neria-cloud/gosim/rt/runtime/abi", "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
 			"github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel",
@@ -48,7 +49,6 @@ func DescriptorForArch(arch string) (spec.Profile, error) {
 	var archHooks []spec.Hook
 	decode("hooks_"+arch+".json", &archHooks)
 	p.Hooks = append(p.Hooks, archHooks...)
-	decode("tuples.json", &p.Tuples)
 	decode("policies.json", &p.Packages)
 	return p, nil
 }
@@ -108,8 +108,11 @@ func VerifyModules(tc buildspec.Toolchain, directory string) error {
 }
 
 // Evidence returns reviewed reports independently of executable source identity.
-func Evidence() []buildspec.CertificationReport {
-	var reports []buildspec.CertificationReport
-	decode("evidence.json", &reports)
-	return reports
+
+func support() buildspec.FamilySupport {
+	support, err := buildspec.LookupProfile("go126")
+	if err != nil {
+		panic(err)
+	}
+	return support
 }

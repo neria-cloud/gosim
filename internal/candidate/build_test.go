@@ -279,9 +279,9 @@ func TestCandidateWorker(t *testing.T) {
 				t.Fatal("missing network trace")
 			}
 			forged := artifact
-			forged.Manifest.Identity.Certification = "certified"
+			forged.Manifest.Identity.Toolchain = "go1.26.999"
 			if _, err := Run(ctx, forged, configs[0]); err == nil {
-				t.Fatal("candidate runner accepted certified identity")
+				t.Fatal("runner accepted another compiler identity")
 			}
 		})
 	}

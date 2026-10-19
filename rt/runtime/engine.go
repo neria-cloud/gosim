@@ -13,7 +13,7 @@ import (
 )
 
 // ReplayRevision changes whenever scheduling/random derivation semantics change.
-const ReplayRevision = "gosim-replay-v2"
+const ReplayRevision = "gosim-replay-v3"
 
 type EngineConfig struct {
 	Seed           int64

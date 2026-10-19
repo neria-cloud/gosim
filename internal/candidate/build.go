@@ -1,5 +1,5 @@
-// Package candidate is the internal pending-tuple build/run path. It cannot
-// promote compatibility evidence or produce a certified artifact.
+// Package candidate exposes internal build/run helpers using the same family
+// support policy and artifact checks as ordinary commands.
 package candidate
 
 import (
@@ -42,9 +42,6 @@ func Resolve(config buildspec.Config, options buildspec.BuildOptions) (gosimtool
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
-	if id.Certification != "candidate" {
-		return gosimtool.BuildConfig{}, fmt.Errorf("candidate resolver requires unpromoted identity")
-	}
 	selection, err := profile.Select(id)
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
@@ -65,9 +62,6 @@ func Build(config buildspec.Config, options buildspec.BuildOptions, patterns []s
 
 // BuildResolved uses the same validated identity for every command in a batch.
 func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (BuildResult, error) {
-	if cfg.Identity.Certification != "candidate" {
-		return BuildResult{}, fmt.Errorf("candidate builder requires unpromoted identity")
-	}
 	return buildrun.BuildResolved(cfg, patterns)
 }
 
@@ -85,9 +79,6 @@ func runRequests(ctx context.Context, artifact gosimtool.Artifact, configs []sim
 	if len(configs) == 0 {
 		return nil, fmt.Errorf("candidate run requires requests")
 	}
-	if artifact.Manifest.Identity.Certification != "candidate" {
-		return nil, fmt.Errorf("candidate runner requires a candidate artifact")
-	}
 	manifest, err := gosimtool.VerifyArtifact(artifact.Directory, artifact.Manifest.Identity, artifact.Manifest.PackageDigests)
 	if err != nil {
 		return nil, err
@@ -97,7 +88,7 @@ func runRequests(ctx context.Context, artifact gosimtool.Artifact, configs []sim
 	if err != nil {
 		return nil, err
 	}
-	hello := simrt.MetatestHandshake{Protocol: 2, IdentityDigest: digest, Toolchain: manifest.Identity.Toolchain}
+	hello := simrt.MetatestHandshake{Protocol: 3, IdentityDigest: digest, Toolchain: manifest.Identity.Toolchain}
 	if err := json.NewEncoder(&requests).Encode(hello); err != nil {
 		return nil, err
 	}

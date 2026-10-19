@@ -14,10 +14,10 @@ import (
 func fixtureIdentity() buildspec.Identity {
 	d := strings.Repeat("a", 64)
 	return buildspec.Identity{
-		Schema: 1, Toolchain: "go1.26.9", Profile: "go126", DistributionDigest: d, StdlibDigest: d,
+		Schema: 2, Toolchain: "go1.26.9", Profile: "go126", ToolchainDigest: d, StdlibDigest: d, ContractDigest: d,
 		AdapterRevision: d, RuntimeRevision: d, ProviderRevisions: []buildspec.Revision{{Name: "fs", Digest: d}, {Name: "net", Digest: d}},
 		HostOS: "darwin", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64", Features: []string{"rt", "fs", "net"},
-		Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d, Certification: "candidate",
+		Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
 	}
 }
 
@@ -57,7 +57,7 @@ func TestEveryIdentityDimensionChangesDigest(t *testing.T) {
 			case reflect.String:
 				value.SetString(strings.Repeat("b", 64))
 			case reflect.Int:
-				value.SetInt(2)
+				value.SetInt(1)
 			case reflect.Bool:
 				value.SetBool(true)
 			case reflect.Slice:
@@ -70,20 +70,7 @@ func TestEveryIdentityDimensionChangesDigest(t *testing.T) {
 			}
 		})
 	}
-	// Promotion changes the artifact identity, but not the source being certified.
-	baseSource, err := buildspec.SourceDigest(base)
-	if err != nil {
-		t.Fatal(err)
-	}
-	base.Certification, base.EvidenceDigest = "certified", strings.Repeat("b", 64)
-	promoted, err := Digest(base)
-	if err != nil || promoted == original {
-		t.Fatalf("promotion reused candidate artifact: %v", err)
-	}
-	promotedSource, err := buildspec.SourceDigest(base)
-	if err != nil || promotedSource != baseSource {
-		t.Fatalf("circular source evidence: %v", err)
-	}
+
 }
 
 func TestIdentityRejectsInvalidMetadata(t *testing.T) {
@@ -93,8 +80,6 @@ func TestIdentityRejectsInvalidMetadata(t *testing.T) {
 		func(id *buildspec.Identity) { id.ProviderRevisions = nil },
 		func(id *buildspec.Identity) { id.Tags = []string{"go1.27"} },
 		func(id *buildspec.Identity) { id.Tags = []string{"sim", "sim"} },
-		func(id *buildspec.Identity) { id.Certification = "certified" },
-		func(id *buildspec.Identity) { id.EvidenceDigest = strings.Repeat("a", 64) },
 		func(id *buildspec.Identity) { id.Profile = "go125" },
 		func(id *buildspec.Identity) { id.SimulationArch = "amd64" },
 	} {
@@ -134,7 +119,7 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 			buildspec.Config{Schema: 2, Features: base.Features, SimulationOS: "linux"},
 			buildspec.Toolchain{Version: base.Toolchain, HostOS: base.HostOS, HostArch: base.HostArch},
 			spec.Profile{ID: base.Profile, Revision: base.AdapterRevision}, buildspec.BuildOptions{},
-			buildspec.Fingerprints{ToolchainDigest: base.DistributionDigest, StdlibDigest: base.StdlibDigest}, root, base.ModuleGraphDigest)
+			buildspec.Fingerprints{ToolchainDigest: base.ToolchainDigest, StdlibDigest: base.StdlibDigest}, root, base.ModuleGraphDigest)
 		if err != nil {
 			t.Fatal(err)
 		}

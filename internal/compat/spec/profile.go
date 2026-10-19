@@ -4,6 +4,7 @@ package spec
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -12,7 +13,7 @@ import (
 
 type Profile struct {
 	ID, Revision    string
-	Tuples          []buildspec.Tuple
+	Support         buildspec.FamilySupport
 	Hooks           []Hook
 	Packages        []PackagePolicy
 	RuntimePackages []string
@@ -35,26 +36,14 @@ type PackagePolicy struct {
 const module = "github.com/neria-cloud/gosim"
 
 func (p Profile) Validate() error {
-	if (p.ID != "go125" && p.ID != "go126") || !buildspec.ValidDigest(p.Revision) {
-		return fmt.Errorf("invalid profile identity/revision %q", p.ID)
+	canonical, err := buildspec.LookupProfile(p.ID)
+	if err != nil || !buildspec.ValidDigest(p.Revision) || !reflect.DeepEqual(canonical, p.Support) {
+		return fmt.Errorf("invalid profile identity/support %q", p.ID)
 	}
-	if len(p.Tuples) == 0 || len(p.Hooks) == 0 || len(p.Packages) == 0 || len(p.RuntimePackages) == 0 {
+	if len(p.Hooks) == 0 || len(p.Packages) == 0 || len(p.RuntimePackages) == 0 {
 		return fmt.Errorf("profile %s is incomplete", p.ID)
 	}
-	tuples := make(map[string]bool)
-	for _, tuple := range p.Tuples {
-		if err := validateTupleRecord(tuple); err != nil {
-			return err
-		}
-		if !strings.HasPrefix(tuple.Toolchain, "go1."+p.ID[3:]+".") {
-			return fmt.Errorf("tuple %s belongs to another profile", tuple.Toolchain)
-		}
-		key := tupleKey(tuple)
-		if tuples[key] {
-			return fmt.Errorf("duplicate compatibility tuple %s", key)
-		}
-		tuples[key] = true
-	}
+
 	hooks := make(map[string]bool)
 	for _, hook := range p.Hooks {
 		key := hook.Package + "." + hook.Symbol
@@ -97,13 +86,15 @@ func (p Profile) checkPackage(pkg string) error {
 			return fmt.Errorf("profile must not unconditionally import concrete provider %s", pkg)
 		}
 	}
-	other := "go125"
-	if p.ID == other {
-		other = "go126"
+	for _, family := range buildspec.SupportedFamilies() {
+		if family.Profile != p.ID && strings.Contains(pkg, "/internal/compat/"+family.Profile+"/") {
+			return fmt.Errorf("profile %s references another adapter: %s", p.ID, pkg)
+		}
 	}
-	if strings.Contains(pkg, "/internal/compat/"+other+"/") || strings.Contains(pkg, "/internal/hooks/") {
-		return fmt.Errorf("profile %s references another/retired adapter: %s", p.ID, pkg)
+	if strings.Contains(pkg, "/internal/hooks/") {
+		return fmt.Errorf("profile references retired adapter: %s", pkg)
 	}
+
 	return nil
 }
 
@@ -118,8 +109,12 @@ func (p Profile) Select(build buildspec.Identity) (buildspec.Selection, error) {
 	if id.Profile != p.ID || id.AdapterRevision != p.Revision {
 		return buildspec.Selection{}, fmt.Errorf("build profile/revision differs from selected adapter")
 	}
-	if err := ValidateTuple(id, p.Tuples); err != nil {
+	contract, err := p.ContractDigest()
+	if err != nil {
 		return buildspec.Selection{}, err
+	}
+	if id.ContractDigest != contract {
+		return buildspec.Selection{}, fmt.Errorf("build contract digest differs from selected profile")
 	}
 	hooks := slices.Clone(p.Hooks)
 	slices.SortFunc(hooks, func(a, b Hook) int {
@@ -140,4 +135,21 @@ func (p Profile) Select(build buildspec.Identity) (buildspec.Selection, error) {
 		}
 	}
 	return selection, nil
+}
+
+// ContractDigest binds the declared hook and package policies. Structural layout
+// contracts extend this inventory independently from baseline source provenance.
+func (p Profile) ContractDigest() (string, error) {
+	hooks := slices.Clone(p.Hooks)
+	slices.SortFunc(hooks, func(a, b Hook) int { return strings.Compare(a.Package+"."+a.Symbol, b.Package+"."+b.Symbol) })
+	packages := slices.Clone(p.Packages)
+	slices.SortFunc(packages, func(a, b PackagePolicy) int { return strings.Compare(a.Path, b.Path) })
+	data, err := json.Marshal(struct {
+		Hooks    []Hook
+		Packages []PackagePolicy
+	}{hooks, packages})
+	if err != nil {
+		return "", err
+	}
+	return buildspec.Hash(data), nil
 }

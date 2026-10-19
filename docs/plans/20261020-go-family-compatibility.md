@@ -19,9 +19,9 @@ References: target §§1–4.1, 5.1, 8, 12.
 
 References: target §§4.2, 7–9, 12.
 
-- [ ] Implement schema-2 identities/artifacts and remove certification/pending tuple admission.
-- [ ] Separate manual exact-build evidence from ordinary execution; retain disabled AMD64/race certification.
-- [ ] Update composition/metatest protocol/runtime info and focused checks; commit.
+- [x] Implement schema-2 identities/artifacts and remove certification/pending tuple admission.
+- [x] Separate manual exact-build evidence from ordinary execution; retain disabled AMD64/race certification.
+- [x] Update composition/metatest protocol/runtime info and focused checks; commit.
 
 ### Task 3: Family contracts, provenance and generation
 

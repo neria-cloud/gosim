@@ -27,16 +27,17 @@ func profileSelection(t *testing.T, features ...string) buildspec.Selection {
 	}
 	d := strings.Repeat("a", 64)
 	id := buildspec.Identity{
-		Schema: 1, Toolchain: patch, Profile: p.ID, AdapterRevision: p.Revision,
-		DistributionDigest: d, StdlibDigest: d, RuntimeRevision: d, HostOS: runtime.GOOS, HostArch: runtime.GOARCH,
+		Schema: 2, Toolchain: patch, Profile: p.ID, AdapterRevision: p.Revision,
+		ToolchainDigest: d, StdlibDigest: d, ContractDigest: d, RuntimeRevision: d, HostOS: runtime.GOOS, HostArch: runtime.GOARCH,
 		SimulationOS: "linux", SimulationArch: runtime.GOARCH, Features: features, Tags: []string{"linkname", "sim"},
-		ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d, Certification: "candidate",
+		ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
 	}
 	for _, feature := range features {
 		if feature != "rt" {
 			id.ProviderRevisions = append(id.ProviderRevisions, buildspec.Revision{Name: feature, Digest: d})
 		}
 	}
+	id.ContractDigest, _ = p.ContractDigest()
 	s, err := p.Select(id)
 	if err != nil {
 		t.Fatal(err)
@@ -94,7 +95,7 @@ func TestPoliciesRejectForgedSelection(t *testing.T) {
 				s.Identity.Toolchain = "go1.26.9"
 			}
 		},
-		"patch":              func(s *buildspec.Selection) { s.Identity.Toolchain = "go1.26.0" },
+		"unsupported-family": func(s *buildspec.Selection) { s.Identity.Toolchain = "go1.27.0" },
 		"arch":               func(s *buildspec.Selection) { s.Identity.SimulationArch = "386" },
 		"revision":           func(s *buildspec.Selection) { s.Identity.AdapterRevision = strings.Repeat("b", 64) },
 		"hooks":              func(s *buildspec.Selection) { s.HookManifestDigest = strings.Repeat("b", 64) },
@@ -102,10 +103,7 @@ func TestPoliciesRejectForgedSelection(t *testing.T) {
 		"additional-runtime": func(s *buildspec.Selection) { s.RuntimePackages = append(s.RuntimePackages, "net/http") },
 		"provider":           func(s *buildspec.Selection) { s.ProviderImports = []string{gosimtool.Module + "/internal/fs"} },
 		"features":           func(s *buildspec.Selection) { s.Identity.Features = []string{"rt", "net", "fs"} },
-		"certified": func(s *buildspec.Selection) {
-			s.Identity.Certification = "certified"
-			s.Identity.EvidenceDigest = strings.Repeat("b", 64)
-		},
+		"legacy-identity":    func(s *buildspec.Selection) { s.Identity.Schema = 1 },
 	} {
 		t.Run(name, func(t *testing.T) {
 			s := profileSelection(t, "rt")

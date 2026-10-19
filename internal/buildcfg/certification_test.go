@@ -1,48 +1,45 @@
 package buildcfg
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-func certificationFixture(t *testing.T) (buildspec.Identity, spec.Profile, buildspec.CertificationReport) {
+func certificationFixture(t *testing.T) (buildspec.Identity, buildspec.CertificationReport) {
 	t.Helper()
 	id := fixtureIdentity()
-	report := buildspec.CertificationReport{Schema: 1, Identity: id, Tuple: buildspec.TupleFor(id), ExecutionMode: "native", WorkerArch: id.HostArch}
+	source, err := buildspec.SourceDigest(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	report := buildspec.CertificationReport{Schema: 2, Identity: id, FrameworkDigest: source, Tuple: buildspec.TupleFor(id), ExecutionMode: "native", WorkerArch: id.HostArch}
 	for _, name := range []string{"build", "execute", "native", "large"} {
 		report.Suites = append(report.Suites, buildspec.SuiteResult{Name: name, Passed: true, LogDigest: buildspec.Hash([]byte(name))})
 	}
-	report.ResultDigest, _ = buildspec.ReportDigest(report)
-	tuple := report.Tuple
-	tuple.Status = "certified"
-	tuple.ResultDigest = report.ResultDigest
-	tuple.SourceDigest, _ = buildspec.SourceDigest(id)
-	return id, spec.Profile{Tuples: []buildspec.Tuple{tuple}}, report
+	report.ResultDigest, err = buildspec.ReportDigest(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id, report
 }
 
-func TestCertificationRejectsFalseStaleAndIncompleteEvidence(t *testing.T) {
+// These are in-memory report validation checks, not certification executions.
+func TestManualReportRejectsFalseStaleAndIncompleteEvidence(t *testing.T) {
 	t.Parallel()
-	id, profile, report := certificationFixture(t)
-	accepted, err := CertifiedIdentity(id, profile, []buildspec.CertificationReport{report})
-	if err != nil || accepted.Certification != "certified" || accepted.EvidenceDigest != report.ResultDigest {
-		t.Fatal(accepted, err)
+	_, report := certificationFixture(t)
+	if err := buildspec.ValidateReport(report); err != nil {
+		t.Fatal(err)
 	}
-	for _, name := range []string{"pending", "missing", "source", "failed", "incomplete", "tampered", "worker", "image", "tuple", "identity", "validation-only", "large-skipped"} {
+	for _, name := range []string{"source", "failed", "incomplete", "tampered", "worker", "image", "tuple", "large-skipped", "identity", "old-schema"} {
 		t.Run(name, func(t *testing.T) {
-			id, p, r := certificationFixture(t)
-			reports := []buildspec.CertificationReport{r}
+			t.Parallel()
+			_, r := certificationFixture(t)
 			switch name {
-			case "pending":
-				p.Tuples[0].Status = "pending"
-				p.Tuples[0].SourceDigest = ""
-				p.Tuples[0].ResultDigest = ""
-			case "missing":
-				reports = nil
 			case "source":
-				id.RuntimeRevision = strings.Repeat("b", 64)
+				r.FrameworkDigest = strings.Repeat("b", 64)
 			case "failed":
 				r.Suites[0].Passed = false
 			case "incomplete":
@@ -55,64 +52,65 @@ func TestCertificationRejectsFalseStaleAndIncompleteEvidence(t *testing.T) {
 				r.ContainerImageDigest = "sha256:" + strings.Repeat("a", 64)
 			case "tuple":
 				r.Tuple.Race = !r.Tuple.Race
-			case "validation-only":
-				r.ValidationOnly = true
-				r.ResultDigest, _ = buildspec.ReportDigest(r)
-				p.Tuples[0].ResultDigest = r.ResultDigest
 			case "large-skipped":
 				r.Suites = r.Suites[:3]
 				r.ResultDigest, _ = buildspec.ReportDigest(r)
-				p.Tuples[0].ResultDigest = r.ResultDigest
 			case "identity":
 				r.Identity.TranslatorDigest = strings.Repeat("b", 64)
+			case "old-schema":
+				r.Schema = 1
 			}
-			if reports != nil {
-				reports[0] = r
-			}
-			if _, err := CertifiedIdentity(id, p, reports); err == nil {
-				t.Fatal("accepted invalid certification")
+			if err := buildspec.ValidateReport(r); err == nil {
+				t.Fatal("accepted invalid report")
 			}
 		})
 	}
 }
 
-func TestApplicationGraphSeparatesArtifactsNotFrameworkCertification(t *testing.T) {
+func TestEvidenceIsOutsideExecutableIdentity(t *testing.T) {
 	t.Parallel()
-	id, profile, report := certificationFixture(t)
+	id, r := certificationFixture(t)
 	before, _ := buildspec.Digest(id)
-	id.ModuleGraphDigest = strings.Repeat("b", 64)
-	after, _ := buildspec.Digest(id)
-	if before == after {
-		t.Fatal("application graph did not invalidate artifact")
+	// A report can be missing, stale or invalid without changing the build value.
+	r.FrameworkDigest = strings.Repeat("c", 64)
+	r.ResultDigest = ""
+	if err := buildspec.ValidateReport(r); err == nil {
+		t.Fatal("accepted stale report")
 	}
-	if _, err := CertifiedIdentity(id, profile, []buildspec.CertificationReport{report}); err != nil {
-		t.Fatal("unchanged framework required application certification", err)
+	after, _ := buildspec.Digest(id)
+	if before != after {
+		t.Fatal("external evidence changed artifact identity")
+	}
+	data, err := json.Marshal(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "certification") || strings.Contains(string(data), "evidence_digest") {
+		t.Fatal("evidence remains in executable identity", string(data))
+	}
+	source, _ := buildspec.SourceDigest(id)
+	id.ModuleGraphDigest = strings.Repeat("b", 64)
+	changed, _ := buildspec.Digest(id)
+	sameSource, _ := buildspec.SourceDigest(id)
+	if changed == before || source != sameSource {
+		t.Fatal("application and framework identity not separated")
 	}
 }
 
 func TestReducedReportRequiresApplicableNativeAndBoundarySuites(t *testing.T) {
 	t.Parallel()
-	_, _, report := certificationFixture(t)
-	report.Identity.Features = []string{"rt"}
-	report.Identity.ProviderRevisions = nil
-	report.Tuple = buildspec.TupleFor(report.Identity)
-	report.ResultDigest, _ = buildspec.ReportDigest(report)
-	if err := buildspec.ValidateReport(report); err == nil {
-		t.Fatal("reduced tuple accepted without boundary checks")
+	_, r := certificationFixture(t)
+	r.Identity.Features = []string{"rt"}
+	r.Identity.ProviderRevisions = nil
+	r.Tuple = buildspec.TupleFor(r.Identity)
+	r.FrameworkDigest, _ = buildspec.SourceDigest(r.Identity)
+	r.ResultDigest, _ = buildspec.ReportDigest(r)
+	if err := buildspec.ValidateReport(r); err == nil {
+		t.Fatal("reduced report omitted native units")
 	}
-	report.ValidationOnly = true
-	report.ResultDigest, _ = buildspec.ReportDigest(report)
-	if err := buildspec.ValidateReport(report); err == nil {
-		t.Fatal("reduced tuple omitted runtime/model unit suites")
-	}
-	report.Suites = append(report.Suites, buildspec.SuiteResult{Name: "native-units", Passed: true, LogDigest: buildspec.Hash([]byte("native-units"))})
-	report.ResultDigest, _ = buildspec.ReportDigest(report)
-	if err := buildspec.ValidateReport(report); err != nil {
+	r.Suites = append(r.Suites, buildspec.SuiteResult{Name: "native-units", Passed: true, LogDigest: buildspec.Hash([]byte("units"))})
+	r.ResultDigest, _ = buildspec.ReportDigest(r)
+	if err := buildspec.ValidateReport(r); err != nil {
 		t.Fatal(err)
-	}
-	report.Suites = report.Suites[:2]
-	report.ResultDigest, _ = buildspec.ReportDigest(report)
-	if err := buildspec.ValidateReport(report); err == nil {
-		t.Fatal("reduced tuple omitted native metatests")
 	}
 }

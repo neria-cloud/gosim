@@ -18,7 +18,6 @@ type NativeArtifact struct {
 
 func RecordNativeArtifact(path string, identity buildspec.Identity) error {
 	identity.Race = true
-	identity.Certification, identity.EvidenceDigest = "candidate", ""
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
