@@ -165,12 +165,22 @@ func ValidateBoundary(pkg *packages.Package, policies PackagePolicies) error {
 	if len(pkg.Errors) > 0 {
 		return fmt.Errorf("invalid source for %s: %s", pkg.PkgPath, pkg.Errors[0])
 	}
+	var used map[string]bool
+	if len(pkg.CompiledGoFiles) != 0 {
+		used, err = survivingImports(pkg, policies)
+		if err != nil {
+			return err
+		}
+	}
 	for _, file := range pkg.Syntax {
 		natives := make(map[*types.PkgName]bool)
 		for _, imp := range file.Imports {
 			path, err := strconv.Unquote(imp.Path.Value)
 			if err != nil {
 				return err
+			}
+			if used != nil && !used[path] {
+				continue
 			}
 			dep := pkg.Imports[path]
 			if dep == nil {
@@ -246,6 +256,9 @@ func ValidateBoundary(pkg *packages.Package, policies PackagePolicies) error {
 				if _, hooked := policies.hooks[PackageSelector{Pkg: path, Selector: symbol}]; hooked {
 					return true
 				}
+				if _, rewritten := policies.replacements[PackageSelector{Pkg: path, Selector: symbol}]; rewritten {
+					return true
+				}
 			}
 			_, failure = policies.manifest.ResolveSymbol(policies.profile, path, symbol, standard)
 			return failure == nil
@@ -286,6 +299,12 @@ func (p PackagePolicies) validateDeclarations(pkg *packages.Package, file *ast.F
 			targetPolicy, err := p.packagePolicy(target.Pkg, !strings.Contains(strings.Split(target.Pkg, "/")[0], "."))
 			if err != nil || targetPolicy.Mode != "translate" {
 				return fmt.Errorf("unreviewed native linkname %s.%s -> %s", pkg.PkgPath, fields[1], fields[2])
+			}
+			if standardPackage(pkg) {
+				if _, hooked := p.hooks[target]; hooked {
+					linked[fields[1]] = true
+					continue
+				}
 			}
 			// Private application directives cannot bypass symbol-level rejections.
 			if _, err := p.manifest.ResolveSymbol(p.profile, target.Pkg, target.Selector, false); err != nil {

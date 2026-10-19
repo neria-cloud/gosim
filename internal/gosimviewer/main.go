@@ -311,7 +311,7 @@ func Viewer(logs string) {
 	if err != nil {
 		log.Fatalf("could not find go mod dir: %s", err)
 	}
-	cfg := gosimtool.BuildConfig{
+	cfg := gosimtool.LegacyBuildConfig{
 		GOOS:   "linux",
 		GOARCH: runtime.GOARCH,
 		Race:   false, // TODO: somehow get this from the log

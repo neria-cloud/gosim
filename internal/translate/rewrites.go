@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/token"
 	"log/slog"
-	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -12,6 +11,8 @@ import (
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
+
+	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
 var rewriteSelectorRegexp = regexp.MustCompile(`[/.]`)
@@ -77,7 +78,11 @@ func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
 
 	// rewrite specific selectors
 	selector := PackageSelector{Pkg: ident.Path, Selector: ident.Name}
-	replacement, ok := replacements[selector]
+	selectedReplacements := replacements
+	if t.profile != nil {
+		selectedReplacements = t.profile.replacements
+	}
+	replacement, ok := selectedReplacements[selector]
 	if !ok {
 		// rewrite entire packages
 		if replaced, ok := t.replacedPkgs[ident.Path]; ok {
@@ -96,6 +101,11 @@ func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
 	}
 
 	pkg := replacement.Pkg
+	if t.profile != nil {
+		if replaced, ok := t.replacedPkgs[pkg]; ok {
+			pkg = replaced
+		}
+	}
 	if pkg == "" {
 		panic(replacement.Pkg + " " + replacement.Selector)
 	}
@@ -146,6 +156,9 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 
 			if len(parts) == 2 && decl.Body == nil {
 				// TODO: make this fail the build?
+				if t.profile != nil {
+					panic(fmt.Errorf("unknown bodyless linkname %s.%s", t.pkgPath, decl.Name.Name))
+				}
 				slog.Error("unknown linkname with no body", "pkg", t.pkgPath, "name", decl.Name.Name)
 			}
 
@@ -156,6 +169,17 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 				if idx2 != -1 {
 					idx := idx1 + idx2
 					pkg, name := dest[:idx], dest[idx+1:]
+					// A pushed definition can name a translated package that this
+					// feature graph never imports (os defines net.newUnixFile).
+					// It defines a translated symbol, not a native escape/import.
+					if t.profile != nil && decl.Body != nil && t.replacedPkgs[pkg] == "" {
+						policy, err := t.profile.packagePolicy(pkg, !strings.Contains(strings.Split(pkg, "/")[0], "."))
+						if err == nil && policy.Mode == "translate" {
+							parts[2] = "translated/" + gosimtool.ReplaceSpecialPackages(pkg) + "." + name
+							decl.Decs.Start[i] = strings.Join(parts, " ")
+							continue
+						}
+					}
 					if newPkg, ok := t.replacedPkgs[pkg]; ok {
 						slog.Debug("rewriting linkname", "pkg", t.pkgPath, "name", decl.Name.Name)
 
@@ -168,6 +192,9 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 						decl.Decs.Start[i] = strings.Join(parts, " ")
 					} else {
 						// TODO: make this fail the build?
+						if t.profile != nil {
+							panic(fmt.Errorf("unknown linkname %s.%s -> %s.%s", t.pkgPath, decl.Name.Name, pkg, name))
+						}
 						slog.Error("unknown linkname", "pkg", t.pkgPath, "name", decl.Name.Name, "targetPkg", pkg, "targetName", name)
 					}
 				}
@@ -195,6 +222,9 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 
 		if linkTo, ok := t.hooks[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
 			selector := RewriteSelector(t.pkgPath, decl.Name.Name)
+			if t.profile != nil {
+				selector = linkTo.Selector
+			}
 
 			pkg := linkTo.Pkg
 			if replaced, ok := t.replacedPkgs[pkg]; ok {
@@ -216,7 +246,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 			slog.Debug("keeping asm header", "pkg", t.pkgPath, "name", decl.Name.Name)
 		} else {
 			slog.Error("missing function body", "pkg", t.pkgPath, "name", decl.Name.Name)
-			os.Exit(1)
+			panic(fmt.Errorf("missing function body %s.%s", t.pkgPath, decl.Name.Name))
 		}
 	}
 

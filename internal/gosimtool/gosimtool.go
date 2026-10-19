@@ -24,13 +24,14 @@ const (
 	OutputDirectory = ".gosim"
 )
 
-type BuildConfig struct {
+// TODO(migration): remove the old command/prebuilt configuration in Task 22.
+type LegacyBuildConfig struct {
 	GOOS   string
 	GOARCH string
 	Race   bool
 }
 
-func (b BuildConfig) AsDirname() string {
+func (b LegacyBuildConfig) AsDirname() string {
 	name := fmt.Sprintf("%s_%s", b.GOOS, b.GOARCH)
 	if b.Race {
 		name += "_race"
@@ -38,7 +39,8 @@ func (b BuildConfig) AsDirname() string {
 	return name
 }
 
-type TranslateOutput struct {
+// TODO(migration): remove the timestamp-based integration result in Task 22.
+type LegacyTranslateOutput struct {
 	RootOutputDir string
 	Packages      []string                        // TODO: combine all this in a struct? also include input name?
 	Deps          map[string]map[string]time.Time // pkg -> path -> time
@@ -230,7 +232,7 @@ func GetPathForPrecompiledTestBinary(t *testing.T, pkg string) string {
 	}
 
 	// TODO: test this race stuff somehow. make test output if race is enabled?
-	cfg := BuildConfig{
+	cfg := LegacyBuildConfig{
 		GOOS:   "linux",
 		GOARCH: runtime.GOARCH,
 		Race:   race.Enabled,

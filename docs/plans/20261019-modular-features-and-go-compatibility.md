@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–20 (including their recorded children) implemented and verified. Tasks 21.1–21.2 are also implemented and verified; remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–20 (including their recorded children) implemented and verified. Tasks 21.1–21.3 are also implemented and verified; remaining tasks are unchecked.
 
 ## Important notices
 
@@ -561,9 +561,9 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§9 exact BuildConfig/TranslateInput/TranslateOutput and cache flow; T§12 resolveBuild.
 **Budget:** 2,500–4,900 changed lines. **Dependency:** 21.2.
 
-- [ ] Adopt the exact target records and content-based dependency metadata; thread selection through AST transforms, shared globals, selected hooks and filename rewriting. Return errors instead of terminating the host.
-- [ ] Load Linux application sources with the selected executable/cgo disabled, generate composition before loading, and use v2 hashes/envelopes. Retain explicitly isolated legacy integration wiring only until Task 22.
-- [ ] Verify translation/cache miss/hit equivalence, errors and exact toolchain selection under both families; run common commit gate.
+- [x] Adopt the exact target records and content-based dependency metadata; thread selection through AST transforms, shared globals, selected hooks and filename rewriting. Return errors instead of terminating the host.
+- [x] Load Linux application sources with the selected executable/cgo disabled, generate composition before loading, and use v2 hashes/envelopes. Retain explicitly isolated legacy integration wiring only until Task 22.
+- [x] Verify translation/cache miss/hit equivalence, errors and exact toolchain selection under both families; run common commit gate.
 
 ### Task 21.4: Execute and verify new-path candidate artifacts
 
@@ -917,6 +917,8 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | — | — | None recorded during planning | Architectural clarifications are listed separately above |
 
 ## NOT PLANNED CHANGES
+
+- Task 21.3: connecting the selected source graph exposed adapter boundaries not exercised by native adapter tests. Removed reflect shim dependencies on bytes/strings to break the errors/reflection cycle; explicitly admitted slog/internal and its buffer subpackage as translated state; selected math/big's existing pure Go arithmetic through an owned source-selection tag. Added empty simulated GOROOT (no installed simulated toolchain) and translated fatal cleanup adapters while retaining rejection of application AddCleanup. Added focused regression tests and regenerated revisions. Diff: this task's `internal/compat/go{125,126}/{hooks/rt/runtime*,shims/reflect/*,profile/*}` and `internal/translate/{graph,load,profile}.go` changes. Target architecture remains unchanged.
 
 - Task 21.2: the generated filesystem probe exposed an existing `internal/fs/model/filesystem.go` OpenFile bug: resolved trailing-slash directories (including `/`) were looked up as empty entries. Normalize the resolved final component to `.` for nonempty paths and reject empty paths with ENOENT; retain ENOTDIR for a regular file with trailing slash. Added model regression tests and retained `/` in the generated Driver probe. Diff: the Task 21.2 commit's `internal/fs/model/{filesystem.go,open_directory_test.go}` changes.
 

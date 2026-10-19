@@ -162,7 +162,7 @@ func main() {
 	cmd := flag.Args()[0]
 	cmdArgs := flag.Args()[1:]
 
-	cfg := gosimtool.BuildConfig{
+	cfg := gosimtool.LegacyBuildConfig{
 		GOOS:   "linux",
 		GOARCH: runtime.GOARCH,
 		Race:   false,
@@ -176,7 +176,7 @@ func main() {
 
 		cfg.Race = *race
 
-		_, err := translate.Translate(&translate.TranslateInput{
+		_, err := translate.LegacyTranslate(&translate.LegacyTranslateInput{
 			Packages: translateflags.Args(),
 			Cfg:      cfg,
 		})
@@ -202,7 +202,7 @@ func main() {
 			packages = []string{"."}
 		}
 
-		output, err := translate.Translate(&translate.TranslateInput{
+		output, err := translate.LegacyTranslate(&translate.LegacyTranslateInput{
 			Packages: packages,
 			Cfg:      cfg,
 		})
@@ -273,7 +273,7 @@ func main() {
 
 		cfg.Race = *race
 
-		output, err := translate.Translate(&translate.TranslateInput{
+		output, err := translate.LegacyTranslate(&translate.LegacyTranslateInput{
 			Packages: testflags.Args(),
 			Cfg:      cfg,
 		})
@@ -394,7 +394,7 @@ func main() {
 
 		cfg.Race = *race
 
-		output, err := translate.Translate(&translate.TranslateInput{
+		output, err := translate.LegacyTranslate(&translate.LegacyTranslateInput{
 			Packages: []string{*pkg},
 			Cfg:      cfg,
 		})

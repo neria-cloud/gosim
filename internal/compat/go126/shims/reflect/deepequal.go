@@ -11,10 +11,6 @@
 
 package reflect
 
-import (
-	"bytes"
-)
-
 // During deepValueEqual, must keep track of checks that are
 // in progress. The comparison algorithm assumes that all
 // checks in progress are true when it reencounters them.
@@ -120,7 +116,13 @@ func deepValueEqual(v1, v2 Value, visited map[visit]bool) bool {
 		}
 		// Special case for []byte, which is common.
 		if v1.Type().Elem().Kind() == Uint8 {
-			return bytes.Equal(v1.Bytes(), v2.Bytes())
+			a, b := v1.Bytes(), v2.Bytes()
+			for i, value := range a {
+				if value != b[i] {
+					return false
+				}
+			}
+			return true
 			// return bytealg.Equal(v1.Bytes(), v2.Bytes())
 		}
 		for i := 0; i < v1.Len(); i++ {

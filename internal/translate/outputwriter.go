@@ -32,8 +32,7 @@ func (r jankyGuessResolver) ResolvePackage(importPath string) (string, error) {
 	if known, ok := r.known[importPath]; ok {
 		return known, nil
 	}
-	log.Fatalf("unknown package %q", importPath)
-	panic(importPath)
+	return "", fmt.Errorf("unknown package %q", importPath)
 }
 
 func newJankyGuessResolver(known map[string]string) resolver.RestorerResolver {

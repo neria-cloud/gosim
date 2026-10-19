@@ -1,6 +1,6 @@
 package translate
 
-// TODO(migration): remove the v1 cache path when Task 21 activates v2 translation.
+// TODO(migration): remove the v1 cache path when Task 22 cuts integration over to v2 translation.
 
 import (
 	"bytes"
@@ -65,7 +65,7 @@ func (h *Hasher) Sum256() Hash {
 	return sha256.Sum256(h.buffer.Bytes())
 }
 
-func legacyTranslateToolHash(cfg gosimtool.BuildConfig) Hash {
+func legacyTranslateToolHash(cfg gosimtool.LegacyBuildConfig) Hash {
 	h := NewHasher()
 	h.addString("runner")
 	h.addString(cfg.AsDirname())

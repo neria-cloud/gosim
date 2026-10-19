@@ -13,6 +13,7 @@ import (
 	"github.com/dave/dst/dstutil"
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
@@ -51,7 +52,7 @@ func TestLinuxArm64SourceBuildsForNativeDarwin(t *testing.T) {
 			if strings.Contains(out.String(), "//go:build") {
 				t.Fatal("source constraint retained")
 			}
-			name := renameFile(gosimtool.BuildConfig{GOOS: "linux", GOARCH: "arm64"}, "layout_linux_arm64.go")
+			name := renameFile(gosimtool.BuildConfig{Identity: buildspec.Identity{SimulationOS: "linux", SimulationArch: "arm64"}}, "layout_linux_arm64.go")
 			if name == "layout_linux_arm64.go" {
 				t.Fatal("Linux filename still excluded on Darwin")
 			}

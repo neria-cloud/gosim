@@ -18,6 +18,7 @@ import (
 	gocmp "github.com/google/go-cmp/cmp"
 	"golang.org/x/tools/txtar"
 
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
@@ -150,7 +151,7 @@ func TestTranslate(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	cfg := gosimtool.BuildConfig{
+	cfg := gosimtool.LegacyBuildConfig{
 		GOOS: "linux",
 		// TODO: varying the architecture for snapshots is fine as long as we don't translate arch-specific stuff; cross-arch tests should catch problems...
 		GOARCH: runtime.GOARCH,
@@ -218,10 +219,7 @@ func TestTranslate(t *testing.T) {
 }
 
 func TestRenameFile(t *testing.T) {
-	cfg := gosimtool.BuildConfig{
-		GOOS:   "linux",
-		GOARCH: "amd64",
-	}
+	cfg := gosimtool.BuildConfig{Identity: buildspec.Identity{SimulationOS: "linux", SimulationArch: "amd64"}}
 
 	testcases := []struct {
 		in, out string

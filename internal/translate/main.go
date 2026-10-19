@@ -1,861 +1,495 @@
 package translate
 
 import (
-	"cmp"
-	_ "embed"
-	"flag"
-	"go/token"
-	"log"
+	"bytes"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
-	"path"
-	"runtime/pprof"
+	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
-	"time"
 
 	"golang.org/x/mod/modfile"
-	"golang.org/x/sync/errgroup"
+	"golang.org/x/mod/module"
+	"golang.org/x/mod/semver"
 	"golang.org/x/tools/go/packages"
 
+	"github.com/neria-cloud/gosim/internal/buildcfg"
+	"github.com/neria-cloud/gosim/internal/compose"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/translate/cache"
 )
-
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-
-var skippedPackagesGo123 = map[string]bool{
-	"runtime": true, // XXX wait what
-	"errors":  true,
-	"reflect": true,
-	// "strings": true,
-	"strconv": true,
-	// embed: true, // this will also have io.EOF problems... unless we can just use the original there please???
-	// XXX: for all unconverted packages, figure out all references to converted packages, and have a plan.
-	"embed":    true, // XXX can we link back to the original here somehow???
-	"math":     true,
-	"math/big": true,
-
-	"unsafe": true,
-
-	"runtime/coverage": true, // XXX for now
-	"runtime/metrics":  true, // XXX for now
-	"runtime/pprof":    true, // XXX for now
-
-	// XXX: rewrite internal/cpu to golang.org/x/sys/cpu?
-	"vendor/golang.org/x/sys/cpu": true, // XXX for now
-
-	"unique": true, // XXX: yes
-
-	// Legacy private-runtime dependency. The new profile rejects this package;
-	// skipping translation does not make its runtime map access safe.
-	"github.com/ugorji/go/codec": true,
-
-	// TODO(migration): Task 21 replaces this legacy skip policy with reviewed
-	// version profiles. Native crypto may access entropy, scheduling and process
-	// state; these entries are not evidence of simulated crypto support.
-	// TODO(not planned): General crypto/TLS translation repair is separate work.
-	"crypto/internal/fips140":                    true,
-	"crypto/internal/fips140/alias":              true,
-	"crypto/internal/fips140/subtle":             true,
-	"crypto/internal/fips140/sha256":             true,
-	"crypto/internal/fips140/sha3":               true,
-	"crypto/internal/fips140/sha512":             true,
-	"crypto/internal/fips140/aes":                true,
-	"crypto/internal/fips140/aes/gcm":            true,
-	"crypto/internal/fips140/nistec":             true,
-	"crypto/internal/fips140/nistec/fiat":        true,
-	"crypto/internal/fips140/bigmod":             true,
-	"crypto/internal/fips140/ecdsa":              true,
-	"crypto/internal/fips140/edwards25519/field": true,
-	"crypto/internal/fips140/check":              true,
-	"crypto/internal/fips140/drbg":               true,
-	"crypto/internal/fips140/hmac":               true,
-	"crypto/internal/fips140/hkdf":               true,
-	"crypto/internal/fips140/mlkem":              true,
-	"crypto/internal/fips140/pbkdf2":             true,
-	"crypto/internal/fips140/rsa":                true,
-	"crypto/internal/fips140/tls12":              true,
-	"crypto/internal/fips140/tls13":              true,
-	"crypto/internal/fips140cache":               true,
-	"crypto/internal/fips140hash":                true,
-	"crypto/internal/fips140only":                true,
-	"crypto/internal/fips140deps/godebug":        true,
-	"crypto/internal/fips140deps/byteorder":      true,
-	"crypto/internal/fips140deps/cpu":            true,
-	"crypto/internal/sysrand":                    true,
-	// Non-internal crypto packages that transitively import fips140 internals.
-	// These legacy exclusions do not establish a safe native boundary.
-	"crypto/aes":      true,
-	"crypto/cipher":   true,
-	"crypto/des":      true,
-	"crypto/dsa":      true,
-	"crypto/ecdh":     true,
-	"crypto/ecdsa":    true,
-	"crypto/ed25519":  true,
-	"crypto/elliptic": true,
-	"crypto/fips140":  true,
-	"crypto/hkdf":     true,
-	"crypto/hmac":     true,
-	"crypto/md5":      true,
-	"crypto/mlkem":    true,
-	"crypto/pbkdf2":   true,
-	"crypto/rand":     true,
-	"crypto/rc4":      true,
-	"crypto/rsa":      true,
-	"crypto/sha1":     true,
-	"crypto/sha256":   true,
-	"crypto/sha3":     true,
-	"crypto/sha512":   true,
-	"crypto/subtle":   true,
-	"crypto/tls":      true,
-	// boring and nistec are also now covered by skipping the above
-	"crypto/internal/boring/sig": true,
-	"crypto/internal/nistec":     true,
-
-	// Native HTTP bypasses simulated networking and crosses translated net/time
-	// types. New profiles reject it explicitly; this is only the legacy path.
-	// TODO(not planned): HTTP/TLS translation support is separate compatibility work.
-	"net/http":          true,
-	"net/http/httputil": true, // uses real net/http types
-	// crypto/x509 uses real crypto types (rsa, ecdsa, etc.) which are skipped.
-	// Translating it causes type mismatches with real crypto.Signer etc.
-	"crypto/x509":      true,
-	"crypto/x509/pkix": true,
-	// golang.org/x/net/http2 uses real net/http types (req.Context() etc.)
-	// which clash with translated/context.Context.
-	"golang.org/x/net/http2": true,
-	// selfcert uses crypto/x509 (skipped) with time.Time and net.IP;
-	// translating it causes type mismatches with real crypto types.
-	"github.com/glycerine/rpc25519/selfcert": true,
-	// net/url uses //go:linkname setpath which causes issues when translated.
-	// Skipping it means all packages (translated and skipped alike) use the
-	// real net/url.URL type, avoiding mismatches with crypto/x509.URIs etc.
-	"net/url": true,
-
-	// internal/runtime/maps is the runtime's map implementation in Go 1.25+.
-	// It has many 2-part //go:linkname directives pointing to the runtime, and
-	// 3-part linknames that define runtime.mapaccess1 etc. Translating it causes
-	// duplicate symbol errors at link time (both translated and real versions
-	// define runtime.mapaccess1 etc.). Since gosim replaces map[K]V with
-	// gosimruntime.Map[K,V] everywhere, translated code never calls into this
-	// package directly anyway.
-	"internal/runtime/maps": true,
-	// hash/maphash is NOT skipped — it must be translated so its
-	// runtime_rand linkname gets hooked to gosim's deterministic RNG.
-	// The internal/runtime/maps import (used only for maps.Use64BitHash)
-	// is redirected to internal/maps_shim via replacedPkgs.
-
-	"testing":          true,
-	"testing/synctest": true,
-	// "internal/synctest" is replaced by gosim's stub (synctestPackage).
-	// The stdlib internal/synctest cannot be imported outside stdlib, so we
-	// skip translating it and redirect imports to our stub via replacedPkgs.
-	"internal/synctest":         true,
-	"testing/internal/testdeps": true,
-	"internal/reflectlite":      true,
-	// internal/race is replaced by gosim's version (racePackage) via replacedPkgs.
-	// Go 1.26 changed stdlib internal/race to use body-less //go:linkname stubs
-	// pushed from runtime, which break when translated. Gosim's version calls
-	// runtime.Race* functions directly.
-	"internal/race":               true,
-	gosimruntimePackage:           true,
-	gosimruntimePackage + "_test": true, // eh
-	gosimruntimePackage + ".test": true, // eh
-	runtimeABIPackage:             true,
-	runtimeABIPackage + "_test":   true,
-	runtimeABIPackage + ".test":   true,
-	// reflectPackage: true,
-}
-
-// skippedPrefixesGo123 lists import-path prefixes for packages that should be
-// treated as skipped (not translated). Any package whose path has one of these
-// prefixes will be omitted from translation and used as-is.
-//
-// Native gRPC crosses context/net/time types and bypasses simulated networking.
-// TODO(migration): Task 21 activates explicit profile rejection for applications.
-// TODO(not planned): gRPC translation repair remains separate compatibility work.
-var skippedPrefixesGo123 = []string{
-	"google.golang.org/grpc",
-	// Native QUIC likewise has no supported simulated transport boundary.
-	"github.com/quic-go/quic-go",
-	// golang.org/x/crypto sub-packages depend on skipped stdlib crypto/*
-	// packages (hmac, cipher, etc.). Translating them causes type mismatches
-	// between translated/hash.Hash and hash.Hash etc.
-	"golang.org/x/crypto",
-	// cloudflare/circl is a crypto library depending on skipped crypto packages.
-	"github.com/cloudflare/circl",
-	// zygomys uses reflect with maps; gosim's map replacement causes
-	// translated/reflect.Type vs reflect.Type mismatches.
-	"github.com/glycerine/zygomys",
-	// blake3 has a variable/type name collision (var job *job) that
-	// trips the translator. Pure hash computation, no gosim interaction.
-	"github.com/glycerine/blake3",
-}
-
-var keepAsmPackagesGo123 = map[string]bool{
-	"crypto/internal/bigmod":                       true,
-	"crypto/internal/edwards25519/field":           true,
-	"vendor/golang.org/x/crypto/chacha20":          true,
-	"vendor/golang.org/x/crypto/internal/poly1305": true,
-	"vendor/golang.org/x/crypto/chacha20poly1305":  true,
-	"vendor/golang.org/x/crypto/sha3":              true,
-	"hash/crc32":                                   true,
-
-	"github.com/cespare/xxhash/v2": true,
-
-	// klauspost/compress has assembly-backed functions (CPU detection,
-	// Huffman, S2, Zstd, xxHash). Pure computation, no gosim interaction.
-	"github.com/klauspost/compress/internal/cpuinfo":     true,
-	"github.com/klauspost/compress/huff0":                true,
-	"github.com/klauspost/compress/s2":                   true,
-	"github.com/klauspost/compress/zstd":                 true,
-	"github.com/klauspost/compress/zstd/internal/xxhash": true,
-	"github.com/klauspost/cpuid/v2":                      true,
-
-	// Other third-party packages with assembly-backed functions.
-	// All pure computation (compression, hashing, CPU detection).
-	"github.com/glycerine/blake3/guts":            true,
-	"github.com/glycerine/rpc25519/bytes":         true,
-	"github.com/minio/minlz":                      true,
-	"github.com/pierrec/lz4/v4/internal/lz4block": true,
-	"github.com/templexxx/cpu":                    true,
-
-	// Non-vendored golang.org/x/* modules (vendored versions are separate entries above).
-	"golang.org/x/crypto/argon2":            true,
-	"golang.org/x/crypto/blake2b":           true,
-	"golang.org/x/crypto/chacha20poly1305":  true,
-	"golang.org/x/crypto/internal/poly1305": true,
-	"golang.org/x/sys/cpu":                  true,
-
-	// internal/runtime/sys contains pure compiler intrinsics (GetCallerPC,
-	// GetCallerSP, GetClosurePtr) and architecture-specific helpers (EnableDIT,
-	// DisableDIT). None interact with gosim scheduling, so pass them through.
-	// This package became a direct dependency of crypto/subtle in Go 1.25.
-	"internal/runtime/sys": true,
-
-	// internal/runtime/syscall/linux contains Syscall6, which is
-	// assembly-backed. Pass through as-is.
-	"internal/runtime/syscall/linux": true,
-}
-
-var PublicExportHacks = map[string][]string{
-	"encoding/binary":                  {"littleEndian", "bigEndian"},
-	"internal/poll":                    {"errNetClosing"},
-	"github.com/golang/protobuf/proto": {"enumsByName"},
-}
-
-// XXX: replace the package instead
-var replacements = map[PackageSelector]PackageSelector{
-	{Pkg: "runtime", Selector: "SetFinalizer"}: {Pkg: gosimruntimePackage, Selector: "SetFinalizer"},
-	{Pkg: "runtime", Selector: "GOOS"}:         {Pkg: gosimruntimePackage, Selector: "GOOS"},
-	{Pkg: "runtime", Selector: "Gosched"}:      {Pkg: gosimruntimePackage, Selector: "Yield"},
-}
-
-const gosimModPath = gosimtool.Module
-
-const (
-	gosimruntimePackage = gosimModPath + "/rt/runtime"
-	runtimeABIPackage   = gosimruntimePackage + "/abi"
-	hooksGo123Package   = gosimModPath + "/internal/hooks/go123"
-	reflectPackage      = gosimModPath + "/internal/reflect"
-	simulationPackage   = gosimModPath + "/internal/simulation"
-	testingPackage      = gosimModPath + "/internal/testing"
-	synctestPackage     = gosimModPath + "/internal/synctest"
-	mapsShimPackage     = gosimModPath + "/internal/maps_shim"
-	cryptorandPackage   = gosimModPath + "/internal/cryptorand"
-	racePackage         = gosimModPath + "/internal/race"
-)
-
-var TranslatedRuntimePackages = []string{
-	hooksGo123Package,
-	reflectPackage,
-	simulationPackage,
-	testingPackage,
-	synctestPackage,
-	mapsShimPackage,
-	cryptorandPackage,
-}
-
-const (
-	// loadDepGraph fairly quickly loads the dependency graph
-	loadDepGraph = packages.NeedName | packages.NeedFiles | packages.NeedModule | packages.NeedImports | packages.NeedDeps
-	// loadSyntaxAndTypes relatively slowly loads detailed types and syntax information
-	loadSyntaxAndTypes = packages.NeedSyntax | packages.NeedName | packages.NeedTypes |
-		packages.NeedTypesInfo | packages.NeedFiles | packages.NeedImports
-)
-
-func loadPackages(patterns []string, b gosimtool.BuildConfig, mode packages.LoadMode, tests bool) ([]*packages.Package, error) {
-	cfg := &packages.Config{
-		Mode:  mode,
-		Tests: tests,
-		Fset:  token.NewFileSet(),
-	}
-
-	// apply build config to packages config
-	// TODO: build tags plan (rename files, force GOOS and GOARCH)
-	tags := []string{"sim"}
-	if b.Race {
-		tags = append(tags, "race")
-	}
-	// TODO: if we support varying GOARCH here, we should select the arch-specific hooks at runtime...
-	env := append(os.Environ(), "GOOS="+b.GOOS, "GOARCH="+b.GOARCH, "CGO_ENABLED=0")
-	cfg.BuildFlags = []string{"-tags", strings.Join(tags, ",")}
-	cfg.Env = env
-
-	// load packages
-	packages, err := packages.Load(cfg, patterns...)
-	if err != nil {
-		return nil, err
-	}
-	if len(packages) == 0 {
-		log.Println(err)
-		log.Fatal("failed to load packages... missing go.mod deps?")
-	}
-
-	// check for errors
-	for _, pkg := range packages {
-		if pkg.Errors != nil {
-			// TODO: ignore errors in tests outside of what we care about?
-			log.Println("errors for ", pkg.PkgPath)
-			for _, err := range pkg.Errors {
-				log.Println(err)
-			}
-			os.Exit(1)
-		}
-	}
-
-	return packages, nil
-}
-
-// reloadUncachedPackages loads the types and AST for the given uncached package
-// paths. It takes special care to load tests only where appropriate, because
-// broken tests in dependencies are not uncommon.
-//
-// loadPackages has a binary flag for loading tests, which if enabled loads
-// tests for the explicitly listed packages. It does not load tests for
-// dependencies.
-//
-// When we reload packages here we explicitly list all packages we want to load,
-// including dependencies whose tests we do not care about. To not load tests
-// for those we make to calls to loadPackages, one with and one without tests.
-func reloadUncachedPackages(listedPkgs []*packages.Package, uncachedPackages map[string]struct{}, cfg gosimtool.BuildConfig) map[string]*packages.Package {
-	// determine packages we want to load tests for based on
-	// the original command line arguments
-	listedPkgPaths := make(map[string]struct{})
-	for _, pkg := range listedPkgs {
-		if fromGosim := slices.Contains(TranslatedRuntimePackages, pkg.PkgPath); fromGosim {
-			continue
-		}
-		listedPkgPaths[pkg.PkgPath] = struct{}{}
-	}
-
-	// reloadByTests is packages to reload, with tests enabled or not
-	reloadByTests := make(map[bool][]string)
-	for path := range uncachedPackages {
-		_, ok := listedPkgPaths[path]
-		reloadByTests[ok] = append(reloadByTests[ok], path)
-	}
-
-	// reload packages in parallel
-	var mu sync.Mutex
-	reloadedByTests := make(map[bool][]*packages.Package)
-	var g errgroup.Group
-	for test, pkgs := range reloadByTests {
-		g.Go(func() error {
-			reloaded, err := loadPackages(pkgs, cfg, loadSyntaxAndTypes, test)
-			if err != nil {
-				return err
-			}
-			mu.Lock()
-			defer mu.Unlock()
-			reloadedByTests[test] = reloaded
-			return nil
-		})
-	}
-	if err := g.Wait(); err != nil {
-		log.Fatal(err)
-	}
-
-	// merge results
-	pkgsWithTypesAndAst := make(map[string]*packages.Package)
-	for _, pkgs := range reloadedByTests {
-		for _, pkg := range pkgs {
-			pkgsWithTypesAndAst[pkg.ID] = pkg
-		}
-	}
-
-	return pkgsWithTypesAndAst
-}
-
-type packageKind string
-
-const (
-	PackageKindTestBinary = "testbinary"
-	PackageKindBase       = "base"
-	PackageKindForTest    = "fortest"
-	PackageKindTests      = "tests"
-)
-
-func classifyPackage(pkg *packages.Package) (packageKind, string) {
-	switch {
-	case pkg.Name == "main" && strings.HasSuffix(pkg.PkgPath, ".test"):
-		// XXX: is this correct?
-		return PackageKindTestBinary, strings.TrimSuffix(pkg.PkgPath, ".test")
-
-	case strings.HasSuffix(pkg.Name, "_test"):
-		return PackageKindTests, strings.TrimSuffix(pkg.PkgPath, "_test")
-
-	case strings.HasSuffix(pkg.ID, ".test]"):
-		return PackageKindForTest, pkg.PkgPath
-
-	case !strings.HasSuffix(pkg.Name, "_test") && pkg.PkgPath == pkg.ID:
-		return PackageKindBase, pkg.PkgPath
-
-	default:
-		log.Fatal("weird package", pkg.Name, pkg.PkgPath, pkg.ID)
-		panic("unreachable")
-	}
-}
-
-// isSkippedByPrefix returns true if pkgPath equals a prefix exactly, or starts
-// with prefix + "/". This avoids false positives from module names that share
-// a common start (e.g. "grpc" vs "grpc-gateway").
-func isSkippedByPrefix(pkgPath string, prefixes []string) bool {
-	for _, prefix := range prefixes {
-		if pkgPath == prefix || strings.HasPrefix(pkgPath, prefix+"/") {
-			return true
-		}
-	}
-	return false
-}
-
-// collectImports collects all packages reachable from roots, excluding those
-// in skip (exact match) and skipPrefixes (prefix match). Pass nil skipPrefixes
-// to collect all packages including those matching skippedPrefixesGo123.
-func collectImports(roots []*packages.Package, skip map[string]bool, skipPrefixes []string) []*packages.Package {
-	seen := make(map[*packages.Package]bool)
-	var order []*packages.Package
-	var visit func(pkg *packages.Package)
-	visit = func(pkg *packages.Package) {
-		if skip[pkg.PkgPath] || seen[pkg] || isSkippedByPrefix(pkg.PkgPath, skipPrefixes) {
-			return
-		}
-		seen[pkg] = true
-		order = append(order, pkg)
-		for _, dep := range pkg.Imports {
-			visit(dep)
-		}
-	}
-	for _, root := range roots {
-		visit(root)
-	}
-	slices.SortFunc(order, func(a, b *packages.Package) int {
-		return cmp.Compare(a.ID, b.ID)
-	})
-	return order
-}
-
-func writeGoModFile(modDir string, modFile *modfile.File, writer *outputWriter) {
-	origModPath := modFile.Module.Mod.Path
-	isGosim := origModPath == gosimModPath
-	// take the existing go.mod and make it work for a sub-directory containing
-	// a module translated
-	if err := modFile.AddModuleStmt("translated"); err != nil {
-		log.Fatal(err)
-	}
-
-	if isGosim {
-		// special case running translate in the gosim module
-		if err := modFile.AddRequire(gosimModPath, "v0.0.0"); err != nil {
-			log.Fatal(err)
-		}
-		if err := modFile.AddReplace(gosimModPath, "", "../../../", ""); err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		// adjust relative paths for the new module's location
-		for _, replace := range modFile.Replace {
-			// > Third, filesystem paths found in "replace" directives are
-			// represented by a path with an empty version.
-			if replace.New.Version == "" && !path.IsAbs(replace.New.Path) {
-				// The output module is located three directories deeper than the old module.
-				newPath := path.Join("../../../", replace.New.Path)
-				if err := modFile.AddReplace(replace.Old.Path, replace.Old.Version, newPath, ""); err != nil {
-					log.Fatal(err)
-				}
-			}
-		}
-
-		// Make the original module available so that skipped sub-packages
-		// (which remain as untranslated imports) can be resolved.
-		// Added after the adjust loop to avoid double-adjusting the path.
-		if err := modFile.AddRequire(origModPath, "v0.0.0"); err != nil {
-			log.Fatal(err)
-		}
-		if err := modFile.AddReplace(origModPath, "", "../../../", ""); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	bytes, err := modFile.Format()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := writer.stage("go.mod", bytes); err != nil {
-		log.Fatal(err)
-	}
-	goSumBytes, err := os.ReadFile(path.Join(modDir, "go.sum"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := writer.stage("go.sum", goSumBytes); err != nil {
-		log.Fatal(err)
-	}
-}
 
 type TranslateInput struct {
 	Packages []string
 	Cfg      gosimtool.BuildConfig
 }
 
-func Translate(input *TranslateInput) (*gosimtool.TranslateOutput, error) {
-	// XXX: dedup?
-	modDir, err := gosimtool.FindGoModDir()
+func Translate(input *TranslateInput) (output *gosimtool.TranslateOutput, err error) {
+	if input == nil || len(input.Packages) == 0 {
+		return nil, fmt.Errorf("translation requires explicit packages and build selection")
+	}
+	if err := input.Cfg.Validate(); err != nil {
+		return nil, err
+	}
+	if err := validateLoaderWorker(input.Cfg.Toolchain); err != nil {
+		return nil, err
+	}
+	// Own all selection slices before asynchronous package loading/translation.
+	cfg, err := gosimtool.NewBuildConfig(input.Cfg.Selection, input.Cfg.Toolchain)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	rootOutputDir := path.Join(modDir, gosimtool.OutputDirectory, "translated", input.Cfg.AsDirname())
-
-	cacheDir := path.Join(modDir, gosimtool.OutputDirectory)
-	if override := os.Getenv("GOSIMCACHE"); override != "" {
-		cacheDir = override
-	}
-
-	cachePath := path.Join(cacheDir, "cache.sqlite3")
-	if err := os.MkdirAll(path.Dir(cachePath), 0o755); err != nil {
-		log.Fatal(err)
-	}
-	db, err := cache.NewDB(cachePath)
+	project, err := gosimtool.FindGoModDir()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	defer db.Close()
-
-	cache := cache.NewCache(db)
-	defer cache.Clean()
-	// XXX: cap size at something reasonable? 100x working set?
-
-	if err := os.MkdirAll(rootOutputDir, 0o755); err != nil {
-		log.Fatal(err)
+	namespace, err := createSelectedDirectory(project, filepath.Join(".gosim", "v2", cfg.Digest))
+	if err != nil {
+		return nil, err
 	}
-	return translatePackages(cache, input.Packages, rootOutputDir, input.Cfg)
-}
-
-func buildReplacePackagesAndPackageNames(convertPkgs, allPkgs []*packages.Package) (replacedPkgs map[string]string, packageNames map[string]string) {
-	packageNames = make(map[string]string)
-	packageNames["golang.org/x/sys/cpu"] = "cpu" // XXX: here because we replace the vendored one with the common one
-	for _, pkg := range allPkgs {
-		packageNames[pkg.PkgPath] = pkg.Name
+	db, err := cache.NewDB(filepath.Join(project, ".gosim", "cache.sqlite3"))
+	if err != nil {
+		return nil, err
 	}
-
-	replacedPkgs = make(map[string]string)
-	for _, pkg := range convertPkgs {
-		inputPackage := pkg.PkgPath
-		outputPackage := "translated/" + gosimtool.ReplaceSpecialPackages(pkg.PkgPath)
-		replacedPkgs[inputPackage] = outputPackage
-		packageNames[outputPackage] = packageNames[inputPackage]
+	defer func() { err = errors.Join(err, db.Close()) }()
+	cached := cache.NewCache(db)
+	defer func() { err = errors.Join(err, cached.Clean()) }()
+	stage, err := os.MkdirTemp(namespace, "translation-*")
+	if err != nil {
+		return nil, err
 	}
-
-	// override reflect, testing, synctest, and shim packages
-	replacedPkgs["reflect"] = replacedPkgs[reflectPackage]
-	replacedPkgs["internal/reflectlite"] = replacedPkgs[reflectPackage]
-	replacedPkgs["testing"] = replacedPkgs[testingPackage]
-	replacedPkgs["internal/synctest"] = replacedPkgs[synctestPackage]
-	// Redirect internal/runtime/maps to our shim (only provides Use64BitHash).
-	// hash/maphash is the only translated package that imports this.
-	replacedPkgs["internal/runtime/maps"] = replacedPkgs[mapsShimPackage]
-	// Redirect crypto/rand to our deterministic implementation.
-	// The real crypto/rand is skipped (fips140 dep chain) but user code
-	// that imports crypto/rand should get deterministic random bytes.
-	replacedPkgs["crypto/rand"] = replacedPkgs[cryptorandPackage]
-	// Redirect stdlib internal/race to gosim's internal/race.
-	// Go 1.26 added 1-part //go:linkname directives to internal/race that
-	// break when translated. Gosim's version calls runtime.Race* directly.
-	replacedPkgs["internal/race"] = replacedPkgs[racePackage]
-
-	// handle the linkname in the os package
-	replacedPkgs["net"] = "translated/" + gosimtool.ReplaceSpecialPackages("net")
-
-	// not replaced, but need to know for rewrites
-	replacedPkgs[gosimruntimePackage] = gosimruntimePackage
-	replacedPkgs[runtimeABIPackage] = runtimeABIPackage
-	return
-}
-
-func checkGosimDep(modFile *modfile.File) {
-	// work in the gosim module
-	if isGosim := modFile.Module.Mod.Path == gosimModPath; isGosim {
-		return
-	}
-	for _, req := range modFile.Require {
-		// work if there is an explicit dependency
-		if req.Mod.Path == gosimModPath {
-			return
-		}
-	}
-	// complain otherwise
-	log.Fatalf("current module does not depend on %v, try running init", gosimModPath)
-}
-
-func checkSingleModule(modPath string, pkgs []*packages.Package) {
-	for _, pkg := range pkgs {
-		// allow packages from the current module
-		if pkg.Module.GoMod == modPath {
-			continue
-		}
-		// allow packages explicitly added by translate
-		_, path := classifyPackage(pkg)
-		if slices.Contains(TranslatedRuntimePackages, path) {
-			continue
-		}
-		// complain about others
-		log.Fatal("packages from outside module modules ", pkg.PkgPath, " ", modPath)
-	}
-}
-
-func translatePackages(cache *cache.Cache, listPatterns []string, rootOutputDir string, cfg gosimtool.BuildConfig) (*gosimtool.TranslateOutput, error) {
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
+	defer func() {
 		if err != nil {
-			log.Fatal(err)
+			err = errors.Join(err, os.RemoveAll(stage))
 		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-
-	listPatterns = append(listPatterns, TranslatedRuntimePackages...)
-
-	listedPkgs, err := loadPackages(listPatterns, cfg, loadDepGraph, true)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if len(listedPkgs) == 0 {
-		log.Fatal("no packages")
-	}
-
-	modPath, modFile, err := gosimtool.FindGoMod()
-	if err != nil {
-		log.Fatal(err)
-	}
-	modDir := path.Dir(modPath)
-
-	checkGosimDep(modFile)
-	checkSingleModule(modPath, listedPkgs)
-
-	allPkgs := collectImports(listedPkgs, nil, nil)
-	convertPkgs := collectImports(listedPkgs, skippedPackagesGo123, skippedPrefixesGo123)
-
-	packageGraph := newDepGraph()
-	basePkgs := make(map[string]*packages.Package)
-	pkgById := make(map[string]*packages.Package)
-	for _, pkg := range convertPkgs {
-		packageGraph.addNode(pkg.ID)
-		pkgById[pkg.ID] = pkg
-
-		if kind, path := classifyPackage(pkg); kind == PackageKindBase {
-			basePkgs[path] = pkg
-		}
-	}
-
-	for _, pkg := range convertPkgs {
-		for _, dep := range pkg.Imports {
-			if _, ok := packageGraph.nodes[dep.ID]; !ok {
-				// XXX?
-				continue
-			}
-			packageGraph.addDep(pkg.ID, dep.ID)
-		}
-
-		// XXX: add a package from the "for test" to the "main" package
-		kind, path := classifyPackage(pkg)
-		if kind == PackageKindForTest || kind == PackageKindTests {
-			if basePkgs[path] != nil {
-				packageGraph.addDep(pkg.ID, basePkgs[path].ID)
-			} else {
-				log.Println("huh", kind, pkg.PkgPath, path)
-				log.Fatal(":(")
-			}
-		}
-	}
-
-	translateToolHash := legacyTranslateToolHash(cfg)
-
-	numWorkers := 32
-
-	packageHashes := make(map[string]Hash)
-
-	buildInParallel(packageGraph, numWorkers, packageHashes, func(pkgId string, importHashes map[string]Hash) Hash {
-		return legacyPackageHash(translateToolHash, pkgById[pkgId], importHashes)
-	})
-
-	allResults := make(map[string]*TranslatePackageResult)
-	cacheHits := make(map[Hash]bool)
-
-	uncachedPackages := make(map[string]struct{})
-	for pkgId, hash := range packageHashes {
-		pkg := pkgById[pkgId]
-
-		res, err := legacyCacheGet(cache, hash)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if res != nil {
-			allResults[pkgId] = res
-			cacheHits[hash] = true // record cache hits so we don't update the cache for them
-		} else {
-			// Synthetic test binaries are reloaded through their real base package.
-			// A cold Go cache cannot resolve an import path ending in ".test".
-			_, reloadPath := classifyPackage(pkg)
-			uncachedPackages[reloadPath] = struct{}{}
-		}
-	}
-
-	pkgsWithTypesAndAst := reloadUncachedPackages(listedPkgs, uncachedPackages, cfg)
-
-	replacedPkgs, packageNames := buildReplacePackagesAndPackageNames(convertPkgs, allPkgs)
-
-	buildInParallel(packageGraph, numWorkers, allResults, func(pkgId string, localResults map[string]*TranslatePackageResult) *TranslatePackageResult {
-		return translatePackage(&translatePackageArgs{
-			cfg:                cfg,
-			pkg:                pkgById[pkgId],
-			replacedPkgs:       replacedPkgs,
-			hooksPackage:       hooksGo123Package,
-			packageNames:       packageNames,
-			importResults:      localResults,
-			pkgWithTypesAndAst: pkgsWithTypesAndAst[pkgId],
-		})
-	})
-
-	for pkgId, res := range allResults {
-		hash := packageHashes[pkgId]
-		if !cacheHits[hash] {
-			if err := legacyCachePut(cache, hash, res); err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-
-	writer := newOutputWriter()
-	for _, res := range allResults {
-		if err := writer.merge(res.TranslatedFiles); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	writeGoModFile(modDir, modFile, writer)
-
-	if err := writer.writeFiles(rootOutputDir); err != nil {
-		log.Fatal(err)
-	}
-	if err := writer.maybeDeleteGeneratedFiles(rootOutputDir); err != nil {
-		log.Fatal(err)
-	}
-
-	var out []string
-	for _, pkg := range listedPkgs {
-		kind, _ := classifyPackage(pkg)
-		if kind != PackageKindBase {
-			continue
-		}
-		if fromGosim := slices.Contains(TranslatedRuntimePackages, pkg.PkgPath); fromGosim {
-			continue
-		}
-		out = append(out, replacedPkgs[pkg.PkgPath])
-	}
-
-	deps := make(map[string]map[string]time.Time)
-	modTimeCache := make(map[string]time.Time)
-	for _, pkg := range listedPkgs {
-		kind, path := classifyPackage(pkg)
-		if kind != PackageKindTestBinary {
-			continue
-		}
-
-		// TODO: also add deps from the mandatory linked packages?
-		files := findAllDepFiles(pkg, modDir)
-		times, err := loadModTimes(files, modTimeCache)
-		if err != nil {
-			log.Fatal(err)
-		}
-		deps[replacedPkgs[path]] = times
-	}
-
-	return &gosimtool.TranslateOutput{
-		RootOutputDir: rootOutputDir,
-		Packages:      out,
-		Deps:          deps,
-	}, nil
+	}()
+	return translatePackages(cached, slices.Clone(input.Packages), stage, cfg)
 }
 
-func findAllDepFiles(pkg *packages.Package, root string) []string {
-	seen := make(map[*packages.Package]struct{})
-	var walk func(*packages.Package)
-	var files []string
-	walk = func(pkg *packages.Package) {
-		if _, ok := seen[pkg]; ok {
-			return
-		}
-		seen[pkg] = struct{}{}
-		for _, dep := range pkg.Imports {
-			walk(dep)
-		}
-		for _, file := range pkg.GoFiles {
-			if strings.HasPrefix(file, root) {
-				files = append(files, file)
-			}
-		}
+func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir string, cfg gosimtool.BuildConfig) (*gosimtool.TranslateOutput, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
-	walk(pkg)
-	slices.Sort(files)
-	return files
-}
-
-func loadModTimes(files []string, cache map[string]time.Time) (map[string]time.Time, error) {
-	result := make(map[string]time.Time)
-	for _, file := range files {
-		if t, ok := cache[file]; ok {
-			result[file] = t
-			continue
+	if err := validateLoaderWorker(cfg.Toolchain); err != nil {
+		return nil, err
+	}
+	policies, err := Policies(cfg.Selection)
+	if err != nil {
+		return nil, err
+	}
+	projectPath, mod, err := gosimtool.FindGoMod()
+	if err != nil {
+		return nil, err
+	}
+	project := filepath.Dir(projectPath)
+	inputDir, composition, frameworkRoot, err := prepareComposition(project, mod, cfg)
+	if err != nil {
+		return nil, err
+	}
+	// Composition exists before either application or infrastructure package load.
+	appRoots, err := loadSelectedPackages(project, patterns, cfg, packages.NeedDeps, true)
+	if err != nil {
+		return nil, err
+	}
+	runtimeRoots, err := loadSelectedPackages(inputDir, []string{"./gosimcomposition"}, cfg, packages.NeedDeps, false)
+	if err != nil {
+		return nil, err
+	}
+	roots := append(slices.Clone(appRoots), runtimeRoots...)
+	graph, err := selectGraph(roots, policies)
+	if err != nil {
+		return nil, err
+	}
+	toolHash, err := computeTranslateToolHash(cfg.Identity)
+	if err != nil {
+		return nil, err
+	}
+	hashes := make(map[string]Hash)
+	results := make(map[string]*TranslatePackageResult)
+	misses := make(map[string]bool)
+	for _, id := range graph.order {
+		dependencies := make(map[string]Hash)
+		for _, dep := range graph.deps[id] {
+			dependencies[dep] = hashes[dep]
 		}
-
-		info, err := os.Stat(file)
+		hash, err := computePackageHash(toolHash, graph.nodes[id], dependencies)
 		if err != nil {
 			return nil, err
 		}
-		t := info.ModTime()
-		cache[file] = t
-		result[file] = t
+		hashes[id] = hash
+		if graph.native[id] {
+			continue
+		}
+		result, hit, err := cacheGet(cached, hash, cfg.Identity)
+		if err != nil {
+			return nil, err
+		}
+		if hit {
+			results[id] = result
+		} else {
+			misses[id] = true
+		}
 	}
-	return result, nil
+	typed, err := reloadSelectedPackages(project, inputDir, appRoots, graph, misses, cfg)
+	if err != nil {
+		return nil, err
+	}
+	replaced, names := selectedPackageNames(graph, policies)
+	compositionPath, err := compose.PackagePath(cfg.Digest)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range graph.order {
+		if graph.native[id] || !misses[id] {
+			continue
+		}
+		imports := make(map[string]*TranslatePackageResult)
+		var gather func(string)
+		seen := make(map[string]bool)
+		gather = func(id string) {
+			if seen[id] {
+				return
+			}
+			seen[id] = true
+			for _, dep := range graph.deps[id] {
+				gather(dep)
+				if result := results[dep]; result != nil {
+					imports[dep] = result
+				}
+			}
+		}
+		gather(id)
+		result, err := translatePackage(&translatePackageArgs{cfg: cfg, Selection: cfg.Selection, pkg: graph.nodes[id], hooksPackage: compositionPath, packageNames: names, pkgWithTypesAndAst: typed[id], replacedPkgs: replaced, importResults: imports})
+		if err != nil {
+			return nil, err
+		}
+		if err := cachePut(cached, hashes[id], CacheEntryV2{Format: 2, IdentityDigest: cfg.Digest, PackageDigest: hashHex(hashes[id]), Result: *result}); err != nil {
+			return nil, err
+		}
+		results[id] = result
+	}
+	files := make(map[string][]byte)
+	for _, id := range graph.order {
+		if result := results[id]; result != nil {
+			for name, data := range result.TranslatedFiles {
+				if previous, exists := files[name]; exists && !bytes.Equal(previous, data) {
+					return nil, fmt.Errorf("conflicting translated output %s", name)
+				}
+				files[name] = data
+			}
+		}
+	}
+	moduleFiles, err := selectedModuleFiles(project, mod, frameworkRoot, "translated", cfg.Toolchain.Version)
+	if err != nil {
+		return nil, err
+	}
+	for name, data := range moduleFiles {
+		files[name] = data
+	}
+	if err := compose.ValidateImports(composition, cfg.Selection); err != nil {
+		return nil, err
+	}
+	if err := gosimtool.MaterializeFiles(rootOutputDir, files); err != nil {
+		return nil, err
+	}
+	output := &gosimtool.TranslateOutput{RootOutputDir: rootOutputDir, Deps: make(map[string]map[string]string), Identity: cfg.Identity}
+	// Each root includes the selected composition's source closure. Modification
+	// times never decide whether these dependencies or an artifact can be reused.
+	var dependencies []string
+	for _, id := range graph.order {
+		p := graph.nodes[id]
+		dependencies = append(dependencies, p.CompiledGoFiles...)
+		dependencies = append(dependencies, p.OtherFiles...)
+		dependencies = append(dependencies, p.EmbedFiles...)
+		for m := p.Module; m != nil; m = m.Replace {
+			if m.GoMod != "" {
+				dependencies = append(dependencies, m.GoMod)
+			}
+		}
+	}
+	dependencies = append(dependencies, projectPath)
+	digests, err := contentDigests(dependencies)
+	if err != nil {
+		return nil, err
+	}
+	for _, pkg := range appRoots {
+		kind, _ := classifyPackage(pkg)
+		if kind == PackageKindBase {
+			if graph.native[pkg.ID] {
+				return nil, fmt.Errorf("root %s is native-only", pkg.PkgPath)
+			}
+			out := replaced[pkg.PkgPath]
+			if out == "" {
+				return nil, fmt.Errorf("root %s was not translated", pkg.PkgPath)
+			}
+			output.Packages = append(output.Packages, out)
+			output.Deps[out] = digests
+		}
+	}
+	slices.Sort(output.Packages)
+	return output, nil
 }
 
-// Go version?
-// - GOTOOLCHAIN aware?
+func hashHex(hash Hash) string { return hex.EncodeToString(hash[:]) }
 
-// Test perf?
-// - only run once for all testdata?
+func reloadSelectedPackages(project, inputDir string, appRoots []*packages.Package, graph *selectedGraph, misses map[string]bool, cfg gosimtool.BuildConfig) (map[string]*packages.Package, error) {
+	app := make(map[string]bool)
+	for _, pkg := range appRoots {
+		kind, path := classifyPackage(pkg)
+		if kind == PackageKindBase {
+			app[path] = true
+		}
+	}
+	groups := map[bool]map[string]bool{false: {}, true: {}}
+	for id := range misses {
+		kind, path := classifyPackage(graph.nodes[id])
+		if kind == PackageKindTestBinary {
+			continue
+		}
+		groups[app[path]][path] = true
+	}
+	typed := make(map[string]*packages.Package)
+	for _, tests := range []bool{false, true} {
+		var patterns []string
+		for path := range groups[tests] {
+			patterns = append(patterns, path)
+		}
+		slices.Sort(patterns)
+		if len(patterns) == 0 {
+			continue
+		}
+		dir := inputDir
+		if tests {
+			dir = project
+		}
+		roots, err := loadSelectedPackages(dir, patterns, cfg, loadSyntaxAndTypes, tests)
+		if err != nil {
+			return nil, err
+		}
+		for _, pkg := range roots {
+			typed[pkg.ID] = pkg
+		}
+	}
+	return typed, nil
+}
 
-// Cmd
-// - nicer flags for gosim test
+func selectedPackageNames(graph *selectedGraph, p PackagePolicies) (map[string]string, map[string]string) {
+	replaced, names := make(map[string]string), make(map[string]string)
+	for _, pkg := range graph.all {
+		names[pkg.PkgPath] = pkg.Name
+	}
+	for id, pkg := range graph.nodes {
+		if graph.native[id] {
+			replaced[pkg.PkgPath] = pkg.PkgPath
+			continue
+		}
+		if kind, _ := classifyPackage(pkg); kind == PackageKindTestBinary {
+			continue
+		}
+		target := "translated/" + gosimtool.ReplaceSpecialPackages(pkg.PkgPath)
+		replaced[pkg.PkgPath] = target
+		names[target] = pkg.Name
+	}
+	for from, to := range p.packages {
+		replaced[from] = replaced[to]
+	}
+	for path := range p.native {
+		replaced[path] = path
+	}
+	return replaced, names
+}
 
-// TODO: hash more singletons?
-// - env vars? anything influencing go packages?
-// - use go packages export file hash?
+func prepareComposition(project string, mod *modfile.File, cfg gosimtool.BuildConfig) (string, compose.GeneratedComposition, string, error) {
+	cmd := buildcfg.Command(cfg.Toolchain, project, "list", "-m", "-json", gosimtool.Module)
+	data, err := cmd.Output()
+	if err != nil {
+		return "", compose.GeneratedComposition{}, "", fmt.Errorf("locate framework module: %w", err)
+	}
+	var framework struct{ Dir string }
+	if err := json.Unmarshal(data, &framework); err != nil {
+		return "", compose.GeneratedComposition{}, "", err
+	}
+	if !filepath.IsAbs(framework.Dir) {
+		return "", compose.GeneratedComposition{}, "", fmt.Errorf("framework module has no absolute source directory")
+	}
+	input, err := createSelectedDirectory(project, filepath.Join(".gosim", "v2", cfg.Digest, "input"))
+	if err != nil {
+		return "", compose.GeneratedComposition{}, "", err
+	}
+	dir, err := createSelectedDirectory(input, "gosimcomposition")
+	if err != nil {
+		return "", compose.GeneratedComposition{}, "", err
+	}
+	generated, err := compose.Generate(cfg.Selection, dir)
+	if err != nil {
+		return "", generated, "", err
+	}
+	modulePath := gosimtool.Module + "/.gosim/v2/" + cfg.Digest + "/input"
+	files, err := selectedModuleFiles(project, mod, framework.Dir, modulePath, cfg.Toolchain.Version)
+	if err != nil {
+		return "", generated, "", err
+	}
+	for _, name := range []string{"go.mod", "go.sum"} {
+		if err := publishInputFile(filepath.Join(input, name), files[name], name == "go.sum"); err != nil {
+			return "", generated, "", err
+		}
+	}
+	return input, generated, framework.Dir, nil
+}
 
-// next:
-// - verify determinism
-// - deal with logging output
+// Publish a complete file exclusively. go.sum may gain verified entries during
+// loading; retain an existing regular sum file instead of racing Go's updates.
+func publishInputFile(path string, data []byte, mutable bool) error {
+	check := func() error {
+		info, err := os.Lstat(path)
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("input %s is not a regular file", path)
+		}
+		if mutable {
+			return nil
+		}
+		existing, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(existing, data) {
+			return fmt.Errorf("composition module changed under the same identity: %s", path)
+		}
+		return nil
+	}
+	if err := check(); !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	temp, err := os.CreateTemp(filepath.Dir(path), ".module-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(temp.Name())
+	writeErr := temp.Chmod(0o644)
+	if writeErr == nil {
+		_, writeErr = temp.Write(data)
+	}
+	if err := errors.Join(writeErr, temp.Close()); err != nil {
+		return err
+	}
+	if err := os.Link(temp.Name(), path); err != nil && !errors.Is(err, os.ErrExist) {
+		return err
+	}
+	return check()
+}
 
-// log progress?
-// log.Println(results.pkgID, hex.EncodeToString(results.inputHash[:]))
+func selectedModuleFiles(project string, original *modfile.File, frameworkRoot, modulePath, version string) (map[string][]byte, error) {
+	data, err := original.Format()
+	if err != nil {
+		return nil, err
+	}
+	mod, err := modfile.Parse("go.mod", data, nil)
+	if err != nil {
+		return nil, err
+	}
+	originalPath := mod.Module.Mod.Path
+	if err := mod.AddModuleStmt(modulePath); err != nil {
+		return nil, err
+	}
+	if err := mod.AddGoStmt(strings.TrimPrefix(version, "go")); err != nil {
+		return nil, err
+	}
+	// Composition adds framework packages absent from the application's imports.
+	// Include its declared graph up front, retaining the higher application
+	// versions, so read-only package loading never rewrites this shared module.
+	frameworkData, err := os.ReadFile(filepath.Join(frameworkRoot, "go.mod"))
+	if err != nil {
+		return nil, err
+	}
+	frameworkMod, err := modfile.Parse("go.mod", frameworkData, nil)
+	if err != nil {
+		return nil, err
+	}
+	versions := make(map[string]string)
+	for _, requirement := range mod.Require {
+		versions[requirement.Mod.Path] = requirement.Mod.Version
+	}
+	for _, requirement := range frameworkMod.Require {
+		path, version := requirement.Mod.Path, requirement.Mod.Version
+		if old := versions[path]; old == "" || semver.Compare(old, version) < 0 {
+			if err := mod.AddRequire(path, version); err != nil {
+				return nil, err
+			}
+		}
+	}
+	for _, replacement := range slices.Clone(mod.Replace) {
+		if replacement.New.Version == "" && !filepath.IsAbs(replacement.New.Path) {
+			if err := mod.AddReplace(replacement.Old.Path, replacement.Old.Version, filepath.Join(project, replacement.New.Path), ""); err != nil {
+				return nil, err
+			}
+		}
+	}
+	for _, item := range []struct{ path, dir string }{{gosimtool.Module, frameworkRoot}, {originalPath, project}} {
+		_, major, ok := module.SplitPathVersion(item.path)
+		if !ok {
+			return nil, fmt.Errorf("invalid module path %s", item.path)
+		}
+		v := "v0.0.0"
+		if major != "" {
+			v = strings.TrimPrefix(strings.TrimPrefix(major, "/"), ".") + ".0.0"
+		}
+		if err := mod.AddRequire(item.path, v); err != nil {
+			return nil, err
+		}
+		if err := mod.AddReplace(item.path, "", item.dir, ""); err != nil {
+			return nil, err
+		}
+	}
+	data, err = mod.Format()
+	if err != nil {
+		return nil, err
+	}
+	sums := make(map[string]bool)
+	for _, root := range []string{project, frameworkRoot} {
+		data, err := os.ReadFile(filepath.Join(root, "go.sum"))
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+		for _, line := range strings.Split(string(data), "\n") {
+			if line != "" {
+				sums[line] = true
+			}
+		}
+	}
+	lines := make([]string, 0, len(sums))
+	for line := range sums {
+		lines = append(lines, line)
+	}
+	slices.Sort(lines)
+	return map[string][]byte{"go.mod": data, "go.sum": []byte(strings.Join(lines, "\n") + "\n")}, nil
+}
+
+func createSelectedDirectory(root, relative string) (string, error) {
+	if !filepath.IsAbs(root) {
+		return "", fmt.Errorf("source project must have an absolute path")
+	}
+	if err := gosimtool.ValidateArtifactPath(filepath.ToSlash(relative)); err != nil {
+		return "", err
+	}
+	current := root
+	for _, part := range strings.Split(filepath.ToSlash(relative), "/") {
+		current = filepath.Join(current, part)
+		if err := os.Mkdir(current, 0o755); err != nil && !errors.Is(err, os.ErrExist) {
+			return "", err
+		}
+		info, err := os.Lstat(current)
+		if err != nil {
+			return "", err
+		}
+		if !info.IsDir() {
+			return "", fmt.Errorf("selected source parent is not a real directory: %s", current)
+		}
+	}
+	return current, nil
+}

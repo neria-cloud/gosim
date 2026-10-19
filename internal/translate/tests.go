@@ -213,5 +213,10 @@ func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []PackageSele
 		},
 	}
 
+	if t.profile != nil {
+		call := dstFile.Decls[1].(*dst.FuncDecl).Body.List[0].(*dst.ExprStmt).X.(*dst.CallExpr)
+		call.Fun = t.newRuntimeSelector("TestMainDriver")
+		call.Args = []dst.Expr{&dst.CompositeLit{Type: &dst.Ident{Path: t.replacedPkgs[runtime], Name: "Driver"}}}
+	}
 	return dstFile, nil
 }

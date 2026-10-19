@@ -121,6 +121,8 @@
 {"path":"log/internal","mode":"translate","reason":"Application data and state stay translated; any filesystem/network/process operation uses guarded routes, and unrecognized private ABI is rejected."},
 {"path":"log/internal/slogtest","mode":"translate","reason":"Application data and state stay translated; any filesystem/network/process operation uses guarded routes, and unrecognized private ABI is rejected."},
 {"path":"log/slog","mode":"translate","reason":"Application data and state stay translated; any filesystem/network/process operation uses guarded routes, and unrecognized private ABI is rejected."},
+{"path":"log/slog/internal","mode":"translate","reason":"Keep the slog IgnorePC benchmark global machine-local; this package has no private ABI or imports."},
+{"path":"log/slog/internal/buffer","mode":"translate","reason":"Logging byte slices and their sync.Pool stay translated; no private ABI, host I/O or clock operations."},
 {"path":"maps","mode":"translate","reason":"Reviewed pinned map helpers use translated iteration and the modeled clone hook."},
 {"path":"math","mode":"native-pure","reason":"Compiler intrinsics or stateless computation over primitive values/slices; no exported mutable state, host I/O, clock, entropy or scheduler operations."},
 {"path":"math/big","mode":"translate","reason":"Keep mutable globals, containers, errors and typed calls in the simulated type universe; private ABI remains subject to exact hook validation."},

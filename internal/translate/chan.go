@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"log"
 	"strconv"
 	"strings"
 
@@ -308,7 +307,7 @@ func (t *packageTranslator) rewriteSelectStmt(c *dstutil.Cursor) {
 		} else if exprStmt, ok := clause.Comm.(*dst.ExprStmt); ok {
 			recvExpr, ok := isRecvExpr(exprStmt.X)
 			if !ok {
-				log.Fatal("bad recv expr")
+				panic(fmt.Sprint("bad recv expr"))
 			}
 			ch, _ := t.chanForRewrite(recvExpr.X)
 			handler = &dst.CallExpr{
@@ -316,11 +315,11 @@ func (t *packageTranslator) rewriteSelectStmt(c *dstutil.Cursor) {
 			}
 		} else if assignStmt, ok := clause.Comm.(*dst.AssignStmt); ok {
 			if len(assignStmt.Rhs) != 1 {
-				log.Fatal("bad recv assign stmt")
+				panic(fmt.Sprint("bad recv assign stmt"))
 			}
 			recvExpr, ok := isRecvExpr(assignStmt.Rhs[0])
 			if !ok {
-				log.Fatal("bad recv expr")
+				panic(fmt.Sprint("bad recv expr"))
 			}
 
 			typ, _ := t.isChanType(recvExpr.X)

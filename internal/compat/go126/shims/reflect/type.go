@@ -11,8 +11,7 @@ package reflect
 import (
 	"iter"    //gosim:notranslate
 	"reflect" //gosim:notranslate
-	"strings"
-	"sync" //gosim:notranslate
+	"sync"    //gosim:notranslate
 
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
@@ -450,5 +449,5 @@ func TypeFor[T any]() Type {
 }
 
 func isRuntimeChan(typ reflect.Type) bool {
-	return typ.PkgPath() == "github.com/neria-cloud/gosim/rt/runtime" && strings.HasPrefix(typ.Name(), "Chan[")
+	return typ.PkgPath() == "github.com/neria-cloud/gosim/rt/runtime" && len(typ.Name()) >= len("Chan[") && typ.Name()[:len("Chan[")] == "Chan["
 }

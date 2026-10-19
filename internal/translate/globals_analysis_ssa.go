@@ -1,10 +1,10 @@
 package translate
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
-	"log"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
@@ -65,7 +65,7 @@ func collectGlobalsSSA(pkg *packages.Package) ssaGlobalsInfo {
 	// log.Println(program, pkgs)
 
 	if len(pkgs) != 1 {
-		log.Fatal("wtf")
+		panic(fmt.Sprint("wtf"))
 	}
 
 	// XXX: should we check what kind of object is in the map? what if is mutable? (i mean it shouldn't be but........)

@@ -21,6 +21,7 @@
 {"package":"testing","symbol":"F","status":"rejected","reason":"Fuzz execution is not implemented."},
 {"package":"runtime","symbol":"SetFinalizer","status":"stub","reason":"No GC callbacks; machine lifecycle owns descriptor/session cleanup."},
 {"package":"runtime","symbol":"GOMAXPROCS","status":"limited","reason":"One simulated processor; query or 1 succeeds, larger requested parallelism rejects."},
+{"package":"runtime","symbol":"GOROOT","status":"limited","reason":"No installed toolchain in the simulated filesystem; returns empty and never exposes the host installation path."},
 {"package":"runtime","symbol":"NumCPU","status":"implemented","reason":"Return one logical simulated processor without reading host CPU/container state."},
 {"package":"runtime","symbol":"GC","status":"rejected","reason":"Unmodeled host runtime/GC/thread behavior is not an application API."},
 {"package":"runtime","symbol":"ReadMemStats","status":"rejected","reason":"Unmodeled host runtime/GC/thread behavior is not an application API."},

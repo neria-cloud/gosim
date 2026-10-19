@@ -5,12 +5,12 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"log"
 	"log/slog"
 	"maps"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
@@ -21,10 +21,13 @@ import (
 	"github.com/dave/dst/dstutil"
 	"golang.org/x/tools/go/packages"
 
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
 type translatePackageArgs struct {
+	Selection          buildspec.Selection
+	legacy             bool // TODO(migration): remove in Task 22.
 	cfg                gosimtool.BuildConfig
 	pkg                *packages.Package
 	hooksPackage       string
@@ -99,10 +102,10 @@ func renameFile(cfg gosimtool.BuildConfig, filePath string) string {
 	}
 
 	matched := false
-	if len(parts) >= 2 && parts[len(parts)-2] == cfg.GOOS && parts[len(parts)-1] == cfg.GOARCH {
+	if len(parts) >= 2 && parts[len(parts)-2] == cfg.Identity.SimulationOS && parts[len(parts)-1] == cfg.Identity.SimulationArch {
 		matched = true
 	}
-	if len(parts) >= 1 && parts[len(parts)-1] == cfg.GOOS {
+	if len(parts) >= 1 && parts[len(parts)-1] == cfg.Identity.SimulationOS {
 		matched = true
 	}
 
@@ -127,7 +130,22 @@ func pathForFile(pkg, file string) string {
 	return filepath.Join(pkg, file)
 }
 
-func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
+func translatePackage(args *translatePackageArgs) (result *TranslatePackageResult, err error) {
+	defer func() {
+		if failure := recover(); failure != nil {
+			result = nil
+			err = fmt.Errorf("translate %s: %v\n%s", args.pkg.ID, failure, debug.Stack())
+		}
+	}()
+	var policies *PackagePolicies
+	if !args.legacy {
+		resolved, err := Policies(args.Selection)
+		if err != nil {
+			return nil, err
+		}
+		policies = &resolved
+	}
+
 	kind, extractedPath := classifyPackage(args.pkg)
 
 	writer := newOutputWriter()
@@ -155,20 +173,21 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 		// XXX: help
 		t := &packageTranslator{
 			replacedPkgs: args.replacedPkgs,
+			profile:      policies,
 		}
 
 		file, err := t.makeMetaTestFile(packageName, collectedTests, args.hooksPackage) // XXX get right pkg name please....
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		bytes, err := dstFileToBytes(file, args.packageNames, nil, args.replacedPkgs[extractedPath]+"_test")
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		if err := writer.stage(pathForFile(outputPackage, "gosim_meta_test.go"), bytes); err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
-		return &TranslatePackageResult{TranslatedFiles: writer.extract()}
+		return &TranslatePackageResult{TranslatedFiles: writer.extract()}, nil
 	}
 
 	if kind != PackageKindBase && kind != PackageKindForTest && kind != PackageKindTests {
@@ -185,9 +204,14 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 	}
 
 	if args.pkgWithTypesAndAst == nil {
-		log.Fatalf("could not load package %s", args.pkg.ID)
+		return nil, fmt.Errorf("could not load package %s", args.pkg.ID)
 	}
 	args.pkg = args.pkgWithTypesAndAst
+	if policies != nil {
+		if err := ValidateBoundary(args.pkg, *policies); err != nil {
+			return nil, err
+		}
+	}
 
 	pkgFiles := args.pkg.Syntax
 	if kind == PackageKindForTest {
@@ -213,7 +237,7 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 		filePath := args.pkg.Fset.File(file.Package).Name()
 		dstFile, err := dec.DecorateFile(file)
 		if err != nil {
-			log.Fatal("decorate", filePath, err)
+			return nil, fmt.Errorf("decorate %s: %w", filePath, err)
 		}
 		dstFiles = append(dstFiles, dstFile)
 		dstFilePaths[dstFile] = filePath
@@ -231,7 +255,11 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 
 	var results TranslatePackageResult
 
-	globals := collectGlobalsAndTests(dstFiles, dec.Ast, args.pkg.PkgPath, args.pkg.TypesInfo, globalsDontTranslateGo123)
+	shared := globalsDontTranslateGo123
+	if policies != nil {
+		shared = policies.shared
+	}
+	globals := collectGlobalsAndTests(dstFiles, dec.Ast, args.pkg.PkgPath, args.pkg.TypesInfo, shared)
 	globalInfo := &PackageGlobalInfo{
 		Container:   make(map[string]string),
 		ShouldShare: make(map[string]bool),
@@ -240,7 +268,10 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 
 	// if args.pkg.PkgPath == "net/http" {
 	// log.Println(args.pkg.PkgPath, collectGlobalsSSA(args.pkg))
-	ssaGlobals := collectGlobalsSSA(args.pkg)
+	ssaGlobals := ssaGlobalsInfo{}
+	if args.legacy {
+		ssaGlobals = collectGlobalsSSA(args.pkg)
+	}
 	// }
 
 	globalField := map[packageKind]string{
@@ -251,7 +282,7 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 	}[kind]
 	for _, global := range globals.globalsFields {
 		if _, ok := globalInfo.Container[global]; ok {
-			log.Fatal("help", args.pkg.PkgPath, global)
+			return nil, fmt.Errorf("duplicate global %s.%s", args.pkg.PkgPath, global)
 		}
 		if !globals.shouldShare[global] {
 			globalInfo.Container[global] = globalField
@@ -290,10 +321,10 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 	for path, dep := range args.pkg.Imports {
 		if path != dep.PkgPath {
 			if args.pkg.Module != nil {
-				log.Fatal("pkg with vendored dep not in stdlib ", path)
+				return nil, fmt.Errorf("non-stdlib package has vendored import %s", path)
 			}
 			if dep.Module != nil {
-				log.Fatal("vendored dep not in stdlib ", dep.PkgPath)
+				return nil, fmt.Errorf("non-stdlib vendored dependency %s", dep.PkgPath)
 			}
 			// XXX: check if this should be rewritten at all?
 			if _, ok := localReplacedPkgs[dep.PkgPath]; ok {
@@ -307,9 +338,10 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 	allGlobals.merge(args.pkg.PkgPath, globalInfo)
 
 	hooks := maps.Clone(hooksGo123)
-	maps.Copy(hooks, hooksGensyscallGo123ByArch[args.cfg.GOARCH])
+	maps.Copy(hooks, hooksGensyscallGo123ByArch[args.cfg.Identity.SimulationArch])
 
 	translator := &packageTranslator{
+		profile:             policies,
 		typesInfo:           args.pkg.TypesInfo,
 		astMap:              dec.Map.Ast,
 		dstMap:              dec.Map.Dst,
@@ -328,19 +360,24 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 		keepAsmPkgs:       keepAsmPackagesGo123,
 	}
 
+	if policies != nil {
+		translator.hooks = policies.hooks
+		translator.acceptedLinknames = nil
+		translator.keepAsmPkgs = nil
+	}
 	// translate package files
 	for _, dstFile := range dstFiles {
 		filePath := dstFilePaths[dstFile]
 		file, err := translator.translateFile(dstFile)
 		if err != nil {
-			log.Fatal("translate", filePath, err)
+			return nil, fmt.Errorf("translate %s: %w", filePath, err)
 		}
 		bytes, err := dstFileToBytes(file, args.packageNames, nil, "main")
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		if err := writer.stage(pathForFile(outputPackage, renameFile(args.cfg, filepath.Base(filePath))), bytes); err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
 
@@ -353,14 +390,14 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 		if len(translator.collect.globalFields) > 0 || len(translator.collect.inits) > 0 || len(translator.collect.bindspecs) > 0 || len(translator.collect.sharedGlobalFields) > 0 || len(translator.collect.maps) > 0 {
 			file, err := makeDetgoGlobalsFile(translator, args.pkg.Name, forTest)
 			if err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 			bytes, err := dstFileToBytes(file, args.packageNames, collectedAliases, "main")
 			if err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 			if err := writer.stage(pathForFile(outputPackage, globalsName), bytes); err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 		}
 	}
@@ -371,13 +408,13 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 			slog.Debug("copying other file", "pkg", args.pkg.PkgPath, "file", filePath)
 			bytes, err := os.ReadFile(filePath)
 			if err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 			// prepend our header so cleanup will delete it,
 			// even though we do not modify the file
 			prefixed := append([]byte(header), bytes...)
 			if err := writer.stage(pathForFile(outputPackage, filepath.Base(filePath)), prefixed); err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 		}
 	}
@@ -388,14 +425,14 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 		if vars, ok := PublicExportHacks[args.pkg.PkgPath]; ok {
 			file, err := makePublicExportHackFile(path.Base(outputPackage), vars)
 			if err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 			bytes, err := dstFileToBytes(file, args.packageNames, collectedAliases, "main")
 			if err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 			if err := writer.stage(pathForFile(outputPackage, "gosimaliashack.go"), bytes); err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 		}
 	}
@@ -404,7 +441,7 @@ func translatePackage(args *translatePackageArgs) *TranslatePackageResult {
 	results.PackagePath = args.pkg.PkgPath
 	results.TranslatedFiles = writer.extract()
 
-	return &results
+	return &results, nil
 }
 
 type translateCollect struct {
@@ -422,6 +459,7 @@ type PackageSelector struct {
 }
 
 type packageTranslator struct {
+	profile       *PackagePolicies
 	typesInfo     *types.Info
 	suffixCounter int
 	astMap        decorator.AstMap

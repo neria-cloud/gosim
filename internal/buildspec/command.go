@@ -56,6 +56,7 @@ func GoCommand(tc Toolchain, dir string, args ...string) *exec.Cmd {
 		cmd.Err = err
 	}
 	replaced := map[string]string{
+		"PATH":        filepath.Dir(tc.Executable) + string(os.PathListSeparator) + os.Getenv("PATH"),
 		"GOTOOLCHAIN": tc.Version, "GOROOT": tc.GOROOT, "GOOS": tc.HostOS, "GOARCH": tc.HostArch,
 		"GOENV": "off", "GOFLAGS": "", "GOEXPERIMENT": "", "GODEBUG": "", "GOWORK": "off",
 		"GOAMD64": "v1", "GOARM64": "v8.0",
@@ -68,7 +69,7 @@ func GoCommand(tc Toolchain, dir string, args ...string) *exec.Cmd {
 	}
 	// Explicit order, independent of Go map iteration.
 	for _, key := range []string{
-		"GOTOOLCHAIN", "GOROOT", "GOOS", "GOARCH", "GOENV", "GOFLAGS",
+		"PATH", "GOTOOLCHAIN", "GOROOT", "GOOS", "GOARCH", "GOENV", "GOFLAGS",
 		"GOEXPERIMENT", "GODEBUG", "GOWORK", "GOAMD64", "GOARM64",
 	} {
 		cmd.Env = append(cmd.Env, key+"="+replaced[key])

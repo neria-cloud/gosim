@@ -124,3 +124,21 @@ func mustPanic(t *testing.T, f func()) {
 	}()
 	f()
 }
+
+func TestDeepEqualBytes(t *testing.T) {
+	for _, tc := range []struct {
+		a, b  []byte
+		equal bool
+	}{
+		{nil, nil, true},
+		{nil, []byte{}, false},
+		{[]byte{}, []byte{}, true},
+		{[]byte{1, 2}, []byte{1, 2}, true},
+		{[]byte{1, 2}, []byte{1, 3}, false},
+		{[]byte{1}, []byte{1, 2}, false},
+	} {
+		if got := DeepEqual(tc.a, tc.b); got != tc.equal {
+			t.Fatalf("DeepEqual(%v,%v)=%v", tc.a, tc.b, got)
+		}
+	}
+}
