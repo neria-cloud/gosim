@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–31 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 32–33 remain unchecked. Race and large suites require explicit user instruction; the resumed run has that authorization for final verification.
+**Status:** Tasks 1–32 (including their recorded children) complete. All 48 current-source tuples are certified and normal-command acceptance passed on both exact patches; Task 33 final closure remains. Race and large suites ran under the user’s explicit authorization.
 
 ## Important notices
 
@@ -827,16 +827,16 @@ Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for 
 **References:** T§2 pending/certified matrix and fingerprint rules; T§9 CertificationReport; T§10 release acceptance.  
 **Budget:** 500–2,000 changed tracked lines; fixes belong to bounded commits and require reruns. **Dependency:** 30–31.
 
-- [ ] Run the full 48-combination matrix against the exact final executable source/profile/dependency fingerprints, preserving worker/architecture/emulation/image/suite evidence. Both Go families are required; partial family/platform success is not completion.
-- [ ] Verify every report has all required applicable suites, normal/race modes, generated import checks and repeated-seed/negative evidence. Compile-only, skipped, stale-source or incomplete reports cannot promote a tuple.
-- [ ] Fix failures at their owning subsystem, update this plan's gap log, and rerun affected tuples; runtime/shared ABI/core changes invalidate all dependent tuples. Do not silently downgrade the target platform list.
-- [ ] Promote only verified tuples in reviewed source data with result/source fingerprints. Exclude status/evidence metadata from executable source digests as designed; independently bind evidence to the certified identity so publication is not circular.
-- [ ] Build fresh certified artifacts and exercise normal test/translate/build-tests/debug/prepare-selftest entry points; candidate artifacts must not be reused. Reject altered source, wrong patch, wrong flags and mismatched metatest binary after promotion.
+- [x] Run the full 48-combination matrix against the exact final executable source/profile/dependency fingerprints, preserving worker/architecture/emulation/image/suite evidence. Both Go families are required; partial family/platform success is not completion.
+- [x] Verify every report has all required applicable suites, normal/race modes, generated import checks and repeated-seed/negative evidence. Compile-only, skipped, stale-source or incomplete reports cannot promote a tuple.
+- [x] Fix failures at their owning subsystem, update this plan's gap log, and rerun affected tuples; runtime/shared ABI/core changes invalidate all dependent tuples. Do not silently downgrade the target platform list.
+- [x] Promote only verified tuples in reviewed source data with result/source fingerprints. Exclude status/evidence metadata from executable source digests as designed; independently bind evidence to the certified identity so publication is not circular.
+- [x] Build fresh certified artifacts and exercise normal test/translate/build-tests/debug/prepare-selftest entry points; candidate artifacts must not be reused. Reject altered source, wrong patch, wrong flags and mismatched metatest binary after promotion.
 
 #### Verification
 
-- [ ] All 48 required executions have matching successful reports and truthful execution-mode labels; both exact families are certified for their listed tuples.
-- [ ] Common commit gate and certified user-path smoke checks pass. A promotion-only metadata commit must not invalidate its own source fingerprint.
+- [x] All 48 required executions have matching successful reports and truthful execution-mode labels; both exact families are certified for their listed tuples.
+- [x] Common commit gate and certified user-path smoke checks pass. A promotion-only metadata commit must not invalidate its own source fingerprint.
 
 ### Task 32.1: Correct the executable worker-rebuild diagnostic before restarting certification
 
@@ -852,8 +852,8 @@ Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for 
 
 **Dependency:** 32.1. **Files/references:** same as Task 32; source fixes invalidate earlier matrix evidence.
 
-- [ ] Execute and independently verify all 48 combinations against the corrected frozen source; retain execution/image/architecture/log evidence.
-- [ ] Complete Task 32's promotion, normal-command acceptance and rejection checks, then commit only reviewed metadata/documentation and mark the parent complete.
+- [x] Execute and independently verify all 48 combinations against the corrected frozen source; retain execution/image/architecture/log evidence.
+- [x] Complete Task 32's promotion, normal-command acceptance and rejection checks, then commit only reviewed metadata/documentation and mark the parent complete.
 
 ### Task 32.2.1: Complete source preflight and batch architectural corrections
 
@@ -867,7 +867,7 @@ Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for 
 
 ### Task 32.2.2: Certify the audited final source
 
-- [ ] Restart all 48 tuples only after 32.2.1 finishes; independently validate complete matching reports, then perform Task 32.2's promotion and normal-command checks.
+- [x] Restart all 48 tuples only after 32.2.1 finishes; independently validate complete matching reports, then perform Task 32.2's promotion and normal-command checks.
 
 ### Task 32.2.3: Restore truthful certification after separating large tests
 
