@@ -800,3 +800,22 @@ Completion
 - Final complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` exited successfully: `.gosim/task21.4-gate-final.log`. Final-source candidate execution passes ordinary and race under both exact families/all four features, alongside the complete existing behavior/race/script/native/translation suites. Formatting, source-revision freshness and staged whitespace checks pass. The module cache location changed externally during validation and required fresh downloads; all final commands completed successfully.
 - Task 21 and child 21.4 are complete. Public API/live integration cutover remains Task 22; protocol-2 prebuilt ownership remains Task 23. No source promotion or final certification is claimed.
 - Final Task 21.4 size: 2,029 changed lines (1,795 additions + 234 deletions), including checklist/log, using rename-aware `git diff --cached --numstat -M`; staged whitespace check passed.
+
+## Task 22.1 — Prepare package-specific artifact discovery
+Date: 2026-10-19. Previous task commit: `1ffab58`. Validation in progress.
+
+Implemented
+- Recorded Tasks 22.1/22.2 before implementation to keep the public API/caller/live-path cutover atomic within the commit budget. The target remains unchanged; parent Task 22 checks are retained. Content-based discovery is pulled forward from Task 23 because the new harness cannot reuse legacy timestamp artifacts.
+- Added dependency inspection through the same exact worker, generated composition, selected graph and content hashing as translation. Inspection reloads current source membership, so additions/removals and embedded contents participate instead of checking only an old manifest's file list. Per-package closures include their own test variants and selected composition, independent of unrelated packages in the build batch.
+- Candidate builds and prebuilt lookup share canonical package-source digests. Lookup resolves exactly one identity/package/content slot and verifies the manifest, executable and generated files; it rejects symlinked namespace parents and never selects a nearby stale/other-feature/race/certified artifact. Existing manifest schema remains unchanged; no additional timestamp/index sidecar is needed.
+
+Verified so far
+- Exact-family ordinary/race gosimtool checks pass (`.gosim/task22.1-tools126.log`, `task22.1-tools-race125.log`, `task22.1-tools-race126.log`). Complete affected-package ordinary checks pass in `.gosim/task22.1-focused.log`; translator/candidate tests launch both go1.25.14 and go1.26.9 workers. Real candidate discovery matches built artifacts for all four feature sets and those binaries execute successfully.
+- Tests cover single/batch package identity parity, unrelated source exclusion, newly added/removed Go files, edited sources/embedded payloads with preserved mtime, missing builds, alternate identity dimensions, corrupted binaries and linked namespace parents. Initial tests also exposed macOS's /var versus /private/var temporary-path aliases in fixtures; canonicalized fixture roots before comparing loader paths. No production fallback was added.
+- Focused race checks and the complete common gate are still required before completion. Legacy public API/full-suite entry points remain active until Task 22.2.
+
+Completion
+- Focused ordinary/race checks pass for both exact families: `.gosim/task22.1-focused.log`, `task22.1-focused-race.log`, `task22.1-native126.log`, `task22.1-native-race126.log`, plus the tool checks above. Candidate race execution completed successfully in 388.5s; the selected-source tests cover both exact workers.
+- The complete development gate `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` exited 0: `.gosim/task22.1-gate.log`. All ordinary/race/behavior/race-oracle/script/translation suites pass. Final candidate race execution took 357.8s and ordinary execution 64.2s. Profile revision freshness and staged whitespace checks pass.
+- Task 22.1 is complete. The parent Task 22 remains open; Task 22.2 performs the public API and live execution cutover. No architecture edits or certification promotion.
+- Final Task 22.1 size: 497 changed lines (450 additions + 47 deletions), including checklist/log, using rename-aware staged additions plus deletions.

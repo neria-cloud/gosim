@@ -17,6 +17,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/translate"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 )
 
@@ -56,6 +57,10 @@ func TestCandidateWorker(t *testing.T) {
 		t.Fatal(err)
 	}
 	project := t.TempDir()
+	project, err = filepath.EvalSymlinks(project)
+	if err != nil {
+		t.Fatal(err)
+	}
 	mod := "module " + gosimtool.Module + "/.gosim/candidateprobe\n\ngo 1.25.0\nrequire " + gosimtool.Module + " v0.0.0\nreplace " + gosimtool.Module + " => " + strconv.Quote(root) + "\n"
 	if err := os.WriteFile(filepath.Join(project, "go.mod"), []byte(mod), 0o644); err != nil {
 		t.Fatal(err)
@@ -100,6 +105,15 @@ func TestCandidateWorker(t *testing.T) {
 				t.Fatal("artifact count", len(built.Artifacts))
 			}
 			artifact := built.Artifacts[0]
+			current, err := translate.InspectDependencies(&translate.TranslateInput{Packages: []string{"."}, Cfg: built.Config})
+			if err != nil {
+				t.Fatal(err)
+			}
+			pkg := artifact.Manifest.PackageDigests[0].Path
+			found, err := gosimtool.LookupArtifact(project, built.Config.Identity, pkg, current[pkg])
+			if err != nil || found.Directory != artifact.Directory {
+				t.Fatal("real prebuilt discovery disagrees with build", found.Directory, err)
+			}
 			for _, feature := range []string{"fs", "net"} {
 				found := false
 				for _, deps := range built.Dependencies {

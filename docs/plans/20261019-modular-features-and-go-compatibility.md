@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–21 (including their recorded children) implemented and verified; remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–21 (including their recorded children) and Task 22.1 implemented and verified; Task 22.2 and remaining tasks are unchecked.
 
 ## Important notices
 
@@ -594,6 +594,32 @@ The original generator is 892 lines, existing temporary decoders are approximate
 - [ ] All updated public API examples, pre-start configuration, native ErrNotSim behavior, root/self exits, post-crash controls and failure diagnostics pass via real translated entry points.
 - [ ] Full ordinary/race suites run on the new kernel via candidate harness; common commit gate passes. Search finds no root forwarding wrappers, old active engine path or live old simulation import.
 
+#### Execution split recorded before Task 22 implementation
+
+The public API, caller migration, and live execution switch remain one atomic change. Prepare reusable artifact discovery first so the combined implementation, regression tests, retirement inventory, and documentation fit the 5,000-line commit cap. Parent checks remain mandatory; this does not change the target architecture. The content-based prebuilt foundation is pulled forward from Task 23 because the new integration harness cannot use legacy timestamp artifacts.
+
+### Task 22.1: Prepare package-specific content-checked artifact discovery
+
+**Files:** UPDATE `internal/translate/{main,dependencies,selected_test}.go`, `internal/gosimtool/*`, `internal/candidate/build*`.
+**References:** T§9 selected source/package digests, manifests and prebuilt discovery.
+**Budget:** 700–1,800 changed lines. **Dependency:** 21.4.
+
+- [x] Add dependency inspection using the same pinned loader, composition, selected graph and content hashing as translation, without translating or compiling. Compute each package's own application/test closure plus selected composition, independent of batch membership.
+- [x] Share canonical package-input digest construction between candidate builds and exact artifact lookup. Resolve only the requested identity/package/content directory; verify every manifest/binary/generated file and never fall back to another feature set, race mode or stale package build.
+- [x] Exercise discovery against real candidate output. Keep legacy public APIs and the full integration harness operational until the atomic Task 22.2 cutover.
+
+#### Verification
+
+- [x] Batch/single-package digest parity, added/removed/edited sources (including unchanged mtime), embed content, package separation, wrong identity, corrupted artifacts and missing builds are covered. Run both exact-family focused ordinary/race checks and the common commit gate.
+
+### Task 22.2: Replace public APIs and switch live execution atomically
+
+**Files/references:** Parent Task 22, T§4–6 and T§9. **Dependency:** 22.1.
+**Budget:** 3,000–4,900 changed lines; if actual size exceeds the cap, record a further buildable split before executing it.
+
+- [ ] Complete every remaining parent Task 22 implementation checkbox, including all callers, raw-TCP fixtures, generated Driver CLI/harness wiring and exact retirement inventory.
+- [ ] Run every parent Task 22 verification and the common gate; only then mark the parent complete. Record the exact development-toolchain transition required by the selected worker.
+
 ### Task 23: Replace metatesting and prebuilt discovery with identity-checked ownership
 
 **Files:** UPDATE `metatesting/metatest.go`, runtime testmain protocol, `internal/gosimtool/*`, `cmd/gosim/selftest.go`, all metatest/script/race harness callers.  
@@ -917,6 +943,8 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | — | — | None recorded during planning | Architectural clarifications are listed separately above |
 
 ## NOT PLANNED CHANGES
+
+- Task 22.1: canonicalized temporary project roots in `internal/{candidate/build_test,translate/selected_test}.go` using `filepath.EvalSymlinks` before constructing paths. Running outside the repository's dedicated TMPDIR exposed macOS `/var` versus `/private/var` aliases in source/artifact comparisons; the fixture now uses the loader's canonical path. Diff: the two four-line fixture-root normalization additions in this task's commit. Production identity and artifact validation are unchanged by this fixture correction.
 
 - Task 21.4: real translated programs exposed boundaries that native composition probes could not exercise. Added family-owned translated runtime/race leaf bridges to break a stdlib import cycle; private hook-source module inspection; canonical vendored paths and selected pushed definitions; explicit-only global sharing, constant array len/cap and per-machine embedded data initialization. Added composition initialization for every machine boot and isolated supervisor package initialization using the existing native transition/race discipline. Comparable domain sentinels preserve errors.Is across globals, stat adapters preserve errno without os initialization, net backlog probes use the existing bounded queue, and unset local time defaults to UTC so ordinary logging works without fs. Diff: this task's `internal/{candidate,compat,compose,contracts,fs,kernel,net,translate,routegen}` and `rt/runtime` changes; the progress record explains each observed failure and correction. Native-only composition fixtures synchronize their shared process setup; generated production/candidate code retains actual machine isolation. Regenerated four route origin records and profile revisions; handwritten capability probes have explicit first-gate checks alongside generated syscall wrappers. Target architecture remains unchanged.
 

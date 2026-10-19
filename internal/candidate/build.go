@@ -81,14 +81,11 @@ func Build(config buildspec.Config, options buildspec.BuildOptions, patterns []s
 		return result, err
 	}
 	for _, pkg := range output.Packages {
-		data, err := json.Marshal(struct {
-			Package string
-			Sources map[string]string
-		}{pkg, output.Deps[pkg]})
+		input, err := gosimtool.PackageSourceDigest(pkg, output.Deps[pkg])
 		if err != nil {
 			return result, err
 		}
-		inputs := []gosimtool.PackageDigest{{Path: pkg, Digest: buildspec.Hash(data)}}
+		inputs := []gosimtool.PackageDigest{input}
 		artifact, err := gosimtool.BuildArtifact(project, result.Config.Identity, inputs, func(stage string) (gosimtool.Manifest, error) {
 			manifest := gosimtool.Manifest{Schema: 1, Identity: result.Config.Identity, PackageDigests: inputs}
 			source := filepath.Join(stage, "source")

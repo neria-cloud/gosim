@@ -3,6 +3,7 @@ package translate
 import (
 	"bytes"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -66,6 +67,10 @@ func TestSelectedTranslationWorker(t *testing.T) {
 		}
 	})
 	project := t.TempDir()
+	project, err = filepath.EvalSymlinks(project)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := gosimtool.MakeGoModForTest(framework, project, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -124,6 +129,9 @@ func TestWork(t *testing.T) { if Work() != 2 { t.Fatal("work") } }
 	if digest == "" || digest != second.Deps["translated/test"][app] {
 		t.Fatal("missing content-based dependencies")
 	}
+	t.Run("current-source-discovery", func(t *testing.T) {
+		testCurrentSourceDiscovery(t, cfg, cached, project, first.Deps["translated/test"])
+	})
 	stat, err := os.Stat(app)
 	if err != nil {
 		t.Fatal(err)
@@ -141,6 +149,10 @@ func TestWork(t *testing.T) { if Work() != 2 { t.Fatal("work") } }
 	if third.Deps["translated/test"][app] == digest {
 		t.Fatal("unchanged mtime hid source change")
 	}
+	current, err := InspectDependencies(&TranslateInput{Packages: []string{"."}, Cfg: cfg})
+	if err != nil || !maps.Equal(current["translated/test"], third.Deps["translated/test"]) {
+		t.Fatal("inspection did not reflect source edit with unchanged mtime", err)
+	}
 	if bytes.Equal(readTree(t, third.RootOutputDir)["test/gosim_globals.go"], a["test/gosim_globals.go"]) {
 		t.Fatal("source change reused translated app")
 	}
@@ -148,6 +160,82 @@ func TestWork(t *testing.T) { if Work() != 2 { t.Fatal("work") } }
 		if strings.HasSuffix(name, ".go") && (bytes.Contains(data, []byte(gosimtool.Module+"/internal/simulation")) || bytes.Contains(data, []byte(gosimtool.Module+"/internal/hooks/"))) {
 			t.Fatalf("legacy path in selected output %s", name)
 		}
+	}
+}
+
+func testCurrentSourceDiscovery(t *testing.T, cfg gosimtool.BuildConfig, cached *cache.Cache, project string, original map[string]string) {
+	t.Helper()
+	inspect := func(pattern string) map[string]string {
+		t.Helper()
+		deps, err := InspectDependencies(&TranslateInput{Packages: []string{pattern}, Cfg: cfg})
+		if err != nil {
+			t.Fatal(err)
+		}
+		pkg := "translated/test"
+		if pattern == "./other" {
+			pkg += "/other"
+		}
+		if len(deps[pkg]) == 0 {
+			t.Fatal("missing inspected dependencies", pkg)
+		}
+		return deps[pkg]
+	}
+	if !maps.Equal(inspect("."), original) {
+		t.Fatal("inspection disagrees with translated source inputs")
+	}
+	other := filepath.Join(project, "other")
+	if err := os.Mkdir(other, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write := func(path, data string) {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	embed := filepath.Join(other, "payload.txt")
+	write(embed, "before")
+	write(filepath.Join(other, "other.go"), "package other\nimport _ \"embed\"\n//go:embed payload.txt\nvar Payload string\n")
+	write(filepath.Join(other, "other_test.go"), "package other_test\nimport (\"testing\"; \"test/other\")\nfunc TestOther(t *testing.T) { if other.Payload != \"before\" { t.Fatal(other.Payload) } }\n")
+	batch, err := translatePackages(cached, []string{".", "./other"}, t.TempDir(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !maps.Equal(batch.Deps["translated/test"], original) {
+		t.Fatal("batch membership changed root package inputs")
+	}
+	otherInputs := inspect("./other")
+	if !maps.Equal(otherInputs, batch.Deps["translated/test/other"]) {
+		t.Fatal("batch build differs from individual package inspection")
+	}
+	if otherInputs[embed] == "" || original[embed] != "" || otherInputs[filepath.Join(project, "app.go")] != "" {
+		t.Fatal("package closures include unrelated sources or omit embedded content")
+	}
+	before, err := os.Stat(embed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	write(embed, "after!")
+	if err := os.Chtimes(embed, before.ModTime(), before.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+	if maps.Equal(inspect("./other"), otherInputs) {
+		t.Fatal("embedded content change with unchanged mtime was missed")
+	}
+	if !maps.Equal(inspect("."), original) {
+		t.Fatal("unrelated package mutation invalidated root")
+	}
+	extra := filepath.Join(project, "extra.go")
+	write(extra, "package fixture\nvar Extra = 1\n")
+	added := inspect(".")
+	if added[extra] == "" || maps.Equal(added, original) {
+		t.Fatal("new source was missed")
+	}
+	if err := os.Remove(extra); err != nil {
+		t.Fatal(err)
+	}
+	if !maps.Equal(inspect("."), original) {
+		t.Fatal("removing added source did not restore original inputs")
 	}
 }
 

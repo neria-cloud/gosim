@@ -89,17 +89,7 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 	if err != nil {
 		return nil, err
 	}
-	// Composition exists before either application or infrastructure package load.
-	appRoots, err := loadSelectedPackages(project, patterns, cfg, packages.NeedDeps, true)
-	if err != nil {
-		return nil, err
-	}
-	runtimeRoots, err := loadSelectedPackages(inputDir, []string{"./gosimcomposition"}, cfg, packages.NeedDeps, false)
-	if err != nil {
-		return nil, err
-	}
-	roots := append(slices.Clone(appRoots), runtimeRoots...)
-	graph, err := selectGraph(roots, policies)
+	appRoots, runtimeRoots, graph, err := loadSourceGraph(project, inputDir, patterns, cfg, policies)
 	if err != nil {
 		return nil, err
 	}
@@ -214,39 +204,13 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 	if err := gosimtool.MaterializeFiles(rootOutputDir, files); err != nil {
 		return nil, err
 	}
-	output := &gosimtool.TranslateOutput{RootOutputDir: rootOutputDir, Deps: make(map[string]map[string]string), Identity: cfg.Identity}
-	// Each root includes the selected composition's source closure. Modification
-	// times never decide whether these dependencies or an artifact can be reused.
-	var dependencies []string
-	for _, id := range graph.order {
-		p := graph.nodes[id]
-		dependencies = append(dependencies, p.CompiledGoFiles...)
-		dependencies = append(dependencies, p.OtherFiles...)
-		dependencies = append(dependencies, p.EmbedFiles...)
-		for m := p.Module; m != nil; m = m.Replace {
-			if m.GoMod != "" {
-				dependencies = append(dependencies, m.GoMod)
-			}
-		}
-	}
-	dependencies = append(dependencies, projectPath)
-	digests, err := contentDigests(dependencies)
+	dependencies, err := packageDependencies(projectPath, appRoots, runtimeRoots, graph)
 	if err != nil {
 		return nil, err
 	}
-	for _, pkg := range appRoots {
-		kind, _ := classifyPackage(pkg)
-		if kind == PackageKindBase {
-			if graph.native[pkg.ID] {
-				return nil, fmt.Errorf("root %s is native-only", pkg.PkgPath)
-			}
-			out := replaced[pkg.PkgPath]
-			if out == "" {
-				return nil, fmt.Errorf("root %s was not translated", pkg.PkgPath)
-			}
-			output.Packages = append(output.Packages, out)
-			output.Deps[out] = digests
-		}
+	output := &gosimtool.TranslateOutput{RootOutputDir: rootOutputDir, Deps: dependencies, Identity: cfg.Identity}
+	for pkg := range dependencies {
+		output.Packages = append(output.Packages, pkg)
 	}
 	slices.Sort(output.Packages)
 	return output, nil
