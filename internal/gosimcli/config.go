@@ -12,7 +12,6 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/selected"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
-	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/workerboot"
 )
 
@@ -46,16 +45,13 @@ func resolveBuild(command string, flags BuildFlags) (ResolvedBuild, error) {
 
 func resolveBuildForContext(ctx context.Context, command string, flags BuildFlags) (ResolvedBuild, error) {
 	var r ResolvedBuild
-	path := flags.ConfigPath
-	if path == "" {
-		root, err := gosimtool.FindGoModDir()
-		if err != nil {
-			return r, err
-		}
-		path = filepath.Join(root, "gosim.json")
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			path = ""
-		}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return r, err
+	}
+	path, err := workerboot.ConfigPath(cwd, flags.ConfigPath)
+	if err != nil {
+		return r, err
 	}
 	request, err := buildcfg.Load(path, flags.Overrides)
 	if err != nil {
@@ -96,7 +92,7 @@ func resolveBuildForContext(ctx context.Context, command string, flags BuildFlag
 	if err != nil {
 		return r, err
 	}
-	id, err := buildcfg.Identity(config, resolution, profile, flags.Options, inputs, contract)
+	id, err := buildcfg.Identity(ctx, config, resolution, profile, flags.Options, inputs, contract)
 	if err != nil {
 		return r, err
 	}

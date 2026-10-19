@@ -1,10 +1,9 @@
 package buildcfg
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -20,7 +19,7 @@ func Digest(id buildspec.Identity) (string, error)    { return buildspec.Digest(
 
 // Identity binds already-fingerprinted compiler inputs and checked contracts.
 // Fingerprint inventories are passed through once per operation.
-func Identity(cfg buildspec.Config, resolution buildspec.Resolution, profile spec.Profile, opts buildspec.BuildOptions, inputs buildspec.Fingerprints, contractDigest string) (buildspec.Identity, error) {
+func Identity(ctx context.Context, cfg buildspec.Config, resolution buildspec.Resolution, profile spec.Profile, opts buildspec.BuildOptions, inputs buildspec.Fingerprints, contractDigest string) (buildspec.Identity, error) {
 	tc := resolution.Toolchain
 	cfg, err := Normalize(cfg)
 	if err != nil {
@@ -52,11 +51,19 @@ func Identity(cfg buildspec.Config, resolution buildspec.Resolution, profile spe
 	if contractDigest != expected || !buildspec.ValidDigest(inputs.ToolchainDigest) || !buildspec.ValidDigest(inputs.StdlibDigest) {
 		return buildspec.Identity{}, fmt.Errorf("missing or mismatched checked compatibility inputs")
 	}
-	root, graph, err := moduleGraph(tc)
+	modules, err := buildspec.ResolveModuleGraph(ctx, resolution)
 	if err != nil {
 		return buildspec.Identity{}, err
 	}
-	return identityForSource(cfg, tc, profile, opts, inputs, root, graph)
+	framework, err := FrameworkModule(modules)
+	if err != nil {
+		return buildspec.Identity{}, err
+	}
+	graph, err := GraphDigest(modules)
+	if err != nil {
+		return buildspec.Identity{}, err
+	}
+	return identityForSource(cfg, tc, profile, opts, inputs, framework.Effective().Dir, graph)
 }
 
 func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile, opts buildspec.BuildOptions, dist buildspec.Fingerprints, root, graph string) (buildspec.Identity, error) {
@@ -101,61 +108,6 @@ func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spe
 	}
 	id.DebugPolicyDigest = buildspec.Hash(policy)
 	return buildspec.NormalizeIdentity(id)
-}
-
-type moduleRecord struct {
-	Path, Version, Sum, GoModSum, GoVersion string
-	Main                                    bool
-	Replace                                 *moduleRecord
-	Dir                                     string `json:",omitempty"`
-	LocalDigest                             string `json:",omitempty"`
-}
-
-func moduleGraph(tc buildspec.Toolchain) (string, string, error) {
-	cmd := Command(tc, "", "list", "-m", "-json", "all")
-	data, err := cmd.Output()
-	if err != nil {
-		return "", "", fmt.Errorf("resolve module graph: %w", err)
-	}
-	var root string
-	var modules []moduleRecord
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	for {
-		var m moduleRecord
-		if err := decoder.Decode(&m); err == io.EOF {
-			break
-		} else if err != nil {
-			return "", "", err
-		}
-		if m.Path == "github.com/neria-cloud/gosim" {
-			root = m.Dir
-			if m.Replace != nil {
-				root = m.Replace.Dir
-			}
-		}
-		m.Dir = ""
-		if m.Replace != nil {
-			if m.Replace.Version == "" {
-				m.Replace.LocalDigest, err = hashSources(m.Replace.Dir, []string{"."})
-				if err != nil {
-					return "", "", err
-				}
-				// Absolute paths are location, not executable identity.
-				m.Replace.Path = "local"
-			}
-			m.Replace.Dir = ""
-		}
-		modules = append(modules, m)
-	}
-	if root == "" {
-		return "", "", fmt.Errorf("module graph does not contain Gosim source")
-	}
-	slices.SortFunc(modules, func(a, b moduleRecord) int { return strings.Compare(a.Path, b.Path) })
-	canonical, err := json.Marshal(modules)
-	if err != nil {
-		return "", "", err
-	}
-	return root, buildspec.Hash(canonical), nil
 }
 
 func evidenceMetadata(name string) bool {

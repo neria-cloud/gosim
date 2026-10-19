@@ -46,7 +46,7 @@ func Resolve(config buildspec.Config, options buildspec.BuildOptions) (gosimtool
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
-	id, err := buildcfg.Identity(config, resolution, profile, options, inputs, contract)
+	id, err := buildcfg.Identity(context.Background(), config, resolution, profile, options, inputs, contract)
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
@@ -54,7 +54,7 @@ func Resolve(config buildspec.Config, options buildspec.BuildOptions) (gosimtool
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
-	return gosimtool.NewBuildConfig(selection, tc)
+	return gosimtool.NewBuildConfig(context.Background(), selection, resolution)
 }
 
 func Build(config buildspec.Config, options buildspec.BuildOptions, patterns []string) (result BuildResult, err error) {

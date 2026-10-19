@@ -3,7 +3,6 @@ package translate
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,12 +10,9 @@ import (
 	"slices"
 	"strings"
 
-	"golang.org/x/mod/modfile"
-	"golang.org/x/mod/module"
-	"golang.org/x/mod/semver"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/neria-cloud/gosim/internal/buildcfg"
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compose"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/translate/cache"
@@ -38,11 +34,11 @@ func Translate(input *TranslateInput) (output *gosimtool.TranslateOutput, err er
 		return nil, err
 	}
 	// Own all selection slices before asynchronous package loading/translation.
-	cfg, err := gosimtool.NewBuildConfig(input.Cfg.Selection, input.Cfg.Toolchain)
+	cfg, err := gosimtool.NewBuildConfig(input.Cfg.Context, input.Cfg.Selection, input.Cfg.Resolution)
 	if err != nil {
 		return nil, err
 	}
-	project, err := gosimtool.FindGoModDir()
+	project, err := cfg.ProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -80,16 +76,16 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 	if err != nil {
 		return nil, err
 	}
-	projectPath, mod, err := gosimtool.FindGoMod()
+	projectPath, err := cfg.ContextFile()
 	if err != nil {
 		return nil, err
 	}
 	project := filepath.Dir(projectPath)
-	inputDir, composition, frameworkRoot, err := prepareComposition(project, mod, cfg)
+	inputDir, composition, err := prepareComposition(project, cfg)
 	if err != nil {
 		return nil, err
 	}
-	appRoots, runtimeRoots, graph, err := loadSourceGraph(project, inputDir, patterns, cfg, policies)
+	appRoots, runtimeRoots, graph, err := loadSourceGraph(cfg.Resolution.Context.Directory, inputDir, patterns, cfg, policies)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +138,7 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 			misses[id] = true
 		}
 	}
-	typed, err := reloadSelectedPackages(project, inputDir, appRoots, graph, misses, cfg)
+	typed, err := reloadSelectedPackages(cfg.Resolution.Context.Directory, inputDir, appRoots, graph, misses, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +187,7 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 			}
 		}
 	}
-	moduleFiles, err := selectedModuleFiles(project, mod, frameworkRoot, "translated", cfg.Toolchain.Version)
+	moduleFiles, err := selectedModuleFiles(cfg, "translated")
 	if err != nil {
 		return nil, err
 	}
@@ -285,42 +281,30 @@ func selectedPackageNames(graph *selectedGraph, p PackagePolicies) (map[string]s
 	return replaced, names
 }
 
-func prepareComposition(project string, mod *modfile.File, cfg gosimtool.BuildConfig) (string, compose.GeneratedComposition, string, error) {
-	cmd := buildcfg.Command(cfg.Toolchain, project, "list", "-m", "-json", gosimtool.Module)
-	data, err := cmd.Output()
-	if err != nil {
-		return "", compose.GeneratedComposition{}, "", fmt.Errorf("locate framework module: %w", err)
-	}
-	var framework struct{ Dir string }
-	if err := json.Unmarshal(data, &framework); err != nil {
-		return "", compose.GeneratedComposition{}, "", err
-	}
-	if !filepath.IsAbs(framework.Dir) {
-		return "", compose.GeneratedComposition{}, "", fmt.Errorf("framework module has no absolute source directory")
-	}
+func prepareComposition(project string, cfg gosimtool.BuildConfig) (string, compose.GeneratedComposition, error) {
 	input, err := createSelectedDirectory(project, filepath.Join(".gosim", "v2", cfg.Digest, "input"))
 	if err != nil {
-		return "", compose.GeneratedComposition{}, "", err
+		return "", compose.GeneratedComposition{}, err
 	}
 	dir, err := createSelectedDirectory(input, "gosimcomposition")
 	if err != nil {
-		return "", compose.GeneratedComposition{}, "", err
+		return "", compose.GeneratedComposition{}, err
 	}
 	generated, err := compose.Generate(cfg.Selection, dir)
 	if err != nil {
-		return "", generated, "", err
+		return "", generated, err
 	}
 	modulePath := gosimtool.Module + "/.gosim/v2/" + cfg.Digest + "/input"
-	files, err := selectedModuleFiles(project, mod, framework.Dir, modulePath, cfg.Toolchain.Version)
+	files, err := selectedModuleFiles(cfg, modulePath)
 	if err != nil {
-		return "", generated, "", err
+		return "", generated, err
 	}
 	for _, name := range []string{"go.mod", "go.sum"} {
 		if err := publishInputFile(filepath.Join(input, name), files[name], name == "go.sum"); err != nil {
-			return "", generated, "", err
+			return "", generated, err
 		}
 	}
-	return input, generated, framework.Dir, nil
+	return input, generated, nil
 }
 
 // Publish a complete file exclusively. go.sum may gain verified entries during
@@ -367,96 +351,12 @@ func publishInputFile(path string, data []byte, mutable bool) error {
 	return check()
 }
 
-func selectedModuleFiles(project string, original *modfile.File, frameworkRoot, modulePath, version string) (map[string][]byte, error) {
-	data, err := original.Format()
+func selectedModuleFiles(cfg gosimtool.BuildConfig, modulePath string) (map[string][]byte, error) {
+	modules, err := cfg.ModuleGraph()
 	if err != nil {
 		return nil, err
 	}
-	mod, err := modfile.Parse("go.mod", data, nil)
-	if err != nil {
-		return nil, err
-	}
-	originalPath := mod.Module.Mod.Path
-	if err := mod.AddModuleStmt(modulePath); err != nil {
-		return nil, err
-	}
-	if err := mod.AddGoStmt(strings.TrimPrefix(version, "go")); err != nil {
-		return nil, err
-	}
-	// Composition adds framework packages absent from the application's imports.
-	// Include its declared graph up front, retaining the higher application
-	// versions, so read-only package loading never rewrites this shared module.
-	frameworkData, err := os.ReadFile(filepath.Join(frameworkRoot, "go.mod"))
-	if err != nil {
-		return nil, err
-	}
-	frameworkMod, err := modfile.Parse("go.mod", frameworkData, nil)
-	if err != nil {
-		return nil, err
-	}
-	versions := make(map[string]string)
-	for _, requirement := range mod.Require {
-		versions[requirement.Mod.Path] = requirement.Mod.Version
-	}
-	for _, requirement := range frameworkMod.Require {
-		path, version := requirement.Mod.Path, requirement.Mod.Version
-		if old := versions[path]; old == "" || semver.Compare(old, version) < 0 {
-			if err := mod.AddRequire(path, version); err != nil {
-				return nil, err
-			}
-		}
-	}
-	for _, replacement := range slices.Clone(mod.Replace) {
-		if replacement.New.Version == "" && !filepath.IsAbs(replacement.New.Path) {
-			if err := mod.AddReplace(replacement.Old.Path, replacement.Old.Version, filepath.Join(project, replacement.New.Path), ""); err != nil {
-				return nil, err
-			}
-		}
-	}
-	for _, item := range []struct{ path, dir string }{{gosimtool.Module, frameworkRoot}, {originalPath, project}} {
-		_, major, ok := module.SplitPathVersion(item.path)
-		if !ok {
-			return nil, fmt.Errorf("invalid module path %s", item.path)
-		}
-		v := "v0.0.0"
-		if major != "" {
-			v = strings.TrimPrefix(strings.TrimPrefix(major, "/"), ".") + ".0.0"
-		}
-		// The original application remains a dependency of this private module.
-		// Preserve its higher framework requirement so MVS does not demand a
-		// go.mod update while reloading application dependencies read-only.
-		if old := versions[item.path]; semver.Compare(old, v) > 0 {
-			v = old
-		}
-		if err := mod.AddRequire(item.path, v); err != nil {
-			return nil, err
-		}
-		if err := mod.AddReplace(item.path, "", item.dir, ""); err != nil {
-			return nil, err
-		}
-	}
-	data, err = mod.Format()
-	if err != nil {
-		return nil, err
-	}
-	sums := make(map[string]bool)
-	for _, root := range []string{project, frameworkRoot} {
-		data, err := os.ReadFile(filepath.Join(root, "go.sum"))
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-		for _, line := range strings.Split(string(data), "\n") {
-			if line != "" {
-				sums[line] = true
-			}
-		}
-	}
-	lines := make([]string, 0, len(sums))
-	for line := range sums {
-		lines = append(lines, line)
-	}
-	slices.Sort(lines)
-	return map[string][]byte{"go.mod": data, "go.sum": []byte(strings.Join(lines, "\n") + "\n")}, nil
+	return buildspec.ModuleFiles(cfg.Resolution, modules, modulePath, gosimtool.Module)
 }
 
 func createSelectedDirectory(root, relative string) (string, error) {

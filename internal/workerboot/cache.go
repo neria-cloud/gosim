@@ -151,7 +151,7 @@ func Ensure(ctx context.Context, r buildspec.Resolution, source Source, inputs b
 		return Worker{}, err
 	}
 	defer os.RemoveAll(stage)
-	args := append([]string{"build"}, buildcfg.ApplicationFlags(r)...)
+	args := append([]string{"build"}, buildspec.ApplicationFlags(r)...)
 	args = append(args, "-ldflags=-checklinkname=0", "-tags=linkname", "-trimpath", "-o", filepath.Join(stage, "worker"), WorkerPackage)
 	cmd := buildspec.ApplicationCommand(ctx, r, args...)
 	var output bytes.Buffer

@@ -106,7 +106,7 @@ func certifyContext(ctx context.Context, flags BuildFlags, options MatrixOptions
 	if err := buildspec.ValidateExecution(resolved.Identity, runtime.GOARCH, options.ExecutionMode, options.ContainerImageDigest); err != nil {
 		return report, err
 	}
-	cfg, err := gosimtool.NewBuildConfig(resolved.Selection, resolved.Toolchain)
+	cfg, err := gosimtool.NewBuildConfig(ctx, resolved.Selection, resolved.Resolution)
 	if err != nil {
 		return report, err
 	}
@@ -163,7 +163,7 @@ func verifyStepContext(ctx context.Context, flags BuildFlags, output string, sui
 	if len(resolved.Identity.Features) != 3 {
 		return fmt.Errorf("verify requires rt,fs,net")
 	}
-	cfg, err := gosimtool.NewBuildConfig(resolved.Selection, resolved.Toolchain)
+	cfg, err := gosimtool.NewBuildConfig(ctx, resolved.Selection, resolved.Resolution)
 	if err != nil {
 		return err
 	}

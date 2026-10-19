@@ -2,6 +2,7 @@ package gosimtool
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -38,6 +39,48 @@ func fixtureBuild(directory string, id buildspec.Identity, packages []PackageDig
 	return Manifest{Schema: 2, Identity: id, PackageDigests: packages, Binary: ArtifactFile{Path: "sample.test", SHA256: buildspec.Hash(binary)}, GeneratedFiles: []ArtifactFile{{Path: "src/sample.go", SHA256: buildspec.Hash(source)}}}, nil
 }
 
+func TestArtifactCancellationDoesNotPublish(t *testing.T) {
+	t.Parallel()
+	root, id, packages := t.TempDir(), artifactIdentity(), artifactPackages("canceled")
+	directory, err := ArtifactDirectory(root, id, packages)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unlock, err := buildspec.LockCache(t.Context(), directory+".lock")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Millisecond)
+	defer cancel()
+	_, err = BuildArtifact(ctx, root, id, packages, func(string) (Manifest, error) {
+		t.Fatal("canceled lock waiter entered builder")
+		return Manifest{}, nil
+	})
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal(err)
+	}
+	if err := unlock(); err != nil {
+		t.Fatal(err)
+	}
+	ctx, stop := context.WithCancel(t.Context())
+	defer stop()
+	_, err = BuildArtifact(ctx, root, id, packages, func(stage string) (Manifest, error) {
+		manifest, err := fixtureBuild(stage, id, packages)
+		stop()
+		return manifest, err
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(directory); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("canceled build published", err)
+	}
+	stages, err := filepath.Glob(filepath.Join(filepath.Dir(directory), ".build-*"))
+	if err != nil || len(stages) != 0 {
+		t.Fatal("canceled build leaked staging", stages, err)
+	}
+}
+
 func TestArtifactCanonicalIdentityAndPackageSeparation(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -45,7 +88,7 @@ func TestArtifactCanonicalIdentityAndPackageSeparation(t *testing.T) {
 	packages := append(artifactPackages("z"), artifactPackages("a")...)
 	calls := 0
 	build := func(dir string) (Manifest, error) { calls++; return fixtureBuild(dir, id, packages) }
-	a, err := BuildArtifact(root, id, packages, build)
+	a, err := BuildArtifact(t.Context(), root, id, packages, build)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,12 +110,12 @@ func TestArtifactCanonicalIdentityAndPackageSeparation(t *testing.T) {
 	if !reflect.DeepEqual(id.Tags, beforeTags) || !reflect.DeepEqual(packages, beforePackages) {
 		t.Fatal("canonicalization mutated input")
 	}
-	again, err := BuildArtifact(root, id, packages, func(string) (Manifest, error) { t.Fatal("rebuilt complete artifact"); return Manifest{}, nil })
+	again, err := BuildArtifact(t.Context(), root, id, packages, func(string) (Manifest, error) { t.Fatal("rebuilt complete artifact"); return Manifest{}, nil })
 	if err != nil || again.Directory != a.Directory || calls != 1 {
 		t.Fatal("artifact reuse", err, calls)
 	}
 	other := artifactPackages("other")
-	b, err := BuildArtifact(root, id, other, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, other) })
+	b, err := BuildArtifact(t.Context(), root, id, other, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, other) })
 	if err != nil || b.Directory == a.Directory {
 		t.Fatal("package artifacts collided", err)
 	}
@@ -105,7 +148,7 @@ func TestArtifactContentChecksAndFailedReplacement(t *testing.T) {
 	id := artifactIdentity()
 	packages := artifactPackages("sample")
 	builder := func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) }
-	a, err := BuildArtifact(root, id, packages, builder)
+	a, err := BuildArtifact(t.Context(), root, id, packages, builder)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +167,7 @@ func TestArtifactContentChecksAndFailedReplacement(t *testing.T) {
 		t.Fatal("source-content mutation with unchanged mtime accepted")
 	}
 	failed := errors.New("compiler failure")
-	if _, err := BuildArtifact(root, id, packages, func(dir string) (Manifest, error) {
+	if _, err := BuildArtifact(t.Context(), root, id, packages, func(dir string) (Manifest, error) {
 		os.WriteFile(filepath.Join(dir, "partial"), []byte("partial"), 0o600)
 		return Manifest{}, failed
 	}); !errors.Is(err, failed) {
@@ -134,7 +177,7 @@ func TestArtifactContentChecksAndFailedReplacement(t *testing.T) {
 	if err != nil || string(data) != "corrupt" {
 		t.Fatal("failed build overwrote existing artifact", err)
 	}
-	if _, err := BuildArtifact(root, id, packages, builder); err != nil {
+	if _, err := BuildArtifact(t.Context(), root, id, packages, builder); err != nil {
 		t.Fatal("corrupt artifact could not be repaired", err)
 	}
 	if _, err := VerifyArtifact(a.Directory, id, packages); err != nil {
@@ -186,7 +229,7 @@ func TestArtifactBuilderMustMatchManifest(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = BuildArtifact(root, id, packages, func(dir string) (Manifest, error) {
+			_, err = BuildArtifact(t.Context(), root, id, packages, func(dir string) (Manifest, error) {
 				m, err := fixtureBuild(dir, id, packages)
 				if err != nil {
 					return m, err
@@ -239,7 +282,7 @@ func TestArtifactPathTraversalAndSymlinks(t *testing.T) {
 	id := artifactIdentity()
 	packages := artifactPackages("sample")
 	root := t.TempDir()
-	a, err := BuildArtifact(root, id, packages, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) })
+	a, err := BuildArtifact(t.Context(), root, id, packages, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +300,7 @@ func TestArtifactPathTraversalAndSymlinks(t *testing.T) {
 	if _, err := VerifyArtifact(a.Directory, id, packages); err == nil {
 		t.Fatal("manifest accepted same-content symlink")
 	}
-	if _, err := BuildArtifact(root, id, packages, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) }); err != nil {
+	if _, err := BuildArtifact(t.Context(), root, id, packages, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) }); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(target)
@@ -278,7 +321,7 @@ func TestArtifactConcurrentBuilds(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := BuildArtifact(root, id, packages, func(dir string) (Manifest, error) {
+			_, err := BuildArtifact(t.Context(), root, id, packages, func(dir string) (Manifest, error) {
 				calls.Add(1)
 				time.Sleep(20 * time.Millisecond)
 				return fixtureBuild(dir, id, packages)
@@ -303,7 +346,7 @@ func TestArtifactConcurrentBuilds(t *testing.T) {
 	for _, name := range []string{"one", "two"} {
 		p := artifactPackages(name)
 		go func() {
-			_, err := BuildArtifact(root, id, p, func(dir string) (Manifest, error) { entered <- struct{}{}; <-release; return fixtureBuild(dir, id, p) })
+			_, err := BuildArtifact(t.Context(), root, id, p, func(dir string) (Manifest, error) { entered <- struct{}{}; <-release; return fixtureBuild(dir, id, p) })
 			results <- err
 		}()
 	}
@@ -330,7 +373,7 @@ func TestArtifactProcessHelper(t *testing.T) {
 	}
 	id := artifactIdentity()
 	packages := artifactPackages("process")
-	_, err := BuildArtifact(root, id, packages, func(dir string) (Manifest, error) {
+	_, err := BuildArtifact(t.Context(), root, id, packages, func(dir string) (Manifest, error) {
 		f, err := os.OpenFile(filepath.Join(root, "builders"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 		if err != nil {
 			return Manifest{}, err
@@ -380,7 +423,7 @@ func TestArtifactManifestRejectsUnknownAndTrailingData(t *testing.T) {
 	root := t.TempDir()
 	id := artifactIdentity()
 	packages := artifactPackages("schema")
-	a, err := BuildArtifact(root, id, packages, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) })
+	a, err := BuildArtifact(t.Context(), root, id, packages, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,7 +447,7 @@ func TestArtifactNamespaceAndLockRejectSymlinks(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(root, OutputDirectory)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := BuildArtifact(root, id, packages, nil); err == nil {
+	if _, err := BuildArtifact(t.Context(), root, id, packages, nil); err == nil {
 		t.Fatal("artifact namespace symlink accepted")
 	}
 	entries, err := os.ReadDir(outside)
@@ -426,7 +469,7 @@ func TestArtifactNamespaceAndLockRejectSymlinks(t *testing.T) {
 	if err := os.Symlink(target, directory+".lock"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := BuildArtifact(root, id, packages, nil); err == nil {
+	if _, err := BuildArtifact(t.Context(), root, id, packages, nil); err == nil {
 		t.Fatal("lock symlink accepted")
 	}
 	data, err := os.ReadFile(target)

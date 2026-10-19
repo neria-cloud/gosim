@@ -141,7 +141,7 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, path := range []string{"internal/compat/go125/host/coro.go", "internal/compat/go125/profile/policies.json", "internal/hostabi/coro_go125.go", "internal/compat/selected/go125.go", "internal/compat/spec/profile.go"} {
+	for _, path := range []string{"internal/compat/go125/host/coro.go", "internal/compat/go125/profile/policies.json", "internal/hostabi/coro_go125.go", "internal/compat/selected/go125.go", "internal/compat/spec/profile.go", "internal/buildspec/modules.go"} {
 		write(path, "original")
 	}
 	digest := func() string {
@@ -153,7 +153,7 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 		return d
 	}
 	original := digest()
-	for _, path := range []string{"internal/compat/go125/host/coro.go", "internal/compat/go125/profile/policies.json", "internal/hostabi/coro_go125.go", "internal/compat/selected/go125.go", "internal/compat/spec/profile.go"} {
+	for _, path := range []string{"internal/compat/go125/host/coro.go", "internal/compat/go125/profile/policies.json", "internal/hostabi/coro_go125.go", "internal/compat/selected/go125.go", "internal/compat/spec/profile.go", "internal/buildspec/modules.go"} {
 		write(path, "modified")
 		if digest() == original {
 			t.Fatalf("revision ignores %s", path)

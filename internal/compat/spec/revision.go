@@ -21,7 +21,7 @@ func SourceRevision(root, family string) (string, error) {
 		return "", fmt.Errorf("unknown profile %q", family)
 	}
 	var paths []string
-	for _, dir := range []string{"internal/compat/" + family, "internal/hostabi", "internal/compat/selected", "internal/compat/spec"} {
+	for _, dir := range []string{"internal/compat/" + family, "internal/hostabi", "internal/compat/selected", "internal/compat/spec", "internal/buildspec"} {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err

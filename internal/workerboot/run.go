@@ -102,7 +102,8 @@ func startupOverrides(args []string) (config, version string, err error) {
 	return config, version, nil
 }
 
-func configPath(directory, explicit string) (string, error) {
+// ConfigPath locates optional caller configuration without requiring a nearest module.
+func ConfigPath(directory, explicit string) (string, error) {
 	if explicit == "" {
 		explicit = os.Getenv("GOSIM_CONFIG")
 	}
@@ -153,7 +154,7 @@ func Main(ctx context.Context, args []string, streams Streams) int {
 	if err != nil {
 		return fail(err)
 	}
-	path, err = configPath(cwd, path)
+	path, err = ConfigPath(cwd, path)
 	if err != nil {
 		return fail(err)
 	}

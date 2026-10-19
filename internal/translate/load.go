@@ -40,8 +40,11 @@ func validateLoaderWorker(tc buildspec.Toolchain) error {
 	return nil
 }
 
-func sourceEnvironment(cfg gosimtool.BuildConfig) ([]string, error) {
-	cmd := buildcfg.Command(cfg.Toolchain, "", "env")
+func sourceEnvironment(cfg gosimtool.BuildConfig, application bool) ([]string, error) {
+	cmd := buildspec.OutputCommand(cfg.Context, cfg.Toolchain, "", "env")
+	if application {
+		cmd = buildspec.ApplicationCommand(cfg.Context, cfg.Resolution, "env")
+	}
 	if cmd.Err != nil {
 		return nil, cmd.Err
 	}
@@ -66,7 +69,8 @@ func loadSelectedPackages(dir string, patterns []string, cfg gosimtool.BuildConf
 	if err := validateLoaderWorker(cfg.Toolchain); err != nil {
 		return nil, err
 	}
-	env, err := sourceEnvironment(cfg)
+	application := dir == cfg.Resolution.Context.Directory
+	env, err := sourceEnvironment(cfg, application)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +79,12 @@ func loadSelectedPackages(dir string, patterns []string, cfg gosimtool.BuildConf
 	// the actually selected files participate in package content hashes.
 	tags := buildspec.TranslatedSourceTags(cfg.Identity.Race)
 	mode |= packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedModule | packages.NeedImports | packages.NeedEmbedFiles
-	roots, err := packages.Load(&packages.Config{Dir: dir, Mode: mode, Tests: tests, Fset: token.NewFileSet(), Env: env, BuildFlags: []string{"-mod=readonly", "-tags=" + tags}}, patterns...)
+	flags := []string{"-mod=readonly"}
+	if application {
+		flags = buildspec.ApplicationFlags(cfg.Resolution)
+	}
+	flags = append(flags, "-tags="+tags)
+	roots, err := packages.Load(&packages.Config{Context: cfg.Context, Dir: dir, Mode: mode, Tests: tests, Fset: token.NewFileSet(), Env: env, BuildFlags: flags}, patterns...)
 	if err != nil {
 		return nil, fmt.Errorf("load selected sources: %w", err)
 	}

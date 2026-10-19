@@ -14,9 +14,6 @@ import (
 	"slices"
 	"strings"
 
-	"golang.org/x/mod/modfile"
-	modpath "golang.org/x/mod/module"
-
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
@@ -57,48 +54,21 @@ func hookInspectionModule(tc buildspec.Toolchain) (string, func() error, error) 
 }
 
 func hookInspectionContext(ctx context.Context, r buildspec.Resolution) (string, func() error, error) {
-	data, err := buildspec.ApplicationCommand(ctx, r, "env", "GOMOD").Output()
-	if err != nil {
-		return "", nil, err
-	}
-	path := strings.TrimSpace(string(data))
-	if path == "" || path == os.DevNull {
-		return "", func() error { return nil }, nil
-	}
-	source, err := os.ReadFile(path)
-	if err != nil {
-		return "", nil, err
-	}
-	mod, err := modfile.Parse(path, source, nil)
-	if err != nil {
-		return "", nil, err
-	}
-	root, original := filepath.Dir(path), mod.Module.Mod.Path
-	for _, replacement := range slices.Clone(mod.Replace) {
-		if replacement.New.Version == "" && !filepath.IsAbs(replacement.New.Path) {
-			if err := mod.AddReplace(replacement.Old.Path, replacement.Old.Version, filepath.Join(root, replacement.New.Path), ""); err != nil {
-				return "", nil, err
-			}
+	if !buildspec.InWorkspace(r) {
+		data, err := buildspec.ApplicationCommand(ctx, r, "env", "GOMOD").Output()
+		if err != nil {
+			return "", nil, err
+		}
+		path := strings.TrimSpace(string(data))
+		if path == "" || path == os.DevNull {
+			return "", func() error { return nil }, nil
 		}
 	}
-	_, major, ok := modpath.SplitPathVersion(original)
-	if !ok {
-		return "", nil, fmt.Errorf("invalid source module %s", original)
-	}
-	version := "v0.0.0"
-	if major != "" {
-		version = strings.TrimPrefix(strings.TrimPrefix(major, "/"), ".") + ".0.0"
-	}
-	if err := mod.AddModuleStmt("gosim-hook-source"); err != nil {
+	modules, err := buildspec.ResolveModuleGraph(ctx, r)
+	if err != nil {
 		return "", nil, err
 	}
-	if err := mod.AddRequire(original, version); err != nil {
-		return "", nil, err
-	}
-	if err := mod.AddReplace(original, "", root, ""); err != nil {
-		return "", nil, err
-	}
-	source, err = mod.Format()
+	files, err := buildspec.ModuleFiles(r, modules, "gosim-hook-source", "github.com/neria-cloud/gosim")
 	if err != nil {
 		return "", nil, err
 	}
@@ -107,14 +77,18 @@ func hookInspectionContext(ctx context.Context, r buildspec.Resolution) (string,
 		return "", nil, err
 	}
 	cleanup := func() error { return os.RemoveAll(dir) }
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), source, 0o600); err != nil {
-		return "", nil, errors.Join(err, cleanup())
-	}
-	if sum, err := os.ReadFile(filepath.Join(root, "go.sum")); err == nil {
-		if err := os.WriteFile(filepath.Join(dir, "go.sum"), sum, 0o600); err != nil {
+	for name, data := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o600); err != nil {
 			return "", nil, errors.Join(err, cleanup())
 		}
-	} else if !os.IsNotExist(err) {
+	}
+	output := r
+	output.Context = buildspec.ModuleContext{Directory: dir, GoWork: "off", GoMod: filepath.Join(dir, "go.mod")}
+	selected, err := buildspec.ResolveModuleGraph(ctx, output)
+	if err == nil {
+		err = buildspec.MatchModuleGraph(modules, selected, "gosim-hook-source")
+	}
+	if err != nil {
 		return "", nil, errors.Join(err, cleanup())
 	}
 	return dir, cleanup, nil

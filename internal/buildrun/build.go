@@ -13,7 +13,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/translate"
@@ -36,7 +35,7 @@ func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (result BuildRe
 	}
 	defer func() { err = errors.Join(err, os.RemoveAll(output.RootOutputDir)) }()
 	result.Dependencies = output.Deps
-	project, err := gosimtool.FindGoModDir()
+	project, err := cfg.ProjectRoot()
 	if err != nil {
 		return result, err
 	}
@@ -50,7 +49,7 @@ func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (result BuildRe
 			return result, err
 		}
 		inputs := []gosimtool.PackageDigest{input}
-		artifact, err := gosimtool.BuildArtifact(project, result.Config.Identity, inputs, func(stage string) (gosimtool.Manifest, error) {
+		artifact, err := gosimtool.BuildArtifact(cfg.Context, project, result.Config.Identity, inputs, func(stage string) (gosimtool.Manifest, error) {
 			manifest := gosimtool.Manifest{Schema: 2, Identity: result.Config.Identity, PackageDigests: inputs}
 			source := filepath.Join(stage, "source")
 			if err := os.Mkdir(source, 0o755); err != nil {
@@ -67,10 +66,12 @@ func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (result BuildRe
 				args = append(args, "-race")
 			}
 			args = append(args, pkg)
-			cmd := buildcfg.Command(result.Config.Toolchain, source, args...)
+			cmd := buildspec.OutputCommand(cfg.Context, result.Config.Toolchain, source, args...)
 			cmd.Env = replaceEnv(cmd.Env, "CGO_ENABLED", "1")
-			if out, err := cmd.CombinedOutput(); err != nil {
-				return manifest, fmt.Errorf("compile candidate %s: %w\n%s", pkg, err, out)
+			var output bytes.Buffer
+			cmd.Stdout, cmd.Stderr = &output, &output
+			if err := buildspec.RunProcess(cfg.Context, cmd); err != nil {
+				return manifest, fmt.Errorf("compile candidate %s: %w\n%s", pkg, err, output.Bytes())
 			}
 			built, err := readFiles(stage)
 			if err != nil {
@@ -98,12 +99,26 @@ func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (result BuildRe
 // generated test mains, before publication. Source policies already check the
 // original Linux graph; this prevents a rewrite from adding a forbidden model.
 func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
+	input, err := cfg.ModuleGraph()
+	if err != nil {
+		return err
+	}
+	flat := cfg.Resolution
+	flat.Context = buildspec.ModuleContext{Directory: dir, GoWork: "off", GoMod: filepath.Join(dir, "go.mod")}
+	output, err := buildspec.ResolveModuleGraph(cfg.Context, flat)
+	if err != nil {
+		return err
+	}
+	if err := buildspec.MatchModuleGraph(input, output, "translated"); err != nil {
+		return err
+	}
+
 	args := []string{"list", "-mod=readonly", "-tags=linkname,sim", "-deps", "-test", "-json"}
 	if cfg.Identity.Race {
 		args = append(args, "-race")
 	}
 	args = append(args, pkg)
-	cmd := buildcfg.Command(cfg.Toolchain, dir, args...)
+	cmd := buildspec.OutputCommand(cfg.Context, cfg.Toolchain, dir, args...)
 	cmd.Env = replaceEnv(cmd.Env, "CGO_ENABLED", "1")
 	out, err := cmd.CombinedOutput()
 	if err != nil {

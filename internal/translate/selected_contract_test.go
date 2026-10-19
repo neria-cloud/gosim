@@ -20,7 +20,7 @@ func selectedTestConfig(t *testing.T) gosimtool.BuildConfig {
 	t.Helper()
 	selection := profileSelection(t, "rt")
 	tc := buildspec.Toolchain{GOROOT: "/selected", Executable: "/selected/bin/go", Version: selection.Identity.Toolchain, HostOS: selection.Identity.HostOS, HostArch: selection.Identity.HostArch}
-	cfg, err := gosimtool.NewBuildConfig(selection, tc)
+	cfg, err := gosimtool.NewBuildConfig(t.Context(), selection, buildspec.Resolution{Toolchain: tc})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestSelectedBuildConfigOwnershipAndValidation(t *testing.T) {
 	t.Parallel()
 	cfg := selectedTestConfig(t)
 	selection := cfg.Selection
-	owned, err := gosimtool.NewBuildConfig(selection, cfg.Toolchain)
+	owned, err := gosimtool.NewBuildConfig(t.Context(), selection, cfg.Resolution)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestSelectedBuildConfigOwnershipAndValidation(t *testing.T) {
 			}
 		})
 	}
-	env, err := sourceEnvironment(owned)
+	env, err := sourceEnvironment(owned, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestSelectedModulePaths(t *testing.T) {
 			t.Fatal(err)
 		}
 		before, _ := source.Format()
-		files, err := selectedModuleFiles(root, source, root, "translated", "go1.25.14")
+		files, err := buildspec.ModuleFiles(buildspec.Resolution{Toolchain: buildspec.Toolchain{Version: "go1.25.14"}}, []buildspec.Module{{Path: path, Main: true, Dir: root}}, "translated")
 		if err != nil {
 			t.Fatal(err)
 		}

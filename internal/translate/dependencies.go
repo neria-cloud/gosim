@@ -24,7 +24,7 @@ func InspectDependencies(input *TranslateInput) (map[string]map[string]string, e
 	if err := validateLoaderWorker(input.Cfg.Toolchain); err != nil {
 		return nil, err
 	}
-	cfg, err := gosimtool.NewBuildConfig(input.Cfg.Selection, input.Cfg.Toolchain)
+	cfg, err := gosimtool.NewBuildConfig(input.Cfg.Context, input.Cfg.Selection, input.Cfg.Resolution)
 	if err != nil {
 		return nil, err
 	}
@@ -32,16 +32,16 @@ func InspectDependencies(input *TranslateInput) (map[string]map[string]string, e
 	if err != nil {
 		return nil, err
 	}
-	projectPath, mod, err := gosimtool.FindGoMod()
+	projectPath, err := cfg.ContextFile()
 	if err != nil {
 		return nil, err
 	}
 	project := filepath.Dir(projectPath)
-	inputDir, _, _, err := prepareComposition(project, mod, cfg)
+	inputDir, _, err := prepareComposition(project, cfg)
 	if err != nil {
 		return nil, err
 	}
-	appRoots, runtimeRoots, graph, err := loadSourceGraph(project, inputDir, slices.Clone(input.Packages), cfg, policies)
+	appRoots, runtimeRoots, graph, err := loadSourceGraph(cfg.Resolution.Context.Directory, inputDir, slices.Clone(input.Packages), cfg, policies)
 	if err != nil {
 		return nil, err
 	}

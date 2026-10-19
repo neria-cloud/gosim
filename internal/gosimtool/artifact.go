@@ -1,13 +1,13 @@
 package gosimtool
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
-	"syscall"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
@@ -85,7 +85,7 @@ func MaterializeFiles(directory string, files map[string][]byte) error {
 // The builder owns a private directory and returns its complete manifest; it
 // must include its binary and every generated file. Only verified output moves
 // into the final namespace. Task 21 connects the translator/compiler to this API.
-func BuildArtifact(project string, identity buildspec.Identity, packages []PackageDigest, builder func(string) (Manifest, error)) (artifact Artifact, err error) {
+func BuildArtifact(ctx context.Context, project string, identity buildspec.Identity, packages []PackageDigest, builder func(string) (Manifest, error)) (artifact Artifact, err error) {
 	identity, err = buildspec.NormalizeIdentity(identity)
 	if err != nil {
 		return artifact, err
@@ -105,22 +105,11 @@ func BuildArtifact(project string, identity buildspec.Identity, packages []Packa
 	if err := mkdirArtifactParents(project, relative); err != nil {
 		return artifact, err
 	}
-	lock, err := os.OpenFile(directory+".lock", os.O_CREATE|os.O_RDWR|syscall.O_NOFOLLOW, 0o600)
+	unlock, err := buildspec.LockCache(ctx, directory+".lock")
 	if err != nil {
-		return artifact, fmt.Errorf("open artifact lock: %w", err)
-	}
-	defer func() { err = errors.Join(err, lock.Close()) }()
-	info, err := lock.Stat()
-	if err != nil {
-		return artifact, err
-	}
-	if !info.Mode().IsRegular() {
-		return artifact, fmt.Errorf("artifact lock is not a regular file")
-	}
-	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
 		return artifact, fmt.Errorf("lock artifact: %w", err)
 	}
-	defer func() { err = errors.Join(err, syscall.Flock(int(lock.Fd()), syscall.LOCK_UN)) }()
+	defer func() { err = errors.Join(err, unlock()) }()
 	previous, verifyErr := VerifyArtifact(directory, identity, packages)
 	if verifyErr == nil {
 		return Artifact{directory, previous}, nil
@@ -142,6 +131,9 @@ func BuildArtifact(project string, identity buildspec.Identity, packages []Packa
 	m, err := builder(staging)
 	if err != nil {
 		return artifact, fmt.Errorf("build artifact: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return artifact, err
 	}
 	m, err = normalizeManifest(m)
 	if err != nil {

@@ -43,7 +43,7 @@ References: target §§3, 4.4, 5.1–5.3, 8, 12.
 
 References: target §§5.4–5.5, 8–10.
 
-- [ ] Carry module/workspace resolution through translation and generated output graph; preserve exact dependency selection.
+- [x] Carry module/workspace resolution through translation and generated output graph; preserve exact dependency selection.
 - [ ] Integrate automatic workers into native metatesting with running-process compiler identity.
 - [ ] Verify focused multi-module workspace, local replacements and artifact/handshake checks; commit.
 

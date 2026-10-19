@@ -26,7 +26,7 @@ type Source struct {
 }
 
 func ResolveSource(ctx context.Context, r buildspec.Resolution) (Source, error) {
-	modules, err := buildcfg.ResolveModuleGraph(ctx, r)
+	modules, err := buildspec.ResolveModuleGraph(ctx, r)
 	if err != nil {
 		return Source{}, err
 	}
@@ -47,7 +47,7 @@ func ResolveSource(ctx context.Context, r buildspec.Resolution) (Source, error) 
 }
 
 func workerGraphDigest(ctx context.Context, r buildspec.Resolution) (string, error) {
-	args := append([]string{"list"}, buildcfg.ApplicationFlags(r)...)
+	args := append([]string{"list"}, buildspec.ApplicationFlags(r)...)
 	args = append(args, "-deps", "-json", "-tags=linkname", WorkerPackage)
 	cmd := buildspec.ApplicationCommand(ctx, r, args...)
 	var diagnostics bytes.Buffer
@@ -70,7 +70,7 @@ func workerGraphDigest(ctx context.Context, r buildspec.Resolution) (string, err
 			ImportPath, Dir                                                                                                     string
 			Standard                                                                                                            bool
 			GoFiles, CgoFiles, CFiles, CXXFiles, MFiles, HFiles, FFiles, SFiles, SwigFiles, SwigCXXFiles, SysoFiles, EmbedFiles []string
-			Module                                                                                                              *buildcfg.Module
+			Module                                                                                                              *buildspec.Module
 		}
 		if err := decoder.Decode(&p); err == io.EOF {
 			break

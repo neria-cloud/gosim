@@ -239,7 +239,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 	if err != nil {
 		return 1, err
 	}
-	cfg, err := gosimtool.NewBuildConfig(resolved.Selection, resolved.Toolchain)
+	cfg, err := gosimtool.NewBuildConfig(ctx, resolved.Selection, resolved.Resolution)
 	if err != nil {
 		return 1, err
 	}
@@ -276,7 +276,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 		if len(deps) != 1 {
 			return 1, fmt.Errorf("lookup-test requires one test package")
 		}
-		root, err := gosimtool.FindGoModDir()
+		root, err := cfg.ProjectRoot()
 		if err != nil {
 			return 1, err
 		}
