@@ -4,9 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -15,15 +13,15 @@ import (
 )
 
 // prepareSelftest prepares for running tests in the gosim module.
-func prepareSelftest(cfg gosimtool.BuildConfig) {
+func prepareSelftest(cfg gosimtool.BuildConfig) error {
 	modDir, err := gosimtool.FindGoModDir()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	buildDir, err := os.MkdirTemp("", "gosimbuild")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer os.RemoveAll(buildDir)
 
@@ -31,12 +29,12 @@ func prepareSelftest(cfg gosimtool.BuildConfig) {
 	raceBuildPath := filepath.Join(buildDir, "testdata.test")
 	raceFinalPath := filepath.Join(modDir, gosimtool.OutputDirectory, "racetest", "testdata.test")
 	if err := os.MkdirAll(filepath.Dir(raceFinalPath), 0o755); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	// try to reuse the old binary
 	if err := copyFile(raceFinalPath, raceBuildPath, 0o755); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			log.Fatalf("copying source: %s", err)
+			return fmt.Errorf("copy source: %w", err)
 		}
 	}
 	// do the build
@@ -50,38 +48,44 @@ func prepareSelftest(cfg gosimtool.BuildConfig) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			os.Exit(exitErr.ExitCode())
-		}
-		log.Fatal(err)
+		return err
 	}
 	// place the binary
 	if err := copyFileIfChanged(raceBuildPath, raceFinalPath, 0o755); err != nil {
-		log.Fatalf("copying final: %s", err)
+		return fmt.Errorf("copy final: %w", err)
+	}
+
+	if err := gosimtool.RecordNativeArtifact(raceFinalPath, cfg.Identity); err != nil {
+		return err
 	}
 
 	// Prepare the gosim binary
 	// TODO: should we have a -race version as well?
 	gosimBuildPath, err := os.Executable()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	gosimFinalPath := filepath.Join(modDir, gosimtool.OutputDirectory, "scripttest", "bin", "gosim")
+	gosimFinalPath := filepath.Join(modDir, gosimtool.OutputDirectory, "scripttest", "bin", "gosim-user")
 	if err := os.MkdirAll(filepath.Dir(gosimFinalPath), 0o755); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err := copyFileIfChanged(gosimBuildPath, gosimFinalPath, 0o755); err != nil {
-		log.Fatalf("copying final: %s", err)
+		return fmt.Errorf("copy final: %w", err)
+	}
+
+	wrapper := []byte("#!/bin/sh\nexec " + "'" + strings.ReplaceAll(gosimFinalPath, "'", "'\\''") + "'" + " internal-candidate \"$@\"\n")
+	if err := os.WriteFile(filepath.Join(filepath.Dir(gosimFinalPath), "gosim"), wrapper, 0o755); err != nil {
+		return err
 	}
 
 	// Prepare the module
-	copyModuleForScriptTest(modDir)
+	return copyModuleForScriptTest(modDir)
 }
 
 // copyModuleForScriptTest copies the source code of this module to a slimmed-down
 // version for the script tests in ./internal/tests to make them interact nicely
 // with the go test cache.
-func copyModuleForScriptTest(modDir string) {
+func copyModuleForScriptTest(modDir string) error {
 	var files []string
 	wanted := make(map[string]bool)
 	err := filepath.WalkDir(modDir, func(path string, entry fs.DirEntry, err error) error {
@@ -108,7 +112,7 @@ func copyModuleForScriptTest(modDir string) {
 		return nil
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	extractedModDir := filepath.Join(modDir, gosimtool.OutputDirectory, "scripttest/mod")
@@ -116,10 +120,10 @@ func copyModuleForScriptTest(modDir string) {
 	for _, file := range files {
 		newP := filepath.Join(extractedModDir, strings.TrimPrefix(file, modDir))
 		if err := os.MkdirAll(filepath.Dir(newP), 0o755); err != nil {
-			log.Fatal(err)
+			return err
 		}
 		if err := copyFileIfChanged(file, newP, 0o644); err != nil {
-			log.Fatal(err)
+			return err
 		}
 		wanted[newP] = true
 	}
@@ -139,8 +143,8 @@ func copyModuleForScriptTest(modDir string) {
 		return nil
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	// TODO: delete unwanted directories?
+	return nil
 }

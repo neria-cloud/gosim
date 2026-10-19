@@ -1,15 +1,16 @@
 package kernel
 
 import (
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
 func TestKernelImportsOnlyContractsAndNativeEngine(t *testing.T) {
-	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "list", "-f", "{{join .Imports \"\\n\"}}", "github.com/neria-cloud/gosim/internal/kernel")
+	cmd := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, "", "list", "-f", "{{join .Imports \"\\n\"}}", "github.com/neria-cloud/gosim/internal/kernel")
 	output, err := cmd.Output()
 	if err != nil {
 		t.Fatal(err)

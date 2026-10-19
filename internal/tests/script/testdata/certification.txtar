@@ -1,0 +1,27 @@
+# Public commands cannot use candidate identities, including lookup/resolution.
+! exec gosim-user translate .
+stderr 'pending'
+! exec gosim-user test .
+stderr 'pending'
+! exec gosim-user build-tests .
+stderr 'pending'
+! exec gosim-user prepare-selftest
+stderr 'pending'
+! exec gosim-user lookup-test .
+stderr 'pending'
+! exec gosim-user resolve-build
+stderr 'pending'
+
+# The repository wrapper explicitly selects the internal candidate workflow.
+exec gosim resolve-build
+stdout '"certification":"candidate"'
+! exec gosim-user test -force-unsupported .
+stderr 'flag provided but not defined'
+! exec gosim test -features net .
+stderr 'rt'
+! exec gosim test -go go1.26.0 .
+stderr 'unsupported|distribution'
+-- probe_test.go --
+package fixture
+import "testing"
+func TestProbe(t *testing.T) {}

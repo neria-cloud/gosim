@@ -28,21 +28,25 @@ tasks:
   gosim-prepare-selftest:
     run: once
     cmds:
-      - "{{.GOSIM}} prepare-selftest"
+      - "{{.GOSIM}} internal-candidate prepare-selftest"
     deps:
       - gosim-tool
 
   go-test:
+    env:
+      GOSIMTOOL: "{{.USER_WORKING_DIR}}/.gosim/scripttest/bin/gosim"
     cmds:
-      - "{{.GOSIM}} build-tests {{.SIMPACKAGES}}"
+      - "{{.GOSIM}} internal-candidate build-tests {{.SIMPACKAGES}}"
       - go test -ldflags=-checklinkname=0 -tags=linkname ./...
     deps:
       - gosim-tool
       - gosim-prepare-selftest
 
   go-race-test:
+    env:
+      GOSIMTOOL: "{{.USER_WORKING_DIR}}/.gosim/scripttest/bin/gosim"
     cmds:
-      - "{{.GOSIM}} build-tests -race {{.SIMPACKAGES}} ./internal/tests/race/testdata"
+      - "{{.GOSIM}} internal-candidate build-tests -race {{.SIMPACKAGES}} ./internal/tests/race/testdata"
       # todo: get rid of this janky thing???
       - go test -ldflags=-checklinkname=0 -tags=linkname -race ./...
     deps:
@@ -50,8 +54,5 @@ tasks:
       - gosim-prepare-selftest
 
   test:
-    deps:
-      - check-fmt
-      - go-test
-      - go-race-test
-
+    cmds:
+      - ./test.sh --concurrency 1

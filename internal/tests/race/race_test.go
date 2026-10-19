@@ -61,6 +61,9 @@ func TestRaceOriginal(t *testing.T) {
 
 	// TODO: get this from some shared package instead
 	path := filepath.Join(modDir, gosimtool.OutputDirectory, "racetest", "testdata.test")
+	if err := gosimtool.VerifyNativeArtifact(path, gosimtool.ResolveTestIdentity(t, "")); err != nil {
+		t.Fatal(err)
+	}
 
 	checkTests(t, exec.Command(path, "-test.v"))
 }

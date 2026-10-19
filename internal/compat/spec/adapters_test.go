@@ -161,7 +161,7 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 		}
 		write(path, "original")
 	}
-	for _, path := range []string{"internal/hostabi/coro_go126.go", "internal/compat/go125/host/coro_test.go", "internal/compat/go125/profile/revision.go", "internal/compat/go125/profile/tuples.json"} {
+	for _, path := range []string{"internal/hostabi/coro_go126.go", "internal/compat/go125/host/coro_test.go", "internal/compat/go125/profile/revision.go", "internal/compat/go125/profile/tuples.json", "internal/compat/go125/profile/evidence.json"} {
 		write(path, "not source for this identity")
 	}
 	if digest() != original {

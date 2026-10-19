@@ -57,6 +57,7 @@ func TestScript(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(e.WorkDir, "gosim.json"), []byte(config), 0o644); err != nil {
 			return err
 		}
+		e.Setenv("GOSIM_CONFIG", filepath.Join(e.WorkDir, "gosim.json"))
 		// add /bin to PATH in tests
 		binDir := filepath.Join(curModDir, gosimtool.OutputDirectory, "scripttest", "bin")
 		// add dependencies on /bin

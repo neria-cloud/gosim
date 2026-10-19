@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neria-cloud/gosim/internal/buildrun"
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/candidate"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/gosimviewer"
 	"github.com/neria-cloud/gosim/internal/translate"
@@ -158,6 +158,18 @@ func main() {
 		os.Exit(2)
 	}
 	command, arguments := flag.Arg(0), flag.Args()[1:]
+	internal := command == "internal-candidate"
+	if internal {
+		if len(arguments) == 0 {
+			log.Fatal("internal-candidate requires an operation")
+		}
+		command, arguments = arguments[0], arguments[1:]
+	}
+	if internal && (command == "verify" || command == "certify") {
+		runCertificationCommand(command, arguments)
+		return
+	}
+
 	f := flag.NewFlagSet(commandName(command), flag.ExitOnError)
 	if command == "viewer" {
 		logs := f.String("log", "", "captured JSON log")
@@ -189,7 +201,11 @@ func main() {
 	step := f.Int("step", 0, "debug breakpoint step")
 	headless := f.Bool("headless", false, "headless debugger")
 	f.Parse(arguments)
-	resolved, err := resolveBuild(command, *flags)
+	resolveCommand := command
+	if internal {
+		resolveCommand = "internal-candidate"
+	}
+	resolved, err := resolveBuild(resolveCommand, *flags)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -208,7 +224,9 @@ func main() {
 		}
 		return
 	case "prepare-selftest":
-		prepareSelftest(cfg)
+		if err := prepareSelftest(cfg); err != nil {
+			log.Fatal(err)
+		}
 		return
 	case "translate":
 		output, err := translate.Translate(&translate.TranslateInput{Packages: patterns, Cfg: cfg})
@@ -252,7 +270,7 @@ func main() {
 		}
 		patterns = []string{*pkg}
 	}
-	result, err := candidate.BuildResolved(cfg, patterns)
+	result, err := buildrun.BuildResolved(cfg, patterns)
 	if err != nil {
 		log.Fatal(err)
 	}

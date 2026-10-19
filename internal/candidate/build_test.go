@@ -3,6 +3,7 @@ package candidate
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -110,6 +111,15 @@ func TestCandidateWorker(t *testing.T) {
 			}
 			if len(built.Artifacts) != 1 {
 				t.Fatal("artifact count", len(built.Artifacts))
+			}
+			if reportDir := os.Getenv("GOSIM_CANDIDATE_REPORT_DIR"); reportDir != "" {
+				data, err := json.Marshal(built.Artifacts)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(reportDir, "build.log"), data, 0o644); err != nil {
+					t.Fatal(err)
+				}
 			}
 			artifact := built.Artifacts[0]
 			current, err := translate.InspectDependencies(&translate.TranslateInput{Packages: []string{"."}, Cfg: built.Config})

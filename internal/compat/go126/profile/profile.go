@@ -11,7 +11,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed hooks_*.json hooks.json tuples.json policies.json origin.json bridges.json native_imports.json capabilities.json shims.json probes.json modules.json shared_globals.json
+//go:embed hooks_*.json hooks.json tuples.json evidence.json policies.json origin.json bridges.json native_imports.json capabilities.json shims.json probes.json modules.json shared_globals.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
@@ -107,4 +107,11 @@ func ShimManifest() []spec.Hook { var shims []spec.Hook; decode("shims.json", &s
 
 func VerifyModules(tc buildspec.Toolchain, directory string) error {
 	return spec.VerifyModules(tc, directory, PolicyManifest().Modules)
+}
+
+// Evidence returns reviewed reports independently of executable source identity.
+func Evidence() []buildspec.CertificationReport {
+	var reports []buildspec.CertificationReport
+	decode("evidence.json", &reports)
+	return reports
 }

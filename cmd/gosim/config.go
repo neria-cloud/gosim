@@ -8,7 +8,8 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/candidate"
+	"github.com/neria-cloud/gosim/internal/compat/selected"
+	"github.com/neria-cloud/gosim/internal/compat/spec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
@@ -61,10 +62,23 @@ func resolveBuild(command string, flags BuildFlags) (ResolvedBuild, error) {
 	if err := os.Setenv("PATH", filepath.Dir(tc.Executable)+string(filepath.ListSeparator)+os.Getenv("PATH")); err != nil {
 		return r, err
 	}
-	// TODO(migration): Task 24 limits pending identities to the internal CI command.
-	cfg, err := candidate.Resolve(config, flags.Options)
+	profile := selected.Profile()
+	id, err := buildcfg.Identity(config, tc, profile, flags.Options)
 	if err != nil {
 		return r, err
 	}
-	return ResolvedBuild{Config: config, Toolchain: tc, Identity: cfg.Identity, Selection: cfg.Selection}, nil
+	if command != "internal-candidate" {
+		id, err = buildcfg.CertifiedIdentity(id, profile, selected.Evidence())
+		if err != nil {
+			return r, err
+		}
+	}
+	selection, err := profile.Select(id)
+	if err != nil {
+		return r, err
+	}
+	if err := spec.VerifyHooks(tc, profile.Hooks); err != nil {
+		return r, err
+	}
+	return ResolvedBuild{Config: config, Toolchain: tc, Identity: id, Selection: selection}, nil
 }

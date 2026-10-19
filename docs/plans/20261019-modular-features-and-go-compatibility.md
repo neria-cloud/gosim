@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–23 (including their recorded children) implemented and verified; Tasks 24–33 remain unchecked.
+**Status:** in progress; Tasks 1–24 (including their recorded children) implemented and verified; Tasks 25–33 remain unchecked.
 
 ## Important notices
 
@@ -662,16 +662,16 @@ The expanded integration graph exposed missing deterministic hash/x/sys hooks, L
 **References:** T§2 exact certification and environment; T§9 BuildFlags/ResolvedBuild/MatrixOptions/CertificationReport; T§12 resolveBuild.  
 **Budget:** 2,000–3,500 changed lines. **Dependency:** 1, 12–23.
 
-- [ ] Make all building commands resolve the same config/overrides/identity. Require an explicit toolchain/features setting through flags or config; replace feature lists rather than merge; reject unknown fields/flags, unsupported architecture/OS, experiments, release-tag overrides and unexpected debug policy.
-- [ ] Route every Go subprocess, packages.Load, generator and selftest build through the pinned Command helper. Recheck actual worker/compiler/test-binary identity; no GOTOOLCHAIN auto-upgrade and no bare PATH-selected go subprocess remains.
-- [ ] Implement `certify(BuildFlags,MatrixOptions)(CertificationReport,error)` as an internal CI command accepting only declared pending tuples. Record exact source, package outputs, suite status, worker/container architecture, execution mode and image digest. Never auto-promote, count skips as passes or reuse certified cache entries.
-- [ ] Normal translate/test/build-tests/debug/prepare-selftest accept certified matching source evidence only. Candidate building remains available to repository CI/development explicitly; no public force-unsupported switch. Re-certification invalidation excludes only evidence/status metadata from source fingerprints to avoid circularity.
-- [ ] Provide `.ci/verify-step.sh` and the repository validation entry points specified under Validation Commands, explicit config selection and candidate full-suite setup. Share the suite runner with certify without recursively invoking the outer verify script. Remove any temporary command acceptance introduced during cutover. Preserve required linkname flags and host SQLite/race cgo tooling while application cgo remains disabled.
+- [x] Make all building commands resolve the same config/overrides/identity. Require an explicit toolchain/features setting through flags or config; replace feature lists rather than merge; reject unknown fields/flags, unsupported architecture/OS, experiments, release-tag overrides and unexpected debug policy.
+- [x] Route every Go subprocess, packages.Load, generator and selftest build through the pinned Command helper. Recheck actual worker/compiler/test-binary identity; no GOTOOLCHAIN auto-upgrade and no bare PATH-selected go subprocess remains.
+- [x] Implement `certify(BuildFlags,MatrixOptions)(CertificationReport,error)` as an internal CI command accepting only declared pending tuples. Record exact source, package outputs, suite status, worker/container architecture, execution mode and image digest. Never auto-promote, count skips as passes or reuse certified cache entries.
+- [x] Normal translate/test/build-tests/debug/prepare-selftest accept certified matching source evidence only. Candidate building remains available to repository CI/development explicitly; no public force-unsupported switch. Re-certification invalidation excludes only evidence/status metadata from source fingerprints to avoid circularity.
+- [x] Provide `.ci/verify-step.sh` and the repository validation entry points specified under Validation Commands, explicit config selection and candidate full-suite setup. Share the suite runner with certify without recursively invoking the outer verify script. Remove any temporary command acceptance introduced during cutover. Preserve required linkname flags and host SQLite/race cgo tooling while application cgo remains disabled.
 
 #### Verification
 
-- [ ] Command parity, config precedence, rejected pending normal runs, allowed listed candidate runs, false certification, wrong executable, tampered evidence/GOROOT, dependency toolchain escalation and stale binary tests pass.
-- [ ] Run full candidate ordinary/race suites for both exact patches on the current host plus common commit gate; status remains pending until the matrix completes.
+- [x] Command parity, config precedence, rejected pending normal runs, allowed listed candidate runs, false certification, wrong executable, tampered evidence/GOROOT, dependency toolchain escalation and stale binary tests pass.
+- [x] Run full candidate ordinary/race suites for both exact patches on the current host plus common commit gate; status remains pending until the matrix completes.
 
 ### Task 25: Organize feature suites and verify isolation, failures and replay
 
@@ -963,6 +963,10 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | — | — | None recorded during planning | Architectural clarifications are listed separately above |
 
 ## NOT PLANNED CHANGES
+
+### Task 24 — Separate framework certification from application graph identity
+
+`internal/buildspec/canonical.go`: SourceDigest previously reused the entire artifact identity, which tied compatibility evidence to each consuming application’s module graph. Keep ModuleGraphDigest in the full artifact/cache identity, but exclude it from the framework/tuple certification fingerprint. The regression test in `internal/buildcfg/certification_test.go` proves both properties. This corrects implementation of target T§2 source evidence without changing the target architecture.
 
 - Task 22.1: canonicalized temporary project roots in `internal/{candidate/build_test,translate/selected_test}.go` using `filepath.EvalSymlinks` before constructing paths. Running outside the repository's dedicated TMPDIR exposed macOS `/var` versus `/private/var` aliases in source/artifact comparisons; the fixture now uses the loader's canonical path. Diff: the two four-line fixture-root normalization additions in this task's commit. Production identity and artifact validation are unchanged by this fixture correction.
 

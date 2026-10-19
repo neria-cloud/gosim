@@ -152,9 +152,14 @@ func Digest(id Identity) (string, error) {
 	return Hash(b), nil
 }
 
-// SourceDigest binds evidence to all build inputs but not to its own promotion
-// metadata. Candidate/certified artifact digests remain distinct via Digest.
+// SourceDigest binds compatibility evidence to the framework, toolchain and
+// tuple. Application module graphs remain part of artifact identity, but do not
+// require re-certifying unchanged simulator sources for every application.
 func SourceDigest(id Identity) (string, error) {
+	if _, err := NormalizeIdentity(id); err != nil {
+		return "", err
+	}
 	id.Certification, id.EvidenceDigest = "candidate", ""
+	id.ModuleGraphDigest = Hash([]byte("gosim-certification-application-graph-v1"))
 	return Digest(id)
 }

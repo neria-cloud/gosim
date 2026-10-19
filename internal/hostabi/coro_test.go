@@ -3,8 +3,6 @@
 package hostabi
 
 import (
-	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -67,8 +65,7 @@ func TestIdentityAndFamilyIsolation(t *testing.T) {
 	if id.Profile == other {
 		other = "go126"
 	}
-	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin/go"), "list", "-deps", "github.com/neria-cloud/gosim/rt/runtime")
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local")
+	cmd := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, "", "list", "-deps", "github.com/neria-cloud/gosim/rt/runtime")
 	data, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("list: %v: %s", err, data)
@@ -83,8 +80,10 @@ func TestIdentityAndFamilyIsolation(t *testing.T) {
 
 func TestUnsupportedFamilyFailsExplicitly(t *testing.T) {
 	for _, pkg := range []string{"hostabi", "compat/selected"} {
-		cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin/go"), "build", "-tags=go1.27", "github.com/neria-cloud/gosim/internal/"+pkg)
-		cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local")
+		cmd := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, "", "build", "github.com/neria-cloud/gosim/internal/"+pkg)
+		// Deliberate negative compile probe: normal GoCommand rejects user
+		// release tags, but this test must exercise the compiler-level guard.
+		cmd.Args = append(cmd.Args[:2], "-tags=go1.27", cmd.Args[2])
 		data, err := cmd.CombinedOutput()
 		if err == nil || !strings.Contains(string(data), "GOSIM_UNSUPPORTED_GO_FAMILY_USE_GO125_OR_GO126") {
 			t.Fatalf("unsupported build: %v: %s", err, data)
