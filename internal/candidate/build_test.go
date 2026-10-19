@@ -165,6 +165,9 @@ func TestCandidateWorker(t *testing.T) {
 					if result.Failed {
 						t.Fatalf("translated runtime failed: %s\n%s", result.Err, result.LogOutput)
 					}
+					if !bytes.Contains(result.LogOutput, []byte(`"owned":true`)) {
+						t.Fatal("structured log fields lost", string(result.LogOutput))
+					}
 					if len(result.Checksum) == 0 || !bytes.Equal(results[0].Checksum, result.Checksum) {
 						t.Fatal("same-process replay differs", i)
 					}
@@ -175,6 +178,25 @@ func TestCandidateWorker(t *testing.T) {
 				} else if !result.Failed || !strings.Contains(result.Err, "FeatureDisabled") || strings.Contains(result.Err, "unwound") || strings.Contains(result.Err, "returned") {
 					t.Fatalf("disabled feature did not abort: %+v", result)
 				}
+			}
+			replay, err := Run(ctx, artifact, configs[0])
+			if err != nil || replay.Failed || !bytes.Equal(results[0].Checksum, replay.Checksum) {
+				t.Fatal("cross-process replay differs", err, replay.Err)
+			}
+			traced := configs[0]
+			traced.Simtrace = "network,syscall"
+			traceResults, err := runRequests(ctx, artifact, []simrt.RunConfig{traced, traced})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if traceResults[0].Failed || traceResults[1].Failed || !bytes.Equal(traceResults[0].Checksum, traceResults[1].Checksum) {
+				t.Fatal("traced replay failed", traceResults)
+			}
+			if !bytes.Contains(traceResults[0].LogOutput, []byte("call ")) {
+				t.Fatal("missing syscall trace")
+			}
+			if slices.Contains(features, "net") && !bytes.Contains(traceResults[0].LogOutput, []byte(`"traceKind":"network"`)) {
+				t.Fatal("missing network trace")
 			}
 			forged := artifact
 			forged.Manifest.Identity.Certification = "certified"
@@ -189,6 +211,9 @@ const probe = `package probe
 import (
  _ "embed"
  "context"
+ "hash/maphash"
+ "log/slog"
+ "golang.org/x/sys/unix"
  "errors"
  "os"
  "net"
@@ -220,6 +245,12 @@ func submit(inv kernel.Invocation) kernel.Result {
 func TestFailure(t *testing.T){t.Error("expected failure")}
 func TestRuntime(t *testing.T){
  t.Log("candidate diagnostic")
+ seed:=maphash.MakeSeed()
+ if maphash.String(seed,"value")!=maphash.Bytes(seed,[]byte("value")){t.Fatal("hash representations differ")}
+ var random [8]byte
+ if n,err:=unix.Getrandom(random[:],0);n!=len(random)||err!=nil{t.Fatal("x/sys randomness",n,err)}
+ slog.Info("candidate structured", "owned", true, "hash",maphash.String(seed,"value"),"random",random)
+
  if os.Getenv("CANDIDATE_ENV")!="owned" {t.Fatal("runner environment did not reach process initialization")}
  if !initialized||arrayLength!=4||cap(array)!=4{t.Fatal("init or array constants failed")}
  if context.Canceled==nil{t.Fatal("error sentinel not initialized")}
@@ -251,6 +282,7 @@ func TestRuntime(t *testing.T){
   switch feature{
   case "fs":
    if err:=os.WriteFile("/probe",[]byte("content"),0600);err!=nil{t.Fatal(err)}
+   entries,err:=os.ReadDir("/");if err!=nil||len(entries)==0{t.Fatal("directory open/read",err)}
    data,err:=os.ReadFile("/probe");if err!=nil||string(data)!="content"{t.Fatal("filesystem",err,string(data))}
   case "net":
    socket,err:=kernel.DecodeSocketResult(submit(kernel.SocketRequest{Domain:2,Type:1|0x800|0x80000}.Invocation()));if err!=nil{t.Fatal(err)}
@@ -258,13 +290,28 @@ func TestRuntime(t *testing.T){
    address,err:=kernel.DecodeNetAddressResult(submit(kernel.NetAddressRequest{Machine:control.CurrentRef()}.Invocation()));if err!=nil{t.Fatal(err)}
    listener,err:=net.Listen("tcp4",net.IP(address.Address[:]).String()+":8080");if err!=nil{t.Fatal(err)}
    done:=make(chan error,1)
-   go func(){conn,err:=listener.Accept();if err!=nil{done<-err;return};defer conn.Close();var data [2]byte;_,err=io.ReadFull(conn,data[:]);if err==nil{_,err=conn.Write(data[:])};done<-err}()
+   go func(){conn,err:=listener.Accept();if err!=nil{done<-err;return};defer conn.Close();_,err=io.CopyN(conn,conn,2);done<-err}()
    conn,err:=net.DialTimeout("tcp4",listener.Addr().String(),time.Second);if err!=nil{t.Fatal(err)}
    if _,err:=conn.Write([]byte("ok"));err!=nil{t.Fatal(err)}
    var data [2]byte;if _,err:=io.ReadFull(conn,data[:]);err!=nil||string(data[:])!="ok"{t.Fatal("tcp echo",err)}
    if err:=conn.Close();err!=nil{t.Fatal(err)}
    if err:=<-done;err!=nil{t.Fatal(err)}
    if err:=listener.Close();err!=nil{t.Fatal(err)}
+   ready:=make(chan string,1)
+   serving,err:=kernel.DecodeCreateResult(submit(kernel.CreateRequest{Label:"serving",Main:func(){
+    address,err:=kernel.DecodeNetAddressResult(submit(kernel.NetAddressRequest{Machine:control.CurrentRef()}.Invocation()));if err!=nil{panic(err)}
+    l,err:=net.Listen("tcp4",net.IP(address.Address[:]).String()+":8081");if err!=nil{panic(err)}
+    ready<-l.Addr().String()
+    c,err:=l.Accept();if err!=nil{panic(err)}
+    if _,err:=io.CopyN(c,c,2);err!=nil{panic(err)}
+    select{}
+   }}.Invocation()));if err!=nil{t.Fatal(err)}
+   if _,err:=kernel.DecodeStartResult(submit(kernel.StartRequest{Machine:serving.Machine}.Invocation()));err!=nil{t.Fatal(err)}
+   live,err:=net.DialTimeout("tcp4",<-ready,time.Second);if err!=nil{t.Fatal(err)}
+   if _,err:=live.Write([]byte("ok"));err!=nil{t.Fatal(err)}
+   if _,err:=io.ReadFull(live,data[:]);err!=nil{t.Fatal(err)}
+   // Root return must gracefully release live streams while destinations survive.
+
   }
  }
 }

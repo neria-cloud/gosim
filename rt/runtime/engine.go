@@ -407,7 +407,10 @@ func (e *Engine) Run(supervise func()) (result error) {
 		e.scheduler.cleanup()
 		return fmt.Errorf("simulation timeout overflows virtual time")
 	}
-	e.timeoutTimer = NewTimer(func(*Timer) { e.scheduler.abortErr = ErrTimeout }, nil, e.supervisor, now+e.config.TimeoutNS)
+	e.timeoutTimer = NewTimer(func(*Timer) {
+		e.scheduler.logger.slog.Error("test timeout", "step", Step())
+		e.scheduler.abortErr = ErrTimeout
+	}, nil, e.supervisor, now+e.config.TimeoutNS)
 	return e.scheduler.Run()
 }
 

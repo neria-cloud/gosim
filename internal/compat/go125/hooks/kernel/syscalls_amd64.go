@@ -178,6 +178,21 @@ func GolangOrgXSysUnix_Getrandom(p0 []byte, p1 int) (int, error) {
 	return out.Count, err
 }
 
+func GolangOrgXSysUnix_vgetrandom(p0 []byte, p1 uint32) (int, bool) {
+	out, err := Call(k.GetrandomRequest{Into: abi.ByteView{Ptr: p0}, Flags: int(p1)}, k.DecodeGetrandomResult)
+	if out.Count > 0 {
+		simrt.RaceWriteRange(unsafe.Pointer(unsafe.SliceData(p0)), out.Count)
+	}
+	if err != nil {
+		errno, ok := err.(syscall.Errno)
+		if !ok {
+			Reject("getrandom error")
+		}
+		return -int(errno), true
+	}
+	return out.Count, true
+}
+
 func GolangOrgXSysUnix_FcntlInt(p0 uintptr, p1 int, p2 int) (int, error) {
 	value, err := fcntlInt(int(p0), int(p1), int(p2))
 	return value, err

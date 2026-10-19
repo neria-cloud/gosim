@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–21 (including their recorded children) and Task 22.1 implemented and verified; Task 22.2 and remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–21 (including their recorded children) and Tasks 22.1 and 22.2.1 implemented and verified; the atomic Task 22.2.2 cutover and remaining tasks are unchecked.
 
 ## Important notices
 
@@ -619,6 +619,26 @@ The public API, caller migration, and live execution switch remain one atomic ch
 
 - [ ] Complete every remaining parent Task 22 implementation checkbox, including all callers, raw-TCP fixtures, generated Driver CLI/harness wiring and exact retirement inventory.
 - [ ] Run every parent Task 22 verification and the common gate; only then mark the parent complete. Record the exact development-toolchain transition required by the selected worker.
+
+#### Further execution split recorded during integration discovery
+
+The expanded integration graph exposed missing deterministic hash/x/sys hooks, Linux copy-optimization fallbacks, arm64 directory flags, per-machine logging, and final-event scheduling during cleanup. These prerequisites can be verified while the legacy public API/harness remains operational. Extract them in an isolated checkout before committing the atomic public/caller/live-path switch; this preserves a buildable boundary and reserves the 5,000-line budget for retirement and harness updates. No public API compatibility layer or target change is introduced.
+
+### Task 22.2.1: Complete candidate integration prerequisites
+
+**Files/references:** New-path composition/logging, runtime diagnostics, kernel event admission, fs flags, both compatibility profiles/adapters/generator, and focused regression probes. T§5–6, T§8–9. **Dependency:** 22.1.
+
+- [x] Restore per-machine logging and copied syscall diagnostics on the candidate Driver path; format mixed test/log output correctly.
+- [x] Correct arm64 directory flags, running SetMain error classification, and bounded final-event admission during ordered teardown. Preserve public/caller/legacy harness source at the pre-cutover revision in this commit.
+- [x] Add reviewed deterministic hash/x/sys randomness hooks and explicit splice/sendfile optimization fallbacks; regenerate both profiles and verify through real translated probes.
+- [x] Run both exact-family affected ordinary/race suites and the complete pre-cutover common gate in the isolated checkout. Commit only this buildable prerequisite.
+
+### Task 22.2.2: Complete the atomic public API and live harness switch
+
+**Files/references:** All remaining parent 22/22.2 files and checks. **Dependency:** 22.2.1.
+
+- [ ] Finish public APIs/callers, TCP fixtures, CLI/config/artifact discovery, Driver entry, and retirement inventory as one buildable cutover.
+- [ ] Complete every parent verification through the new exact-go1.26.9 candidate harness, then mark parent 22/22.2 complete. Keep Task 23 protocol/ownership checks distinct.
 
 ### Task 23: Replace metatesting and prebuilt discovery with identity-checked ownership
 

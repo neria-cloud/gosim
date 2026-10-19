@@ -94,6 +94,14 @@
       "digest": "88fda43019c5dcf42545effdebd1747aaea377560dd041a35df8499538ee07c5"
     },
     {
+      "path": "src/internal/poll/sendfile_unix.go",
+      "digest": "912a2ad7eb419472c6348689f259d6d81e124cb82593789e03741d078ff66be5"
+    },
+    {
+      "path": "src/internal/poll/splice_linux.go",
+      "digest": "969eec3b4a59f5ab1059eeabec012e0387c14b44c50a78a9b551198e9b54c93e"
+    },
+    {
       "path": "src/internal/race/norace.go",
       "digest": "d195ef03f406d7a3e636709cccf6fc55e0fc99aa4a6a5291800364b4c308d828"
     },

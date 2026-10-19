@@ -56,6 +56,7 @@ func render(selection buildspec.Selection) ([]byte, []string, error) {
 	}
 	data := compositionData{IdentityDigest: digest, Toolchain: id.Toolchain, Profile: id.Profile, HostOS: id.HostOS, HostArch: id.HostArch, AdapterRevision: id.AdapterRevision, RuntimeRevision: id.RuntimeRevision, Certified: id.Certification == "certified", Features: "contracts.RT"}
 	imports := map[string]string{
+		gosimtool.Module + "/internal/logging":   "logging",
 		gosimtool.Module + "/internal/contracts": "contracts", gosimtool.Module + "/internal/control": "control",
 		gosimtool.Module + "/internal/kernel": "kernel", gosimtool.Module + "/rt/runtime": "simrt", gosimtool.Module + "/rt/runtime/abi": "abi",
 		gosimtool.Module + "/internal/compat/" + id.Profile + "/shims/testing": "simtesting",
@@ -235,6 +236,7 @@ func (Driver) Run(config simrt.RunConfig, main func()) simrt.RunResult {
  if err:=engine.SetMachineInitializer(func(){
   if err:=processhooks.ConfigureProcess([]string{"gosimapp"},simrt.Envs());err!=nil {panic(err)}
   simrt.InitGlobals(false,false)
+  logging.Setup(simrt.CurrentMachineLabel())
  });err!=nil {record(err);engine.Close();return engine.RunResult(IdentityDigest,failure)}
  runErr:=engine.Run(func(){
   providers:=[]contracts.Provider{ {{range .Constructors}}{{.}},{{end}} }

@@ -45,7 +45,7 @@ func adapterSymbols(pkg string) []string {
 	case "syscall":
 		return append(symbols, "fstatat", "unlinkat", "rawSyscallNoError", "rawVforkSyscall")
 	case "golang.org/x/sys/unix":
-		return append(symbols, "Fstatat", "Unlinkat", "Getrandom", "FcntlInt", "SyscallNoError", "RawSyscallNoError")
+		return append(symbols, "Fstatat", "Unlinkat", "Getrandom", "vgetrandom", "FcntlInt", "SyscallNoError", "RawSyscallNoError")
 	case "internal/syscall/unix":
 		return strings.Fields("fcntl GetRandom vgetrandom Openat Unlinkat")
 	}

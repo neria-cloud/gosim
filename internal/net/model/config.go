@@ -304,6 +304,8 @@ func (n *Network) SetLinkPolicy(p HostPair, direction ConnectivityDirection, lat
 			c := *loss
 			s.Loss = &c
 		}
+		config := n.effectiveConfig(s)
+		n.traceNetwork("configure_link", "a", key.A, "b", key.B, "latency", config.Latency, "loss", config.Loss, "latencyLocal", s.Latency != nil, "lossLocal", s.Loss != nil)
 	}
 	return nil
 }
@@ -317,6 +319,8 @@ func (n *Network) ResetLinkPolicy(p HostPair, direction ConnectivityDirection) e
 		if s := n.links[key]; s != nil {
 			s.Latency = nil
 			s.Loss = nil
+			config := n.effectiveConfig(s)
+			n.traceNetwork("configure_link", "a", key.A, "b", key.B, "latency", config.Latency, "loss", config.Loss, "latencyLocal", false, "lossLocal", false)
 		}
 	}
 	return nil

@@ -1,4 +1,10 @@
 [
+{"package":"internal/poll","symbol":"SendFile","status":"limited","reason":"Declines the sendfile optimization; io.Copy falls back to modeled reads and writes."},
+{"package":"internal/poll","symbol":"Splice","status":"limited","reason":"Declines the pipe optimization; io.Copy falls back to modeled socket reads and writes."},
+{"package":"hash/maphash","symbol":"runtime_memhash","status":"limited","reason":"Seeded deterministic byte hash replaces the host runtime process-random key."},
+{"package":"hash/maphash","symbol":"Comparable","status":"rejected","reason":"Generic runtime type hashing can include native pointer identities."},
+{"package":"hash/maphash","symbol":"WriteComparable","status":"rejected","reason":"Generic runtime type hashing can include native pointer identities."},
+{"package":"golang.org/x/sys/unix","symbol":"vgetrandom","status":"limited","reason":"Typed deterministic getrandom route; no host vDSO entropy."},
 {"package":"internal/synctest","symbol":"Run","status":"rejected","reason":"Native bubbles are not supported by the simulation scheduler."},
 {"package":"internal/synctest","symbol":"Wait","status":"rejected","reason":"Native bubbles are not supported by the simulation scheduler."},
 {"package":"reflect","symbol":"MapOf","status":"rejected","reason":"Dynamic reflected map/channel construction or channel scheduling lacks a modeled implementation; no native fallback."},

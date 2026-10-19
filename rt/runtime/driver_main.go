@@ -1,6 +1,7 @@
 package gosimruntime
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -87,9 +88,15 @@ func TestMainDriver(driver Driver) {
 					}
 				})
 				if len(result.LogOutput) > 0 {
-					if _, err := makeConsoleLogger(os.Stderr).Write(result.LogOutput); err != nil {
-						fatal(err)
-						return
+					writer := makeConsoleLogger(os.Stderr)
+					for _, line := range bytes.SplitAfter(result.LogOutput, []byte("\n")) {
+						if len(line) == 0 {
+							continue
+						}
+						if _, err := writer.Write(line); err != nil {
+							fatal(err)
+							return
+						}
 					}
 				}
 				if logs != nil {

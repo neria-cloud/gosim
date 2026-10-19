@@ -1,12 +1,12 @@
 {
-  "adapter_digest": "64382ca34a057c4384d010ba6aa08a40835acba02cb712753db47976be775d4c",
-  "transport_digest": "41e16adc30f1528ac6afba371199bded013bbe9e94d8e5bc33dfc04c0e787c92",
+  "adapter_digest": "d32d423c1325be6ec2c26ede3bf4e147b87f6959889df14fc8ed1c3abb1c576b",
+  "transport_digest": "11e69f939c0521b3b203b9b3682ed3d3f370bee8fe17e80032d16c8707ea01fb",
   "schema": 1,
   "toolchain": "go1.26.9",
   "profile": "go126",
   "architecture": "amd64",
   "route_digest": "662687a24ea0d974d6f0c995a7e4bd66e92180110933d9395368fccb60c791a7",
-  "origin_digest": "1886d246f1ec55dd5d8a9abbd13e9e8ca0784051632b494230ff2781295bca08",
+  "origin_digest": "a3be221b2cb002b6012915ea1bf9e58567611b137e7d664db86ae0f8041c28a1",
   "modules": [
     {
       "path": "golang.org/x/sys",

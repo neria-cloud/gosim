@@ -32,6 +32,11 @@ const (
 		fmt.Fprintf(&b, "Route%s RouteID = %d\n", r.Name, r.ID)
 	}
 	b.WriteString(")\n")
+	b.WriteString("func (r RouteID) String() string { switch r {\n")
+	for _, r := range m.Routes {
+		fmt.Fprintf(&b, "case Route%s: return %q\n", r.Name, r.Name)
+	}
+	b.WriteString("}; return fmt.Sprintf(\"unknown(%d)\", r) }\n")
 	for _, r := range m.Routes {
 		for _, part := range []struct {
 			name   string

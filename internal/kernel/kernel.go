@@ -125,7 +125,7 @@ func (k *Kernel) Run(main func()) (result error) {
 			k.cleanupFailure("run cleanup", result)
 		}
 	}()
-	ref, err := k.Create("root", main)
+	ref, err := k.Create("main", main)
 	if err != nil {
 		return err
 	}

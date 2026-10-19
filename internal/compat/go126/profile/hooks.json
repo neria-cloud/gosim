@@ -1,5 +1,26 @@
 [
   {
+    "package": "internal/poll",
+    "symbol": "SendFile",
+    "signature": "func(*FD, uintptr, int64) (int64, error, bool)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/net.InternalPoll_SendFile",
+    "owner": "net"
+  },
+  {
+    "package": "internal/poll",
+    "symbol": "Splice",
+    "signature": "func(*FD, *FD, int64) (int64, bool, error)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/net.InternalPoll_Splice",
+    "owner": "net"
+  },
+  {
+    "package": "hash/maphash",
+    "symbol": "runtime_memhash",
+    "signature": "func(unsafe.Pointer, uintptr, uintptr) uintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.HashMaphash_runtime_memhash",
+    "owner": "rt"
+  },
+  {
     "package": "golang.org/x/sys/unix",
     "symbol": "Chdir",
     "signature": "func(string) error",
@@ -1594,6 +1615,13 @@
     "signature": "func(string, string) int",
     "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_IndexString",
     "owner": "rt"
+  },
+  {
+    "package": "golang.org/x/sys/unix",
+    "symbol": "vgetrandom",
+    "signature": "func([]byte, uint32) (int, bool)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.GolangOrgXSysUnix_vgetrandom",
+    "owner": "kernel"
   },
   {
     "package": "internal/abi",

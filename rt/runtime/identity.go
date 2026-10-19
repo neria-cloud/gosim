@@ -85,3 +85,8 @@ func (e *Engine) EndTransition() {
 		e.invariant("transition outside active engine")
 	}
 }
+
+// CurrentMachineLabel returns a value owned by the active machine.
+//
+//go:norace
+func CurrentMachineLabel() string { return getg().machine.label }

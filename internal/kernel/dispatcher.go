@@ -119,6 +119,9 @@ func (d *Dispatcher) DispatchOne(inv *Invocation) {
 		return
 	}
 	k := d.kernel
+	if simrt.TraceSyscall.Enabled() {
+		k.engine.WriteTrace(tokenFor(inv.Context.Epoch), inv.Context.GoroutineID, inv.Context.PC, "call "+inv.Route.String())
+	}
 	previous := k.caller
 	k.caller = inv.Context
 	defer func() { k.caller = previous }()
@@ -185,6 +188,9 @@ func (d *Dispatcher) Complete(id uint64, result Result) error {
 		return nil
 	}
 	inv := entry.invocation
+	if simrt.TraceSyscall.Enabled() {
+		d.kernel.engine.WriteTrace(tokenFor(inv.Context.Epoch), inv.Context.GoroutineID, inv.Context.PC, "ret  "+inv.Route.String())
+	}
 	clearInvocation(inv)
 	inv.Result = result
 	delete(d.live, id)

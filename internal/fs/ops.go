@@ -21,7 +21,6 @@ const (
 	openCreate    = 0x40
 	openExclusive = 0x80
 	openTruncate  = 0x200
-	openDirectory = 0x10000
 	openCloseExec = 0x80000
 	mapShared     = 1
 	mapPopulate   = 0x8000

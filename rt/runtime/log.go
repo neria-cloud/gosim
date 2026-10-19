@@ -47,7 +47,7 @@ func (w wrapHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (w wrapHandler) Handle(ctx context.Context, r slog.Record) error {
-	r.Time = time.Unix(0, Nanotime())
+	r.Time = time.Unix(0, Nanotime()).UTC()
 	if g := getg(); g != nil {
 		r.AddAttrs(slog.String("machine", g.machine.label), slog.Int("goroutine", g.ID))
 	}

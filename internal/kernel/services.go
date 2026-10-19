@@ -3,6 +3,7 @@ package kernel
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
@@ -82,7 +83,10 @@ func (k *Kernel) Ports() contracts.Ports {
 
 func (p eventPort) Schedule(epoch contracts.EpochRef, when int64, callback func()) (contracts.EventID, error) {
 	k := p.kernel
-	if !k.Accepts(epoch) || callback == nil {
+	// Closing rejects application admission, but ordered provider cleanup may
+	// enqueue a final notification for a still-live destination. Its later
+	// teardown cancels the event; callbacks still require normal admission.
+	if !k.liveEpoch(epoch) || callback == nil {
 		return 0, contracts.ErrInvalidState
 	}
 	var id uint64
@@ -126,4 +130,13 @@ func (k *Kernel) cancelEvents(epoch contracts.EpochRef) {
 
 func (p tracePort) Emit(epoch contracts.EpochRef, event string, fields []contracts.Field) {
 	p.kernel.traces = append(p.kernel.traces, traceRecord{epoch: epoch, event: event, fields: slices.Clone(fields)})
+	if simrt.TraceNetwork.Enabled() && strings.HasPrefix(event, "network.") {
+		values := make([]string, 0, 2+len(fields)*2)
+		values = append(values, "traceKind", "network")
+		for _, field := range fields {
+			values = append(values, field.Key, field.Value)
+		}
+		ctx := p.kernel.caller
+		p.kernel.engine.WriteProviderTrace(tokenFor(ctx.Epoch), ctx.GoroutineID, ctx.PC, event, values)
+	}
 }

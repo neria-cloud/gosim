@@ -34,11 +34,13 @@ func TestKernelRunSelfExitAndRootLastCleanup(t *testing.T) {
 				func() error { return k.Stop(ref, contracts.StopGraceful) },
 				func() error { return k.Restart(ref) },
 				func() error { return k.Destroy(ref) },
-				func() error { return k.SetMain(ref, idleMain) },
 			} {
 				if err := transition(); !errors.Is(err, contracts.ErrSelfTransition) {
 					t.Errorf("returning self transition: %v", err)
 				}
+			}
+			if err := k.SetMain(ref, idleMain); !errors.Is(err, contracts.ErrInvalidState) {
+				t.Errorf("running main replacement: %v", err)
 			}
 			returned.Store(true)
 		}); err != nil {

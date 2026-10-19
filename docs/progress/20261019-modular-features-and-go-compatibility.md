@@ -819,3 +819,27 @@ Completion
 - The complete development gate `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` exited 0: `.gosim/task22.1-gate.log`. All ordinary/race/behavior/race-oracle/script/translation suites pass. Final candidate race execution took 357.8s and ordinary execution 64.2s. Profile revision freshness and staged whitespace checks pass.
 - Task 22.1 is complete. The parent Task 22 remains open; Task 22.2 performs the public API and live execution cutover. No architecture edits or certification promotion.
 - Final Task 22.1 size: 497 changed lines (450 additions + 47 deletions), including checklist/log, using rename-aware staged additions plus deletions.
+
+
+## Task 22.2 — Integration work in progress
+Date: 2026-10-19. No cutover commit yet.
+
+- Implemented the target public value/control APIs and native ErrNotSim behavior, migrated active behavior/nemesis/example callers, and replaced generic HTTP lifecycle fixtures with framed raw TCP. Isolated public probes pass both exact families; final-source race/full gates remain required.
+- Real full-feature candidate compilation exposed the Zap adapter's net/http import. The generic stack logging fixture now uses modeled slog; unsupported HTTP/gRPC boundaries remain required. Expanded execution found arm64 O_DIRECTORY mismatch, final notifications rejected during ordered run close, and io.Copy attempting native splice/sendfile. Added reviewed adapters/fallbacks and retained raw-syscall rejection. Hash/maphash byte hashing now uses deterministic seeded hashing instead of host process-random memhash; pointer-based Comparable operations are explicitly rejected.
+- Restored composition-owned per-machine structured logging and scalar syscall tracing without reading borrowed buffers. Native abort diagnostics retain call frames. CLI/prebuilt integration now uses selected translation/current content manifests; exact Go 1.26.9 is the proposed development harness transition, still awaiting complete verification.
+- Recorded children 22.2.1/22.2.2 before extracting a buildable prerequisite commit. The additional integration fixes plus retirement/harness work would exceed the commit cap. Public API, callers, and live switch stay together; prerequisites are validated in an isolated pre-cutover checkout. No target document changes or compatibility promotion.
+- Initial exact-go1.26.9 affected native suites pass (`.gosim/task22.2-focused126.log`). Candidate examples and TCP nemesis execution pass; behavior execution exposed the two copy optimizations above. Full metatests are now exercising the newly wired CLI/artifact path. These interim results do not complete Task 22.
+
+### Prerequisite gate follow-up
+The first full pre-cutover gate failed only the expanded candidate race probes: `golang.org/x/sys/unix` calls runtime.RaceAcquire/ReleaseMerge/ReadRange/WriteRange under the race tag. Added explicit selected rewrites to the already reviewed per-family runtime race bridge and refreshed both profile revisions. All other native, legacy behavior, script, race-oracle and translation packages in that gate passed. The complete gate is rerunning against frozen source; no pass or completion is claimed yet.
+
+### Trace ownership correction
+The second prerequisite gate passed the x/sys race-boundary translation and exposed a real ownership defect in the new diagnostic bridge: an instrumented native callback read the translated provider's string slice after the coroutine upcall. The native entry now copies primitive metadata before switching to its supervisor, using the existing race-invisible metadata boundary; application buffers and their instrumentation remain unchanged. The new-path full gate was stopped (exit 143) before continuing against known-bad shared code. Focused traced race probes precede another complete gate. No failed/interrupted gate is recorded as passing.
+
+## Task 22.2.1 — Candidate integration prerequisites complete
+Date: 2026-10-19. Previous commit: e5bd15d. Commit: the prerequisite commit containing this entry.
+
+- Completed composition-owned logging, copied syscall/network diagnostics, deterministic byte hashing and x/sys randomness/race bridges, explicit copy-optimization fallbacks, arm64 directory flags, SetMain classification, and ordered final-event admission. Legacy public API/callers/harness remain unchanged in this commit.
+- Exact-family affected ordinary/race native checks passed (`.gosim/prereq-focused125.log`, `prereq-focused126.log`, `prereq-race125.log`, `prereq-race126.log` in the prerequisite checkout). Traced race regression passes in `prereq-trace-race.log` after copying primitive provider metadata before the native upcall.
+- The complete pre-cutover common gate exited 0: `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1`, log `.gosim/prereq-gate-owned.log` in `.gosim/task22-prereq`. Both exact-family/all-feature candidate race checks pass (488.0s), along with the complete ordinary/race/native/legacy behavior/script/race-oracle/translation suites. Earlier failures and corrections remain recorded above. No certification promotion or target changes.
+- Final prerequisite size: 747 changed lines (711 additions + 36 deletions), including checklist/log and generated output, using rename-aware staged additions plus deletions; whitespace check passes.

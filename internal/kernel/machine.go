@@ -84,9 +84,11 @@ func (k *Kernel) Lookup(ref contracts.MachineRef) (*Machine, error) {
 	return m, nil
 }
 
-func (k *Kernel) Accepts(ref contracts.EpochRef) bool {
+func (k *Kernel) Accepts(ref contracts.EpochRef) bool { return !k.closed && k.liveEpoch(ref) }
+
+func (k *Kernel) liveEpoch(ref contracts.EpochRef) bool {
 	m, err := k.Lookup(ref.Machine)
-	return err == nil && !k.closed && m.state == StateRunning && m.current != nil && m.current.accepting && m.current.ref == ref
+	return err == nil && m.state == StateRunning && m.current != nil && m.current.accepting && m.current.ref == ref
 }
 
 func (k *Kernel) callerRef() contracts.MachineRef {
@@ -258,9 +260,6 @@ func (k *Kernel) Destroy(ref contracts.MachineRef) error {
 func (k *Kernel) SetMain(ref contracts.MachineRef, main func()) error {
 	m, err := k.Lookup(ref)
 	if err != nil {
-		return err
-	}
-	if err := k.returningTransition(m); err != nil {
 		return err
 	}
 	if m.state != StateNew && m.state != StateStopped && m.state != StateCrashed {
