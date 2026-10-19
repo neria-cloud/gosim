@@ -68,6 +68,9 @@ func (k *Kernel) Create(label string, main func()) (contracts.MachineRef, error)
 		return contracts.MachineRef{}, contracts.ErrInvalidState
 	}
 	ref := contracts.MachineRef{RunID: k.runID, ID: k.nextMachineID}
+	if label == "" {
+		label = fmt.Sprintf("machine-%d", ref.ID)
+	}
 	k.nextMachineID++
 	k.machineByID[ref.ID] = &Machine{ref: ref, label: label, main: main, nextEpoch: 1}
 	return ref, nil

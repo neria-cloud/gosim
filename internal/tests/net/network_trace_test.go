@@ -71,3 +71,21 @@ func TestNetworkTrace(t *testing.T) {
 		t.Fatal("network trace contains application payload")
 	}
 }
+
+func TestRestartDiscardsQueuedOldPacket(t *testing.T) {
+	runner := metatesting.ForPackage(t, metatesting.Options{})
+	result, err := runner.Run(t, &metatesting.RunConfig{Test: "TestRestartReusesEndpointWithoutOldConnection", Seed: 1, Simtrace: "network"})
+	if err != nil || result.Failed {
+		t.Fatalf("restart trace: %v %+v", err, result)
+	}
+	found := false
+	for _, line := range bytes.Split(result.LogOutput, []byte{'\n'}) {
+		var record map[string]any
+		if json.Unmarshal(line, &record) == nil && record["msg"] == "network.enqueue" && record["kind"] == "3" && record["sampled"] == "1s" && record["from"] == "10.50.0.2" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("fixture did not enqueue delayed old data: %s", result.LogOutput)
+	}
+}

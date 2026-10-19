@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–24 (including their recorded children) implemented and verified; Tasks 25–33 remain unchecked.
+**Status:** in progress; Tasks 1–25 (including their recorded children) implemented and verified; Tasks 26–33 remain unchecked.
 
 ## Important notices
 
@@ -679,17 +679,17 @@ The expanded integration graph exposed missing deterministic hash/x/sys hooks, L
 **References:** T§3 import diagram; T§4 disabled/native APIs; T§6 failure table; T§10 required tests; T§11 exclusions.  
 **Budget:** 2,500–4,500 changed lines with rename detection. **Dependency:** 22–24.
 
-- [ ] Partition positive simulation tests into rt-only, rt+fs, rt+net and full integration applicability; move existing tests with their metatests/helpers and preserve their assertions. Record the complete suite-to-feature mapping used by certification; test name filters alone are insufficient because imports/init still run.
-- [ ] Add isolated negative fixtures that invoke disabled fs/net during init and normal execution, including ignored errors and recovered panics. Verify run-level diagnostic feature/operation/caller/machine/epoch and failure status; no host resource is created or contacted.
-- [ ] Add import checks on generated transitive graphs: rt-only excludes both models; rt+fs excludes net; rt+net excludes fs; contracts/public APIs/kernel do not import providers; fs/net cannot import one another; inactive family executable packages never appear.
-- [ ] Add real translated fault-injection coverage for prepare failure, canceled blocked calls, poll deadlines, stale packets, epoch/fd/ID overflow, iterator/snapshot ownership, root/self transitions, ignored/recovered abort and all cleanup failure paths in T§6.
-- [ ] Verify same complete identity/seed replays with equal traces and isolated domain streams. Changes to toolchain/features/profile/source/race/debug policy invalidate artifact reuse; run ID does not change replay output.
-- [ ] Complete unsupported-boundary fixtures and capabilities. Preserve I/O/race intent of old HTTP tests with raw TCP; keep explicit HTTP/gRPC rejection tests, and do not count excluded functionality as successful simulated coverage.
+- [x] Partition positive simulation tests into rt-only, rt+fs, rt+net and full integration applicability; move existing tests with their metatests/helpers and preserve their assertions. Record the complete suite-to-feature mapping used by certification; test name filters alone are insufficient because imports/init still run.
+- [x] Add isolated negative fixtures that invoke disabled fs/net during init and normal execution, including ignored errors and recovered panics. Verify run-level diagnostic feature/operation/caller/machine/epoch and failure status; no host resource is created or contacted.
+- [x] Add import checks on generated transitive graphs: rt-only excludes both models; rt+fs excludes net; rt+net excludes fs; contracts/public APIs/kernel do not import providers; fs/net cannot import one another; inactive family executable packages never appear.
+- [x] Add real translated fault-injection coverage for prepare failure, canceled blocked calls, poll deadlines, stale packets, epoch/fd/ID overflow, iterator/snapshot ownership, root/self transitions, ignored/recovered abort and all cleanup failure paths in T§6.
+- [x] Verify same complete identity/seed replays with equal traces and isolated domain streams. Changes to toolchain/features/profile/source/race/debug policy invalidate artifact reuse; run ID does not change replay output.
+- [x] Complete unsupported-boundary fixtures and capabilities. Preserve I/O/race intent of old HTTP tests with raw TCP; keep explicit HTTP/gRPC rejection tests, and do not count excluded functionality as successful simulated coverage.
 
 #### Verification
 
-- [ ] Every feature set executes its applicable positive suites and both disabled-feature negative cases under both exact patches on the current host; import assertions inspect real generated output.
-- [ ] Run common commit gate. Reconcile the suite inventory so no previously supported test disappears without replacement or an explicit target exclusion.
+- [x] Every feature set executes its applicable positive suites and both disabled-feature negative cases under both exact patches on the current host; import assertions inspect real generated output.
+- [x] Run common commit gate. Reconcile the suite inventory so no previously supported test disappears without replacement or an explicit target exclusion.
 
 ### Task 26: Remove superseded generated syscall wrappers
 
@@ -963,6 +963,10 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | — | — | None recorded during planning | Architectural clarifications are listed separately above |
 
 ## NOT PLANNED CHANGES
+
+### Task 25 — Default machine label prevents an accidental filesystem dependency
+
+`internal/kernel/machine.go`: reduced-feature execution found that unnamed child machines returned an empty uname nodename, making Go's os.Hostname init fall back to `/proc/sys/kernel/hostname` and abort rt-only runs. Create now assigns the deterministic `machine-<id>` default label, as the former simulator did. The moved runtime machine/init tests exercise this through real translation. Diff: the default-label branch immediately after allocating MachineRef.
 
 ### Task 24 — Separate framework certification from application graph identity
 

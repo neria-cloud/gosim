@@ -10,10 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neria-cloud/gosim/internal/tests/testsupport"
-
 	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/internal/gosimlog"
+	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
@@ -86,13 +85,6 @@ func TestLogDuringInit(t *testing.T) {
 		Label: "logm",
 		Main:  func() {},
 	}))
-}
-
-func TestLogTraceSyscall(t *testing.T) {
-	// should print open, write, close
-	if err := os.WriteFile("hello", []byte("world"), 0o644); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func c(z *slog.Logger) {

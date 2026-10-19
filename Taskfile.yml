@@ -5,7 +5,7 @@ output: prefixed
 vars:
   # GOSIM: go run github.com/neria-cloud/gosim/cmd/gosim
   GOSIM: $(pwd)/.gosim/gosimtool
-  SIMPACKAGES: ./internal/tests/behavior ./nemesis ./examples
+  SIMPACKAGES: ./internal/tests/rt ./internal/tests/fs ./internal/tests/net ./internal/tests/integration ./nemesis ./examples
 
 tasks:
   fix-fmt:

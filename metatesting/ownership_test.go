@@ -10,7 +10,7 @@ import (
 
 func TestConstructorsOwnIndependentChildren(t *testing.T) {
 	var parent, duplicate, child *MetaT
-	pkg := gosimtool.Module + "/internal/tests/behavior"
+	pkg := gosimtool.Module + "/internal/tests/rt"
 	t.Run("parent", func(t *testing.T) {
 		parent = ForOtherPackage(t, pkg, Options{})
 		duplicate = ForOtherPackage(t, pkg, Options{})

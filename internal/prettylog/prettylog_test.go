@@ -43,7 +43,7 @@ func TestPrettyLog(t *testing.T) {
 	}
 
 	if *rewriteInput {
-		mt := metatesting.ForOtherPackage(t, gosimtool.Module+"/internal/tests/behavior", metatesting.Options{})
+		mt := metatesting.ForOtherPackage(t, gosimtool.Module+"/internal/tests/rt", metatesting.Options{})
 		out, err := mt.Run(t, &metatesting.RunConfig{
 			Test:     "TestLogForPrettyTest",
 			ExtraEnv: []string{"TESTINGFAIL=1"},

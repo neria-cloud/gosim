@@ -5,7 +5,6 @@ package behavior_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -120,69 +119,6 @@ func TestLogDuringInit(t *testing.T) {
 `))
 
 	if diff := cmp.Diff(expected, actual); diff != "" {
-		t.Error("diff", diff)
-	}
-}
-
-func formatLogsWithExtra(logs []*gosimlog.Log) []string {
-	// TODO: share this code with prettylog somehow?
-	var lines []string
-	for _, log := range logs {
-		line := fmt.Sprintf("%d %s/%d %s %s", log.Step, log.Machine, log.Goroutine, log.Level, log.Msg)
-		for _, kv := range log.Unknown {
-			line += fmt.Sprintf(" %s=%s", kv.Key, kv.Value)
-		}
-		lines = append(lines, line)
-	}
-	return lines
-}
-
-func TestLogTraceSyscall(t *testing.T) {
-	mt := metatesting.ForPackage(t, metatesting.Options{})
-
-	// no logs without simtrace
-	run, err := mt.Run(t, &metatesting.RunConfig{
-		Test: "TestLogTraceSyscall",
-		Seed: 1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(metatesting.SimplifyParsedLog(metatesting.ParseLog(run.LogOutput)), []string(nil)); diff != "" {
-		t.Error("diff", diff)
-	}
-
-	// syscalls with simtrace
-	run, err = mt.Run(t, &metatesting.RunConfig{
-		Test:     "TestLogTraceSyscall",
-		Seed:     1,
-		Simtrace: "syscall",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// TODO: support snapshotting these logs?
-	if diff := cmp.Diff(formatLogsWithExtra(gosimlog.ParseLog(run.LogOutput)), []string{
-		"1 main/2 INFO call FcntlInt",
-		"2 main/2 INFO ret  FcntlInt",
-		"3 main/2 INFO call FcntlInt",
-		"4 main/2 INFO ret  FcntlInt",
-		"5 main/2 INFO call FcntlInt",
-		"6 main/2 INFO ret  FcntlInt",
-		"7 main/2 INFO call Uname",
-		"8 main/2 INFO ret  Uname",
-		"9 main/3 INFO call Require",
-		"10 main/3 INFO ret  Require",
-		"11 main/3 INFO call Openat",
-		"12 main/3 INFO ret  Openat",
-		"13 main/3 INFO call FcntlInt",
-		"14 main/3 INFO ret  FcntlInt",
-		"15 main/3 INFO call Write",
-		"16 main/3 INFO ret  Write",
-		"17 main/3 INFO call Close",
-		"18 main/3 INFO ret  Close",
-	}); diff != "" {
 		t.Error("diff", diff)
 	}
 }

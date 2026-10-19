@@ -11,14 +11,14 @@ import (
 var errInjected = errors.New("injected provider failure")
 
 type recordingProvider struct {
-	feature                                             contracts.Feature
-	log                                                 *[]string
-	openErr, prepareErr, settleErr, releaseErr          error
-	badControls, badBindings, panicPublish, nilInstance bool
-	yieldPublish                                        bool
-	panicQuiesce, panicDetach, panicAbort, panicClose   bool
-	ports                                               contracts.Ports
-	resources                                           []*recordingResource
+	feature                                                         contracts.Feature
+	log                                                             *[]string
+	openErr, prepareErr, settleErr, releaseErr                      error
+	badControls, badBindings, panicPublish, nilInstance             bool
+	yieldPublish                                                    bool
+	panicQuiesce, panicDetach, panicAbort, panicClose, panicDestroy bool
+	ports                                                           contracts.Ports
+	resources                                                       []*recordingResource
 }
 
 func (p *recordingProvider) record(operation string) {
@@ -70,6 +70,9 @@ func (s *recordingSession) Prepare(spec contracts.StartSpec, fds contracts.Descr
 
 func (s *recordingSession) Destroy(ref contracts.MachineRef) {
 	s.p.record(fmt.Sprintf("destroy:%d", ref.ID))
+	if s.p.panicDestroy {
+		panic("destroy failure")
+	}
 }
 
 func (s *recordingSession) Close() {

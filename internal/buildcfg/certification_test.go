@@ -79,3 +79,24 @@ func TestApplicationGraphSeparatesArtifactsNotFrameworkCertification(t *testing.
 		t.Fatal("unchanged framework required application certification", err)
 	}
 }
+
+func TestReducedReportRequiresApplicableNativeAndBoundarySuites(t *testing.T) {
+	_, _, report := certificationFixture(t)
+	report.Identity.Features = []string{"rt"}
+	report.Identity.ProviderRevisions = nil
+	report.Tuple = buildspec.TupleFor(report.Identity)
+	report.ResultDigest, _ = buildspec.ReportDigest(report)
+	if err := buildspec.ValidateReport(report); err == nil {
+		t.Fatal("reduced tuple accepted without boundary checks")
+	}
+	report.Suites = append(report.Suites, buildspec.SuiteResult{Name: "boundaries", Passed: true, LogDigest: buildspec.Hash([]byte("boundaries"))})
+	report.ResultDigest, _ = buildspec.ReportDigest(report)
+	if err := buildspec.ValidateReport(report); err != nil {
+		t.Fatal(err)
+	}
+	report.Suites = report.Suites[:2]
+	report.ResultDigest, _ = buildspec.ReportDigest(report)
+	if err := buildspec.ValidateReport(report); err == nil {
+		t.Fatal("reduced tuple omitted native metatests")
+	}
+}

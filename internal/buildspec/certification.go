@@ -76,13 +76,13 @@ func ValidateReport(report CertificationReport) error {
 		}
 		seen[suite.Name] = true
 	}
-	for _, name := range []string{"build", "execute"} {
+	for _, name := range []string{"build", "execute", "native"} {
 		if !seen[name] {
 			return fmt.Errorf("missing required suite %s", name)
 		}
 	}
-	if len(id.Features) == 3 && !seen["native"] {
-		return fmt.Errorf("missing full-feature native suite")
+	if len(id.Features) < 3 && !seen["boundaries"] {
+		return fmt.Errorf("missing reduced-feature boundary suite")
 	}
 	digest, err := ReportDigest(report)
 	if err != nil || digest != report.ResultDigest {

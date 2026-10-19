@@ -16,6 +16,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildrun"
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
+	"github.com/neria-cloud/gosim/internal/tests/features"
 )
 
 type (
@@ -49,7 +50,7 @@ func runCertificationCommand(command string, args []string) {
 }
 
 // certify records one declared pending tuple. Reports stay candidate and never
-// edit reviewed profile metadata. Task 25 extends the feature suite registry.
+// edit reviewed profile metadata. Package applicability comes from one registry.
 func certify(flags BuildFlags, options MatrixOptions) (report CertificationReport, err error) {
 	resolved, err := resolveBuild("internal-candidate", flags)
 	if err != nil {
@@ -83,23 +84,7 @@ func certify(flags BuildFlags, options MatrixOptions) (report CertificationRepor
 		}
 		err = errors.Join(err, marshalErr)
 	}()
-	if len(cfg.Identity.Features) == 3 {
-		report.Suites, err = runFullSuite(cfg, dir)
-	} else {
-		// Until Task 25's package split, the real isolated probe is the applicable
-		// reduced-feature suite. It builds, executes, checks disabled APIs/replay and
-		// validates actual import graphs for precisely this tuple.
-		args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "./internal/candidate", "-run=^TestCandidateWorker$/^" + strings.Join(cfg.Identity.Features, ",") + "$", "-count=1", "-v"}
-		if cfg.Identity.Race {
-			args = append(args, "-race")
-		}
-		cmd := buildcfg.Command(cfg.Toolchain, "", args...)
-		cmd.Env = append(cmd.Env, "GOSIM_CANDIDATE_WORKER=1", "GOSIM_CANDIDATE_REPORT_DIR="+dir)
-		result, runErr := runLogged(cmd, dir, "execute")
-		buildLog, readErr := os.ReadFile(filepath.Join(dir, "build.log"))
-		report.Suites = []SuiteResult{{Name: "build", Passed: readErr == nil, LogDigest: buildspec.Hash(buildLog)}, result}
-		err = errors.Join(runErr, readErr)
-	}
+	report.Suites, err = runFullSuite(cfg, dir)
 	if err != nil {
 		return report, err
 	}
@@ -141,11 +126,18 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string) (results []SuiteResult,
 	if err := prepareSelftest(cfg); err != nil {
 		return results, err
 	}
-	packages := []string{"./internal/tests/behavior", "./nemesis", "./examples"}
-	if cfg.Identity.Race {
+	packages, err := features.Packages(cfg.Identity.Features)
+	if err != nil {
+		return results, err
+	}
+	full := len(cfg.Identity.Features) == 3
+	if full && cfg.Identity.Race {
 		packages = append(packages, "./internal/tests/race/testdata")
 	}
 	built, buildErr := buildrun.BuildResolved(cfg, packages)
+	if buildErr == nil && len(built.Artifacts) != len(packages) {
+		buildErr = fmt.Errorf("missing applicable package artifacts: got %d want %d", len(built.Artifacts), len(packages))
+	}
 	data, marshalErr := json.Marshal(built.Artifacts)
 	buildErr = errors.Join(buildErr, marshalErr)
 	if buildErr != nil {
@@ -177,7 +169,12 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string) (results []SuiteResult,
 	if err != nil {
 		return results, err
 	}
-	args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "./..."}
+	args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "-timeout=30m", "-count=1"}
+	if full {
+		args = append(args, "./...")
+	} else {
+		args = append(args, packages...)
+	}
 	if cfg.Identity.Race {
 		args = append(args, "-race")
 	}
@@ -206,6 +203,19 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string) (results []SuiteResult,
 	}
 	cmd.Env = append(cmd.Env, "GOSIM_CONFIG="+configPath, "GOSIMTOOL="+worker)
 	result, err := runLogged(cmd, dir, "native")
+	results = append(results, result)
+	if err != nil || full {
+		return results, err
+	}
+	// Full native testing includes all candidate workers. Reduced certification
+	// also executes its isolated negative, replay and generated-graph checks.
+	args = []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "-timeout=25m", "./internal/candidate", "-run=^TestCandidateWorker$/^" + strings.Join(cfg.Identity.Features, ",") + "$", "-count=1", "-v"}
+	if cfg.Identity.Race {
+		args = append(args, "-race")
+	}
+	cmd = buildcfg.Command(cfg.Toolchain, "", args...)
+	cmd.Env = append(cmd.Env, "GOSIM_CANDIDATE_WORKER=1")
+	result, err = runLogged(cmd, dir, "boundaries")
 	results = append(results, result)
 	return results, err
 }

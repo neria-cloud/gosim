@@ -2,8 +2,11 @@
 package buildrun
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -95,7 +98,7 @@ func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (result BuildRe
 // generated test mains, before publication. Source policies already check the
 // original Linux graph; this prevents a rewrite from adding a forbidden model.
 func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
-	args := []string{"list", "-mod=readonly", "-tags=linkname,sim", "-deps", "-test", "-f", "{{.ImportPath}}"}
+	args := []string{"list", "-mod=readonly", "-tags=linkname,sim", "-deps", "-test", "-json"}
 	if cfg.Identity.Race {
 		args = append(args, "-race")
 	}
@@ -107,7 +110,50 @@ func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
 		return fmt.Errorf("inspect candidate graph: %w\n%s", err, out)
 	}
 	found := make(map[string]bool)
-	for _, path := range strings.Fields(string(out)) {
+	decoder := json.NewDecoder(bytes.NewReader(out))
+	for {
+		var pkg struct {
+			ImportPath string
+			Imports    []string
+		}
+		if err := decoder.Decode(&pkg); err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+		path := strings.Split(pkg.ImportPath, " ")[0]
+		translatedRoot := "translated/" + gosimtool.ReplaceSpecialPackages(gosimtool.Module)
+		for _, family := range []string{"go123", "go125", "go126"} {
+			for _, prefix := range []string{gosimtool.Module + "/internal/compat/", translatedRoot + "/internal_/compat/"} {
+				if family != cfg.Identity.Profile && strings.HasPrefix(path, prefix+family+"/") {
+					return fmt.Errorf("inactive family in compiled graph: %s", path)
+				}
+			}
+		}
+		for _, imported := range pkg.Imports {
+			for _, provider := range []string{"fs", "net"} {
+				target := translatedRoot + "/internal_/" + provider
+				if imported != target && !strings.HasPrefix(imported, target+"/") {
+					continue
+				}
+				// Domain models may import their own provider subtree; composition owns
+				// construction. No other production package gains a concrete dependency.
+				forbidden := path == translatedRoot || path == translatedRoot+"/fs" || path == translatedRoot+"/net" || path == translatedRoot+"/rt"
+				for _, consumer := range []string{"contracts", "control", "kernel"} {
+					prefix := translatedRoot + "/internal_/" + consumer
+					forbidden = forbidden || path == prefix || strings.HasPrefix(path, prefix+"/")
+				}
+				peer := "fs"
+				if provider == "fs" {
+					peer = "net"
+				}
+				prefix := translatedRoot + "/internal_/" + peer
+				forbidden = forbidden || path == prefix || strings.HasPrefix(path, prefix+"/")
+				if forbidden {
+					return fmt.Errorf("forbidden compiled provider dependency: %s -> %s", path, imported)
+				}
+			}
+		}
 		for _, feature := range []string{"fs", "net"} {
 			original := gosimtool.Module + "/internal/" + feature
 			translated := "translated/" + gosimtool.ReplaceSpecialPackages(original)

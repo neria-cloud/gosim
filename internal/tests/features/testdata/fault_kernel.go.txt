@@ -1,0 +1,279 @@
+// Injected only into an isolated source copy by the translated fault test.
+// There is no fault route or test hook in the production kernel.
+package kernel
+
+import (
+	"encoding/json"
+	"errors"
+	"math"
+	"slices"
+	"strings"
+	"syscall"
+
+	"github.com/neria-cloud/gosim/internal/contracts"
+	simrt "github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
+)
+
+func faultCheck(ok bool, message string) {
+	if !ok {
+		panic("fault assertion: " + message)
+	}
+}
+func faultMust(err error) {
+	if err != nil {
+		panic("fault assertion: " + err.Error())
+	}
+}
+
+// Called on the real generated driver's surviving supervisor. The fixture uses
+// that one active engine, reserves disjoint machine IDs, and closes its sessions
+// before returning. Every kernel/provider/fake value here is translated.
+func (outer *Kernel) translatedFault(name string) {
+	var log []string
+	fs, net := &recordingProvider{feature: contracts.FS, log: &log}, &recordingProvider{feature: contracts.Net, log: &log}
+	switch name {
+	case "open-fs":
+		fs.openErr = errInjected
+	case "open-net":
+		net.openErr = errInjected
+	case "controls-fs":
+		fs.badControls = true
+	case "controls-net":
+		net.badControls = true
+	case "open-close":
+		net.openErr = errInjected
+		fs.panicClose = true
+	}
+	config := outer.config
+	k, err := New(config, outer.engine, []contracts.Provider{net, fs})
+	if strings.HasPrefix(name, "open-") || strings.HasPrefix(name, "controls-") {
+		faultCheck(err != nil, "open fault succeeded")
+		if name == "open-close" {
+			faultCheck(strings.Contains(err.Error(), "close failure"), "open cleanup error lost")
+		}
+		data, _ := json.Marshal(map[string]any{"msg": "fault-cleanup", "released": true, "operations": log})
+		simrt.WriteLog(append(data, '\n'))
+		return
+	}
+	faultMust(err)
+	k.nextMachineID = 1000
+	defer func() {
+		closeErr := k.Close()
+		released := true
+		for _, p := range []*recordingProvider{fs, net} {
+			for _, r := range p.resources {
+				released = released && r.released
+			}
+		}
+		data, _ := json.Marshal(map[string]any{"msg": "fault-cleanup", "released": released, "operations": log, "transactions": len(k.transactions), "polls": len(k.polls), "leases": len(k.dispatcher.live)})
+		simrt.WriteLog(append(data, '\n'))
+		if closeErr != nil {
+			k.cleanupFailure("fault session close", closeErr)
+		}
+	}()
+	ref, err := k.Create("fault-child", func() { simrt.NewChan[int](0).Recv() })
+	faultMust(err)
+	switch name {
+	case "prepare-fs":
+		fs.prepareErr = errInjected
+	case "prepare-net":
+		net.prepareErr = errInjected
+	case "bindings-fs":
+		fs.badBindings = true
+	case "bindings-net":
+		net.badBindings = true
+	case "rollback-errors":
+		net.prepareErr = errInjected
+		fs.releaseErr = errors.New("release fault")
+		fs.panicAbort = true
+	case "runtime-prepare":
+		occupied, err := k.engine.PrepareMachine(ref.ID, 1, "occupied")
+		faultMust(err)
+		_, err = k.BeginStart(ref, false)
+		faultCheck(errors.Is(err, simrt.ErrMachineToken), "runtime prepare failure missing")
+		faultCheck(k.machineByID[ref.ID].state == StateNew && k.machineByID[ref.ID].nextEpoch == 2, "runtime failure changed ownership")
+		k.engine.AbortMachine(occupied)
+		faultMust(k.Start(ref))
+		return
+	case "machine-overflow":
+		k.nextMachineID = math.MaxUint64
+		_, err = k.Create("last", func() {})
+		faultMust(err)
+		_, _ = k.Create("overflow", func() {})
+		panic("fault assertion: machine ID wrapped")
+	case "epoch-overflow":
+		k.machineByID[ref.ID].nextEpoch = math.MaxUint64
+		tx, err := k.BeginStart(ref, false)
+		faultMust(err)
+		tx.Abort()
+		_, _ = k.BeginStart(ref, false)
+		panic("fault assertion: epoch wrapped")
+	}
+	if strings.HasPrefix(name, "prepare-") || strings.HasPrefix(name, "bindings-") || name == "rollback-errors" {
+		_, err := k.BeginStart(ref, false)
+		faultCheck(err != nil, "preparation succeeded")
+		m := k.machineByID[ref.ID]
+		faultCheck(m.state == StateNew && m.current == nil && m.nextEpoch == 2 && len(k.transactions) == 0, "rollback retained machine state")
+		for _, p := range []*recordingProvider{fs, net} {
+			for _, r := range p.resources {
+				faultCheck(r.released, "rollback descriptor leak")
+			}
+		}
+		if name == "prepare-net" {
+			faultCheck(slices.Contains(log, "fs:abort"), "missing reverse abort")
+		}
+		fs.prepareErr, net.prepareErr, fs.badBindings, net.badBindings = nil, nil, false, false
+		tx, err := k.BeginStart(ref, false)
+		faultMust(err)
+		faultCheck(tx.run.ref.Epoch == 2, "failed epoch reused")
+		faultMust(tx.Commit())
+		faultCheck(errors.Is(tx.Commit(), ErrTxnState), "double commit accepted")
+		faultMust(k.Stop(ref, contracts.StopCrash))
+		faultMust(k.Stop(ref, contracts.StopCrash))
+		return
+	}
+	switch name {
+	case "publish-fs":
+		fs.panicPublish = true
+	case "publish-net":
+		net.panicPublish = true
+	case "publish-nil":
+		net.nilInstance = true
+	case "publish-yield":
+		net.yieldPublish = true
+	}
+	faultMust(k.Start(ref))
+	if strings.HasPrefix(name, "publish-") {
+		panic("fault assertion: publication corruption returned")
+	}
+	run := k.machineByID[ref.ID].current
+	ctx := contracts.CallContext{Epoch: run.ref}
+	switch name {
+	case "random-baseline", "random-net":
+		ports := k.Ports()
+		fsRandom := ports.RandomFor(contracts.FS, ref)
+		first := fsRandom.Uint64()
+		if name == "random-net" {
+			r := ports.RandomFor(contracts.Net, ref)
+			for range 1000 {
+				_ = r.Uint64()
+			}
+		}
+		data, _ := json.Marshal(map[string]any{"msg": "domain-random", "first": first, "second": fsRandom.Uint64(), "scheduler": k.engine.RandomFor("scheduler", 0).Uint64()})
+		simrt.WriteLog(append(data, '\n'))
+		return
+	case "quiesce":
+		net.panicQuiesce = true
+	case "settle":
+		fs.settleErr = errors.New("settle fault")
+	case "release":
+		net.releaseErr = errors.New("release fault")
+	case "detach":
+		net.panicDetach = true
+	case "close":
+		fs.panicClose = true
+	case "destroy":
+		fs.panicDestroy = true
+	case "cleanup-all":
+		fs.settleErr = errors.New("settle fault")
+		net.releaseErr = errors.New("release fault")
+		net.panicDetach = true
+		fs.panicClose = true
+	case "fd-overflow":
+		r := &dataResource{owner: contracts.RT}
+		run.descriptors.next = math.MaxInt32
+		fd, err := run.descriptors.Allocate(r)
+		faultMust(err)
+		faultCheck(fd == math.MaxInt32, "last fd lost")
+		_, err = run.descriptors.Allocate(&dataResource{owner: contracts.RT})
+		faultCheck(errors.Is(err, syscall.EMFILE), "fd wrapped")
+		return
+	case "wait-overflow":
+		observer, err := k.Create("observer", func() {})
+		faultMust(err)
+		faultMust(k.Start(observer))
+		caller := contracts.CallContext{Epoch: k.machineByID[observer.ID].current.ref}
+		k.nextWaitID = contracts.WaitID(math.MaxUint64)
+		_, err = k.Wait(caller, ref)
+		faultMust(err)
+		_, _ = k.Wait(caller, ref)
+		panic("fault assertion: wait ID wrapped")
+	case "invocation-overflow":
+		k.dispatcher.nextID = math.MaxUint64
+		first := &Invocation{Context: ctx}
+		faultMust(k.dispatcher.admit(first))
+		second := &Invocation{Context: ctx}
+		faultCheck(k.dispatcher.admit(second) != nil, "invocation ID wrapped")
+		return
+	case "duplicate-completion":
+		inv := &Invocation{Context: ctx}
+		faultMust(k.dispatcher.admit(inv))
+		id := inv.Context.InvocationID
+		faultMust(k.dispatcher.Complete(id, Result{}))
+		_ = k.dispatcher.Complete(id, Result{})
+		panic("fault assertion: duplicate completion returned")
+	case "canceled-call":
+		data := []byte("unchanged")
+		inv := &Invocation{Context: ctx, Args: [5]any{abi.ByteView{Ptr: data}}, Result: Result{Value: &data}}
+		faultMust(k.dispatcher.admit(inv))
+		id := inv.Context.InvocationID
+		lease := k.dispatcher.live[id]
+		k.engine.CancelMachine(token(run))
+		k.dispatcher.CancelEpoch(run.ref)
+		faultCheck(inv.Args == ([5]any{}) && inv.Result == (Result{}) && lease.invocation == nil && inv.Sema == 0, "cancellation kept borrowed memory")
+		faultMust(k.dispatcher.Complete(id, Result{Value: abi.ByteView{Ptr: data}}))
+		faultCheck(string(data) == "unchanged" && inv.Result == (Result{}) && inv.Sema == 0, "late completion touched canceled caller")
+		faultMust(k.Stop(ref, contracts.StopCrash))
+		faultCheck(len(k.dispatcher.canceled) == 0, "cancellation tombstone leaked")
+		return
+	case "poll-deadline", "poll-overflow", "deadline-overflow":
+		r := &dataResource{owner: contracts.RT}
+		fd, err := run.descriptors.Allocate(r)
+		faultMust(err)
+		r.fd = fd
+		id, err := k.PollOpen(ctx, fd)
+		faultMust(err)
+		if name == "poll-overflow" {
+			k.nextPollID = math.MaxUint64
+			_, err = k.PollOpen(ctx, fd)
+			faultMust(err)
+			_, _ = k.PollOpen(ctx, fd)
+			panic("fault assertion: poll ID wrapped")
+		}
+		if name == "deadline-overflow" {
+			k.polls[id].read.generation = math.MaxUint64
+			_ = k.PollDeadline(ctx, id, 1, 'r')
+			panic("fault assertion: deadline wrapped")
+		}
+		inv := &Invocation{Context: ctx, Route: RoutePollWait, Args: [5]any{PollWaitRequest{Handle: id, Mode: 'r'}}}
+		k.dispatcher.DispatchOne(inv)
+		faultMust(k.PollDeadline(ctx, id, 100, 'r'))
+		old := k.polls[id].read.generation
+		faultMust(k.PollDeadline(ctx, id, 200, 'r'))
+		k.expirePoll(id, old, 'r')
+		faultCheck(inv.Sema == 0, "stale deadline completed call")
+		simrt.Sleep(210)
+		faultCheck(inv.Sema == 1 && inv.Result.Value.(PollWaitResult).Code == 2, "deadline did not complete wait")
+		sink := k.polls[id].sink
+		faultMust(k.Stop(ref, contracts.StopCrash))
+		sink.Notify(ctx.Epoch, fd, contracts.ReadReady)
+		faultCheck(len(k.polls) == 0 && len(r.sinks) == 0 && r.released == 1, "canceled poll retained owner")
+		return
+	case "restart":
+		old := run.ref
+		faultMust(k.Stop(ref, contracts.StopCrash))
+		net.prepareErr = errInjected
+		faultCheck(k.Restart(ref) != nil, "restart ignored prepare fault")
+		m := k.machineByID[ref.ID]
+		faultCheck(m.state == StateCrashed && m.lastExit.Epoch == old.Epoch, "failed restart changed terminal state")
+		net.prepareErr = nil
+		faultMust(k.Restart(ref))
+		faultCheck(!k.Accepts(old) && m.current.ref.Epoch == 3, "restart admitted old epoch")
+		return
+	}
+	faultMust(k.Stop(ref, contracts.StopGraceful))
+	if name != "close" && name != "destroy" {
+		panic("fault assertion: cleanup fault returned")
+	}
+}

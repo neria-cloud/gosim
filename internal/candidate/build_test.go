@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -18,6 +19,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/race"
+	suites "github.com/neria-cloud/gosim/internal/tests/features"
 	"github.com/neria-cloud/gosim/internal/translate"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 )
@@ -27,13 +29,15 @@ func TestCandidate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, patch := range []string{"go1.25.14", "go1.26.9"} {
+	// The common gate runs once under each exact patch. A tuple worker tests
+	// its selected compiler, avoiding unrelated toolchain installs in matrix jobs.
+	for _, patch := range []string{runtime.Version()} {
 		t.Run(patch, func(t *testing.T) {
 			tc, err := buildcfg.Resolve(patch)
 			if err != nil {
 				t.Fatal(err)
 			}
-			args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "./internal/candidate", "-run=^TestCandidateWorker$", "-count=1", "-v"}
+			args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "./internal/candidate", "-timeout=25m", "-run=^TestCandidateWorker$", "-count=1", "-v"}
 			if race.Enabled {
 				args = append(args, "-race")
 			}
@@ -105,6 +109,33 @@ func TestCandidateWorker(t *testing.T) {
 	for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
 		t.Run(strings.Join(features, ","), func(t *testing.T) {
 			cfg := buildspec.Config{Schema: 1, Toolchain: runtime.Version(), Features: features, SimulationOS: "linux"}
+			if err := os.Chdir(root); err != nil {
+				t.Fatal(err)
+			}
+			packages, err := suites.Packages(features)
+			if err != nil {
+				t.Fatal(err)
+			}
+			positive, err := Build(cfg, buildspec.BuildOptions{Race: race.Enabled}, packages)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(positive.Artifacts) != len(packages) {
+				t.Fatal("missing applicable package artifacts")
+			}
+			for _, artifact := range positive.Artifacts {
+				cmd := exec.Command(filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path), "-test.v")
+				if out, err := cmd.CombinedOutput(); err != nil {
+					t.Fatalf("positive suite %s: %v\n%s", artifact.Manifest.PackageDigests[0].Path, err, out)
+				}
+			}
+			checkDisabledFixtures(t, cfg)
+			if len(features) == 3 {
+				checkTranslatedFaults(t, cfg)
+			}
+			if err := os.Chdir(project); err != nil {
+				t.Fatal(err)
+			}
 			built, err := Build(cfg, buildspec.BuildOptions{Race: race.Enabled}, []string{"."})
 			if err != nil {
 				t.Fatal(err)
@@ -122,6 +153,7 @@ func TestCandidateWorker(t *testing.T) {
 				}
 			}
 			artifact := built.Artifacts[0]
+			checkArtifactIdentitySeparation(t, artifact)
 			current, err := translate.InspectDependencies(&translate.TranslateInput{Packages: []string{"."}, Cfg: built.Config})
 			if err != nil {
 				t.Fatal(err)
@@ -169,6 +201,7 @@ func TestCandidateWorker(t *testing.T) {
 					configs = append(configs, simrt.RunConfig{Test: name, Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}}, simrt.RunConfig{Test: name + "Control", Seed: 42})
 				}
 			}
+			configs = append(configs, simrt.RunConfig{Test: "TestInitRoot", Seed: 42, ExtraEnv: []string{"INIT_PANIC=root"}}, simrt.RunConfig{Test: "TestInitChild", Seed: 42, ExtraEnv: []string{"INIT_PANIC=child"}})
 			configs = append(configs, simrt.RunConfig{Test: "TestSelfTransitions", Seed: 42}, simrt.RunConfig{Test: "TestRootExit", Seed: 42}, simrt.RunConfig{Test: "TestRootCrash", Seed: 42}, simrt.RunConfig{Test: "TestFailure", Seed: 42})
 			configs = append(configs, simrt.RunConfig{Test: "TestRuntime", Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}})
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -191,6 +224,10 @@ func TestCandidateWorker(t *testing.T) {
 				} else if configs[i].Test == "TestSelfTransitions" || configs[i].Test == "TestRootExit" || configs[i].Test == "TestRootCrash" {
 					if result.Failed {
 						t.Fatalf("self transition: %s\n%s", result.Err, result.LogOutput)
+					}
+				} else if strings.HasPrefix(configs[i].Test, "TestInit") {
+					if !result.Failed || !bytes.Contains(result.LogOutput, []byte("injected init failure")) || bytes.Contains(result.LogOutput, []byte("init failure ran")) || bytes.Contains(result.LogOutput, []byte("init failure returned")) {
+						t.Fatalf("init failure not fatal: %+v", result)
 					}
 				} else if configs[i].Test == "TestFailure" {
 					if !result.Failed || result.Err != "test failed" || !bytes.Contains(result.LogOutput, []byte("expected failure")) {
@@ -259,6 +296,7 @@ var array [4]int
 const arrayLength = len(array)
 var initialized bool
 func init(){
+ if os.Getenv("INIT_PANIC")=="root"||os.Getenv("INIT_PANIC")=="child"&&gosim.CurrentMachine().ID()>1 {panic("injected init failure")}
  if !gosim.IsSim()||gosim.CurrentMachine().ID()==0{panic("application initialized before root/control binding")}
  if embeddedText!="embedded"||string(embeddedBytes)!="embedded"||derived!="embedded"{panic("embedded globals not initialized before expressions/init")}
  initialized=true
@@ -266,6 +304,11 @@ func init(){
 func submit(inv kernel.Invocation) kernel.Result {
  if err:=control.Submit(inv.Route,&inv);err!=nil{panic(err)}
  return inv.TakeResult()
+}
+func TestInitRoot(t *testing.T){panic("init failure returned to main")}
+func TestInitChild(t *testing.T){
+ child,err:=gosim.NewMachine(gosim.MachineConfig{Main:func(){panic("init failure ran child main")}});if err!=nil{t.Fatal(err)}
+ if err:=child.Start();err!=nil{t.Fatal(err)};_,_=child.Wait()
 }
 func TestFailure(t *testing.T){t.Error("expected failure")}
 func TestRuntime(t *testing.T){
