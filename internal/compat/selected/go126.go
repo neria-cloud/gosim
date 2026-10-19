@@ -8,3 +8,6 @@ import (
 )
 
 func Profile() spec.Profile { return profile.Descriptor() }
+
+func descriptorForArch(arch string) (spec.Profile, error) { return profile.DescriptorForArch(arch) }
+func policyManifest() spec.PolicyManifest                 { return profile.PolicyManifest() }

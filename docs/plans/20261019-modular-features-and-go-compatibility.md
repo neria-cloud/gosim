@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–20 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–20 (including their recorded children) implemented and verified. Task 21.1 is also implemented and verified; remaining tasks are unchecked.
 
 ## Important notices
 
@@ -535,6 +535,45 @@ The original generator is 892 lines, existing temporary decoders are approximate
 
 - [ ] Real translated rt-only and provider fixtures execute via generated Driver, with cache hit and miss paths; disabled imports are absent transitively in both original and translated graphs.
 - [ ] Current full-suite harness still passes, along with both-family new-path probes and common commit gate. Candidate artifacts cannot be mistaken for existing/certified prebuilts.
+
+### Task 21.1: Resolve immutable profile policies and reject unsafe source boundaries
+
+**Files:** CREATE `internal/translate/profile.go` and focused tests; UPDATE `internal/compat/selected/*` metadata helpers.
+**References:** T§3 native/translated graph; T§8 Profile and package modes; T§9 Policies/ValidateBoundary.
+**Budget:** 1,000–2,500 changed lines. **Dependency:** 20.
+
+- [x] Validate the complete immutable selection against the compile-time selected family's architecture-specific descriptor and declared tuple; resolve hooks, replacements, native islands and shared globals from owned metadata.
+- [x] Implement Policies/ValidateBoundary. Reject unsupported packages/symbols, unauthorized native imports, cgo, unreviewed private linknames and bodyless assembly entries; retain explicitly hooked rejection adapters without allowing native fallback.
+- [x] Verify forged/stale/cross-family selection and typed source boundaries under both exact patches; run common commit gate. The legacy entry remains active until 21.3/22.
+
+### Task 21.2: Generate feature-specific composition and its native Driver boundary
+
+**Files:** CREATE `internal/compose/*`; UPDATE narrowly required native Driver support.
+**References:** T§3 composition graph; T§9 Driver and GeneratedComposition; T§12 Generate.
+**Budget:** 1,500–3,500 changed lines. **Dependency:** 21.1.
+
+- [ ] Implement Generate/ValidateImports before package loading, selected hooks/shims and enabled provider constructors only. Generate one Engine/kernel/control/root/cleanup flow implementing Driver.
+- [ ] Verify all feature combinations, family-specific imports, invalid selection/output paths, initialization ordering and failed-run cleanup through generated source probes; run common commit gate. Actual translated execution remains required in 21.4.
+
+### Task 21.3: Connect immutable translation inputs and the v2 cache
+
+**Files:** UPDATE `internal/translate/*`, `internal/gosimtool/*`, and existing command/harness configuration consumers.
+**References:** T§9 exact BuildConfig/TranslateInput/TranslateOutput and cache flow; T§12 resolveBuild.
+**Budget:** 2,500–4,900 changed lines. **Dependency:** 21.2.
+
+- [ ] Adopt the exact target records and content-based dependency metadata; thread selection through AST transforms, shared globals, selected hooks and filename rewriting. Return errors instead of terminating the host.
+- [ ] Load Linux application sources with the selected executable/cgo disabled, generate composition before loading, and use v2 hashes/envelopes. Retain explicitly isolated legacy integration wiring only until Task 22.
+- [ ] Verify translation/cache miss/hit equivalence, errors and exact toolchain selection under both families; run common commit gate.
+
+### Task 21.4: Execute and verify new-path candidate artifacts
+
+**Files:** UPDATE internal candidate driver, compiler/artifact plumbing and isolated fixtures.
+**References:** T§3 transitive graph; T§9 build/artifact/Driver flow; parent Task 21 verification.
+**Budget:** 2,000–4,900 changed lines. **Dependency:** 21.3.
+
+- [ ] Build pending-tuple-only candidate fixtures using the pinned native-host compiler and package manifests. Execute the generated Driver with exact RunConfig/RunResult records.
+- [ ] Run real rt-only and provider translated programs under both families, with cache hits/misses and all four original/translated transitive import graphs. Fix discovered boundary gaps before cutover, with no blanket skip/native fallback.
+- [ ] Verify candidate isolation and complete all parent Task 21 checks; run common commit gate with old full-suite entry retained until Task 22.
 
 ### Task 22: Perform the public API and live runtime cutover
 
