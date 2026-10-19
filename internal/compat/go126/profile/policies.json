@@ -1,12 +1,72 @@
 [
   {
-    "path": "github.com/neria-cloud/gosim/rt/runtime",
-    "mode": "bridge",
-    "reason": "Native deterministic engine with primitive ABI boundary."
+    "path": "github.com/neria-cloud/gosim/internal/hostabi",
+    "mode": "reject",
+    "reason": "Private native facade is reachable only through the original public rt/runtime bridge."
   },
   {
-    "path": "github.com/neria-cloud/gosim/internal/hostabi",
+    "path": "github.com/neria-cloud/gosim/rt/runtime",
     "mode": "bridge",
-    "reason": "Compile-time selected native coroutine and race ABI."
+    "reason": "Explicit native engine/primitive ABI island. Generated callers use only its reviewed runtime bridge; dependency traversal stays in the original Gosim module."
+  },
+  {
+    "path": "github.com/neria-cloud/gosim/rt/runtime/abi",
+    "mode": "bridge",
+    "reason": "Explicit native engine/primitive ABI island. Generated callers use only its reviewed runtime bridge; dependency traversal stays in the original Gosim module."
+  },
+  {
+    "path": "hash/maphash",
+    "mode": "translate",
+    "reason": "Application data and state stay translated; any filesystem/network/process operation uses guarded routes, and unrecognized private ABI is rejected."
+  },
+  {
+    "path": "internal/race",
+    "mode": "bridge",
+    "reason": "Translated stdlib race calls enter the native engine only through pointer/integer race bridges."
+  },
+  {
+    "path": "internal/sync",
+    "mode": "translate",
+    "reason": "Keep mutable globals, containers, errors and typed calls in the simulated type universe; private ABI remains subject to exact hook validation."
+  },
+  {
+    "path": "math/rand",
+    "mode": "translate",
+    "reason": "Keep mutable globals, containers, errors and typed calls in the simulated type universe; private ABI remains subject to exact hook validation."
+  },
+  {
+    "path": "math/rand/v2",
+    "mode": "translate",
+    "reason": "Application data and state stay translated; any filesystem/network/process operation uses guarded routes, and unrecognized private ABI is rejected."
+  },
+  {
+    "path": "runtime",
+    "mode": "bridge",
+    "reason": "Only reviewed native stack metadata, KeepAlive, Goexit and build constants are admitted; scheduler/environment operations use explicit modeled rewrites."
+  },
+  {
+    "path": "sync",
+    "mode": "translate",
+    "reason": "Keep mutable globals, containers, errors and typed calls in the simulated type universe; private ABI remains subject to exact hook validation."
+  },
+  {
+    "path": "sync/atomic",
+    "mode": "translate",
+    "reason": "Keep mutable globals, containers, errors and typed calls in the simulated type universe; private ABI remains subject to exact hook validation."
+  },
+  {
+    "path": "time",
+    "mode": "translate",
+    "reason": "Keep mutable globals, containers, errors and typed calls in the simulated type universe; private ABI remains subject to exact hook validation."
+  },
+  {
+    "path": "unsafe",
+    "mode": "native-pure",
+    "reason": "Compiler intrinsics or stateless computation over primitive values/slices; no exported mutable state, host I/O, clock, entropy or scheduler operations."
+  },
+  {
+    "path": "maps",
+    "mode": "translate",
+    "reason": "Reviewed identical Go 1.25/1.26 map helpers use translated map iteration and the modeled clone hook."
   }
 ]

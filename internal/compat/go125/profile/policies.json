@@ -169,5 +169,6 @@
 {"path":"unique","mode":"reject","reason":"Direct generic weak interning is not an application bridge; net/netip uses only reviewed immutable address interning."},
 {"path":"unsafe","mode":"native-pure","reason":"Compiler intrinsics or stateless computation over primitive values/slices; no exported mutable state, host I/O, clock, entropy or scheduler operations."},
 {"path":"vendor/golang.org/x/net/dns/dnsmessage","mode":"translate","reason":"Keep mutable globals, containers, errors and typed calls in the simulated type universe; private ABI remains subject to exact hook validation."},
-{"path":"weak","mode":"reject","reason":"Host GC and weak-reference liveness are nondeterministic."}
+{"path":"weak","mode":"reject","reason":"Host GC and weak-reference liveness are nondeterministic."},
+{"path":"maps","mode":"translate","reason":"Reviewed identical Go 1.25/1.26 map helpers use translated map iteration and the modeled clone hook."}
 ]

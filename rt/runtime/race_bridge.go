@@ -33,3 +33,12 @@ func RaceReadRange(addr unsafe.Pointer, len int) { hostabi.RaceReadRange(addr, l
 func RaceWriteRange(addr unsafe.Pointer, len int) { hostabi.RaceWriteRange(addr, len) }
 
 func RaceErrors() int { return hostabi.RaceErrors() }
+
+// Object metadata remains an opaque native type pointer across this boundary.
+func RaceReadObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+	hostabi.RaceReadObjectPC(t, addr, callerpc, pc)
+}
+
+func RaceWriteObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+	hostabi.RaceWriteObjectPC(t, addr, callerpc, pc)
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "package": "sync/atomic",
+    "reason": "Owned bridge implementation only: private reflection metadata/cache/sequence types, or primitive race-mode atomic operations; no translated context/time/net object escapes.",
+    "from": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt"
+  }
+]

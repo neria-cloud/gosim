@@ -2,6 +2,50 @@
   "toolchain": "go1.26.9",
   "files": [
     {
+      "path": "src/hash/maphash/maphash_runtime.go",
+      "digest": "f953ea8eae374bda0cce77c08e63826dc5787fa72182c49edd03a59bcba127bc"
+    },
+    {
+      "path": "src/internal/abi/iface.go",
+      "digest": "a4d66e19e604838666eba4c6c71734eb5485d10983d386f9e0eef48edd71ebbf"
+    },
+    {
+      "path": "src/internal/abi/type.go",
+      "digest": "b7245bd743802e2b5eced71a1f87963c395c2536cd7ea1b77f2364d20a79bf3d"
+    },
+    {
+      "path": "src/internal/race/norace.go",
+      "digest": "d195ef03f406d7a3e636709cccf6fc55e0fc99aa4a6a5291800364b4c308d828"
+    },
+    {
+      "path": "src/internal/race/race.go",
+      "digest": "f5244134310fc209a46a5fe4864029c896b9d10a3acca5e757bea5854c01ffc9"
+    },
+    {
+      "path": "src/internal/sync/hashtriemap.go",
+      "digest": "ac36cd5db5c5c659b17255056d88b25c132ed1550bc35c1437be70e0e7d537cc"
+    },
+    {
+      "path": "src/internal/sync/runtime.go",
+      "digest": "e3445cf3a17f6b322cb3136e30a28eab7a70c0f37fac44ba5dc7912a19930a17"
+    },
+    {
+      "path": "src/maps/iter.go",
+      "digest": "a803b5b1b09aa2dcedf90db32270f9cec310bc7cf8f141f87c2e6567db0c4208"
+    },
+    {
+      "path": "src/maps/maps.go",
+      "digest": "0f69acac135baa8b644e2479e514835b4d991bcc894916c2e34b8739a171fce2"
+    },
+    {
+      "path": "src/math/rand/rand.go",
+      "digest": "a57f58bcc4baa4ac71fb09a6f2a8ce525f6f097d7b9c7ea61f206bcfd910aa39"
+    },
+    {
+      "path": "src/math/rand/v2/rand.go",
+      "digest": "a0b0f516652e66ee56de089ec01457f5f786e0463cd08b2453eb025cd6ad6f58"
+    },
+    {
       "path": "src/runtime/coro.go",
       "digest": "e510468afaaf06a14b515f6a51e2191fe1871c0655cbeef2c12268496a627c4a",
       "hooks": [
@@ -27,6 +71,14 @@
           "owner": "rt"
         }
       ]
+    },
+    {
+      "path": "src/runtime/debug.go",
+      "digest": "01d5f04213a154af89bee99c8acfafa16ff116b83765126ad970c55f4df1d222"
+    },
+    {
+      "path": "src/runtime/mfinal.go",
+      "digest": "49d40539afdd927355c9cfbfabc7130c561d0a19e68ca5e621082e58e9d96cd7"
     },
     {
       "path": "src/runtime/race.go",
@@ -101,8 +153,58 @@
           "signature": "func()",
           "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.RaceEnable",
           "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "race_ReadObjectPC",
+          "signature": "func(*abi.Type, unsafe.Pointer, uintptr, uintptr)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.runtimeRaceReadObjectPC",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "race_WriteObjectPC",
+          "signature": "func(*abi.Type, unsafe.Pointer, uintptr, uintptr)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.runtimeRaceWriteObjectPC",
+          "owner": "rt"
         }
       ]
+    },
+    {
+      "path": "src/runtime/time.go",
+      "digest": "38c7dde4ad56b211cda6216c67e8f4c1b1f3a3ea544ff25b62fc83126e8a5f5c"
+    },
+    {
+      "path": "src/sync/atomic/doc.go",
+      "digest": "fb448dacfc6b4d5c74ae203224dc31088c2cf45fc42391a4fdb04a47ccc62413"
+    },
+    {
+      "path": "src/sync/atomic/doc_64.go",
+      "digest": "0434f660a650bc6a1eaf9b8c48205ed0ce8c18b53001e949dde7662d04bde9ea"
+    },
+    {
+      "path": "src/sync/atomic/value.go",
+      "digest": "e87f0ad5c37b11b69effbb2c58b34b3fd7d4d4300b9e83a63847ff3b4835b8cc"
+    },
+    {
+      "path": "src/sync/pool.go",
+      "digest": "d03a971c04ba5be782e997ba2c20e24d313f3540595b0a51b52f0081143a29c2"
+    },
+    {
+      "path": "src/sync/runtime.go",
+      "digest": "a2be85512b59e11270b099f264581343cc1589bb782e03a476102406defd5f33"
+    },
+    {
+      "path": "src/time/sleep.go",
+      "digest": "9ee80a355252f5b71e9066175eea7a7c67e75724a483ab45258d6e5b5f023507"
+    },
+    {
+      "path": "src/time/tick.go",
+      "digest": "c25a5f521f3925d21dedab88e8829cfed90b0fe6283e9c189d30a3f12942ed81"
+    },
+    {
+      "path": "src/time/time.go",
+      "digest": "e8b6ea9e6e7cb890aeed1d24ee7163a2237b6fa78ffc564efb8688dba717f02a"
     }
   ]
 }

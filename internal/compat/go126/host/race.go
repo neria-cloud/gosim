@@ -41,8 +41,8 @@ func RaceReadPC(addr unsafe.Pointer, callerpc, pc uintptr) {
 	runtime.RaceRead(addr)
 }
 
-func RaceReadObjectPC(t any, addr unsafe.Pointer, callerpc, pc uintptr) {
-	runtime.RaceRead(addr)
+func RaceReadObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+	runtimeRaceReadObjectPC(t, addr, callerpc, pc)
 }
 
 func RaceWrite(addr unsafe.Pointer) {
@@ -53,8 +53,8 @@ func RaceWritePC(addr unsafe.Pointer, callerpc, pc uintptr) {
 	runtime.RaceWrite(addr)
 }
 
-func RaceWriteObjectPC(t any, addr unsafe.Pointer, callerpc, pc uintptr) {
-	runtime.RaceWrite(addr)
+func RaceWriteObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+	runtimeRaceWriteObjectPC(t, addr, callerpc, pc)
 }
 
 func RaceReadRange(addr unsafe.Pointer, len int) {
@@ -68,3 +68,12 @@ func RaceWriteRange(addr unsafe.Pointer, len int) {
 func RaceErrors() int {
 	return runtime.RaceErrors()
 }
+
+// The selected runtime pushes these symbols into internal/race. Type metadata
+// crosses only as an opaque native pointer; the runtime owns its exact layout.
+//
+//go:linkname runtimeRaceReadObjectPC internal/race.ReadObjectPC
+func runtimeRaceReadObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr)
+
+//go:linkname runtimeRaceWriteObjectPC internal/race.WriteObjectPC
+func runtimeRaceWriteObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr)

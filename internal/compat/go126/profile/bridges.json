@@ -1,0 +1,144 @@
+[
+  {
+    "package": "github.com/neria-cloud/gosim/rt/runtime",
+    "native_island": true,
+    "reason": "Explicit native engine/primitive ABI island. Generated callers use only its reviewed runtime bridge; dependency traversal stays in the original Gosim module."
+  },
+  {
+    "package": "github.com/neria-cloud/gosim/rt/runtime/abi",
+    "native_island": true,
+    "reason": "Explicit native engine/primitive ABI island. Generated callers use only its reviewed runtime bridge; dependency traversal stays in the original Gosim module."
+  },
+  {
+    "package": "internal/race",
+    "reason": "Translated stdlib race calls enter the native engine only through pointer/integer race bridges.",
+    "rewrites": [
+      {
+        "symbol": "Enabled",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRaceEnabled"
+      },
+      {
+        "symbol": "Acquire",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_Acquire"
+      },
+      {
+        "symbol": "Release",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_Release"
+      },
+      {
+        "symbol": "ReleaseMerge",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_ReleaseMerge"
+      },
+      {
+        "symbol": "Disable",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_Disable"
+      },
+      {
+        "symbol": "Enable",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_Enable"
+      },
+      {
+        "symbol": "Read",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_Read"
+      },
+      {
+        "symbol": "ReadPC",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_ReadPC"
+      },
+      {
+        "symbol": "ReadObjectPC",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_ReadObjectPC"
+      },
+      {
+        "symbol": "Write",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_Write"
+      },
+      {
+        "symbol": "WritePC",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_WritePC"
+      },
+      {
+        "symbol": "WriteObjectPC",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_WriteObjectPC"
+      },
+      {
+        "symbol": "ReadRange",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_ReadRange"
+      },
+      {
+        "symbol": "WriteRange",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_WriteRange"
+      },
+      {
+        "symbol": "Errors",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "InternalRace_Errors"
+      }
+    ]
+  },
+  {
+    "package": "runtime",
+    "reason": "Only reviewed native stack metadata, KeepAlive, Goexit and build constants are admitted; scheduler/environment operations use explicit modeled rewrites.",
+    "native_symbols": [
+      "GOARCH",
+      "Compiler",
+      "Version",
+      "Caller",
+      "Callers",
+      "CallersFrames",
+      "FuncForPC",
+      "Frame",
+      "Frames",
+      "Func",
+      "Error",
+      "Goexit",
+      "KeepAlive",
+      "Stack",
+      "*Frames.Next",
+      "*Func.Name",
+      "*Func.FileLine",
+      "*Func.Entry"
+    ],
+    "rewrites": [
+      {
+        "symbol": "GOOS",
+        "package": "github.com/neria-cloud/gosim/rt/runtime",
+        "target": "GOOS"
+      },
+      {
+        "symbol": "Gosched",
+        "package": "github.com/neria-cloud/gosim/rt/runtime",
+        "target": "Yield"
+      },
+      {
+        "symbol": "SetFinalizer",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "Runtime_SetFinalizer"
+      },
+      {
+        "symbol": "NumCPU",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "Runtime_NumCPU"
+      },
+      {
+        "symbol": "GOMAXPROCS",
+        "package": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+        "target": "Runtime_GOMAXPROCS"
+      }
+    ]
+  }
+]

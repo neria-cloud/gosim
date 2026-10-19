@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–15 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–16 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -402,14 +402,14 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§2; T§8 family ownership/Profile/Hook; I: both legacy hook trees.  
 **Budget:** 2,000–3,500 changed lines. **Dependency:** 12, 14–15.
 
-- [ ] Obtain runtime/private stdlib signatures and layout assumptions from go1.26.9. Complete synchronization/timer/map/random/race hooks and native host verification for that patch; no cross-family executable imports.
-- [ ] Populate go126 pending tuples, ownership/signature/source manifests and package policy records. Record deltas from go125 rather than assuming source-identical packages have identical ABI.
-- [ ] Check the Go 1.26 runtime's pushed linkname/race behavior explicitly. Route every supported symbol to the selected facade/engine; unknown required symbols fail generation/translation.
+- [x] Obtain runtime/private stdlib signatures and layout assumptions from go1.26.9. Complete synchronization/timer/map/random/race hooks and native host verification for that patch; no cross-family executable imports.
+- [x] Populate go126 pending tuples, ownership/signature/source manifests and package policy records. Record deltas from go125 rather than assuming source-identical packages have identical ABI.
+- [x] Check the Go 1.26 runtime's pushed linkname/race behavior explicitly. Route every supported symbol to the selected facade/engine; unknown required symbols fail generation/translation.
 
 #### Verification
 
-- [ ] Native/race/hook tests on go1.26.9 pass, including signature mutation rejection and bounded-family selection checks.
-- [ ] Run common commit gate and verify go125 remains buildable with no source contamination.
+- [x] Native/race/hook tests on go1.26.9 pass, including signature mutation rejection and bounded-family selection checks.
+- [x] Run common commit gate and verify go125 remains buildable with no source contamination.
 
 ### Task 17: Implement Go 1.26 shims and initialization policies
 
@@ -933,3 +933,15 @@ Task 15's workspace-cache rebuild exposed a pre-existing cold-cache translator f
 + _, reloadPath := classifyPackage(pkg)
 + uncachedPackages[reloadPath] = struct{}{}
 ```
+
+
+Task 16 corrects the object-race ABI in both family-owned adapters, native facades and `rt/runtime/race_bridge.go`: the first argument is one opaque native type pointer, not a two-word interface, and the native runtime applies the composite object's full size. Native type layouts are not copied into translated code. Both pinned runtimes already push these `internal/race` symbols; this is not unique to Go 1.26. The relevant diff is:
+
+```diff
+- func RaceReadObjectPC(t any, addr unsafe.Pointer, callerpc, pc uintptr) { runtime.RaceRead(addr) }
++ func RaceReadObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) { runtimeRaceReadObjectPC(t, addr, callerpc, pc) }
++ //go:linkname runtimeRaceReadObjectPC internal/race.ReadObjectPC
++ func runtimeRaceReadObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr)
+```
+
+The corresponding WriteObjectPC path receives the same correction. Last-field read/write race-oracle tests pass on both pinned patches. Task 16 also adds the missing explicit `maps` translate policy to Go 1.25 after reviewing byte-identical maps sources across the two pinned patches; this closes a policy omission exposed by the Go 1.26 audit. Origin/revision/generated-origin digests were refreshed. No target changes or certification promotion.

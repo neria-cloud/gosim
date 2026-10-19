@@ -31,8 +31,8 @@ func InternalRace_ReadPC(addr unsafe.Pointer, callerpc, pc uintptr) {
 	gosimruntime.RaceReadPC(addr, callerpc, pc)
 }
 
-func InternalRace_ReadObjectPC(t any, addr unsafe.Pointer, callerpc, pc uintptr) {
-	gosimruntime.RaceReadPC(addr, callerpc, pc)
+func InternalRace_ReadObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+	gosimruntime.RaceReadObjectPC(t, addr, callerpc, pc)
 }
 
 func InternalRace_Write(addr unsafe.Pointer) { gosimruntime.RaceWrite(addr) }
@@ -41,8 +41,8 @@ func InternalRace_WritePC(addr unsafe.Pointer, callerpc, pc uintptr) {
 	gosimruntime.RaceWritePC(addr, callerpc, pc)
 }
 
-func InternalRace_WriteObjectPC(t any, addr unsafe.Pointer, callerpc, pc uintptr) {
-	gosimruntime.RaceWritePC(addr, callerpc, pc)
+func InternalRace_WriteObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+	gosimruntime.RaceWriteObjectPC(t, addr, callerpc, pc)
 }
 
 func InternalRace_ReadRange(addr unsafe.Pointer, len int) { gosimruntime.RaceReadRange(addr, len) }

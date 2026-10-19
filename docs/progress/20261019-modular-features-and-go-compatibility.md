@@ -594,3 +594,18 @@ Verified
 - The subsequent full rebuild exposed a pre-existing legacy translator cold-cache bug: synthetic package.test import paths were requested as real packages. Fixed uncached reload selection to use classifyPackage's base path; recorded the small diff under NOT PLANNED CHANGES. The complete ordinary/race/script/translation rebuild then passed: `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1`, `.gosim/task15-gate-retry.log`. Do not reuse the failed first-attempt logs as evidence.
 - Source fingerprint, formatting and whitespace checks pass. No target architecture changes or certification promotion; final Colima/host matrix remains Task 32.
 - Final Task 15 size: 1618 changed lines (1551 additions + 67 deletions), with rename detection and checklist/log included; staged whitespace check passed.
+
+
+## Task 16 — Go 1.26 runtime hooks and source policies
+Date: 2026-10-19. Previous task commit: `e3da8a7`. Commit: the Task 16 implementation commit containing this entry.
+
+Implemented
+- Added independently owned, bounded Go 1.26 synchronization/atomic/time/map/random/race hooks and runtime policy records. Verified 99 runtime hook declarations against exact go1.26.9 Linux amd64 and arm64 source, recording source hashes and native private declarations. All 24 Go 1.26 tuples remain pending; full shims/init audit and syscall adapters remain Tasks 17–19.
+- Recorded the actual runtime-hook signature delta: sync.runtime_StoreReluintptr returns uintptr in Go 1.25.14 and no result in Go 1.26.9. The other reviewed runtime hook signatures match. Timer/Ticker retain their channel/bool prefix; native layout tests check the prefix without copying native timer internals. Notify-list state remains the engine-owned translated replacement.
+- Corrected ReadObjectPC/WriteObjectPC in both family adapters/facades: use one opaque native type pointer and forward to the selected runtime's pushed symbols, retaining composite range semantics. Both pinned versions already push those symbols; tests check source directives and runtime execution. Added missing Go 1.25 maps translation policy after comparing both exact source sets; recorded these incidental corrections in the plan.
+
+Verified
+- Exact go1.25.14 and go1.26.9 ordinary/race hook, shim (where implemented), native facade, engine and source-policy suites passed: `.gosim/task16/ordinary125.log`, `ordinary126.log`, `race125.log`, `race126.log`. New object read/write oracles detect races on the last array element through a separately declared single-pointer ABI. Store-result mutation, missing-symbol, unknown bridge/stdlib and unsupported-family rejection checks pass; family-owned executable imports remain isolated.
+- The first new family-ownership assertion incorrectly excluded the existing Go 1.25 native coroutine target; corrected it to require the owning family for both host and translated hook targets. Final logs above contain successful reruns. Native source origins, typed Go 1.25 generator output and adapter revisions are current.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task16-gate.log`, including ordinary, race, script and translation suites. Formatting and whitespace checks pass. No target architecture changes; this is adapter evidence, not the pending composition wiring or final certification matrix.
+- Final Task 16 size: 2,615 changed lines (2,575 additions + 40 deletions), including checklist/log; staged whitespace check passed.

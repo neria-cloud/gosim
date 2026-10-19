@@ -22,6 +22,14 @@
       "digest": "b52d2db3fbbde2abcbf5484d0807ed99f0b297eab97d60c0b174b059bda9a872"
     },
     {
+      "path": "src/internal/abi/iface.go",
+      "digest": "b948a672a7b74da346432645cb245bd4b00d1c3b218d3567ae7d34c46dfa3f33"
+    },
+    {
+      "path": "src/internal/abi/type.go",
+      "digest": "6f3e3d720b4ba23750593d77dcc8e844fdfa18581a17e045e21b68c7f6cc603c"
+    },
+    {
       "path": "src/internal/godebug/godebug.go",
       "digest": "cd492e76ae63872ac4310fc09b2e097229588dbf114d14d713be3f027b0233c8"
     },
@@ -36,6 +44,10 @@
     {
       "path": "src/internal/race/norace.go",
       "digest": "d195ef03f406d7a3e636709cccf6fc55e0fc99aa4a6a5291800364b4c308d828"
+    },
+    {
+      "path": "src/internal/race/race.go",
+      "digest": "f5244134310fc209a46a5fe4864029c896b9d10a3acca5e757bea5854c01ffc9"
     },
     {
       "path": "src/internal/sync/hashtriemap.go",
@@ -160,6 +172,10 @@
     {
       "path": "src/iter/iter.go",
       "digest": "ccc0a58dd5652ea17f8ec08cb73ad1a52bea313e1c0100c0765b98b228e48f0e"
+    },
+    {
+      "path": "src/maps/iter.go",
+      "digest": "a803b5b1b09aa2dcedf90db32270f9cec310bc7cf8f141f87c2e6567db0c4208"
     },
     {
       "path": "src/maps/maps.go",
@@ -360,6 +376,20 @@
           "symbol": "RaceEnable",
           "signature": "func()",
           "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.RaceEnable",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "race_ReadObjectPC",
+          "signature": "func(*abi.Type, unsafe.Pointer, uintptr, uintptr)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.runtimeRaceReadObjectPC",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "race_WriteObjectPC",
+          "signature": "func(*abi.Type, unsafe.Pointer, uintptr, uintptr)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/go125/host.runtimeRaceWriteObjectPC",
           "owner": "rt"
         }
       ]
