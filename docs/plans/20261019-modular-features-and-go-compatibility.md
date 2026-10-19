@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–26 (including their recorded children) implemented and verified; Task 27.1 is complete; parent Task 27 and Tasks 28–33 remain in progress or unchecked.
+**Status:** in progress; Tasks 1–27 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 28–33 remain unchecked. Full race suites are deferred to final verification.
 
 ## Important notices
 
@@ -64,9 +64,9 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 
 ## Common commit gate
 
-1. Format, build the CLI and all buildable packages, run affected package tests, and run the repository's complete ordinary and race test suites on the active development patch/host/full-feature setup. Existing race-oracle fixtures intentionally exercise races; their outer harness must pass, rather than requiring each intentionally racing binary to exit successfully.
+1. Format, build the CLI and all buildable packages, run affected package tests, and run the repository's complete ordinary test suite on the active development patch/host/full-feature setup. Per the user's execution instruction after Task 27.1, defer full race suites on both exact patches to final verification after implementation is complete (Tasks 32–33); this overrides intermediate task wording requiring race runs. Existing race-oracle fixtures intentionally exercise races; their outer harness must pass, rather than requiring each intentionally racing binary to exit successfully.
 2. Before Task 24, use the original full-suite harness plus new contract/candidate tests as they become runnable. Task 21 adds a candidate path for isolated new-path probes; Task 22 switches the full integration harness to it. After Task 24 use the internal candidate driver for an unpromoted source revision; normal user commands must reject it. `test.sh`/Taskfile must select that development harness explicitly, not weaken normal CLI validation.
-3. Run newly reachable feature/profile combinations relevant to the task. Run both exact-patch host suites after Task 24. Reserve the complete 48-job matrix for Task 32 and any subsequent changes that invalidate its evidence; do not rerun it after every documentation-only edit.
+3. Run newly reachable feature/profile combinations relevant to the task. Run both exact-patch ordinary host suites after Task 24, concurrently in isolated source-matched roots when available. Run the full race suites only during final verification. Reserve the complete 48-job matrix for Task 32 and any subsequent changes that invalidate its evidence; do not rerun it after every documentation-only edit.
 4. No unchecked new error, import cycle, ignored failed suite, leaked metatest process, or stale generated output. A new gate cannot silently skip because prebuilt artifacts are missing. Record unresolved infrastructure blockers as gaps and do not mark dependent work done.
 5. Review `git diff --check` and rename-aware changed-line count; commit only the task's files. Keep this plan's checkboxes and execution log current. Final source must contain no temporary migration/retirement mechanism.
 
@@ -711,14 +711,14 @@ The expanded integration graph exposed missing deterministic hash/x/sys hooks, L
 **References:** T§8 complete hook inventory, bounded selection and no fallback; I: both legacy trees.  
 **Budget:** approximately 3,628 production deleted lines plus bounded residual references, below 5,000. **Dependency:** 26.
 
-- [ ] Match every old hook declaration to its selected go125/go126 counterpart, reviewed stable helper, or explicit rejected capability in the ownership ledger.
-- [ ] Remove both old trees and any retired hardcoded hooksGo123 package constants/manifests. The new go125 adapter remains under `internal/compat/go125/`.
-- [ ] Ensure standard Go build constraints, not runtime switches or manual release tags, select executable family sources.
+- [x] Match every old hook declaration to its selected go125/go126 counterpart, reviewed stable helper, or explicit rejected capability in the ownership ledger.
+- [x] Remove both old trees and any retired hardcoded hooksGo123 package constants/manifests. The new go125 adapter remains under `internal/compat/go125/`.
+- [x] Ensure standard Go build constraints, not runtime switches or manual release tags, select executable family sources.
 
 #### Verification
 
-- [ ] No old hook import survives in production, generated output or goldens. Both selected families' hook signature checks pass.
-- [ ] Run common commit gate on both target patches.
+- [x] No old hook import survives in production, generated output or goldens. Both selected families' hook signature checks pass.
+- [x] Run common commit gate on both target patches.
 
 #### Execution split recorded before Task 27 implementation
 
@@ -744,8 +744,8 @@ The two retired hook trees contain 3,708 lines; their old translator selection/c
 **References:** Parent Task 27; T§8 complete hook inventory and bounded selection. **Dependency:** 27.1.
 **Budget:** 3,800–4,200 changed lines.
 
-- [ ] Freeze the source-based legacy wrapper audit before deleting both old trees; retain the complete declaration ledger and selected-family signature checks.
-- [ ] Complete every remaining parent Task 27 implementation and verification item, including import/constraint checks and both exact-patch common gates; only then mark the parent complete.
+- [x] Freeze the source-based legacy wrapper audit before deleting both old trees; retain the complete declaration ledger and selected-family signature checks.
+- [x] Complete every remaining parent Task 27 implementation and verification item, including import/constraint checks and both exact-patch common gates; only then mark the parent complete.
 
 ### Task 28: Remove the monolithic simulation coordinator and old syscall ABI
 
@@ -760,7 +760,7 @@ The two retired hook trees contain 3,708 lines; their old translator selection/c
 #### Verification
 
 - [ ] Source/import/route ledger audit shows no lost responsibility, remaining old package or old generation path.
-- [ ] Run common commit gate, including full lifecycle/race tests under both target patches.
+- [ ] Run common commit gate, including full ordinary lifecycle tests under both target patches; defer full race suites to final verification per the amended cadence.
 
 ### Task 29: Remove obsolete shared shims and native ABI helpers
 
@@ -774,7 +774,7 @@ The two retired hook trees contain 3,708 lines; their old translator selection/c
 
 #### Verification
 
-- [ ] Searches find no retired paths/tags or temporary adapters; both families' native/translated/race tests pass through actual selected implementations.
+- [ ] Searches find no retired paths/tags or temporary adapters; both families' ordinary native/translated tests pass through actual selected implementations; full race validation follows at the end.
 - [ ] Run common commit gate; the normal package list contains only final architecture packages.
 
 ### Task 30: Automate the certification matrix with Colima and host runners
@@ -886,6 +886,8 @@ GOTOOLCHAIN=go1.25.14 GOSIM_TOOLCHAIN=go1.25.14 ./.ci/verify-step.sh
 GOTOOLCHAIN=go1.26.9 GOSIM_TOOLCHAIN=go1.26.9 ./.ci/verify-step.sh
 git diff --check
 ```
+
+Execution cadence amended at the user's request during Task 27.2: the combined `verify-step.sh` commands above are final-verification commands from this point onward. For intermediate commits, run formatting and task-specific checks, build the CLI with each exact patch, then invoke its `internal-candidate certify -go PATCH -features rt,fs,net -output DIR` command without `-race`. This invokes the same complete ordinary suite runner and validates its report. Use separate source-matched roots for parallel patch jobs so selftest artifacts cannot collide. Reports remain candidate evidence and do not promote compatibility. Full race suites and race matrix jobs remain required during the final verification phase (Tasks 32–33), after implementation; interrupted race runs are recorded as canceled, never passed. Earlier completed race evidence is retained unchanged.
 
 Host test invocations retain `-ldflags=-checklinkname=0 -tags=linkname` and additionally `-race` for the race pass. Simulation invocations receive the same patch, explicit feature set and race mode. Prepare-selftest/build-tests and the intentionally racing fixtures run under matching manifests; running bare `go test ./...` with stale prebuilts is not an equivalent gate.
 

@@ -5,12 +5,12 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	p125 "github.com/neria-cloud/gosim/internal/compat/go125/profile"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
@@ -79,17 +79,18 @@ func TestAdapterInventoryAndProviderBoundary(t *testing.T) {
 			classified[adapterPrefix(pkg)+symbol] = true
 		}
 	}
-	// The generated legacy lists are an independent completeness oracle until
-	// the authorized cleanup removes them in Task 26.
-	for _, file := range []string{"syscall_gen_amd64.go", "golangorg_x_sys_unix_gen_amd64.go"} {
-		f, err := parser.ParseFile(token.NewFileSet(), filepath.Join("../hooks/go125", file), nil, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, d := range f.Decls {
-			if fn, ok := d.(*ast.FuncDecl); ok && !classified[fn.Name.Name] {
-				t.Error("missing legacy wrapper", fn.Name.Name)
-			}
+	// Frozen declaration names from the old go125 syscall/x/sys generated
+	// wrappers at 7c57f63, independent of the active adapter symbol table.
+	data, err := os.ReadFile("testdata/legacy_adapters.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if buildspec.Hash(data) != "84e163616526ccf7410afbf16e0659f7c5a4b03c1ecb1fece03fe09b8ef3c0c4" {
+		t.Fatal("baseline wrapper inventory changed")
+	}
+	for _, name := range strings.Fields(string(data)) {
+		if !classified[name] {
+			t.Error("missing legacy wrapper", name)
 		}
 	}
 	for _, owner := range []string{"kernel", "fs", "net"} {
