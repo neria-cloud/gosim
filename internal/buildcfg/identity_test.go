@@ -70,7 +70,6 @@ func TestEveryIdentityDimensionChangesDigest(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestIdentityRejectsInvalidMetadata(t *testing.T) {

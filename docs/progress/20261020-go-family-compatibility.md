@@ -101,3 +101,10 @@ Generation and native boundary tests now exercise the running job's compiler/fam
 Manual matrix representative versions are scheduling defaults, not a patch allowlist. Python validates exact stable version syntax before filesystem/process side effects; the shared Go registry owns family support. AMD64/race certification guards remain. No certification was executed. CI and ordinary verification remain separate from manual certification.
 
 Focused selected generation/declaration/provenance and native-boundary checks passed on Go 1.25.5 (routegen 9.380s, translate 1.404s). Script/candidate compile-only checks and make test-report-tools passed. Logs: .gosim/go-family-work/migration-focused.log, migration-compile.log, migration-report-tools.log. Large fixtures have not yet run; those and full ordinary suites are now the final verification stage. No race binaries or cross-platform execution ran.
+
+
+### Task 7: documentation and final validation started
+
+README, AGENTS and current design now document family support, ordinary Go toolchain selection, automatic caller-source worker bootstrap, optional schema-2 configuration, exact identities, module/workspace graph preservation and separate report directories. Certification is manual-only throughout; CI publishes ordinary test reports. Preserved the user's separately staged README feature-table/introduction changes.
+
+The first final ordinary invocation stopped at the formatting precheck (one extra blank line in identity_test.go), before library tests ran. Fixed that formatting and restarted. The authorized final large suite runs separately and without race instrumentation. Native public-package, family-contract and buildspec checks passed on early Go 1.25.1 and Go 1.26.1; normal Go tooling obtained those compilers. Final full-suite reports and external early-patch simulation checks remain pending.
