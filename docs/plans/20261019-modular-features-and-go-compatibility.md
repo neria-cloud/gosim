@@ -832,6 +832,23 @@ Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for 
 - [ ] All 48 required executions have matching successful reports and truthful execution-mode labels; both exact families are certified for their listed tuples.
 - [ ] Common commit gate and certified user-path smoke checks pass. A promotion-only metadata commit must not invalidate its own source fingerprint.
 
+### Task 32.1: Correct the executable worker-rebuild diagnostic before restarting certification
+
+**Split recorded before implementation:** final command-contract review found that `ValidateWorker` recommends a CLI build without mandatory linkname flags. An explicit strict-linker probe fails with `invalid reference to runtime.newcoro`. The first matrix attempt is canceled; its 15 completed reports are pre-fix evidence only and cannot certify the corrected source. This child performs the bounded source correction before a fresh full matrix.
+
+**Files:** UPDATE `internal/buildcfg/toolchain.go`, its existing mismatch regression, and execution/gap records. **Budget:** under 500 changed lines. **References:** T§2 exact worker contract; T§9/11 actionable rebuild command.
+
+- [x] Include the fixed linker flag and approved host build tag in the emitted rebuild command; retain exact patch selection and use the module import path so the command also works from application modules.
+- [x] Extend the existing mismatch regression and validate the documented rebuild invocation on both exact patches.
+- [x] Run formatting and both complete ordinary gates, record the new source snapshot, and commit this source correction. Full race verification remains in the final matrix, not an additional per-fix race gate.
+
+### Task 32.2: Restart final matrix and publish verified evidence
+
+**Dependency:** 32.1. **Files/references:** same as Task 32; source fixes invalidate earlier matrix evidence.
+
+- [ ] Execute and independently verify all 48 combinations against the corrected frozen source; retain execution/image/architecture/log evidence.
+- [ ] Complete Task 32's promotion, normal-command acceptance and rejection checks, then commit only reviewed metadata/documentation and mark the parent complete.
+
 ### Task 33: Architectural delta verification and closure of every implementation gap
 
 **Files:** Inspect all touched source/generated/test/config/doc files; update this plan's evidence/gap logs and make bounded fixes where required.  
@@ -928,10 +945,10 @@ Each platform command expands to 16 tuples. The Darwin command must execute on a
 Use fresh certified output, never a candidate binary masquerading as certified:
 
 ```sh
-GOTOOLCHAIN=go1.25.14 go run ./cmd/gosim test -go=go1.25.14 -features=rt ./internal/tests/rt
-GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim test -go=go1.26.9 -features=rt,fs ./internal/tests/fs
-GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim test -go=go1.26.9 -features=rt,net ./internal/tests/net
-GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim test -go=go1.26.9 -features=rt,fs,net ./internal/tests/integration ./nemesis
+GOTOOLCHAIN=go1.25.14 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim test -go=go1.25.14 -features=rt ./internal/tests/rt
+GOTOOLCHAIN=go1.26.9 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim test -go=go1.26.9 -features=rt,fs ./internal/tests/fs
+GOTOOLCHAIN=go1.26.9 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim test -go=go1.26.9 -features=rt,net ./internal/tests/net
+GOTOOLCHAIN=go1.26.9 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim test -go=go1.26.9 -features=rt,fs,net ./internal/tests/integration ./nemesis
 ```
 
 The matrix already covers the complementary patch/feature/race combinations. Add script tests for translate/build-tests/prepare-selftest/debug parity. Debug must validate identity without requiring a GUI in CI. No new performance benchmark or prolonged chaos campaign is required; retain the existing nemesis tests and bounded replay checks specified by the target.
@@ -992,9 +1009,13 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 
 | State | Target / task | Gap and evidence | Resolution / validation |
 | --- | --- | --- | --- |
-| — | — | None recorded during planning | Architectural clarifications are listed separately above |
+| Fixed | T§2/9/11; Task 32.1 | Worker mismatch rebuild command omits required linkname flags; strict-linker probe fails on runtime.newcoro | Corrected flags/module path; both emitted opposite-patch rebuild commands and complete ordinary gates passed. Task 32.2 reruns all 48 final-source tuples |
 
 ## NOT PLANNED CHANGES
+
+### Task 30 — Collect Docker evidence without host bind mounts
+
+The target described Compose invocation/artifact mounts. A real smoke failed because the existing Colima VM does not share this checkout's `/Volumes` path. The runner uses Docker create/start/inspect/cp/rm with explicit Colima context, image/platform and isolated managed compiler caches; Compose still declares both architecture services with managed evidence volumes. This preserves execution/architecture/evidence guarantees without reconfiguring VM mounts. The failure and successful replacement smoke are recorded under Task 30 in the progress log. Diff: `matrix.py` Docker lifecycle/evidence collection and Compose volume configuration in f80be84.
 
 ### Task 31 — Preserve developer verification after promotion
 

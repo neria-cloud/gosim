@@ -65,8 +65,11 @@ func TestWorkerMismatchGivesRebuildCommand(t *testing.T) {
 		tc.Version = "go1.26.9"
 	}
 	err := ValidateWorker(tc)
-	if err == nil || !strings.Contains(err.Error(), "GOTOOLCHAIN="+tc.Version+" go build") {
+	if err == nil || !strings.Contains(err.Error(), "GOTOOLCHAIN="+tc.Version+" go build -ldflags=-checklinkname=0 -tags=linkname") {
 		t.Fatalf("missing actionable mismatch error: %v", err)
+	}
+	if !strings.HasSuffix(err.Error(), "github.com/neria-cloud/gosim/cmd/gosim") {
+		t.Fatalf("rebuild command must also work from an application module: %v", err)
 	}
 }
 
