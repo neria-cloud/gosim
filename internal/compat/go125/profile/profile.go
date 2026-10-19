@@ -5,17 +5,31 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"runtime"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed hooks.json tuples.json policies.json origin.json shims.json bridges.json probes.json modules.json capabilities.json native_imports.json routes_*.json shared_globals.json
+//go:embed hooks_*.json hooks.json tuples.json policies.json origin.json shims.json bridges.json probes.json modules.json capabilities.json native_imports.json routes_*.json shared_globals.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
 // TODO(migration): Complete this profile before selecting it in Task 21.
 func Descriptor() spec.Profile {
+	p, err := DescriptorForArch(runtime.GOARCH)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
+// DescriptorForArch selects the Linux source ABI independently of the host OS.
+// The Hook schema remains identical; an absent architecture is never inferred.
+func DescriptorForArch(arch string) (spec.Profile, error) {
+	if arch != "amd64" && arch != "arm64" {
+		return spec.Profile{}, fmt.Errorf("unsupported simulation architecture %q", arch)
+	}
 	p := spec.Profile{
 		ID: "go125", Revision: Revision,
 		RuntimePackages: []string{
@@ -31,9 +45,12 @@ func Descriptor() spec.Profile {
 		},
 	}
 	decode("hooks.json", &p.Hooks)
+	var archHooks []spec.Hook
+	decode("hooks_"+arch+".json", &archHooks)
+	p.Hooks = append(p.Hooks, archHooks...)
 	decode("tuples.json", &p.Tuples)
 	decode("policies.json", &p.Packages)
-	return p
+	return p, nil
 }
 
 func VerificationOrigin() spec.Origin {
@@ -51,16 +68,20 @@ func ShimManifest() []spec.Hook {
 }
 
 func Verify(tc buildspec.Toolchain) error {
-	if err := Descriptor().Validate(); err != nil {
+	p, err := DescriptorForArch(tc.HostArch)
+	if err != nil {
 		return err
 	}
-	if err := PolicyManifest().Validate(Descriptor()); err != nil {
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	if err := PolicyManifest().Validate(p); err != nil {
 		return err
 	}
 	if err := spec.VerifyOrigin(tc, VerificationOrigin()); err != nil {
 		return err
 	}
-	if err := spec.VerifyHooks(tc, Descriptor().Hooks); err != nil {
+	if err := spec.VerifyHooks(tc, p.Hooks); err != nil {
 		return err
 	}
 	return spec.VerifyHooks(tc, ShimManifest())

@@ -37,10 +37,13 @@ func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, 
 	var origin spec.Origin
 	var policies spec.PolicyManifest
 	var verify func(buildspec.Toolchain) error
+	var descriptor func(string) (spec.Profile, error)
 	switch {
 	case profileID == "go125" && tc.Version == "go1.25.14":
+		descriptor = p125.DescriptorForArch
 		profile, origin, policies, verify = p125.Descriptor(), p125.VerificationOrigin(), p125.PolicyManifest(), p125.Verify
 	case profileID == "go126" && tc.Version == "go1.26.9":
+		descriptor = p126.DescriptorForArch
 		profile, origin, policies, verify = p126.Descriptor(), p126.VerificationOrigin(), p126.PolicyManifest(), p126.Verify
 	default:
 		return fmt.Errorf("generation requires a matching implemented profile and exact pinned toolchain")
@@ -65,7 +68,11 @@ func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, 
 	for _, arch := range arches {
 		sourceTC := tc
 		sourceTC.HostArch = arch // VerifyHooks reads selected Linux source, not a native binary.
-		if err := spec.VerifyHooks(sourceTC, profile.Hooks); err != nil {
+		archProfile, err := descriptor(arch)
+		if err != nil {
+			return err
+		}
+		if err := spec.VerifyHooks(sourceTC, archProfile.Hooks); err != nil {
 			return err
 		}
 	}
@@ -81,6 +88,10 @@ func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, 
 		return err
 	}
 	for _, arch := range arches {
+		profile, err = descriptor(arch)
+		if err != nil {
+			return err
+		}
 		adapters, err := renderAdapters(tc, profile, arch, m)
 		if err != nil {
 			return err

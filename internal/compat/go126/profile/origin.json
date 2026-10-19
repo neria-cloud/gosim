@@ -38,12 +38,64 @@
       "digest": "f953ea8eae374bda0cce77c08e63826dc5787fa72182c49edd03a59bcba127bc"
     },
     {
+      "path": "src/internal/abi/funcpc.go",
+      "digest": "40daff47ea7abc00e83c99c6256ed7c3af618589568d477125c050cd36fb9af7"
+    },
+    {
       "path": "src/internal/abi/iface.go",
       "digest": "a4d66e19e604838666eba4c6c71734eb5485d10983d386f9e0eef48edd71ebbf"
     },
     {
       "path": "src/internal/abi/type.go",
       "digest": "b7245bd743802e2b5eced71a1f87963c395c2536cd7ea1b77f2364d20a79bf3d"
+    },
+    {
+      "path": "src/internal/bytealg/bytealg.go",
+      "digest": "d13371f1998de1505505052cfdf98f27e7bd8840ce5aa4736235ec3f629a9ba1"
+    },
+    {
+      "path": "src/internal/bytealg/compare_native.go",
+      "digest": "a5de9fede104ba03d3c627fbb837ff870896d8a730359056c5e870147ea47023"
+    },
+    {
+      "path": "src/internal/bytealg/count_native.go",
+      "digest": "d3eff88a61aafe415c85c0e9856bf1a22a3a0806ac116569cbc3451e8e01826f"
+    },
+    {
+      "path": "src/internal/bytealg/equal_generic.go",
+      "digest": "d6c5c106505c972fab2400024c14e04aa7eee1f972826e3b56787ee09f169247"
+    },
+    {
+      "path": "src/internal/bytealg/equal_native.go",
+      "digest": "1db4aa0b4f804a208dbe4e8894fe05949d72e9b4492ef9fcac517e00571fe02f"
+    },
+    {
+      "path": "src/internal/bytealg/index_native.go",
+      "digest": "885de0c47293c3e4d7083972be04e365e66cc4e9411a59393b2b835fba3e3105"
+    },
+    {
+      "path": "src/internal/bytealg/indexbyte_native.go",
+      "digest": "3f9ee9987e6f71d2e7729feece762016488547d3762db2aa20030fe449898331"
+    },
+    {
+      "path": "src/internal/chacha8rand/chacha8.go",
+      "digest": "6c460d84955fac536cbe55935c19d6c3df77b25122018013fab90c7f78731698"
+    },
+    {
+      "path": "src/internal/chacha8rand/chacha8_generic.go",
+      "digest": "3202dcb9bb0750e7ec3ecff529a09331a9145a090a8c3b5fed57ff5c34e602b2"
+    },
+    {
+      "path": "src/internal/cpu/cpu.go",
+      "digest": "926a074453853ebcd5a16754d716a1a2fa3af30906ae32198cf06b13a8dd911b"
+    },
+    {
+      "path": "src/internal/cpu/cpu_arm64.go",
+      "digest": "ed4c7d9894f10ab6dc471a133400b145909b6da88055afb7b990b9a3ffd0d4fa"
+    },
+    {
+      "path": "src/internal/cpu/cpu_x86.go",
+      "digest": "d1071bde37c203929b294beb870c7a3d6d6cb0f3ee2ae45eba3a2b15beb84a50"
     },
     {
       "path": "src/internal/godebug/godebug.go",
@@ -544,6 +596,10 @@
     {
       "path": "src/net/conf.go",
       "digest": "c2ce5b531decce68f10df916bc353a74c564a388156cb4f2d2ed2b6800571f5a"
+    },
+    {
+      "path": "src/net/dnsclient.go",
+      "digest": "a73f909dbd747cd43eb1118d820cc6674f7147a263d02683281c658db033f3d3"
     },
     {
       "path": "src/net/dnsconfig_unix.go",

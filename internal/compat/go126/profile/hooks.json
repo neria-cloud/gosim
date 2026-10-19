@@ -700,27 +700,6 @@
     "owner": "rt"
   },
   {
-    "package": "runtime",
-    "symbol": "coroexit",
-    "signature": "func(*coro)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.coroexit",
-    "owner": "rt"
-  },
-  {
-    "package": "runtime",
-    "symbol": "coroswitch",
-    "signature": "func(*coro)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.coroswitch",
-    "owner": "rt"
-  },
-  {
-    "package": "runtime",
-    "symbol": "newcoro",
-    "signature": "func(func(*coro)) *coro",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.newcoro",
-    "owner": "rt"
-  },
-  {
     "package": "sync",
     "symbol": "fatal",
     "signature": "func(string)",
@@ -1524,5 +1503,194 @@
     "signature": "func(*Timer) bool",
     "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.Time_stopTimer",
     "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "IndexByteString",
+    "signature": "func(string, byte) int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_IndexByteString",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "Equal",
+    "signature": "func([]byte, []byte) bool",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_Equal",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "IndexByte",
+    "signature": "func([]byte, byte) int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_IndexByte",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "MakeNoZero",
+    "signature": "func(int) []byte",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_MakeNoZero",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "Compare",
+    "signature": "func([]byte, []byte) int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_Compare",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "abigen_runtime_cmpstring",
+    "signature": "func(string, string) int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_abigen_runtime_cmpstring",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "Count",
+    "signature": "func([]byte, byte) int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_Count",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "CountString",
+    "signature": "func(string, byte) int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_CountString",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "abigen_runtime_memequal",
+    "signature": "func(unsafe.Pointer, unsafe.Pointer, uintptr) bool",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_abigen_runtime_memequal",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "abigen_runtime_memequal_varlen",
+    "signature": "func(unsafe.Pointer, unsafe.Pointer) bool",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_abigen_runtime_memequal_varlen",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "Index",
+    "signature": "func([]byte, []byte) int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_Index",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/bytealg",
+    "symbol": "IndexString",
+    "signature": "func(string, string) int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalBytealg_IndexString",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/abi",
+    "symbol": "FuncPCABI0",
+    "signature": "func(any) uintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalAbi_FuncPCABI0",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/abi",
+    "symbol": "FuncPCABIInternal",
+    "signature": "func(any) uintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalAbi_FuncPCABIInternal",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/chacha8rand",
+    "symbol": "block",
+    "signature": "func(*[4]uint64, *[32]uint64, uint32)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalChacha8rand_block",
+    "owner": "rt"
+  },
+  {
+    "package": "net",
+    "symbol": "runtime_rand",
+    "signature": "func() uint64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.Net_runtime_rand",
+    "owner": "rt"
+  },
+  {
+    "package": "syscall",
+    "symbol": "runtime_BeforeFork",
+    "signature": "func()",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_runtime_BeforeFork",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "runtime_AfterFork",
+    "signature": "func()",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_runtime_AfterFork",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "runtime_AfterForkInChild",
+    "signature": "func()",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_runtime_AfterForkInChild",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "runtime_BeforeExec",
+    "signature": "func()",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_runtime_BeforeExec",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "runtime_AfterExec",
+    "signature": "func()",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_runtime_AfterExec",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "hasWaitingReaders",
+    "signature": "func(*sync.RWMutex) bool",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_hasWaitingReaders",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "Exit",
+    "signature": "func(int)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_Exit",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "runtime_doAllThreadsSyscall",
+    "signature": "func(uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, uintptr)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_runtime_doAllThreadsSyscall",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "cgocaller",
+    "signature": "func(unsafe.Pointer, ...uintptr) uintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_cgocaller",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "runtime_entersyscall",
+    "signature": "func()",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_runtime_entersyscall",
+    "owner": "kernel"
+  },
+  {
+    "package": "syscall",
+    "symbol": "runtime_exitsyscall",
+    "signature": "func()",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_runtime_exitsyscall",
+    "owner": "kernel"
   }
 ]

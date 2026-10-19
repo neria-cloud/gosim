@@ -51,9 +51,10 @@ func currentToolchain() buildspec.Toolchain {
 func TestPinnedAdapterSourceVerification(t *testing.T) {
 	tc := currentToolchain()
 	for _, candidate := range []struct {
-		p      spec.Profile
-		origin spec.Origin
-	}{{p125.Descriptor(), p125.VerificationOrigin()}, {p126.Descriptor(), p126.VerificationOrigin()}} {
+		p          spec.Profile
+		origin     spec.Origin
+		descriptor func(string) (spec.Profile, error)
+	}{{p125.Descriptor(), p125.VerificationOrigin(), p125.DescriptorForArch}, {p126.Descriptor(), p126.VerificationOrigin(), p126.DescriptorForArch}} {
 		t.Run(candidate.p.ID, func(t *testing.T) {
 			origin := candidate.origin
 			if origin.Toolchain != tc.Version {
@@ -68,7 +69,11 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 			for _, arch := range []string{"amd64", "arm64"} {
 				sourceTC := tc
 				sourceTC.HostArch = arch
-				if err := spec.VerifyHooks(sourceTC, candidate.p.Hooks); err != nil {
+				p, err := candidate.descriptor(arch)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := spec.VerifyHooks(sourceTC, p.Hooks); err != nil {
 					t.Fatal(err)
 				}
 			}

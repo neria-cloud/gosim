@@ -485,6 +485,20 @@ The original generator is 892 lines, existing temporary decoders are approximate
 - [ ] Account for all inventoried hook/shim declarations and target routes, implement remaining family-owned gaps, and record reviewed replacements, rejections and stubs with no unexplained omissions.
 - [ ] Verify family/architecture coverage, bounded selection, unsupported-family rejection, all generated outputs and the common commit gate without compatibility promotion.
 
+##### Task 19.2.1: Complete source-selected helper and rejection adapters
+
+**Budget:** 2,500–4,500 changed lines. Split recorded before implementation: the audit found missing computational hooks and architecture-specific private declarations; the durable declaration ledger is independently reviewable in 19.2.2.
+
+- [x] Implement family-owned byte/string, ChaCha8 and net-random hooks; explicit unsupported ABI/CPU/process hooks; select architecture-specific manifests without widening the target Hook schema.
+- [x] Verify exact pinned source signatures, helper behavior against native reference results, fatal rejection, architecture selection and all four reproducible outputs; run common commit gate.
+
+##### Task 19.2.2: Verify complete declaration and route ownership
+
+**Budget:** 1,500–3,000 changed lines. Depends on 19.2.1; completes 19.2 and parent 19.
+
+- [ ] Check in a durable baseline inventory and reviewed dispositions for every hook/shim declaration and target route, including obsolete declarations and named stubs/rejects.
+- [ ] Verify both families/architectures, replacements, bounded/unsupported-family selection and complete route ownership; run common commit gate.
+
 ### Task 20: Implement v2 cache envelopes and package-specific build artifacts
 
 **Files:** UPDATE `internal/translate/cache.go`, `internal/translate/cache/cache.go`; CREATE host artifact/manifest helpers in `internal/gosimtool/`; ADD cache/materialization tests.  
