@@ -15,7 +15,6 @@ import (
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
-// TODO(migration): Complete this profile before selecting it in Task 21.
 func Descriptor() spec.Profile {
 	p, err := DescriptorForArch(runtime.GOARCH)
 	if err != nil {
@@ -99,8 +98,7 @@ func decode(name string, result any) {
 }
 
 // PolicyManifest contains application boundaries, not host compiler/runner
-// permissions. TODO(migration): Tasks 14/15 bind the classified init responses
-// into adapters; Task 21 activates this profile only after complete composition.
+// permissions. Selected adapters implement the classified initialization probes.
 func PolicyManifest() spec.PolicyManifest {
 	var manifest spec.PolicyManifest
 	decode("shared_globals.json", &manifest.SharedGlobals)

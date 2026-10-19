@@ -409,7 +409,7 @@ func (m Map[K, V]) mapsClone() any {
 }
 
 // ReflectMap provides a reflection API to access a Map, used by gosim's
-// internal/reflect package.
+// selected family's reflect shim.
 type ReflectMap interface {
 	GetIndex(reflect.Value) (reflect.Value, bool)
 	SetIndex(reflect.Value, reflect.Value)

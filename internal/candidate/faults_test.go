@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 )
 
@@ -97,7 +97,7 @@ func checkTranslatedFaults(t *testing.T, cfg buildspec.Config) {
 		t.Fatal(err)
 	}
 	defer os.Chdir(root)
-	built, err := Build(cfg, buildspec.BuildOptions{Race: race.Enabled}, []string{"./internal/tests/faultfixture"})
+	built, err := Build(cfg, buildspec.BuildOptions{Race: hostabi.RaceEnabled}, []string{"./internal/tests/faultfixture"})
 	if err != nil {
 		t.Fatal(err)
 	}

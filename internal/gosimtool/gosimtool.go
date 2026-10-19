@@ -15,7 +15,7 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 const (
@@ -209,7 +209,7 @@ func ResolveTestIdentity(t *testing.T, configPath string) buildspec.Identity {
 		t.Fatal(err)
 	}
 	args := []string{"-config", configPath}
-	if race.Enabled {
+	if hostabi.RaceEnabled {
 		args = append(args, "-race")
 	}
 	var id buildspec.Identity

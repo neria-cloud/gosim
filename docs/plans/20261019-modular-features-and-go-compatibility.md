@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–28 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 29–33 remain unchecked. Full race suites are deferred to final verification.
+**Status:** in progress; Tasks 1–29 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 30–33 remain unchecked. Full race suites are deferred to final verification.
 
 ## Important notices
 
@@ -768,14 +768,14 @@ The two retired hook trees contain 3,708 lines; their old translator selection/c
 **References:** T§3 boundary; T§8 family shims/native facade; I: all listed packages.  
 **Budget:** 3,000–4,900 changed lines; use rename-aware accounting and split by complete package if needed. **Dependency:** 27–28.
 
-- [ ] Verify selected-family shims and hostabi cover every retained declaration and stdlib/private dependency. Update remaining host-tool consumers to appropriate native facade/pure helpers before deletion; do not import translated kernel into host tooling.
-- [ ] Delete unused shared compatibility implementations and the blocking-channel coroutine fallback. Remove all migration/retirement-only build tags, flags and TODO(migration) notes from source and tools.
-- [ ] Check all Go-sensitive implementation code is either version-owned or documented as verified stable. Reconcile the final old-to-new declaration ledger with the complete baseline inventory.
+- [x] Verify selected-family shims and hostabi cover every retained declaration and stdlib/private dependency. Update remaining host-tool consumers to appropriate native facade/pure helpers before deletion; do not import translated kernel into host tooling.
+- [x] Delete unused shared compatibility implementations and the blocking-channel coroutine fallback. Remove all migration/retirement-only build tags, flags and TODO(migration) notes from source and tools.
+- [x] Check all Go-sensitive implementation code is either version-owned or documented as verified stable. Reconcile the final old-to-new declaration ledger with the complete baseline inventory.
 
 #### Verification
 
-- [ ] Searches find no retired paths/tags or temporary adapters; both families' ordinary native/translated tests pass through actual selected implementations; full race validation follows at the end.
-- [ ] Run common commit gate; the normal package list contains only final architecture packages.
+- [x] Searches find no retired paths/tags or temporary adapters; both families' ordinary native/translated tests pass through actual selected implementations; full race validation follows at the end.
+- [x] Run common commit gate; the normal package list contains only final architecture packages.
 
 ### Task 30: Automate the certification matrix with Colima and host runners
 

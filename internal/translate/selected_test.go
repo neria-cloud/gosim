@@ -13,7 +13,7 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 	"github.com/neria-cloud/gosim/internal/translate/cache"
 )
 
@@ -29,7 +29,7 @@ func TestSelectedTranslation(t *testing.T) {
 				t.Fatal(err)
 			}
 			args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "./internal/translate", "-run=^TestSelectedTranslationWorker$", "-count=1", "-v"}
-			if race.Enabled {
+			if hostabi.RaceEnabled {
 				args = append(args, "-race")
 			}
 			cmd := buildcfg.Command(tc, root, args...)
@@ -55,7 +55,7 @@ func TestSelectedTranslationWorker(t *testing.T) {
 		t.Fatal(err)
 	}
 	selection := profileSelection(t, "rt")
-	selection.Identity.Race = race.Enabled
+	selection.Identity.Race = hostabi.RaceEnabled
 	cfg, err := gosimtool.NewBuildConfig(selection, tc)
 	if err != nil {
 		t.Fatal(err)

@@ -18,7 +18,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 	suites "github.com/neria-cloud/gosim/internal/tests/features"
 	"github.com/neria-cloud/gosim/internal/translate"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
@@ -38,7 +38,7 @@ func TestCandidate(t *testing.T) {
 				t.Fatal(err)
 			}
 			args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "./internal/candidate", "-timeout=25m", "-run=^TestCandidateWorker$", "-count=1", "-v"}
-			if race.Enabled {
+			if hostabi.RaceEnabled {
 				args = append(args, "-race")
 			}
 			cmd := buildcfg.Command(tc, root, args...)
@@ -116,7 +116,7 @@ func TestCandidateWorker(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			positive, err := Build(cfg, buildspec.BuildOptions{Race: race.Enabled}, packages)
+			positive, err := Build(cfg, buildspec.BuildOptions{Race: hostabi.RaceEnabled}, packages)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -136,7 +136,7 @@ func TestCandidateWorker(t *testing.T) {
 			if err := os.Chdir(project); err != nil {
 				t.Fatal(err)
 			}
-			built, err := Build(cfg, buildspec.BuildOptions{Race: race.Enabled}, []string{"."})
+			built, err := Build(cfg, buildspec.BuildOptions{Race: hostabi.RaceEnabled}, []string{"."})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -180,7 +180,7 @@ func TestCandidateWorker(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			again, err := Build(cfg, buildspec.BuildOptions{Race: race.Enabled}, []string{"."})
+			again, err := Build(cfg, buildspec.BuildOptions{Race: hostabi.RaceEnabled}, []string{"."})
 			if err != nil {
 				t.Fatal(err)
 			}

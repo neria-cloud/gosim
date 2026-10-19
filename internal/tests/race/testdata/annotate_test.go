@@ -7,7 +7,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 //go:norace
@@ -84,15 +84,15 @@ func TestRaceAnnotateInsideWrapper(t *testing.T) {
 
 func wrappernewracectx(f func()) {
 	done := make(chan struct{})
-	race.Release(unsafe.Pointer(&done))
+	hostabi.RaceRelease(unsafe.Pointer(&done))
 
-	race.Disable()
+	hostabi.RaceDisable()
 	go func() {
 		f()
-		race.Acquire(unsafe.Pointer(&done))
+		hostabi.RaceAcquire(unsafe.Pointer(&done))
 		close(done)
 	}()
-	race.Enable()
+	hostabi.RaceEnable()
 	<-done
 }
 

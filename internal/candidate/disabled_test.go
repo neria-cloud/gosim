@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 )
 
@@ -24,7 +24,7 @@ func checkDisabledFixtures(t *testing.T, cfg buildspec.Config) {
 		if slices.Contains(cfg.Features, feature) {
 			continue
 		}
-		built, err := Build(cfg, buildspec.BuildOptions{Race: race.Enabled}, []string{"./internal/tests/features/testdata/disabled" + feature})
+		built, err := Build(cfg, buildspec.BuildOptions{Race: hostabi.RaceEnabled}, []string{"./internal/tests/features/testdata/disabled" + feature})
 		if err != nil {
 			t.Fatal(err)
 		}

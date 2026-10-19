@@ -13,7 +13,6 @@ const (
 	gosimModPath        = gosimtool.Module
 	gosimruntimePackage = gosimModPath + "/rt/runtime"
 	runtimeABIPackage   = gosimruntimePackage + "/abi"
-	racePackage         = gosimModPath + "/internal/race"
 	loadSyntaxAndTypes  = packages.NeedSyntax | packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedFiles | packages.NeedImports
 )
 

@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/gosimtool"
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 // copied and modified from go:
@@ -41,8 +41,8 @@ const (
 
 // TODO: this test really ought to run things under a couple of seeds
 func TestRaceSim(t *testing.T) {
-	if !race.Enabled {
-		t.Skip("race.Enabled is false")
+	if !hostabi.RaceEnabled {
+		t.Skip("hostabi.RaceEnabled is false")
 	}
 
 	path := gosimtool.GetPathForPrecompiledTestBinary(t, gosimtool.Module+"/internal/tests/race/testdata", gosimtool.ResolveTestIdentity(t, ""))
@@ -50,8 +50,8 @@ func TestRaceSim(t *testing.T) {
 }
 
 func TestRaceOriginal(t *testing.T) {
-	if !race.Enabled {
-		t.Skip("race.Enabled is false")
+	if !hostabi.RaceEnabled {
+		t.Skip("hostabi.RaceEnabled is false")
 	}
 
 	modDir, err := gosimtool.FindGoModDir()

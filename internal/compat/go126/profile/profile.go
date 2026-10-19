@@ -15,7 +15,6 @@ import (
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
-// TODO(migration): Complete this profile before selecting it in Task 21.
 func Descriptor() spec.Profile {
 	p, err := DescriptorForArch(runtime.GOARCH)
 	if err != nil {
@@ -91,7 +90,6 @@ func decode(name string, result any) {
 }
 
 // PolicyManifest owns the reviewed Go 1.26 boundaries.
-// TODO(migration): Task 18 binds process/syscall probes; Task 21 activates composition.
 func PolicyManifest() spec.PolicyManifest {
 	var m spec.PolicyManifest
 	decode("shared_globals.json", &m.SharedGlobals)
