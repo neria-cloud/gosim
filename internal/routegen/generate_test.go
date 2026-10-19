@@ -118,7 +118,7 @@ func TestGeneratedOutputIsCurrent(t *testing.T) {
 				t.Fatal(err)
 			}
 			out := t.TempDir()
-			if err := GenerateProfile(tc, family.id, []string{"amd64", "arm64"}, out); err != nil {
+			if err := GenerateProfile(tc, family.id, []string{"amd64", "arm64"}, out, GenerateOptions{}); err != nil {
 				t.Fatal(err)
 			}
 			outputs := readOutputTree(t, out)
@@ -149,7 +149,7 @@ func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
 	if err := os.WriteFile(protected, []byte("unselected-family"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out); err != nil {
+	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out, GenerateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	first := readOutputTree(t, out)
@@ -158,7 +158,7 @@ func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out); err != nil {
+	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out, GenerateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	after, err := os.Stat(file)
@@ -178,7 +178,7 @@ func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
 	if err := json.Unmarshal(first["internal/compat/go125/profile/routes_amd64.json"], &record); err != nil {
 		t.Fatal(err)
 	}
-	if record.Stage != "typed-adapters" || !buildspec.ValidDigest(record.AdapterDigest) || record.Toolchain != "go1.25.14" || len(record.Modules) == 0 || !buildspec.ValidDigest(record.OriginDigest) {
+	if record.Stage != "typed-adapters" || !buildspec.ValidDigest(record.AdapterDigest) || record.GeneratedWith != "go1.25.14" || len(record.Modules) == 0 || !buildspec.ValidDigest(record.OriginDigest) {
 		t.Fatalf("generation identity=%+v", record)
 	}
 	for _, test := range []struct {
@@ -193,13 +193,13 @@ func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
 	} {
 		bad := tc
 		bad.Version = test.patch
-		if err := GenerateProfile(bad, test.family, test.arches, out); err == nil {
+		if err := GenerateProfile(bad, test.family, test.arches, out, GenerateOptions{}); err == nil {
 			t.Fatalf("invalid request admitted: %+v", test)
 		}
 	}
 	bad := tc
 	bad.Executable = "/missing/go"
-	if err := GenerateProfile(bad, "go125", []string{"amd64"}, out); err == nil {
+	if err := GenerateProfile(bad, "go125", []string{"amd64"}, out, GenerateOptions{}); err == nil {
 		t.Fatal("unverified executable admitted")
 	}
 	if !reflect.DeepEqual(first, readOutputTree(t, out)) {
@@ -241,11 +241,11 @@ func TestArm64GenerationPreservesAMD64(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out); err != nil {
+	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out, GenerateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	before := readOutputTree(t, out)
-	if err := GenerateProfile(tc, "go125", []string{"arm64"}, out); err != nil {
+	if err := GenerateProfile(tc, "go125", []string{"arm64"}, out, GenerateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	both := readOutputTree(t, out)
@@ -259,7 +259,7 @@ func TestArm64GenerationPreservesAMD64(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go125", []string{"arm64"}, out); err != nil {
+	if err := GenerateProfile(tc, "go125", []string{"arm64"}, out, GenerateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	second, err := os.Stat(arm)

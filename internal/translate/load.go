@@ -73,12 +73,7 @@ func loadSelectedPackages(dir string, patterns []string, cfg gosimtool.BuildConf
 	// math/big supplies complete Go arithmetic for both reviewed families. This
 	// owned source tag avoids copying private assembly into translated packages;
 	// the actually selected files participate in package content hashes.
-	tags := "linkname,sim,math_big_pure_go"
-	// Application source remains cgo-free. This is an owned source-selection tag,
-	// not a user build-flag override or a request to compile a cgo race executable.
-	if cfg.Identity.Race {
-		tags += ",race"
-	}
+	tags := buildspec.TranslatedSourceTags(cfg.Identity.Race)
 	mode |= packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedModule | packages.NeedImports | packages.NeedEmbedFiles
 	roots, err := packages.Load(&packages.Config{Dir: dir, Mode: mode, Tests: tests, Fset: token.NewFileSet(), Env: env, BuildFlags: []string{"-mod=readonly", "-tags=" + tags}}, patterns...)
 	if err != nil {

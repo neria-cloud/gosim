@@ -25,7 +25,7 @@ func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
 	if err := os.WriteFile(protected, []byte("other family"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go126", []string{"amd64"}, output); err != nil {
+	if err := GenerateProfile(tc, "go126", []string{"amd64"}, output, GenerateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	first := readOutputTree(t, output)
@@ -56,7 +56,7 @@ func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go126", []string{"amd64"}, output); err != nil {
+	if err := GenerateProfile(tc, "go126", []string{"amd64"}, output, GenerateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	second, err := os.Stat(file)

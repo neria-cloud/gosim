@@ -38,15 +38,20 @@ func Resolve(config buildspec.Config, options buildspec.BuildOptions) (gosimtool
 		return gosimtool.BuildConfig{}, err
 	}
 	profile := selected.Profile()
-	id, err := buildcfg.Identity(config, tc, profile, options)
+	inputs, err := buildcfg.Fingerprint(tc)
+	if err != nil {
+		return gosimtool.BuildConfig{}, err
+	}
+	contract, err := spec.CheckContracts(context.Background(), resolution, profile, options, inputs, "")
+	if err != nil {
+		return gosimtool.BuildConfig{}, err
+	}
+	id, err := buildcfg.Identity(config, resolution, profile, options, inputs, contract)
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
 	selection, err := profile.Select(id)
 	if err != nil {
-		return gosimtool.BuildConfig{}, err
-	}
-	if err := spec.VerifyHooks(tc, profile.Hooks); err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
 	return gosimtool.NewBuildConfig(selection, tc)

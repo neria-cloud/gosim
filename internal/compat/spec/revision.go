@@ -17,7 +17,7 @@ import (
 // not change the source identity that evidence certifies. File paths are hashed
 // as well as contents, so moving/deleting an adapter also invalidates identity.
 func SourceRevision(root, family string) (string, error) {
-	if family != "go125" && family != "go126" {
+	if _, err := buildspec.LookupProfile(family); err != nil {
 		return "", fmt.Errorf("unknown profile %q", family)
 	}
 	var paths []string
@@ -40,13 +40,12 @@ func SourceRevision(root, family string) (string, error) {
 				return nil
 			}
 			// Shared facade selection includes only this family's implementation.
-			other := "go125"
-			if family == other {
-				other = "go126"
+			for _, other := range buildspec.SupportedFamilies() {
+				if other.Profile != family && strings.Contains(name, other.Profile) {
+					return nil
+				}
 			}
-			if strings.Contains(name, other) {
-				return nil
-			}
+
 			rel, err := filepath.Rel(root, path)
 			if err != nil {
 				return err

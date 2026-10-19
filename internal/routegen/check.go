@@ -20,7 +20,7 @@ func CheckProfile(tc buildspec.Toolchain, profileID string, arches []string, out
 		return err
 	}
 	defer os.RemoveAll(staging)
-	if err := GenerateProfile(tc, profileID, arches, staging); err != nil {
+	if err := GenerateProfile(tc, profileID, arches, staging, GenerateOptions{}); err != nil {
 		return err
 	}
 	return filepath.WalkDir(staging, func(path string, entry os.DirEntry, err error) error {

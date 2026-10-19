@@ -27,9 +27,9 @@ References: target §§4.2, 7–9, 12.
 
 References: target §§4.3, 6, 8, 12.
 
-- [ ] Separate baseline origin from caller compatibility; implement actual hook/layout/constant contracts and successful-check cache.
-- [ ] Add metadata catalog; replace scattered two-family and patch lists; update generation records/refresh behavior and revision metadata.
-- [ ] Verify focused generation/contract tests on native host; commit.
+- [x] Separate baseline origin from caller compatibility; implement actual hook/layout/constant contracts and successful-check cache.
+- [x] Add metadata catalog; replace scattered two-family and patch lists; update generation records/refresh behavior and revision metadata.
+- [x] Verify focused generation/contract tests on native host; commit.
 
 ### Task 4: Automatic matching worker and independent launcher
 

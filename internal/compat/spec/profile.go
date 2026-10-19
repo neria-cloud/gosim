@@ -17,6 +17,7 @@ type Profile struct {
 	Hooks           []Hook
 	Packages        []PackagePolicy
 	RuntimePackages []string
+	ContractsByArch map[string]ContractManifest
 }
 
 type Hook struct {
@@ -25,6 +26,8 @@ type Hook struct {
 	Signature string `json:"signature"`
 	Target    string `json:"target"`
 	Owner     string `json:"owner"`
+	// Empty means translated Linux; native runtime contracts use host/host-race.
+	Context string `json:"context,omitempty"`
 }
 
 type PackagePolicy struct {
@@ -42,6 +45,21 @@ func (p Profile) Validate() error {
 	}
 	if len(p.Hooks) == 0 || len(p.Packages) == 0 || len(p.RuntimePackages) == 0 {
 		return fmt.Errorf("profile %s is incomplete", p.ID)
+	}
+
+	if len(p.ContractsByArch) != 2 {
+		return fmt.Errorf("profile %s has incomplete architecture contracts", p.ID)
+	}
+	for _, arch := range []string{"amd64", "arm64"} {
+		m, err := p.Contracts(arch)
+		if err != nil {
+			return err
+		}
+		for _, hook := range m.Hooks {
+			if err := p.checkPackage(hook.Target); err != nil {
+				return err
+			}
+		}
 	}
 
 	hooks := make(map[string]bool)
@@ -86,9 +104,10 @@ func (p Profile) checkPackage(pkg string) error {
 			return fmt.Errorf("profile must not unconditionally import concrete provider %s", pkg)
 		}
 	}
-	for _, family := range buildspec.SupportedFamilies() {
-		if family.Profile != p.ID && strings.Contains(pkg, "/internal/compat/"+family.Profile+"/") {
-			return fmt.Errorf("profile %s references another adapter: %s", p.ID, pkg)
+	if _, suffix, ok := strings.Cut(pkg, "/internal/compat/"); ok {
+		family, _, _ := strings.Cut(suffix, "/")
+		if strings.HasPrefix(family, "go") && family != p.ID {
+			return fmt.Errorf("profile %s references another or retired adapter: %s", p.ID, pkg)
 		}
 	}
 	if strings.Contains(pkg, "/internal/hooks/") {
@@ -108,6 +127,13 @@ func (p Profile) Select(build buildspec.Identity) (buildspec.Selection, error) {
 	}
 	if id.Profile != p.ID || id.AdapterRevision != p.Revision {
 		return buildspec.Selection{}, fmt.Errorf("build profile/revision differs from selected adapter")
+	}
+	manifest, err := p.Contracts(id.SimulationArch)
+	if err != nil {
+		return buildspec.Selection{}, err
+	}
+	if err := p.validateContractHooks(manifest); err != nil {
+		return buildspec.Selection{}, err
 	}
 	contract, err := p.ContractDigest()
 	if err != nil {
@@ -137,17 +163,17 @@ func (p Profile) Select(build buildspec.Identity) (buildspec.Selection, error) {
 	return selection, nil
 }
 
-// ContractDigest binds the declared hook and package policies. Structural layout
-// contracts extend this inventory independently from baseline source provenance.
+// ContractDigest binds declared ABI expectations, independently of baseline provenance.
 func (p Profile) ContractDigest() (string, error) {
 	hooks := slices.Clone(p.Hooks)
 	slices.SortFunc(hooks, func(a, b Hook) int { return strings.Compare(a.Package+"."+a.Symbol, b.Package+"."+b.Symbol) })
 	packages := slices.Clone(p.Packages)
 	slices.SortFunc(packages, func(a, b PackagePolicy) int { return strings.Compare(a.Path, b.Path) })
 	data, err := json.Marshal(struct {
-		Hooks    []Hook
-		Packages []PackagePolicy
-	}{hooks, packages})
+		Hooks     []Hook
+		Packages  []PackagePolicy
+		Contracts map[string]ContractManifest
+	}{hooks, packages, p.ContractsByArch})
 	if err != nil {
 		return "", err
 	}

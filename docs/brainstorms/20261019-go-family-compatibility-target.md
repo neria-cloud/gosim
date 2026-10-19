@@ -267,6 +267,8 @@ type ContractManifest struct {
 }
 ```
 
+The implementation adds `Hook.Context` (omitted for translated Linux declarations, `host` or `host-race` for native declarations) so source selection is explicit in the inventory. `RefreshOrigin` accepts a resolved compiler and reviewed manifests, verifies them, and inventories current selected files; moved files from a baseline do not block a supported patch. It never rewrites contract expectations.
+
 Inventories cover private types/constants actually accessed or mirrored by adapters, host ABI, shims and generated syscall records. They must not freeze whole upstream packages. Reuse the existing hook reader and routegen source/layout machinery, moving general inspection into `compat/spec` to avoid a generator/spec import cycle. Inspect host runtime declarations under the actual host/race context and translated standard-library declarations under Linux/application-cgo-disabled context. Do not accidentally inspect non-race files for a race build.
 
 The profile descriptor becomes:
@@ -319,7 +321,7 @@ type WorkerManifest struct {
 
 No time-based expiry: immutable keys invalidate by content. Verify manifest, key and binary digest on reuse. An invalid generated cache entry is rebuilt; do not execute it. No unbounded in-memory index. Keep existing user cache cleanup conventions; automatic eviction is outside this change.
 
-Compatibility cache key includes family, contract digest, exact toolchain/stdlib digests, architecture, host OS, race/experiments and ABI-relevant module content digests. Value contains schema 1, key, those input digests and a successful observed contract digest. Cache only successful checks; no TTL and no negative cache. Store as an atomically replaced JSON file under `compat/v1/<key>.json`; schema/key mismatch is a miss.
+Compatibility cache key includes family, contract digest, checker/adapter source revision, exact toolchain/stdlib digests, architecture, host OS, race/experiments and ABI-relevant module content digests. Including the checker revision prevents reuse after verification logic changes. Value contains schema 1, key, those input digests and a successful observed contract digest. Cache only successful checks; no TTL and no negative cache. Store as an atomically replaced JSON file under `compat/v1/<key>.json`; schema/key mismatch is a miss.
 
 Concurrency: use a cross-process per-key lock that the OS releases on process exit on supported Unix hosts. Wait cancellably, recheck after acquiring, build in a unique same-filesystem temporary directory, validate complete output, then rename atomically. A losing publisher verifies the winner. Never truncate an executable already being run, and never delete another invocation's temporary directory. Interrupted builds do not publish partial manifests. Use existing atomic artifact utilities where they satisfy this contract; keep workerboot independent from family-bound packages.
 

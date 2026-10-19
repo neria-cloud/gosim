@@ -55,13 +55,13 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 	}{{p125.Descriptor(), p125.VerificationOrigin(), p125.DescriptorForArch}, {p126.Descriptor(), p126.VerificationOrigin(), p126.DescriptorForArch}} {
 		t.Run(candidate.p.ID, func(t *testing.T) {
 			origin := candidate.origin
-			if origin.Toolchain != tc.Version {
-				if err := spec.VerifyOrigin(tc, origin); err == nil {
+			if origin.BaselineToolchain != tc.Version {
+				if err := spec.VerifyBaselineOrigin(tc, origin); err == nil {
 					t.Fatal("wrong patch/family accepted")
 				}
 				return
 			}
-			if err := spec.VerifyOrigin(tc, origin); err != nil {
+			if err := spec.VerifyBaselineOrigin(tc, origin); err != nil {
 				t.Fatal(err)
 			}
 			for _, arch := range []string{"amd64", "arm64"} {
@@ -82,7 +82,7 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 					break
 				}
 			}
-			if err := spec.VerifyOrigin(tc, origin); err == nil || !strings.Contains(err.Error(), "declaration drift") {
+			if err := spec.VerifyBaselineOrigin(tc, origin); err == nil || !strings.Contains(err.Error(), "declaration drift") {
 				t.Fatalf("wrong private symbol: %v", err)
 			}
 			origin = candidate.origin
@@ -114,7 +114,7 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 			}
 			altered := tc
 			altered.GOROOT = clone
-			if err := spec.VerifyOrigin(altered, origin); err == nil || !strings.Contains(err.Error(), "source modified") {
+			if err := spec.VerifyBaselineOrigin(altered, origin); err == nil || !strings.Contains(err.Error(), "source modified") {
 				t.Fatalf("modified source: %v", err)
 			}
 		})
@@ -184,7 +184,7 @@ func TestGo125ShimBindings(t *testing.T) {
 	if err := spec.VerifyShimBindings("../../..", shims); err == nil {
 		t.Fatal("changed shim signature accepted")
 	}
-	if runtime.Version() == "go1.25.14" {
+	if strings.HasPrefix(runtime.Version(), "go1.25.") {
 		if err := spec.VerifyHooks(currentToolchain(), p125.ShimManifest()); err != nil {
 			t.Fatal(err)
 		}
@@ -201,7 +201,7 @@ func TestGo126ShimBindings(t *testing.T) {
 	if err := spec.VerifyShimBindings("../../..", shims); err == nil {
 		t.Fatal("changed shim signature accepted")
 	}
-	if runtime.Version() == "go1.26.9" {
+	if strings.HasPrefix(runtime.Version(), "go1.26.") {
 		if err := spec.VerifyHooks(currentToolchain(), p126.ShimManifest()); err != nil {
 			t.Fatal(err)
 		}

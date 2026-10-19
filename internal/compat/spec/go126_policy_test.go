@@ -48,7 +48,7 @@ func TestGo126PolicyDeltas(t *testing.T) {
 			t.Fatal("native import permission escaped owner")
 		}
 	}
-	if runtime.Version() == "go1.26.9" {
+	if strings.HasPrefix(runtime.Version(), "go1.26.") {
 		for _, probe := range m.Probes {
 			data, err := os.ReadFile(filepath.Join(runtime.GOROOT(), probe.Source))
 			if err != nil {

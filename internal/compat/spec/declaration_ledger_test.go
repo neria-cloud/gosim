@@ -209,9 +209,6 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 
 func TestPinnedRemovedHookDeclarations(t *testing.T) {
 	t.Parallel()
-	if runtime.Version() != "go1.25.14" && runtime.Version() != "go1.26.9" {
-		t.Skip("exact pinned source check")
-	}
 	// Verify absence, not just a changed signature. The four mutex helpers now
 	// belong to internal/sync; Go 1.25 Clearenv predates runtimeClearenv(map).
 	for _, arch := range []string{"amd64", "arm64"} {
@@ -221,7 +218,7 @@ func TestPinnedRemovedHookDeclarations(t *testing.T) {
 		for _, name := range []string{"runtime_SemacquireMutex", "runtime_nanotime", "runtime_canSpin", "runtime_doSpin"} {
 			removed = append(removed, spec.Hook{Package: "sync", Symbol: name, Signature: "removed"})
 		}
-		if runtime.Version() == "go1.25.14" {
+		if strings.HasPrefix(runtime.Version(), "go1.25.") {
 			removed = append(removed, spec.Hook{Package: "syscall", Symbol: "runtimeClearenv", Signature: "removed"})
 		}
 		for _, h := range removed {

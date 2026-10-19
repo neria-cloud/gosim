@@ -9,19 +9,21 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
 func TestPinnedPublicShimInterfaces(t *testing.T) {
 	t.Parallel()
-	family := ""
-	switch runtime.Version() {
-	case "go1.25.14":
-		family = "go125"
-	case "go1.26.9":
-		family = "go126"
-	default:
-		t.Skip("checked by exact-patch adapter gates")
+	version, err := buildspec.ParseGoVersion(runtime.Version())
+	if err != nil {
+		t.Fatal(err)
 	}
+	support, err := buildspec.LookupFamily(version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	family := support.Profile
 
 	for _, item := range []struct{ pkg, name, source string }{{"reflect", "Type", "type.go"}, {"testing", "TB", "testing.go"}} {
 		want := interfaceMethods(t, filepath.Join(runtime.GOROOT(), "src", item.pkg, item.source), item.name)

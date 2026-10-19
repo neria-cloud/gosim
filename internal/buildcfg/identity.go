@@ -18,9 +18,10 @@ import (
 func Canonical(id buildspec.Identity) ([]byte, error) { return buildspec.Canonical(id) }
 func Digest(id buildspec.Identity) (string, error)    { return buildspec.Digest(id) }
 
-// Identity describes an unpromoted build. A caller must validate a pending
-// tuple, or attach matching reviewed evidence before selecting a certified one.
-func Identity(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile, opts buildspec.BuildOptions) (buildspec.Identity, error) {
+// Identity binds already-fingerprinted compiler inputs and checked contracts.
+// Fingerprint inventories are passed through once per operation.
+func Identity(cfg buildspec.Config, resolution buildspec.Resolution, profile spec.Profile, opts buildspec.BuildOptions, inputs buildspec.Fingerprints, contractDigest string) (buildspec.Identity, error) {
+	tc := resolution.Toolchain
 	cfg, err := Normalize(cfg)
 	if err != nil {
 		return buildspec.Identity{}, err
@@ -44,15 +45,18 @@ func Identity(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile
 	if len(slices.Compact(tags)) != len(opts.Tags) {
 		return buildspec.Identity{}, fmt.Errorf("duplicate build tags")
 	}
-	distribution, err := Fingerprint(tc)
+	expected, err := profile.ContractDigest()
 	if err != nil {
 		return buildspec.Identity{}, err
+	}
+	if contractDigest != expected || !buildspec.ValidDigest(inputs.ToolchainDigest) || !buildspec.ValidDigest(inputs.StdlibDigest) {
+		return buildspec.Identity{}, fmt.Errorf("missing or mismatched checked compatibility inputs")
 	}
 	root, graph, err := moduleGraph(tc)
 	if err != nil {
 		return buildspec.Identity{}, err
 	}
-	return identityForSource(cfg, tc, profile, opts, distribution, root, graph)
+	return identityForSource(cfg, tc, profile, opts, inputs, root, graph)
 }
 
 func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile, opts buildspec.BuildOptions, dist buildspec.Fingerprints, root, graph string) (buildspec.Identity, error) {
@@ -155,8 +159,8 @@ func moduleGraph(tc buildspec.Toolchain) (string, string, error) {
 }
 
 func evidenceMetadata(name string) bool {
-	for _, family := range []string{"go125", "go126"} {
-		prefix := "internal/compat/" + family + "/profile/"
+	for _, family := range buildspec.SupportedFamilies() {
+		prefix := "internal/compat/" + family.Profile + "/profile/"
 		if name == prefix+"tuples.json" || name == prefix+"evidence.json" {
 			return true
 		}

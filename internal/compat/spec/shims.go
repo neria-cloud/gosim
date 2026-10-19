@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
 // VerifyShimBindings checks the version-owned implementation side of a shim
@@ -21,7 +23,7 @@ func VerifyShimBindings(root string, shims []Hook) error {
 			return fmt.Errorf("invalid shim target %q", shim.Target)
 		}
 		pkg, symbol, ok := strings.Cut(strings.TrimPrefix(shim.Target, prefix), ".")
-		if !ok || (!strings.HasPrefix(pkg, "internal/compat/go125/shims/") && !strings.HasPrefix(pkg, "internal/compat/go126/shims/")) || strings.Contains(pkg, "..") {
+		if !ok || !isFamilyShim(pkg) || strings.Contains(pkg, "..") {
 			return fmt.Errorf("invalid shim target %q", shim.Target)
 		}
 		declarations, ok := packages[pkg]
@@ -50,4 +52,13 @@ func VerifyShimBindings(root string, shims []Hook) error {
 		}
 	}
 	return nil
+}
+
+func isFamilyShim(pkg string) bool {
+	for _, family := range buildspec.SupportedFamilies() {
+		if strings.HasPrefix(pkg, "internal/compat/"+family.Profile+"/shims/") {
+			return true
+		}
+	}
+	return false
 }

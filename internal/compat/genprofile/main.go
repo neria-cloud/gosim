@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -15,7 +16,8 @@ func main() {
 	root := flag.String("root", ".", "repository root")
 	check := flag.Bool("check", false, "fail on stale source fingerprints")
 	flag.Parse()
-	for _, family := range []string{"go125", "go126"} {
+	for _, support := range buildspec.SupportedFamilies() {
+		family := support.Profile
 		revision, err := spec.SourceRevision(*root, family)
 		if err != nil {
 			fail(err)

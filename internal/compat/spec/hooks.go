@@ -2,14 +2,13 @@ package spec
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/printer"
 	"go/token"
-	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -28,72 +27,37 @@ func VerifyHooks(tc buildspec.Toolchain, hooks []Hook) (result error) {
 	if len(hooks) == 0 {
 		return fmt.Errorf("empty hook manifest")
 	}
-	var packages []string
-	for _, hook := range hooks {
-		if hook.Package == "" || strings.HasPrefix(hook.Package, "-") || strings.Contains(hook.Package, "...") {
-			return fmt.Errorf("invalid hook package %q", hook.Package)
+	var paths []string
+	for _, h := range hooks {
+		if !validContractPackage(h.Package) {
+			return fmt.Errorf("invalid hook package %q", h.Package)
 		}
-		if !slices.Contains(packages, hook.Package) {
-			packages = append(packages, hook.Package)
+		if !slices.Contains(paths, h.Package) {
+			paths = append(paths, h.Package)
 		}
 	}
-	slices.Sort(packages)
+	slices.Sort(paths)
 	dir, cleanup, err := hookInspectionModule(tc)
 	if err != nil {
 		return err
 	}
 	defer func() { result = errors.Join(result, cleanup()) }()
-	args := append([]string{"list", "-mod=mod", "-json", "-tags=linkname"}, packages...)
-	cmd := buildspec.GoCommand(tc, dir, args...)
-	// Source ABI is Linux even when the resulting executable runs on Darwin.
-	for i, entry := range cmd.Env {
-		if strings.HasPrefix(entry, "GOOS=") {
-			cmd.Env[i] = "GOOS=linux"
-		} else if strings.HasPrefix(entry, "CGO_ENABLED=") {
-			cmd.Env[i] = "CGO_ENABLED=0"
-		}
-	}
-	cmd.Env = append(cmd.Env, "CGO_ENABLED=0")
-	var diagnostics bytes.Buffer
-	cmd.Stderr = &diagnostics
-	data, err := cmd.Output()
+	sources, err := inspectSources(context.Background(), tc, dir, SourceContext{OS: "linux", Arch: tc.HostArch}, false, paths)
 	if err != nil {
-		return fmt.Errorf("load hook source using %s: %w\n%s", tc.Version, err, diagnostics.Bytes())
+		return err
 	}
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	symbols := make(map[string]string)
-	for {
-		var pkg struct {
-			ImportPath, Dir string
-			GoFiles         []string
-		}
-		if err := decoder.Decode(&pkg); err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-		for _, file := range pkg.GoFiles {
-			if err := readHookDeclarations(filepath.Join(pkg.Dir, file), pkg.ImportPath, symbols); err != nil {
-				return err
-			}
-		}
-	}
-	for _, hook := range hooks {
-		key := hook.Package + "." + hook.Symbol
-		if got, ok := symbols[key]; !ok {
-			return fmt.Errorf("required hook source %s is missing in %s", key, tc.Version)
-		} else if got != hook.Signature {
-			return fmt.Errorf("hook ABI drift for %s: got %q, expected %q", key, got, hook.Signature)
-		}
-	}
-	return nil
+	return sources.verifyHooks(hooks)
 }
 
 // Hook packages can be transitive dependencies absent from the application's
 // direct imports. Let Go resolve those requirements in a private module using
 // the same versions/replacements, without rewriting the application's go.mod.
 func hookInspectionModule(tc buildspec.Toolchain) (string, func() error, error) {
-	data, err := buildspec.GoCommand(tc, "", "env", "GOMOD").Output()
+	return hookInspectionContext(context.Background(), buildspec.Resolution{Toolchain: tc})
+}
+
+func hookInspectionContext(ctx context.Context, r buildspec.Resolution) (string, func() error, error) {
+	data, err := buildspec.ApplicationCommand(ctx, r, "env", "GOMOD").Output()
 	if err != nil {
 		return "", nil, err
 	}

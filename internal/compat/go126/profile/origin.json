@@ -1,5 +1,7 @@
 {
-  "toolchain": "go1.26.9",
+  "schema": 2,
+  "family": "1.26",
+  "baseline_toolchain": "go1.26.9",
   "files": [
     {
       "path": "src/cmp/cmp.go",

@@ -24,6 +24,14 @@ func fixture() (Profile, buildspec.Identity) {
 		RuntimePackages: []string{module + "/internal/kernel"},
 	}
 
+	p.ContractsByArch = map[string]ContractManifest{}
+	for _, arch := range []string{"amd64", "arm64"} {
+		p.ContractsByArch[arch] = ContractManifest{
+			Schema: 1, Family: p.Support.Family, Architecture: arch, Hooks: slices.Clone(p.Hooks),
+			Layouts:   []LayoutContract{{Package: "test", Type: "Record", Size: 8, Align: 8, Fields: []FieldContract{{Name: "Value", Type: "int64", Offset: 0}}}},
+			Constants: []ConstantContract{{Package: "test", Symbol: "Number", Value: "1"}},
+		}
+	}
 	id.ContractDigest, _ = p.ContractDigest()
 	return p, id
 }

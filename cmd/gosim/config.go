@@ -70,16 +70,21 @@ func resolveBuild(command string, flags BuildFlags) (ResolvedBuild, error) {
 		return r, err
 	}
 	profile := selected.Profile()
-	id, err := buildcfg.Identity(config, tc, profile, flags.Options)
+	inputs, err := buildcfg.Fingerprint(tc)
+	if err != nil {
+		return r, err
+	}
+	contract, err := spec.CheckContracts(context.Background(), resolution, profile, flags.Options, inputs, "")
+	if err != nil {
+		return r, err
+	}
+	id, err := buildcfg.Identity(config, resolution, profile, flags.Options, inputs, contract)
 	if err != nil {
 		return r, err
 	}
 
 	selection, err := profile.Select(id)
 	if err != nil {
-		return r, err
-	}
-	if err := spec.VerifyHooks(tc, profile.Hooks); err != nil {
 		return r, err
 	}
 	return ResolvedBuild{Config: config, Toolchain: tc, Identity: id, Selection: selection}, nil

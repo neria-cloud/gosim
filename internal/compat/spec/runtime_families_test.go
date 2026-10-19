@@ -81,9 +81,6 @@ func TestGo126RuntimePolicy(t *testing.T) {
 
 func TestPinnedRuntimePushesObjectRaceSymbols(t *testing.T) {
 	t.Parallel()
-	if runtime.Version() != "go1.25.14" && runtime.Version() != "go1.26.9" {
-		t.Skip("pinned source audit")
-	}
 	// Both pinned families push these symbols. A declaration-only shim cannot
 	// replace their implementation without redirecting the translated call sites.
 	source, err := os.ReadFile(filepath.Join(runtime.GOROOT(), "src/runtime/race.go"))

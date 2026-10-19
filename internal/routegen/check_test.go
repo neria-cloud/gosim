@@ -17,7 +17,7 @@ func TestCheckProfileDoesNotRepairStaleFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := GenerateProfile(tc, "go126", []string{"arm64"}, out); err != nil {
+	if err := GenerateProfile(tc, "go126", []string{"arm64"}, out, GenerateOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	file := filepath.Join(out, "internal/kernel/routes_gen.go")

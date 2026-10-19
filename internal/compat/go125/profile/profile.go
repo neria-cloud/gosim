@@ -11,7 +11,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed hooks_*.json hooks.json policies.json origin.json shims.json bridges.json probes.json modules.json capabilities.json native_imports.json routes_*.json shared_globals.json
+//go:embed contracts_*.json hooks_*.json hooks.json policies.json origin.json shims.json bridges.json probes.json modules.json capabilities.json native_imports.json routes_*.json shared_globals.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
@@ -50,6 +50,12 @@ func DescriptorForArch(arch string) (spec.Profile, error) {
 	decode("hooks_"+arch+".json", &archHooks)
 	p.Hooks = append(p.Hooks, archHooks...)
 	decode("policies.json", &p.Packages)
+	p.ContractsByArch = make(map[string]spec.ContractManifest)
+	for _, contractArch := range []string{"amd64", "arm64"} {
+		var manifest spec.ContractManifest
+		decode("contracts_"+contractArch+".json", &manifest)
+		p.ContractsByArch[contractArch] = manifest
+	}
 	return p, nil
 }
 
@@ -78,7 +84,7 @@ func Verify(tc buildspec.Toolchain) error {
 	if err := PolicyManifest().Validate(p); err != nil {
 		return err
 	}
-	if err := spec.VerifyOrigin(tc, VerificationOrigin()); err != nil {
+	if err := spec.VerifyBaselineOrigin(tc, VerificationOrigin()); err != nil {
 		return err
 	}
 	if err := spec.VerifyHooks(tc, p.Hooks); err != nil {
@@ -113,8 +119,6 @@ func PolicyManifest() spec.PolicyManifest {
 func VerifyModules(tc buildspec.Toolchain, directory string) error {
 	return spec.VerifyModules(tc, directory, PolicyManifest().Modules)
 }
-
-// Evidence returns reviewed reports independently of executable source identity.
 
 func support() buildspec.FamilySupport {
 	support, err := buildspec.LookupProfile("go125")

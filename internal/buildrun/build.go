@@ -123,9 +123,10 @@ func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
 		}
 		path := strings.Split(pkg.ImportPath, " ")[0]
 		translatedRoot := "translated/" + gosimtool.ReplaceSpecialPackages(gosimtool.Module)
-		for _, family := range []string{"go123", "go125", "go126"} {
-			for _, prefix := range []string{gosimtool.Module + "/internal/compat/", translatedRoot + "/internal_/compat/"} {
-				if family != cfg.Identity.Profile && strings.HasPrefix(path, prefix+family+"/") {
+		for _, prefix := range []string{gosimtool.Module + "/internal/compat/", translatedRoot + "/internal_/compat/"} {
+			if suffix, ok := strings.CutPrefix(path, prefix); ok {
+				family, _, _ := strings.Cut(suffix, "/")
+				if strings.HasPrefix(family, "go") && family != cfg.Identity.Profile {
 					return fmt.Errorf("inactive family in compiled graph: %s", path)
 				}
 			}
