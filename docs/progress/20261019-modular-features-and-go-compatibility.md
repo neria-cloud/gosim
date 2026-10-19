@@ -609,3 +609,19 @@ Verified
 - The first new family-ownership assertion incorrectly excluded the existing Go 1.25 native coroutine target; corrected it to require the owning family for both host and translated hook targets. Final logs above contain successful reruns. Native source origins, typed Go 1.25 generator output and adapter revisions are current.
 - Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task16-gate.log`, including ordinary, race, script and translation suites. Formatting and whitespace checks pass. No target architecture changes; this is adapter evidence, not the pending composition wiring or final certification matrix.
 - Final Task 16 size: 2,615 changed lines (2,575 additions + 40 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 17.1 — Go 1.26 shim surfaces and semantic deltas
+Date: 2026-10-19. Previous task commit: `9b6a991`. Commit: the Task 17.1 implementation commit containing this entry.
+
+Implemented
+- Split Task 17 before implementation into shim and policy/init children to retain reviewable commits below 5,000 changed lines. Added independently bounded Go 1.26 reflect/testing/maps/synctest/cryptorand sources, preserving wrapped native metadata boundaries, explicit unsupported operations and deterministic random streams.
+- Audited exact Go 1.26.9 shim declarations and source changes. Added Type.Fields/Methods/Ins/Outs and Value.Fields/Methods using wrapped indexed operations, preserving eager kind checks, bound methods and early termination. The native reflect implementation owns its changed internal type/map layouts; these are not copied across the boundary. Internal synctest source is unchanged between the pinned patches; its native bubble execution remains explicitly unsupported.
+- Added testing.ArtifactDir's default temporary-directory mode with per-test reuse, independent test directories and cleanup; TempDir honors translated GOTMPDIR. Persistent -test.artifacts output is outside the simulation runner's supported flag surface and will be recorded as a limited capability in 17.2, not silently described as implemented persistence.
+- Go 1.26 Prime now ignores the supplied reader by default and uses the deterministic application stream independently of mutable crypto/rand.Reader. Translated GODEBUG=cryptocustomrand=1 selects the supplied reader; the last setting wins. Int retains its supplied-reader behavior, Read retains fatal reader-error semantics, and no host entropy enters any shim. The new crypto/internal/rand and testing/cryptotest boundaries belong to 17.2's policy audit.
+
+Verified
+- Exact go1.26.9 and go1.25.14 ordinary/race shim, hook and source-manifest suites pass: `.gosim/task17/shims-ordinary126.log`, `shims-race126.log`, `shims-ordinary125.log`, `shims-race125.log`. Manifest verification checks the implementation and upstream signatures; reflected Type/testing.TB public interfaces match their pinned families. Invalid signature/native container, deterministic read/prime/text, iterator mutation/binding/early stop, artifact reuse/isolation/cleanup and custom-reader tests pass.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task17.1-gate.log`, including ordinary/race/script/translation suites. Go 1.25 sources and fingerprints are unchanged. Source revision, formatting and whitespace checks pass.
+- Parent Task 17 remains open for policy/init audit. No target architecture changes, composition activation or certification promotion.
+- Final Task 17.1 size: 4,316 changed lines (4,308 additions + 8 deletions), including checklist/log; staged whitespace check passed.

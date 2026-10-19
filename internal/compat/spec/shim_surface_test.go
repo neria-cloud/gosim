@@ -11,13 +11,20 @@ import (
 	"testing"
 )
 
-func TestGo125PublicShimInterfaces(t *testing.T) {
-	if runtime.Version() != "go1.25.14" {
-		t.Skip("checked by the exact Go 1.25.14 adapter gate")
+func TestPinnedPublicShimInterfaces(t *testing.T) {
+	family := ""
+	switch runtime.Version() {
+	case "go1.25.14":
+		family = "go125"
+	case "go1.26.9":
+		family = "go126"
+	default:
+		t.Skip("checked by exact-patch adapter gates")
 	}
+
 	for _, item := range []struct{ pkg, name, source string }{{"reflect", "Type", "type.go"}, {"testing", "TB", "testing.go"}} {
 		want := interfaceMethods(t, filepath.Join(runtime.GOROOT(), "src", item.pkg, item.source), item.name)
-		got := interfaceMethods(t, filepath.Join("../go125/shims", item.pkg, item.source), item.name)
+		got := interfaceMethods(t, filepath.Join("..", family, "shims", item.pkg, item.source), item.name)
 		if len(got) != len(want) {
 			t.Errorf("%s method count: got %d want %d", item.name, len(got), len(want))
 		}

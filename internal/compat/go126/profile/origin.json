@@ -2,6 +2,30 @@
   "toolchain": "go1.26.9",
   "files": [
     {
+      "path": "src/crypto/internal/rand/rand.go",
+      "digest": "fff364e2098359a767f47041c9e2939ea76850424a36183adfe748c4ce5c6da3"
+    },
+    {
+      "path": "src/crypto/internal/rand/rand_fips140v1.0.go",
+      "digest": "cc3169be5cc5fc7d2b35a83810b1825c0e8530c3695686dc6e1b82cb47d7c8d2"
+    },
+    {
+      "path": "src/crypto/internal/rand/rand_fips140v1.26.go",
+      "digest": "0111d4ffcc48806c868ae1f3b4449e42e6af62ea21111bff1b9c3246b8ecc5b9"
+    },
+    {
+      "path": "src/crypto/rand/rand.go",
+      "digest": "7c289648d453d0bdca0f05091d00bb86c94b69637080c748ff3d3476677521ac"
+    },
+    {
+      "path": "src/crypto/rand/text.go",
+      "digest": "c2c7d3bc9f093676f362b9e22772b6ab2d48acd6c06ca85fea0fef4741c17ce4"
+    },
+    {
+      "path": "src/crypto/rand/util.go",
+      "digest": "109920499d49126f14b7d78469d4863035da5c5ad3e4737bf5056a9123fb172c"
+    },
+    {
       "path": "src/hash/maphash/maphash_runtime.go",
       "digest": "f953ea8eae374bda0cce77c08e63826dc5787fa72182c49edd03a59bcba127bc"
     },
@@ -30,6 +54,10 @@
       "digest": "e3445cf3a17f6b322cb3136e30a28eab7a70c0f37fac44ba5dc7912a19930a17"
     },
     {
+      "path": "src/internal/synctest/synctest.go",
+      "digest": "3291fd3debb2430be3017c9a3cd783ad4d1a2791d8b4133b473a11a29e250449"
+    },
+    {
       "path": "src/maps/iter.go",
       "digest": "a803b5b1b09aa2dcedf90db32270f9cec310bc7cf8f141f87c2e6567db0c4208"
     },
@@ -44,6 +72,66 @@
     {
       "path": "src/math/rand/v2/rand.go",
       "digest": "a0b0f516652e66ee56de089ec01457f5f786e0463cd08b2453eb025cd6ad6f58"
+    },
+    {
+      "path": "src/reflect/abi.go",
+      "digest": "a62034c1299fd4ba11a40ca398345f317038c40bb6c774daa7594ccf12816d9f"
+    },
+    {
+      "path": "src/reflect/arena.go",
+      "digest": "076dacdeb649ee6daeff0666b96e9935a51ada8a18a518b2ae9445d08cc23894"
+    },
+    {
+      "path": "src/reflect/badlinkname.go",
+      "digest": "51e6f422e442cd7c091d5c67e47b505ba7c59b0cd26017246d084221decad82c"
+    },
+    {
+      "path": "src/reflect/deepequal.go",
+      "digest": "e4615c50434192fa65a53c6ccaaa060da744f67baad2778153015d9f4cb26cbe"
+    },
+    {
+      "path": "src/reflect/float32reg_generic.go",
+      "digest": "225b092a447b002cf4b818e5c01d28dbd1e4d1bb30b681a840aa7f3f7c7781d0"
+    },
+    {
+      "path": "src/reflect/iter.go",
+      "digest": "78128c2b362102626bcdd579a553543f3e5a7be6ab6a02d04e0662a3fcbd71f0"
+    },
+    {
+      "path": "src/reflect/makefunc.go",
+      "digest": "7b56f50cc2ca5dc2bfdd65977cf7501d049d9e66925cef0baa9e8be42689def9"
+    },
+    {
+      "path": "src/reflect/map.go",
+      "digest": "48f44acf853d0b06fe3ae5af4955934d736fda4926026c68b8faa073c7d2b8d4"
+    },
+    {
+      "path": "src/reflect/stubs_ppc64x.go",
+      "digest": "517e0b94732c7cadf8c7bd932ba24daeeee96682568104269db2d4d4fbf1a180"
+    },
+    {
+      "path": "src/reflect/stubs_riscv64.go",
+      "digest": "527e39c48996dba01f08b02713e426b1704fa6c8373400cdcd68e850df5719d9"
+    },
+    {
+      "path": "src/reflect/stubs_s390x.go",
+      "digest": "5d103c22f81768e1aadc7d1ed5be669914c8d6d9246dcce5518f533b32eafcfe"
+    },
+    {
+      "path": "src/reflect/swapper.go",
+      "digest": "5d8467c8475770fac34d48536e36e40d4251612af2d5a7d96f19fff1c7d4ba99"
+    },
+    {
+      "path": "src/reflect/type.go",
+      "digest": "d2c31904f1027eeca56fba323fcaca1e16d63f45e34c850e1f39c1790a4fb7a1"
+    },
+    {
+      "path": "src/reflect/value.go",
+      "digest": "7b93df76cdaa42211f5568780cea85b0f4a117ce177def008370da20e6d7b237"
+    },
+    {
+      "path": "src/reflect/visiblefields.go",
+      "digest": "287edc70dd44cb440aa267eb9ca3164c89c80b25af69abc1589728fbf82ad810"
     },
     {
       "path": "src/runtime/coro.go",
@@ -193,6 +281,54 @@
     {
       "path": "src/sync/runtime.go",
       "digest": "a2be85512b59e11270b099f264581343cc1589bb782e03a476102406defd5f33"
+    },
+    {
+      "path": "src/testing/allocs.go",
+      "digest": "4fa935b51bd22e94d35d285234c4fb42329708348901915565990e64e8864a72"
+    },
+    {
+      "path": "src/testing/benchmark.go",
+      "digest": "ce7b0158ea5c5b0911cfb14ba50c0f1fdc631bf86ec6a5b5530d0f3aaac0ba20"
+    },
+    {
+      "path": "src/testing/cover.go",
+      "digest": "18dbd25f782023cb72e2b1847e960313ff6eeb62b749433752e51c51dca2d4ec"
+    },
+    {
+      "path": "src/testing/example.go",
+      "digest": "52e4417a3bec0e28c77e8009c06984fca5158226abf559ff08857e389c1f374e"
+    },
+    {
+      "path": "src/testing/fuzz.go",
+      "digest": "f26c1704f1c914b29197f7e4a5099c94cb53bd8fed9ec09dd70d2c5a6ee9879c"
+    },
+    {
+      "path": "src/testing/match.go",
+      "digest": "f28418759ed48c72821b5ecc3700041b74151108557618f50d355ea98a1bbebe"
+    },
+    {
+      "path": "src/testing/newcover.go",
+      "digest": "2c9331c056e707a8d6fc527108f1f3ec835e8fd2b9841c39637e2113275a3f43"
+    },
+    {
+      "path": "src/testing/run_example.go",
+      "digest": "eb8b54a7ebab3c437dd5ac67b56fdb4ee11ac2aa6796f5a8ce362730f276ad38"
+    },
+    {
+      "path": "src/testing/run_example_wasm.go",
+      "digest": "2f14b5853fbebaa7e3715989fb39984a90b78ba11cdc98a3d5238bcb74fc2965"
+    },
+    {
+      "path": "src/testing/testing.go",
+      "digest": "bb48f8fd36ad46a7d67dfe720dd367a25cdac91739f568830d1b0863ae0255ce"
+    },
+    {
+      "path": "src/testing/testing_other.go",
+      "digest": "9b5a2b1dcede8e25ee003f6921ac3c6566a71fe27e7d42d3f662cab4255239e2"
+    },
+    {
+      "path": "src/testing/testing_windows.go",
+      "digest": "94163b9140aaf534fd76cf2e6175f8682ac77c66854b84156b7890e13cc4afc6"
     },
     {
       "path": "src/time/sleep.go",

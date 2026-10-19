@@ -426,6 +426,20 @@ The original generator is 892 lines, existing temporary decoders are approximate
 - [ ] Both families' reflection/testing/random/map fixtures pass; unsupported application network/native entropy and invalid ABI fixtures fail with useful diagnostics.
 - [ ] Run common commit gate and regenerate family policy manifests without changes to the other family.
 
+#### Task 17.1: Go 1.26 shim implementations and exact-source surface checks
+
+**Budget:** 3,600–4,700 changed lines. Split recorded before implementation to leave policy/init audit room below the 5,000-line commit cap.
+
+- [x] Implement bounded Go 1.26 reflect/testing/maps/synctest/cryptorand shims, including source-derived API/semantic deltas, source records and independent family-owned tests.
+- [x] Verify exact go1.26.9 and go1.25.14 shim behavior, source signatures/interfaces, invalid native/container boundaries and deterministic random behavior; run the common commit gate.
+
+#### Task 17.2: Go 1.26 package and initialization policy audit
+
+**Budget:** 800–2,000 changed lines. Depends on 17.1; completes parent 17.
+
+- [ ] Audit exact-patch package/init/crypto structure and populate bounded policies, native imports, probes, capabilities and module records without executable cross-family imports.
+- [ ] Verify both-family fixtures and explicit unsupported application network/native entropy/ABI diagnostics, reproducible metadata and unchanged Go 1.25 source; run the common commit gate.
+
 ### Task 18: Generate Go 1.26 amd64 syscall and control adapters
 
 **Files:** CREATE go126 amd64 kernel/fs/net hook outputs and layout fixtures.  

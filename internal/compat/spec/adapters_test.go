@@ -185,3 +185,19 @@ func TestGo125ShimBindings(t *testing.T) {
 		}
 	}
 }
+
+func TestGo126ShimBindings(t *testing.T) {
+	shims := p126.ShimManifest()
+	if err := spec.VerifyShimBindings("../../..", shims); err != nil {
+		t.Fatal(err)
+	}
+	shims[0].Signature = "func()"
+	if err := spec.VerifyShimBindings("../../..", shims); err == nil {
+		t.Fatal("changed shim signature accepted")
+	}
+	if runtime.Version() == "go1.26.9" {
+		if err := spec.VerifyHooks(currentToolchain(), p126.ShimManifest()); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
