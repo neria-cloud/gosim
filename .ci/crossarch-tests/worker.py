@@ -44,6 +44,7 @@ def main():
     subprocess.run([str(selected_go), "build", "-ldflags=-checklinkname=0", "-tags=linkname",
                     "-o", str(binary), "./cmd/gosim"], env=env, check=True)
     command = [str(binary), "internal-candidate", "certify", "-go", args.patch,
+               "-large",
                "-features", args.features, "-output", str(evidence), "-execution-mode", args.mode,
                "-concurrency", str(args.concurrency)]
     if args.race:

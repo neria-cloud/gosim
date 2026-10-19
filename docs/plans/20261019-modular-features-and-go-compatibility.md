@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–31 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 32–33 remain unchecked. Full race suites are deferred to final verification.
+**Status:** in progress; Tasks 1–31 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 32–33 remain unchecked. Race and large suites require explicit user instruction; the resumed run has that authorization for final verification.
 
 ## Important notices
 
@@ -70,11 +70,11 @@ Intermediate gates are not release support statements. Temporary wiring/stubs mu
 4. No unchecked new error, import cycle, ignored failed suite, leaked metatest process, or stale generated output. A new gate cannot silently skip because prebuilt artifacts are missing. Record unresolved infrastructure blockers as gaps and do not mark dependent work done.
 5. Review `git diff --check` and rename-aware changed-line count; commit only the task's files. Keep this plan's checkboxes and execution log current. Final source must contain no temporary migration/retirement mechanism.
 
-## User-requested test disablement and pause
+## Current user instructions for test execution
 
-The user paused the implementation goal and explicitly disabled `TestCandidateWorker`, `TestSelectedTranslation` / `TestSelectedTranslationWorker`, and the complete `TestScript` group. Their bodies and fixtures remain in place behind unconditional, explained `t.Skip` calls. `TestCandidate` is also skipped so its launcher cannot start the disabled worker. This instruction overrides the earlier requirements to execute these groups; do not silently re-enable them when resuming.
+The implementation goal has resumed. The previously disabled candidate, selected-translation and script suites now run only through `make test-large`, with persistent reports. Ordinary `make test` and `make test-race` keep those suites skipped. AGENTS.md requires a direct instruction to run and check race/large suites; a general continuation is insufficient. The user explicitly authorized “Run and check large suites and final matrix” on resumption, including the final 48-tuple race matrix. This authorization does not permit overlapping feature/toolchain sweeps inside each tuple.
 
-The previous-source matrix finished all 48 jobs successfully before disablement. These test-source edits change the executable-input fingerprint, so those reports are retained as historical evidence and are not promoted for the edited checkout. Tasks 32–33 remain incomplete and the goal remains paused. This bounded disablement is checked only by confirming the named tests skip on both exact patches; no full suite or matrix restart is authorized by this request.
+The earlier 48 successful matrix jobs predate commit `1bc35bf` and remain historical evidence, not certification of the current executable inputs. Tasks 32–33 remain incomplete. Reconcile selected-tuple large coverage and reject skipped coverage before restarting certification.
 
 ## Task list
 
@@ -869,6 +869,15 @@ Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for 
 
 - [ ] Restart all 48 tuples only after 32.2.1 finishes; independently validate complete matching reports, then perform Task 32.2's promotion and normal-command checks.
 
+### Task 32.2.3: Restore truthful certification after separating large tests
+
+**Split recorded before implementation:** `runFullSuite` still records a successful boundaries suite when `TestCandidateWorker` skips. Full native suites likewise omit the opt-in groups. Process exit zero alone cannot certify required coverage (T§2/9/10). Preserve the user's separate `make test-large` entry and reporting.
+
+- [x] Distinguish ordinary validation reports from promotable certification reports; reject ordinary-only evidence during promotion.
+- [x] Make certification invoke `make test-large` for its selected tuple, without repeating positive suites, other feature configurations or other toolchains. Retain per-test reports and require actual terminal passes for the expected worker/subtest entries.
+- [x] Cover skipped/missing large results and validation-only promotion with focused tests; run authorized large suites before freezing the source for the final matrix.
+- [x] Record final-source ordinary and large results; only then resume 32.2.2. Do not promote historical or partial evidence.
+
 ### Task 33: Architectural delta verification and closure of every implementation gap
 
 **Files:** Inspect all touched source/generated/test/config/doc files; update this plan's evidence/gap logs and make bounded fixes where required.  
@@ -1031,6 +1040,7 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | --- | --- | --- | --- |
 | Fixed | T§2/9/11; Task 32.1 | Worker mismatch rebuild command omits required linkname flags; strict-linker probe fails on runtime.newcoro | Corrected flags/module path; both emitted opposite-patch rebuild commands and complete ordinary gates passed. Task 32.2 reruns all 48 final-source tuples |
 | Fixed | T§4/5; Task 32.2.1 | Public Destroy accepted an invalidated handle | Removed the success exception; native and translated New/Stopped/Crashed regressions and both full ordinary gates pass; provider cleanup remains idempotent |
+| Fixed | T§2/9/10; Task 32.2.3 | Opt-in workers could skip while certification recorded passed boundary coverage | Ordinary reports are validation-only and cannot promote; matrix invokes selected-tuple make test-large and requires terminal worker/subtest passes. Focused checks, both ordinary gates and large validation passed |
 
 ## NOT PLANNED CHANGES
 

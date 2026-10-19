@@ -69,13 +69,16 @@ func TestCandidateWorker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Run("unsupported-etcd", func(t *testing.T) {
-		cfg := buildspec.Config{Schema: 1, Toolchain: runtime.Version(), Features: []string{"rt", "fs", "net"}, SimulationOS: "linux"}
-		_, err := Build(cfg, buildspec.BuildOptions{}, []string{"./examples/etcd"})
-		if err == nil || (!strings.Contains(err.Error(), "net/http") && !strings.Contains(err.Error(), "google.golang.org/grpc")) {
-			t.Fatalf("expected explicit HTTP/gRPC rejection for etcd: %v", err)
-		}
-	})
+	tuple := os.Getenv("GOSIM_LARGE_TUPLE")
+	if tuple == "" || tuple == "rt,fs,net" {
+		t.Run("unsupported-etcd", func(t *testing.T) {
+			cfg := buildspec.Config{Schema: 1, Toolchain: runtime.Version(), Features: []string{"rt", "fs", "net"}, SimulationOS: "linux"}
+			_, err := Build(cfg, buildspec.BuildOptions{}, []string{"./examples/etcd"})
+			if err == nil || (!strings.Contains(err.Error(), "net/http") && !strings.Contains(err.Error(), "google.golang.org/grpc")) {
+				t.Fatalf("expected explicit HTTP/gRPC rejection for etcd: %v", err)
+			}
+		})
+	}
 	project := t.TempDir()
 	project, err = filepath.EvalSymlinks(project)
 	if err != nil {
@@ -114,27 +117,38 @@ func TestCandidateWorker(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.Chdir(previous)
-	for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
+	featureSets := [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}}
+	if tuple != "" {
+		selected, err := buildspec.Features(strings.Split(tuple, ","))
+		if err != nil {
+			t.Fatal(err)
+		}
+		featureSets = [][]string{selected}
+	}
+	for _, features := range featureSets {
 		t.Run(strings.Join(features, ","), func(t *testing.T) {
 			cfg := buildspec.Config{Schema: 1, Toolchain: runtime.Version(), Features: features, SimulationOS: "linux"}
 			if err := os.Chdir(root); err != nil {
 				t.Fatal(err)
 			}
-			packages, err := suites.Packages(features)
-			if err != nil {
-				t.Fatal(err)
-			}
-			positive, err := Build(cfg, buildspec.BuildOptions{Race: hostabi.RaceEnabled}, packages)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(positive.Artifacts) != len(packages) {
-				t.Fatal("missing applicable package artifacts")
-			}
-			for _, artifact := range positive.Artifacts {
-				cmd := exec.Command(filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path), "-test.v")
-				if out, err := cmd.CombinedOutput(); err != nil {
-					t.Fatalf("positive suite %s: %v\n%s", artifact.Manifest.PackageDigests[0].Path, err, out)
+			// Matrix certification already ran the positive suites for this tuple.
+			if tuple == "" {
+				packages, err := suites.Packages(features)
+				if err != nil {
+					t.Fatal(err)
+				}
+				positive, err := Build(cfg, buildspec.BuildOptions{Race: hostabi.RaceEnabled}, packages)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(positive.Artifacts) != len(packages) {
+					t.Fatal("missing applicable package artifacts")
+				}
+				for _, artifact := range positive.Artifacts {
+					cmd := exec.Command(filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path), "-test.v")
+					if out, err := cmd.CombinedOutput(); err != nil {
+						t.Fatalf("positive suite %s: %v\n%s", artifact.Manifest.PackageDigests[0].Path, err, out)
+					}
 				}
 			}
 			checkDisabledFixtures(t, cfg)

@@ -151,6 +151,8 @@ The matrix enumerates exactly 48 tuples. Native CI executes on its actual Linux 
 
 The suite applicability registry separates runtime, fs, net and full integration/nemesis/examples. Reduced-feature jobs execute their positive tests, native runtime/ABI/contracts and enabled model units, plus disabled-operation/replay/import boundaries. Full jobs execute the complete native suite, including real translated lifecycle fault fixtures and race-oracle checks when race is enabled. Compilation alone is never a passing tuple. Promotion is a separate reviewed metadata change after all required final-source executions.
 
+Ordinary local reports carry `validation_only` and cannot be promoted. Authorized matrix workers request `certify -large`, which invokes the same `make test-large` reporter against the prepared tuple. Candidate boundary/replay tests select only that tuple and reuse the matrix's positive-suite coverage; translation-cache tests run on `rt`, and CLI script fixtures on `rt,fs,net`. The report runner requires terminal passes for the selected worker and feature subtest, so a skipped worker or empty selection cannot produce successful large-suite evidence. The certification report includes the hashed large-suite log alongside the other required suites; detailed logs, timelines, JSON and JUnit files are preserved beside it.
+
 ## Scope and supporting records
 
 The design does not include mutable/per-machine feature sets, concurrent independent engines, native scheduling with virtual fs/net, external provider plugins, extra host platforms, non-Linux simulation, automatic worker bootstrap, or repairs to the documented HTTP/gRPC and syscall-model gaps.

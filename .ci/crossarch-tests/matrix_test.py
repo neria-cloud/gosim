@@ -80,7 +80,7 @@ class MatrixTests(unittest.TestCase):
             report = {"identity": {"toolchain": job["patch"], "host_os": "darwin", "host_arch": "arm64",
                                    "features": ["rt"], "race": False, "translator_digest": "source"},
                       "execution_mode": "native", "container_image_digest": "", "result_digest": "result", "suites": []}
-            for name in ["build", "execute", "native", "boundaries", "native-units"]:
+            for name in ["build", "execute", "native", "large", "native-units"]:
                 (root / (name + ".log")).write_text(name)
                 report["suites"].append({"name": name, "passed": True, "log_digest": hashlib.sha256(name.encode()).hexdigest()})
             path = root / "report.json"
@@ -89,6 +89,17 @@ class MatrixTests(unittest.TestCase):
             report["result_digest"] = hashlib.sha256(json.dumps(canonical, separators=(",", ":")).encode()).hexdigest()
             path.write_text(json.dumps(report))
             matrix.validate_evidence(root, job, "native", "")
+            report["validation_only"] = True
+            path.write_text(json.dumps(report))
+            with self.assertRaisesRegex(RuntimeError, "ordinary validation"):
+                matrix.validate_evidence(root, job, "native", "")
+            del report["validation_only"]
+            large = next(suite for suite in report["suites"] if suite["name"] == "large")
+            report["suites"].remove(large)
+            path.write_text(json.dumps(report))
+            with self.assertRaisesRegex(RuntimeError, "mandatory suites"):
+                matrix.validate_evidence(root, job, "native", "")
+            report["suites"].append(large)
             report["suites"].pop()
             path.write_text(json.dumps(report))
             with self.assertRaises(RuntimeError):

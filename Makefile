@@ -18,7 +18,7 @@ test-unit: ## Run uncached local native and simulation tests with persistent rep
 test: test-unit ## Run local tests; no cross-architecture jobs, Docker, Colima or VMs
 
 test-large: ## Run expensive candidate, translation and CLI suites with persistent reports
-	@python3 -B scripts/test_report.py large --reports-dir "$(TEST_REPORTS_DIR)" --parallel=$(UNIT_PARALLEL) --packages=$(UNIT_PACKAGES)
+	@python3 -B scripts/test_report.py large --reports-dir "$(TEST_REPORTS_DIR)" --parallel=$(UNIT_PARALLEL) --packages=$(UNIT_PACKAGES) $(if $(LARGE_TUPLE),--tuple="$(LARGE_TUPLE)" --go="$(LARGE_GO)") $(if $(filter 1,$(LARGE_RACE)),--race)
 
 test-unit-race: ## Run the local race suite for final verification
 	@python3 -B scripts/test_report.py unit --race --reports-dir "$(TEST_REPORTS_DIR)" --parallel=$(UNIT_PARALLEL) --packages=$(UNIT_PACKAGES)

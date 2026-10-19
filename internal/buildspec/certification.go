@@ -21,6 +21,7 @@ type SuiteResult struct {
 
 type CertificationReport struct {
 	Schema               int           `json:"schema"`
+	ValidationOnly       bool          `json:"validation_only,omitempty"`
 	Tuple                Tuple         `json:"tuple"`
 	Identity             Identity      `json:"identity"`
 	ExecutionMode        string        `json:"execution_mode"`
@@ -81,8 +82,11 @@ func ValidateReport(report CertificationReport) error {
 			return fmt.Errorf("missing required suite %s", name)
 		}
 	}
+	if !report.ValidationOnly && !seen["large"] {
+		return fmt.Errorf("missing required large suite; ordinary validation cannot certify a tuple")
+	}
 	if len(id.Features) < 3 {
-		for _, name := range []string{"boundaries", "native-units"} {
+		for _, name := range []string{"native-units"} {
 			if !seen[name] {
 				return fmt.Errorf("missing reduced-feature suite %s", name)
 			}

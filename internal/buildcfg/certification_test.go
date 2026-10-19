@@ -12,7 +12,7 @@ func certificationFixture(t *testing.T) (buildspec.Identity, spec.Profile, build
 	t.Helper()
 	id := fixtureIdentity()
 	report := buildspec.CertificationReport{Schema: 1, Identity: id, Tuple: buildspec.TupleFor(id), ExecutionMode: "native", WorkerArch: id.HostArch}
-	for _, name := range []string{"build", "execute", "native"} {
+	for _, name := range []string{"build", "execute", "native", "large"} {
 		report.Suites = append(report.Suites, buildspec.SuiteResult{Name: name, Passed: true, LogDigest: buildspec.Hash([]byte(name))})
 	}
 	report.ResultDigest, _ = buildspec.ReportDigest(report)
@@ -30,7 +30,7 @@ func TestCertificationRejectsFalseStaleAndIncompleteEvidence(t *testing.T) {
 	if err != nil || accepted.Certification != "certified" || accepted.EvidenceDigest != report.ResultDigest {
 		t.Fatal(accepted, err)
 	}
-	for _, name := range []string{"pending", "missing", "source", "failed", "incomplete", "tampered", "worker", "image", "tuple", "identity"} {
+	for _, name := range []string{"pending", "missing", "source", "failed", "incomplete", "tampered", "worker", "image", "tuple", "identity", "validation-only", "large-skipped"} {
 		t.Run(name, func(t *testing.T) {
 			id, p, r := certificationFixture(t)
 			reports := []buildspec.CertificationReport{r}
@@ -55,6 +55,14 @@ func TestCertificationRejectsFalseStaleAndIncompleteEvidence(t *testing.T) {
 				r.ContainerImageDigest = "sha256:" + strings.Repeat("a", 64)
 			case "tuple":
 				r.Tuple.Race = !r.Tuple.Race
+			case "validation-only":
+				r.ValidationOnly = true
+				r.ResultDigest, _ = buildspec.ReportDigest(r)
+				p.Tuples[0].ResultDigest = r.ResultDigest
+			case "large-skipped":
+				r.Suites = r.Suites[:3]
+				r.ResultDigest, _ = buildspec.ReportDigest(r)
+				p.Tuples[0].ResultDigest = r.ResultDigest
 			case "identity":
 				r.Identity.TranslatorDigest = strings.Repeat("b", 64)
 			}
@@ -92,7 +100,7 @@ func TestReducedReportRequiresApplicableNativeAndBoundarySuites(t *testing.T) {
 	if err := buildspec.ValidateReport(report); err == nil {
 		t.Fatal("reduced tuple accepted without boundary checks")
 	}
-	report.Suites = append(report.Suites, buildspec.SuiteResult{Name: "boundaries", Passed: true, LogDigest: buildspec.Hash([]byte("boundaries"))})
+	report.ValidationOnly = true
 	report.ResultDigest, _ = buildspec.ReportDigest(report)
 	if err := buildspec.ValidateReport(report); err == nil {
 		t.Fatal("reduced tuple omitted runtime/model unit suites")

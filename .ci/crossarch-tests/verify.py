@@ -71,7 +71,8 @@ def main():
     evidence.write_text(json.dumps(record, indent=2) + "\n")
     print("verification:", output, flush=True)
     env = dict(os.environ, GOTOOLCHAIN=patch, GOENV="off", PYTHONDONTWRITEBYTECODE="1",
-               GOMAXPROCS=str(concurrency), GOSIM_TEST_LARGE="1" if args.large else "0")
+               GOMAXPROCS=str(concurrency), GOSIM_TEST_LARGE="1" if args.large else "0",
+               GOSIM_LARGE_TUPLE="")
     goroot = subprocess.check_output(["go", "env", "GOROOT"], env=env, text=True).strip()
     go = str(Path(goroot) / "bin/go")
     env.update(GOTOOLCHAIN="local", PATH=str(Path(go).parent) + os.pathsep + env["PATH"])

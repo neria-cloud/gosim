@@ -186,6 +186,39 @@ class ReportTest(unittest.TestCase):
         for filename in ("report.md", "timeline.json", "events.json", "library-root.xml"):
             self.assertTrue((run.directory / filename).is_file(), filename)
 
+    def test_tuple_large_selection_does_not_repeat_sweeps(self):
+        import argparse
+        for features in ("rt", "rt,fs", "rt,net", "rt,fs,net"):
+            options = argparse.Namespace(suite="large", tuple=features, go="/selected/go",
+                                         parallel=2, packages=2, race=True)
+            [(label, command)] = report.commands(options, [])
+            self.assertEqual(label, "library")
+            self.assertEqual(command[:2], ["/selected/go", "test"])
+            self.assertIn("-race", command)
+            self.assertNotIn("./...", command)
+            self.assertEqual("./internal/translate" in command, features == "rt")
+            self.assertEqual("./internal/tests/script" in command, features == "rt,fs,net")
+            self.assertIn(("internal/candidate", "TestCandidateWorker/" + features),
+                          report.required_large_tests(features))
+
+    def test_required_large_coverage_rejects_skip_and_missing_subtest(self):
+        for outcome in ("pass", "skip", "missing"):
+            with self.subTest(outcome=outcome):
+                run = report.Run("large", self.directory)
+                events = [dict(self.event("start", 0), Package=report.MODULE + "/internal/candidate")]
+                for name in ("TestCandidateWorker", "TestCandidateWorker/rt,fs"):
+                    if outcome == "missing" and "/" in name:
+                        continue
+                    events += [dict(self.event("run", 1, name), Package=report.MODULE + "/internal/candidate"),
+                               dict(self.event("skip" if outcome == "skip" else "pass", 2, name),
+                                    Package=report.MODULE + "/internal/candidate")]
+                events.append(dict(self.event("pass", 3), Package=report.MODULE + "/internal/candidate"))
+                with patch.object(report.subprocess, "Popen", return_value=FakeProcess(events, 0)):
+                    self.assertEqual(run.command("library", ["fake"]), 0)
+                result = report.require_passes(run, report.required_large_tests("rt,fs"))
+                self.assertEqual(result, int(outcome != "pass"))
+                self.assertEqual(run.finish(result), result)
+
     def test_interruption_marks_running_test_as_error_and_keeps_timeline(self):
         events = [self.event("start", 0), self.event("run", 1, "TestInterrupted")]
 

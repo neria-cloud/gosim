@@ -416,9 +416,54 @@ class Run:
         (self.directory / "timeline.md").write_text("\n".join(lines), encoding="utf-8")
 
 
+def tuple_tests(features):
+    tests = [("internal/candidate", "TestCandidateWorker")]
+    if features == "rt":
+        tests.append(("internal/translate", "TestSelectedTranslationWorker"))
+    if features == "rt,fs,net":
+        tests.append(("internal/tests/script", "TestScript"))
+    return tests
+
+
+def required_large_tests(features):
+    if not features:
+        return [("internal/candidate", "TestCandidate"),
+                ("internal/translate", "TestSelectedTranslation"),
+                ("internal/tests/script", "TestScript")]
+    return tuple_tests(features) + [("internal/candidate", "TestCandidateWorker/" + features)]
+
+
+def require_passes(run, required):
+    missing = []
+    for path, name in required:
+        package = run.packages.get(("library", MODULE + "/" + path))
+        test = package.current.get(name) if package else None
+        if test is None or test.status != "PASS":
+            missing.append(path + ": " + name + " did not pass")
+    if not missing:
+        return 0
+    package = run.package("library", "[coverage]", time.time())
+    message = "Required large coverage missing or skipped: " + "; ".join(missing)
+    package.log.write(message + "\n")
+    package.finish(time.time(), message)
+    package.write(run.directory)
+    run.say(message)
+    return 1
+
+
 def commands(options, extra):
     if extra:
         raise ValueError("extra Go flags are not supported by the complete local gate")
+    if getattr(options, "tuple", ""):
+        tests = tuple_tests(options.tuple)
+        command = [options.go, "test", "-ldflags=-checklinkname=0", "-tags=linkname", "-count=1",
+                   "-timeout=30m", "-json", "-p=" + str(options.packages),
+                   "-parallel=" + str(options.parallel),
+                   "-run=^(" + "|".join(name for _, name in tests) + ")$"]
+        command += ["./" + path for path, _ in tests]
+        if options.race:
+            command.append("-race")
+        return [("library", command)]
     command = [sys.executable, "-B", str(ROOT / ".ci/crossarch-tests/verify.py"),
                "--ordinary", "--json", "--allow-worktree-changes",
                "--concurrency", str(options.parallel * options.packages),
@@ -442,7 +487,12 @@ def main(argv=None):
     parser.add_argument("--parallel", type=int, default=2)
     parser.add_argument("--packages", type=int, default=2)
     parser.add_argument("--race", action="store_true")
+    parser.add_argument("--tuple", choices=("rt", "rt,fs", "rt,net", "rt,fs,net"), default="",
+                        help="internal matrix: use this already-prepared tuple without another sweep")
+    parser.add_argument("--go", default="", help="internal matrix: absolute selected Go executable")
     options = parser.parse_args(argv)
+    if options.tuple and (options.suite != "large" or not Path(options.go).is_absolute()):
+        parser.error("prepared tuple requires the large suite and an absolute Go executable")
     if options.parallel < 1 or options.packages < 1:
         parser.error("parallel and packages must be positive")
     if extra:
@@ -451,11 +501,16 @@ def main(argv=None):
     result = 0
     env = dict(os.environ, GOSIM_TOOLCHAIN=os.environ.get("GOSIM_TOOLCHAIN", "go1.26.9"),
                PYTHONDONTWRITEBYTECODE="1")
+    if options.tuple:
+        env.update(GOSIM_TEST_LARGE="1", GOSIM_LARGE_TUPLE=options.tuple,
+                   GOSIM_CANDIDATE_WORKER="1", GOSIM_TRANSLATION_WORKER="1")
     for module, command in commands(options, extra):
         code = run.command(module, command, env=env)
         result = result or code
         if code == 130:
             break
+    if options.suite == "large":
+        result = result or require_passes(run, required_large_tests(options.tuple))
     return run.finish(result)
 
 

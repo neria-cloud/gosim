@@ -31,6 +31,9 @@ func CertifiedIdentity(id buildspec.Identity, profile spec.Profile, reports []bu
 			if err := buildspec.ValidateReport(report); err != nil {
 				return id, err
 			}
+			if report.ValidationOnly {
+				return id, fmt.Errorf("ordinary validation report lacks certification coverage")
+			}
 			actual, err := buildspec.SourceDigest(report.Identity)
 			if err != nil || actual != source || !buildspec.SameTuple(tuple, report.Tuple) {
 				return id, fmt.Errorf("certification evidence belongs to different sources/tuple")

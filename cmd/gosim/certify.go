@@ -33,6 +33,7 @@ type suiteOptions struct {
 	parallel    int
 	packages    int
 	json        bool
+	large       bool
 }
 
 func runCertificationCommand(command string, args []string) {
@@ -44,6 +45,7 @@ func runCertificationCommand(command string, args []string) {
 	f.IntVar(&suite.parallel, "test-parallel", 0, "parallel native tests per package (zero divides the worker budget)")
 	f.IntVar(&suite.packages, "test-packages", 0, "parallel native packages (zero divides the worker budget)")
 	f.BoolVar(&suite.json, "json", false, "stream Go JSON events for persistent test reports")
+	f.BoolVar(&suite.large, "large", false, "include selected-tuple make test-large coverage for certification")
 	f.StringVar(&options.OutputDir, "output", ".gosim/certification", "evidence output directory")
 	f.StringVar(&options.ExecutionMode, "execution-mode", "native", "native|container-native|container-emulated")
 	f.StringVar(&options.ContainerImageDigest, "image-digest", "", "resolved container image sha256 digest")
@@ -71,7 +73,7 @@ func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (repor
 	if err != nil {
 		return report, err
 	}
-	report = CertificationReport{Schema: 1, Tuple: buildspec.TupleFor(resolved.Identity), Identity: resolved.Identity, ExecutionMode: options.ExecutionMode, WorkerArch: runtime.GOARCH, ContainerImageDigest: options.ContainerImageDigest}
+	report = CertificationReport{Schema: 1, ValidationOnly: !suite.large, Tuple: buildspec.TupleFor(resolved.Identity), Identity: resolved.Identity, ExecutionMode: options.ExecutionMode, WorkerArch: runtime.GOARCH, ContainerImageDigest: options.ContainerImageDigest}
 	if err := buildspec.ValidateExecution(resolved.Identity, runtime.GOARCH, options.ExecutionMode, options.ContainerImageDigest); err != nil {
 		return report, err
 	}
@@ -233,10 +235,14 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	if err != nil {
 		return results, err
 	}
-	cmd.Env = append(cmd.Env, "GOSIM_CONFIG="+configPath, "GOSIMTOOL="+worker)
+	cmd.Env = append(cmd.Env, "GOSIM_CONFIG="+configPath, "GOSIMTOOL="+worker, "GOSIM_TEST_LARGE=0")
 	result, err := runLogged(cmd, dir, "native", stream)
 	results = append(results, result)
 	if err != nil || full {
+		if err == nil && suite.large {
+			result, err = runLargeSuite(cfg, dir, suite)
+			results = append(results, result)
+		}
 		return results, err
 	}
 	units, err := features.NativePackages(cfg.Identity.Features)
@@ -256,18 +262,34 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	if err != nil {
 		return results, err
 	}
-	// Full native testing includes all candidate workers. Reduced certification
-	// also executes its isolated negative, replay and generated-graph checks.
-	args = []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "-timeout=25m", "./internal/candidate", "-run=^TestCandidateWorker$/^" + strings.Join(cfg.Identity.Features, ",") + "$", "-count=1", "-v"}
-	args = append(args, suite.nativeFlags()...)
-	if cfg.Identity.Race {
-		args = append(args, "-race")
+	if suite.large {
+		result, err = runLargeSuite(cfg, dir, suite)
+		results = append(results, result)
 	}
-	cmd = buildcfg.Command(cfg.Toolchain, "", args...)
-	cmd.Env = append(cmd.Env, "GOSIM_CANDIDATE_WORKER=1")
-	result, err = runLogged(cmd, dir, "boundaries", stream)
-	results = append(results, result)
 	return results, err
+}
+
+func runLargeSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (SuiteResult, error) {
+	parallel, packages := max(1, suite.concurrency/2), 2
+	if suite.concurrency == 1 {
+		packages = 1
+	}
+	if suite.parallel > 0 {
+		parallel = suite.parallel
+	}
+	if suite.packages > 0 {
+		packages = suite.packages
+	}
+	race := "0"
+	if cfg.Identity.Race {
+		race = "1"
+	}
+	cmd := exec.Command("make", "test-large", "LARGE_TUPLE="+strings.Join(cfg.Identity.Features, ","),
+		"LARGE_GO="+cfg.Toolchain.Executable, "LARGE_RACE="+race,
+		"UNIT_PARALLEL="+strconv.Itoa(parallel), "UNIT_PACKAGES="+strconv.Itoa(packages),
+		"GOSIM_TOOLCHAIN="+cfg.Identity.Toolchain, "TEST_REPORTS_DIR="+filepath.Join(dir, "test-reports"))
+	cmd.Env = buildcfg.Command(cfg.Toolchain, "").Env
+	return runLogged(cmd, dir, "large")
 }
 
 // Divide one budget between package processes and parallel tests in each

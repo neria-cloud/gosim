@@ -127,9 +127,11 @@ def validate_evidence(directory, job, mode, image):
     observed = (identity["toolchain"], identity["host_os"], identity["host_arch"], identity["features"], identity["race"])
     if observed != requested or report["execution_mode"] != mode or report["container_image_digest"] != image:
         raise RuntimeError("report differs from executed tuple/route")
-    required = {"build", "execute", "native"}
+    if report.get("validation_only", False):
+        raise RuntimeError("ordinary validation report cannot certify a tuple")
+    required = {"build", "execute", "native", "large"}
     if len(identity["features"]) < 3:
-        required |= {"boundaries", "native-units"}
+        required |= {"native-units"}
     seen = set()
     for suite in report["suites"]:
         name = suite["name"]
