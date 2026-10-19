@@ -617,6 +617,14 @@ func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
 		var out InfoResult
 		out = k.runInfo()
 		return controlRouteResult(out, nil)
+	case RouteRequire:
+		p := inv.Args[0].(RequireRequest)
+		var out RequireResult
+		if p.Feature != contracts.RT && p.Feature != contracts.FS && p.Feature != contracts.Net {
+			return Result{}, false, invalidPayload(ctx, "invalid feature")
+		}
+		k.Require(ctx, p.Feature, p.Operation)
+		return controlRouteResult(out, nil)
 	}
 	return Result{}, false, invalidPayload(ctx, "unreachable route")
 }

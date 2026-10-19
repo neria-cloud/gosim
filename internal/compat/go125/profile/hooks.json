@@ -7,6 +7,118 @@
     "owner": "rt"
   },
   {
+    "owner": "kernel",
+    "package": "internal/godebug",
+    "signature": "func(string, func() uint64)",
+    "symbol": "registerMetric",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalGodebug_registerMetric"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/godebug",
+    "signature": "func(func(string) func())",
+    "symbol": "setNewIncNonDefault",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalGodebug_setNewIncNonDefault"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/godebug",
+    "signature": "func(func(string, string))",
+    "symbol": "setUpdate",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalGodebug_setUpdate"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/godebug",
+    "signature": "func(uintptr, unsafe.Pointer, int32) int32",
+    "symbol": "write",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalGodebug_write"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func() int64",
+    "symbol": "runtimeNano",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtimeNano"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(*uint32)",
+    "symbol": "runtime_Semacquire",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_Semacquire"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(*uint32)",
+    "symbol": "runtime_Semrelease",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_Semrelease"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(uintptr) bool",
+    "symbol": "runtime_isPollServerDescriptor",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_isPollServerDescriptor"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(uintptr)",
+    "symbol": "runtime_pollClose",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollClose"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(uintptr) (uintptr, int)",
+    "symbol": "runtime_pollOpen",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollOpen"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(uintptr, int) int",
+    "symbol": "runtime_pollReset",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollReset"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func()",
+    "symbol": "runtime_pollServerInit",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollServerInit"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(uintptr, int64, int)",
+    "symbol": "runtime_pollSetDeadline",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollSetDeadline"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(uintptr)",
+    "symbol": "runtime_pollUnblock",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollUnblock"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(uintptr, int) int",
+    "symbol": "runtime_pollWait",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollWait"
+  },
+  {
+    "owner": "kernel",
+    "package": "internal/poll",
+    "signature": "func(uintptr, int)",
+    "symbol": "runtime_pollWaitCanceled",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollWaitCanceled"
+  },
+  {
     "package": "internal/race",
     "symbol": "Acquire",
     "signature": "func(unsafe.Pointer)",
@@ -180,6 +292,41 @@
     "signature": "func() uint64",
     "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.MathRandV2_runtime_rand",
     "owner": "rt"
+  },
+  {
+    "owner": "kernel",
+    "package": "os",
+    "signature": "func() error",
+    "symbol": "checkClonePidfd",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_checkClonePidfd"
+  },
+  {
+    "owner": "kernel",
+    "package": "os",
+    "signature": "func() []string",
+    "symbol": "runtime_args",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_runtime_args"
+  },
+  {
+    "owner": "kernel",
+    "package": "os",
+    "signature": "func(int)",
+    "symbol": "runtime_beforeExit",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_runtime_beforeExit"
+  },
+  {
+    "owner": "kernel",
+    "package": "os",
+    "signature": "func() uint64",
+    "symbol": "runtime_rand",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_runtime_rand"
+  },
+  {
+    "owner": "kernel",
+    "package": "os",
+    "signature": "func()",
+    "symbol": "sigpipe",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_sigpipe"
   },
   {
     "package": "runtime",
@@ -635,6 +782,34 @@
     "signature": "func()",
     "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_runtime_procUnpin",
     "owner": "rt"
+  },
+  {
+    "owner": "kernel",
+    "package": "syscall",
+    "signature": "func() int",
+    "symbol": "Getpagesize",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_Getpagesize"
+  },
+  {
+    "owner": "kernel",
+    "package": "syscall",
+    "signature": "func(string, string)",
+    "symbol": "runtimeSetenv",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtimeSetenv"
+  },
+  {
+    "owner": "kernel",
+    "package": "syscall",
+    "signature": "func(string)",
+    "symbol": "runtimeUnsetenv",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtimeUnsetenv"
+  },
+  {
+    "owner": "kernel",
+    "package": "syscall",
+    "signature": "func() []string",
+    "symbol": "runtime_envs",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_envs"
   },
   {
     "package": "time",

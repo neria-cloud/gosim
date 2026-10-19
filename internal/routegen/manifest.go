@@ -92,7 +92,7 @@ func allowedType(typ string) bool {
 		"int", "int64", "uint8", "uint32", "uint64", "uintptr", "bool", "string", "[]string", "[4]byte", "func()",
 		"abi.ByteView", "abi.ValueView[contracts.Lock]", "contracts.MachineRef", "contracts.StopKind", "contracts.Stat", "contracts.Address",
 		"contracts.FSConfig", "contracts.FSFaultConfig", "contracts.InodeInfo", "contracts.NetConfig", "contracts.NetLink", "contracts.NetLinkPolicy",
-		"ProcessInfo", "ExitRecord", "State",
+		"ProcessInfo", "ExitRecord", "State", "contracts.Feature",
 	}, typ)
 }
 

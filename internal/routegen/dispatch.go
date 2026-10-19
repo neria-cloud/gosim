@@ -130,7 +130,9 @@ return syscallRouteResult(out,err)
 					b.WriteString("if p.SnapshotRunID!=p.Machine.RunID {return controlRouteResult(out,contracts.ErrWrongRun)}\n")
 				}
 			}
-			if r.Name == "Info" {
+			if r.Name == "Require" {
+				b.WriteString("if p.Feature!=contracts.RT && p.Feature!=contracts.FS && p.Feature!=contracts.Net {return Result{},false,invalidPayload(ctx,\"invalid feature\")}\nk.Require(ctx,p.Feature,p.Operation)\nreturn controlRouteResult(out,nil)\n")
+			} else if r.Name == "Info" {
 				b.WriteString("out=k.runInfo()\nreturn controlRouteResult(out,nil)\n")
 			} else {
 				if method == "State" {

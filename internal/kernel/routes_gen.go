@@ -10,7 +10,7 @@ import (
 )
 
 const RouteSchema = 1
-const RouteSchemaDigest = "eaf198a3ba220ac5da7c3d3a3d1002c28b9a75e3667e42464ca619d6d29d861d"
+const RouteSchemaDigest = "662687a24ea0d974d6f0c995a7e4bd66e92180110933d9395368fccb60c791a7"
 const (
 	RouteRead                RouteID = 1
 	RouteWrite               RouteID = 2
@@ -81,6 +81,7 @@ const (
 	RouteNetSetConnectivity  RouteID = 67
 	RouteSetTimeout          RouteID = 68
 	RouteInfo                RouteID = 69
+	RouteRequire             RouteID = 70
 )
 
 type ReadRequest struct {
@@ -1306,6 +1307,23 @@ func DecodeInfoResult(r Result) (InfoResult, error) {
 	return decodeRouteResult[InfoResult](r, RouteInfo)
 }
 
+type RequireRequest struct {
+	Feature   contracts.Feature
+	Operation string
+}
+type RequireResult struct {
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p RequireRequest) Invocation() Invocation {
+	return Invocation{Route: RouteRequire, Args: [5]any{p}}
+}
+
+func DecodeRequireResult(r Result) (RequireResult, error) {
+	return decodeRouteResult[RequireResult](r, RouteRequire)
+}
+
 func decodeRouteResult[T any](r Result, route RouteID) (T, error) {
 	var zero T
 	if r.R0 != 0 || r.R1 != 0 {
@@ -1632,6 +1650,10 @@ func validateRoutePayload(inv *Invocation) error {
 		}
 	case RouteInfo:
 		if _, ok := inv.Args[0].(InfoRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteRequire:
+		if _, ok := inv.Args[0].(RequireRequest); !ok {
 			return invalidRoutePayload(inv)
 		}
 	default:

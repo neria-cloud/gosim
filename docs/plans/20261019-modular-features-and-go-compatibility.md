@@ -365,6 +365,22 @@ The original generator is 892 lines, existing temporary decoders are approximate
 - [ ] Implement source-audited runtime/kernel initialization responses, environment/debug behavior and the IPv4 TCP capability probe identified by Task 13.2, without blanket success or host fallback.
 - [ ] Verify byte-identical regeneration, missing/signature/layout drift failures, amd64 build/executed probes as available, and common gate; finish parent Task 14 checks, log and commit before Task 15.
 
+### Task 14.3.1: Kernel initialization and adapter transport foundation
+
+**Parent:** Task 14.3. **Dependency:** 14.2. **Budget:** 1,000–2,500 changed lines.
+**References:** T§7 routing; T§8 version hooks; Task 13.2 named initialization audit.
+
+- [x] Implement version-owned process/environment/debug/poll hooks, a typed pre-marshalling feature gate, standard-descriptor F_GETFL and the TCP protocol-6 probe.
+- [x] Verify exact source declarations, initialization and transport behavior, disabled-feature rejection and ordinary/race suites; run common gate, log and commit.
+
+### Task 14.3.2: Complete generated Go 1.25 amd64 syscall adapters
+
+**Parent:** Task 14.3; completes its remaining requirements. **Dependency:** 14.3.1. **Budget:** 3,000–4,900 changed lines.
+**References:** T§7 Stat/Lock/Address; T§8/9 exact source ABI generation.
+
+- [ ] Generate complete amd64 syscall wrappers and layouts with source/signature/layout verification, explicit capabilities and pointer/integer separation.
+- [ ] Verify byte-identical scoped regeneration, ABI drift failures, executed amd64 probes when available and common gate; finish parent checks, log and commit.
+
 ### Task 15: Generate and verify Go 1.25 arm64 adapters
 
 **Files:** CREATE go125 arm64 kernel/fs/net hook outputs; UPDATE arch layout assertions and generation fixtures.  

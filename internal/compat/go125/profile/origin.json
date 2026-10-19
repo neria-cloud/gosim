@@ -26,6 +26,10 @@
       "digest": "cd492e76ae63872ac4310fc09b2e097229588dbf114d14d713be3f027b0233c8"
     },
     {
+      "path": "src/internal/poll/fd_mutex.go",
+      "digest": "502e550cdb75eb912ef432f7559cb552ce6bd704e3f2bebaedeed859402c82d8"
+    },
+    {
       "path": "src/internal/poll/fd_poll_runtime.go",
       "digest": "88fda43019c5dcf42545effdebd1747aaea377560dd041a35df8499538ee07c5"
     },
@@ -104,6 +108,10 @@
     {
       "path": "src/os/proc.go",
       "digest": "54ed65b25fe5251adb4b7799117f38ba0b2176610f2d21b333a7a5745e988200"
+    },
+    {
+      "path": "src/os/tempfile.go",
+      "digest": "1df8cde8a616f7d1317ec561c7a2a01c4a179b82d5eae0776bad75cb021aaefa"
     },
     {
       "path": "src/reflect/deepequal.go",

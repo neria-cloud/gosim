@@ -190,6 +190,16 @@ func (k *Kernel) FcntlInt(ctx contracts.CallContext, fd, command, argument int) 
 	}
 	k.Require(ctx, resource.Owner(), "fcntl")
 	switch resource.Owner() {
+	case contracts.RT:
+		// Linux F_GETFL during os standard-file initialization. No native poller.
+		if fd >= 0 && fd <= 2 && command == 3 && argument == 0 {
+			if fd == 0 {
+				return 0, nil
+			}
+			return 1, nil
+		}
+		k.AbortRun(contracts.Diagnostic{Kind: string(contracts.UnsupportedOperation), Feature: "rt", Operation: "fcntl", Epoch: ctx.Epoch, PC: ctx.PC, Message: "unsupported diagnostic descriptor command"})
+		return 0, contracts.ErrInvalidState
 	case contracts.FS:
 		if run.bindings.Files == nil {
 			k.invariant("filesystem descriptor has no service")

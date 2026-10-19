@@ -544,3 +544,19 @@ Verified
 - Exact go1.25.14 ordinary/race transport, kernel, runtime, generator and compatibility suites passed: `.gosim/task14/transport-ordinary125.log`, `.gosim/task14/transport-race125.log`. Repeated generation/source checks pass.
 - Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed with ordinary/race/script suites: `.gosim/task14.2-gate.log`. No target architecture edits or new certification. Child 14.3 still owns Linux adapter layouts and initialization responses.
 - Final Task 14.2 size: 2,111 changed lines (1,592 additions + 519 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 14.3.1 — Go 1.25 initialization and adapter transport foundation
+Date: 2026-10-19. Previous task commit: `3aa84b2`. Commit: the Task 14.3.1 implementation commit containing this entry.
+
+Implemented
+- Split 14.3 into buildable children before implementation to keep each commit below 5,000 changed lines. Added version-owned process/environment/debug/poll adapters and exact upstream hook/source/capability records. Process state is translated and machine-local; boot configuration and isolation become reachable through composition in Task 21. Current build debug defaults are empty; no host argv/environment/debug state is inherited.
+- Added stable route 70 Require, used before optional-domain pointer marshalling/local validation. It validates the feature value and uses existing checked control transport; no new central entry point or provider import. Standard live descriptors accept only F_GETFL with zero argument, returning modeled access flags. Net sockets accept explicit TCP protocol 6 as well as 0; IPv6 and UDP remain unsupported.
+- Poll hooks use actual uintptr handle signatures from pinned Go 1.25.14, with no heap pointer disguised as an integer. Checked integer kernel registrations cover wait/reset/deadline/unblock/close; nonpollable open maps to EPERM and invalid descriptors preserve EBADF. Debug callbacks receive real local updates, diagnostic writes use kernel descriptors, and metric registration retains no callback.
+
+Verified
+- Exact go1.25.14 ordinary adapter/source/generator tests pass: `.gosim/task14/init-tests.log`; affected ordinary control/kernel/net suites passed during iteration. Exact-patch race suites pass: `.gosim/task14/init-race.log`, including existing application race oracles.
+- Static Linux amd64 Go 1.25.14 adapter test binary executed successfully via Docker Desktop emulation: `.gosim/task14/init-amd64.log`. This proves the process/poll/kernel adapter probes, not the pending architecture-specific syscall wrappers, translated composition, or certification matrix. Colima context remains unavailable; final matrix still belongs to Task 32.
+- Ordinary native tests share the process global that translation will isolate. Aborted fixture coroutines skip defers; explicit test-only race acquire/release publishes reset state across sequential runs. Production process state retains race instrumentation. Source-origin updates preserve native private-declaration verification records.
+- Complete development `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task14.3.1-gate.log`. Regeneration, source fingerprint check, formatting and whitespace checks pass. Child 14.3.2 retains the full amd64 layout/wrapper/init-resource-limit requirements; no parent completion or certification claimed.
+- Final Task 14.3.1 size: 728 changed lines (718 additions + 10 deletions), including checklist/log; staged whitespace check passed.

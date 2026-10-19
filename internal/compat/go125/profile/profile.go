@@ -20,6 +20,7 @@ func Descriptor() spec.Profile {
 		ID: "go125", Revision: Revision,
 		RuntimePackages: []string{
 			"github.com/neria-cloud/gosim/rt/runtime", "github.com/neria-cloud/gosim/rt/runtime/abi", "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt",
+			"github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel",
 			"github.com/neria-cloud/gosim/internal/compat/go125/shims/reflect",
 			"github.com/neria-cloud/gosim/internal/compat/go125/shims/testing",
 			"github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest",

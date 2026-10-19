@@ -61,7 +61,8 @@ func (i *Instance) Socket(ctx contracts.CallContext, family, flags, protocol int
 	if flags != socketFlags {
 		return 0, syscall.EINVAL
 	}
-	if protocol != 0 {
+	// Linux net capability discovery explicitly passes IPPROTO_TCP.
+	if protocol != 0 && protocol != 6 {
 		return 0, syscall.EPROTONOSUPPORT
 	}
 	return i.allocate(&Socket{instance: i})
