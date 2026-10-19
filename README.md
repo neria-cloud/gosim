@@ -13,27 +13,47 @@ A build explicitly selects one of four feature sets:
 
 Features are fixed for the whole test binary before application initialization. Importing a control package does not enable its feature. Attempting a disabled operation aborts the simulation with a feature, operation, machine/epoch and caller diagnostic, even if application code ignores errors or recovers panics. There is no host filesystem or network fallback.
 
-## Toolchains and certification
+## Go versions and configuration
 
-The initial compatibility matrix contains **Go 1.25.14 and Go 1.26.9**, on **Linux AMD64, Linux ARM64 and Darwin ARM64**, with all four feature sets and race off/on: 48 tuples. The module's Go 1.25 language minimum is separate from this exact-patch policy.
+Gosim supports stable **Go 1.25.* and Go 1.26.*** releases on Linux AMD64,
+Linux ARM64 and Darwin ARM64. The caller uses ordinary Go tooling: `go.mod`,
+`go.work`, and `GOTOOLCHAIN` determine the compiler. Application code does not
+select a Go version, and a new patch within a supported family needs no Gosim
+allowlist entry. Gosim checks the private runtime contracts it uses against the
+selected compiler; an incompatible contract produces an actionable error.
 
-Normal commands require reviewed certification for the selected tuple **and current executable source**. A version-family directory or successful build does not certify a tuple. Status and evidence live in the [go125 profile](internal/compat/go125/profile/tuples.json) and [go126 profile](internal/compat/go126/profile/tuples.json). Pending or stale evidence is rejected. Development uses the candidate workflow below; candidate output never renews or substitutes for certification.
-
-Build the CLI with the same exact patch used for tests:
+Add Gosim to your module, then build the launcher in that module's context:
 
 ```sh
-GOTOOLCHAIN=go1.25.14 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
+go get github.com/neria-cloud/gosim
+go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool github.com/neria-cloud/gosim/cmd/gosim
 ```
 
-For another module, add `github.com/neria-cloud/gosim` as a dependency and build its CLI with that module path instead of `./cmd/gosim`. A worker/toolchain mismatch requires rebuilding with the requested patch; the CLI does not bootstrap another worker automatically.
+In this repository, use `./cmd/gosim` as the build package. The launcher
+selects the caller's Gosim dependency, including workspace and local
+replacements, and automatically builds/caches a worker with the compiler Go
+selected. Switching supported Go patches does not require rebuilding the
+launcher. Help and version commands work without worker bootstrap.
 
-Create `gosim.json` in the module root:
+An optional `gosim.json` selects features, without a compiler pin:
 
 ```json
-{"schema":1,"toolchain":"go1.25.14","features":["rt"],"simulation_os":"linux"}
+{"schema":2,"features":["rt"],"simulation_os":"linux"}
 ```
 
-`-config PATH` or `GOSIM_CONFIG` selects another file. `-go` and `-features` override the corresponding values; a feature override replaces the entire list. Unknown fields, missing selections, unsupported patches/platforms and `fs`/`net` without `rt` are errors. Application source uses Linux syscall definitions; the resulting executable runs on the selected native host platform.
+Without a config file, all three features are enabled and simulation uses the
+Linux source ABI. `-config PATH` or `GOSIM_CONFIG` selects another file;
+`-features` replaces the feature list. `-go` is an optional explicit compiler
+override. Legacy schema-1 files remain explicit overrides with a migration
+warning; remove their `toolchain` field and set `schema` to `2` for automatic
+selection. Unknown fields, unsupported families/platforms and `fs`/`net`
+without `rt` are errors. Prerelease and development compilers are unsupported.
+
+Certification is an optional manual operation. It is neither a CI step nor a
+requirement for normal commands or library use. Missing or stale certification
+never blocks a compatible build. Exact compiler/source identities still isolate
+artifacts and deterministic replay; a family policy does not promise replay
+across different patches.
 
 ## A deterministic test
 
@@ -58,10 +78,10 @@ func TestClock(t *testing.T) {
 }
 ```
 
-On a certified revision:
+Run it with:
 
 ```sh
-./.gosim/gosimtool test -go go1.25.14 -features rt -v -seeds 1-3 -run TestClock .
+./.gosim/gosimtool test -features rt -v -seeds 1-3 -run TestClock .
 ```
 
 Repeating a seed with the same complete build identity and replay revision reproduces the execution. Toolchain, architecture, source, feature, race or approved build-policy changes define another identity. Run IDs protect handles from stale runs and are excluded from deterministic seed/trace derivation. Scheduler, application, filesystem and network randomness use separate owned streams.
@@ -126,17 +146,17 @@ A `net.Link` selects `From`, `To`, and `Forward` or `Both` directions. `SetLinkP
 All build commands share configuration and identity validation:
 
 ```sh
-./.gosim/gosimtool translate -go go1.25.14 -features rt ./package
-./.gosim/gosimtool build-tests -go go1.25.14 -features rt ./package
-./.gosim/gosimtool test -go go1.25.14 -features rt -race -seeds 1-20 ./package
-./.gosim/gosimtool debug -go go1.25.14 -features rt -package ./package -test TestName -seed 1 -step 11
+./.gosim/gosimtool translate -features rt ./package
+./.gosim/gosimtool build-tests -features rt ./package
+./.gosim/gosimtool test -features rt -race -seeds 1-20 ./package
+./.gosim/gosimtool debug -features rt -package ./package -test TestName -seed 1 -step 11
 ```
 
-Debug requires Delve and supports `-headless`. Logging includes machine, goroutine and step information. `rt.SetTimeout` sets the simulation timeout; `rt.Info` reports the actual build identity and certification state. `-simtrace syscall` enables syscall tracing.
+Debug requires Delve and supports `-headless`. Logging includes machine, goroutine and step information. `rt.SetTimeout` sets the simulation timeout; `rt.Info` reports the actual build identity. Its deprecated `Certified` field is false; manual reports remain separate. `-simtrace syscall` enables syscall tracing.
 
-[Metatesting](metatesting/) runs prebuilt simulation workers from native Go tests. Prepare application workers with `build-tests` using the matching patch, features and race mode. `prepare-selftest` additionally prepares this repository’s own native test infrastructure and is run from the Gosim checkout. The runner checks the manifest, contents and versioned handshake before executing. A mismatch reports a rebuild command; it cannot reuse another feature set or a candidate artifact as certified output.
+[Metatesting](metatesting/) runs prebuilt simulation workers from native Go tests. Prepare application workers with `build-tests` using the matching patch, features and race mode. `prepare-selftest` additionally prepares this repository’s own native test infrastructure and is run from the Gosim checkout. The runner checks the manifest, contents and versioned handshake before executing. A mismatch reports a rebuild command; it cannot reuse another feature set or stale source inputs. Native metatests automatically select a matching CLI worker from the Go test process’s compiler. An explicit `GOSIMTOOL` override requires that worker’s matching manifest; unset stale overrides to restore automatic selection.
 
-Artifacts are stored per identity **and package content** at `.gosim/v2/<identity>/packages/<package-digest>/`. Manifests hash the binary and generated files. The SQLite translation cache uses the v2 namespace and treats corrupt entries as observable misses; old cache formats are not decoded.
+Artifacts are stored per identity **and package content** at `.gosim/v2/<identity>/packages/<package-digest>/`. Manifests hash the binary and generated files. The separate CLI worker cache uses `workers/v1/<key>/` under the selected cache root, keyed by exact compiler, Gosim source and worker dependency content. The SQLite translation cache uses the v2 namespace and treats corrupt entries as observable misses; old cache formats are not decoded.
 
 ## Current scope
 
@@ -148,62 +168,73 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 | HTTP/gRPC | Unmodified application stacks are explicitly rejected; the [etcd example](examples/etcd/) demonstrates this boundary |
 | Linux process services | Deterministic getrandom, historical fixed PID and limited uname; full signals/procfs/process behavior is absent |
 | Runtime modes | One active run per process; no native-scheduler virtual-I/O mode, mutable feature sets or runtime provider loading |
-| Additional platforms | Other Go patches, Darwin AMD64, Windows and non-Linux simulated ABIs are not in the initial matrix |
+| Additional platforms | Go families other than 1.25/1.26, Darwin AMD64, Windows and non-Linux simulated ABIs are unsupported |
 
 The reviewed [go125](internal/compat/go125/profile/capabilities.json) and [go126](internal/compat/go126/profile/capabilities.json) capability records distinguish implemented, limited, stub and rejected behavior. The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records remaining application requirements; modularization does not claim to implement them.
 
-## Development and certification
+## Development and test reports
 
-Run ordinary native and simulation checks on the local host with `make test`.
-It uses the pinned Go 1.26.9 toolchain by default and does not start Docker,
-Colima, VMs, cross-architecture jobs, or the full race suite. Independent tests
-run in parallel with two package processes and two parallel tests per package.
-Use `make test UNIT_PACKAGES=2 UNIT_PARALLEL=4` to adjust these limits or
-`make test GOSIM_TOOLCHAIN=go1.25.14` to select the other pinned patch.
-
-Reports are written to `test-reports/unit/<run>/`, with `test-reports/unit/latest/`
-pointing to the latest run. Each run includes `report.md`, a test timeline,
-JSON events, full logs and per-package JUnit XML. `TEST_REPORTS_DIR` selects the
-report directory. Use `make test-race` for the separate local race pass at final
-verification; its reports are under `test-reports/unit-race/`.
-
-`make test-large` opts into the expensive candidate feature sweep, selected
-translation toolchain sweep, and CLI script fixtures. It runs only those suites,
-with their workers launched by the parent tests. They remain skipped in ordinary
-and race runs. Large runs use the same reporting format under
-`test-reports/large/<run>/` and `test-reports/large/latest/`, with the same
-`UNIT_PARALLEL`, `UNIT_PACKAGES`, and `TEST_REPORTS_DIR` settings. No VMs or
-cross-architecture jobs are started.
-
-Local reports describe the isolated source snapshot taken at startup. Edits to
-the working checkout during a run are listed in the command log and verification
-record; they do not invalidate results for that snapshot. Changes inside the
-tested copy still fail verification. The standalone verification entry below
-also rejects changes to the working checkout.
-
-The underlying verification entry also accepts an exact patch:
+Run `make test` for ordinary local native and simulation checks. Go selects the
+compiler normally; `GOSIM_TOOLCHAIN` is an optional explicit override. The runner
+creates an isolated source snapshot and starts no Docker, Colima, VMs or
+cross-architecture jobs. Package and test concurrency default to 2 and 4:
 
 ```sh
-GOSIM_TOOLCHAIN=go1.25.14 ./.ci/verify-step.sh --ordinary
-GOSIM_TOOLCHAIN=go1.26.9 ./.ci/verify-step.sh --ordinary
+make test
+make test UNIT_PACKAGES=2 UNIT_PARALLEL=4
+make test GOSIM_TOOLCHAIN=go1.26.9
 ```
 
-`./test.sh` runs the complete ordinary/race gate (default patch `go1.26.9`). Reserve the full race pass for final verification during this implementation plan. Verification makes a private copy, checks identical executable inputs, and marks only that copy's existing tuples pending. The original checkout's status/evidence stays unchanged. This also supports testing source edits after a release without weakening the normal CLI or the pending-only candidate selector. Independent copies allow both patches to run concurrently.
+Run `make test-race` and `make test-large` only when explicitly instructed to run
+and check those suites. They are separate opt-in commands. `make test-large`
+runs the candidate feature cases, selected-compiler translation checks and CLI
+script fixtures; it does not repeat other toolchains or silently enable race
+instrumentation. `make test-report-tools` checks reporting/orchestration without
+running the library suites.
 
-On an already pending checkout, focused simulation checks can use the matching CLI's `internal-candidate test` command. Those builds are visibly candidate output. The internal `certify` command records ordinary validation by default; such reports cannot promote support. The authorized certification matrix supplies `-large`, which invokes `make test-large` on the prepared tuple and requires actual passes for its boundary/replay checks. This mode does not repeat the positive suites or sweep other feature sets/toolchains. Translation cache checks run on the runtime-only tuple; CLI scripts run on the full-feature tuple. Promotion remains a separate reviewed step after all required executions.
+| Command | Latest report directory |
+| --- | --- |
+| `make test` | `test-reports/unit/latest/` |
+| `make test-race` | `test-reports/unit-race/latest/` |
+| `make test-large` | `test-reports/large/latest/` |
 
-The final matrix runner verifies observed architectures, pins Docker image digests, retains logs and artifacts, and shares the available CPU and memory budget between concurrent tuples and their test workers. `--jobs` caps the tuple count:
+Each run is retained under `test-reports/<suite>/<run>/`. Read `report.md` for
+pass/fail/error/skip totals, `timeline.md` or `timeline.json` for duration and
+parallel execution, and per-package `.log` files for failure details. Reports
+also retain raw events, JSON, JUnit XML and command logs. `TEST_REPORTS_DIR`
+changes the report root. Skips are reported separately from passes.
 
-```sh
-./.ci/crossarch-tests/run-matrix.sh --platform all --dry-run
-./.ci/crossarch-tests/run-matrix.sh --native --platform darwin/arm64 --toolchains go1.25.14,go1.26.9 --jobs 2 --output .gosim/certification/darwin-arm64
-./.ci/crossarch-tests/run-matrix.sh --context colima --platform linux/amd64 --toolchains go1.25.14,go1.26.9 --output .gosim/certification/linux-amd64
-./.ci/crossarch-tests/run-matrix.sh --context colima --platform linux/arm64 --toolchains go1.25.14,go1.26.9 --output .gosim/certification/linux-arm64
-```
+Results describe the startup source snapshot. Working-checkout edits during a
+reported run are recorded without invalidating that snapshot; mutations inside
+the tested copy fail verification. Snapshot details live under
+`.gosim/verification/<patch>/gate-*/verification.json`. The standalone
+`./.ci/verify-step.sh --ordinary` also rejects checkout changes. `./test.sh`
+defaults to ordinary verification; `./test.sh --race` explicitly selects race.
+Neither path invokes certification or rewrites profile evidence.
 
-Each platform expands to 16 tuples. `--smoke` executes one ordinary rt tuple and is not full certification. Colima routes require a Darwin ARM64 host; Linux CI uses `--native` on its actual architecture. On this workstation, the existing ARM64 VZ VM uses Rosetta for AMD64 execution, recorded as `container-emulated`. QEMU failed the pinned compiler smoke test. The runner does not recreate VMs or change their configuration.
+CI runs ordinary native tests and reporting checks on ARM64 Linux/Darwin with
+Go family selectors, and uploads `test-reports`. It has no certification step.
 
-Generated adapters use `cmd/gosim-gen` with explicit toolchain/profile/architecture flags; `task go-generate` runs both families and the filesystem model's stringer. Run `python3 -B -m unittest discover -s .ci/crossarch-tests -p '*_test.py'` for the matrix orchestration checks. Promotion requires reviewed successful reports for every required tuple against the final source; later source changes invalidate that evidence.
+## Generation and manual certification
+
+Generation baselines are reproducible provenance, not caller compiler pins.
+`cmd/gosim-gen` uses explicit toolchain/profile/architecture flags; `-check`
+reproduces the recorded baseline without modifying files. An intentional
+`-refresh-origin` validates contracts before recording a different baseline.
+`task go-generate` generates adapters and filesystem-model stringer output.
+
+Manual certification is independent of tests and CI. Its matrix defaults to
+Go 1.25.14 and Go 1.26.9 on Linux/Darwin ARM64, with four feature sets and no race
+instrumentation (16 tuples). `--toolchains` can select other stable supported
+patches; these defaults are not an admission list. AMD64 and race certification
+remain disabled at scheduler, worker and command boundaries.
+
+An explicitly requested manual run uses `run-matrix.sh --native --platform
+OS/arm64`, or `--context colima --platform linux/arm64` from Darwin ARM64. It
+requires complete selected-tuple large coverage and records exact source,
+compiler, observed architecture, image metadata and logs. Such a report never
+changes library usability or promotes a pending tuple. No normal command
+invokes this matrix.
 
 See [the architecture](docs/design.md), [examples](examples/), and [nemesis](nemesis/) for implementation details and supported scenarios.
 

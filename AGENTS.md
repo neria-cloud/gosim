@@ -25,7 +25,7 @@ or invoke a matrix to bypass this restriction.
 | --- | --- | --- |
 | `make test` | Ordinary local tests; expensive suites remain skipped | `test-reports/unit/latest/` |
 | `make test-race` | Local race suite; requires explicit instruction | `test-reports/unit-race/latest/` |
-| `make test-large` | Candidate feature sweep, selected-translation toolchain sweep, and CLI script fixtures; requires explicit instruction | `test-reports/large/latest/` |
+| `make test-large` | Candidate feature sweep, selected-compiler translation checks, and CLI script fixtures; requires explicit instruction | `test-reports/large/latest/` |
 | `make test-report-tools` | Reporting and orchestration unit checks | Terminal output |
 
 Each reported run is preserved in `test-reports/<suite>/<run>/`; `latest` points
@@ -52,8 +52,8 @@ entry also rejects changes to the working checkout.
 ### Lower-level commands
 
 ```sh
-# Build an exact worker; retain linkname flags.
-GOTOOLCHAIN=go1.25.14 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
+# Build the independent launcher; retain linkname flags.
+go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
 
 # Complete ordinary checks in a private source-matched copy.
 GOSIM_TOOLCHAIN=go1.25.14 ./.ci/verify-step.sh --ordinary
@@ -66,8 +66,8 @@ GOSIM_TOOLCHAIN=go1.26.9 ./test.sh --race
 # Focused native checks.
 GOTOOLCHAIN=go1.25.14 go test -ldflags=-checklinkname=0 -tags=linkname ./internal/kernel ./internal/contracts
 
-# Focused simulation checks with a matching worker.
-./.gosim/gosimtool internal-candidate test -go go1.25.14 -features rt,fs,net -seeds 1-20 -run TestName ./internal/tests/integration
+# Focused simulation checks; the launcher selects a matching worker.
+./.gosim/gosimtool test -features rt,fs,net -seeds 1-20 -run TestName ./internal/tests/integration
 
 # Formatting and orchestration checks.
 ./.ci/gofmt check
@@ -77,7 +77,7 @@ python3 -B -m unittest discover -s .ci/crossarch-tests -p '*_test.py'
 
 The verification entry creates an isolated copy and verifies equal executable inputs without rewriting status/evidence metadata. It runs only the selected ordinary or race mode; no certification report is produced. Independent copies keep concurrent patches from overwriting selftest artifacts. Final verification does not override the explicit-instruction requirement for race and large suites.
 
-Do not run bare native `go test ./...` against stale or missing prebuilt simulation workers. Metatesting requires matching patch/features/race manifests and a matching CLI. `build-tests` and `prepare-selftest` use the same explicit build selection; the verification entry handles preparation.
+Do not run bare native `go test ./...` against stale or missing prebuilt simulation workers. Metatesting requires matching patch/features/race manifests and an automatically selected matching CLI worker. `build-tests` and `prepare-selftest` use the same explicit build selection; the verification entry handles preparation.
 
 ## Architecture
 
@@ -92,8 +92,10 @@ Do not run bare native `go test ./...` against stale or missing prebuilt simulat
 | `internal/net`, `internal/net/model` | Network provider and TCP/fault algorithms |
 | `internal/compat/go125`, `internal/compat/go126` | Version-owned hooks, shims, host ABI and profile metadata |
 | `internal/hostabi`, `internal/compat/selected` | Compile-time selection; unsupported families fail |
+| `cmd/gosim`, `internal/workerboot` | Independent launcher and caller-selected worker bootstrap/cache |
+| `cmd/gosim-worker`, `internal/gosimcli` | Direct native worker and command implementation |
 | `internal/compose`, `internal/translate` | Selected composition before package loading, then language translation |
-| `internal/buildspec`, `internal/buildcfg`, `internal/buildrun`, `internal/gosimtool` | Host build identities, pinned compilers, cache and artifact handling |
+| `internal/buildspec`, `internal/buildcfg`, `internal/buildrun`, `internal/gosimtool` | Host build identities, resolved compilers, cache and artifact handling |
 | `internal/tests/{rt,fs,net,integration}`, `nemesis`, `examples` | Applicable positive suites; full integration needs all features |
 
 The four valid immutable feature sets are `rt`, `rt,fs`, `rt,net`, `rt,fs,net`. Kernel/contracts/public controls cannot import concrete providers; providers cannot import each other. The old `gosimruntime` import path, monolithic `internal/simulation`, old hook trees and shared compatibility shims have been removed.
@@ -119,7 +121,7 @@ GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -
 ./.ci/crossarch-tests/run-matrix.sh --platform all --dry-run
 ```
 
-Omit `-check` only when intentionally regenerating adapters. Run `go run ./internal/compat/genprofile` when version-owned source/facade inputs change. The filesystem model's separate stringer generation remains supported.
+These exact versions are recorded generation baselines, not caller requirements. Omit `-check` only when intentionally regenerating adapters; `-refresh-origin` validates contracts before updating baseline provenance. Run `go run ./internal/compat/genprofile` when version-owned source/facade inputs change. The filesystem model's separate stringer generation remains supported.
 
 Explicit manual certification currently defaults to 16 tuples: 2 exact patches × 2 ARM64 host tuples (Linux and Darwin) × 4 feature sets, without race instrumentation. CI runs ordinary native tests and publishes `test-reports`; it never invokes certification. AMD64 and race certification remain disabled in the manual matrix runner and certification workers/commands. Ordinary validation and explicitly requested race tests remain available; they do not certify these excluded tuples. Use `run-matrix.sh --native --platform OS/arm64` on an actual matching native worker. The Colima route uses `--context colima --platform linux/arm64` from Darwin ARM64. Preserve observed architecture and image metadata. The runner copies artifacts through Docker's API and does not recreate the VM. Historical AMD64/race evidence does not authorize new certification jobs.
 

@@ -16,6 +16,8 @@ The root API owns machine lifecycle. `fs`, `net`, and `rt` own their public cont
 | `internal/kernel` | Translated lifecycle coordinator, dispatcher, descriptor table, polling and process services |
 | `internal/fs`, `internal/fs/model` | Filesystem provider, persistent state, snapshots and storage algorithms |
 | `internal/net`, `internal/net/model` | Network provider, addressing, topology, sockets and packet/fault algorithms |
+| `cmd/gosim`, `internal/workerboot` | Independent launcher, caller source/compiler discovery and automatic cached worker bootstrap |
+| `cmd/gosim-worker`, `internal/gosimcli` | Direct native worker, protocol validation and commands |
 | `internal/compose` | Generates the selected provider/hook composition before package loading |
 | `internal/translate` | AST transformations, selected policies and translation cache |
 | `internal/buildspec`, `internal/buildcfg`, `internal/buildrun`, `internal/gosimtool` | Host configuration, identities, toolchain validation, builds and artifact handling |
@@ -114,7 +116,7 @@ Packets include destination epochs and connection generations. Queue order and d
 
 The support registry accepts stable Go 1.25.* / go125 and Go 1.26.* / go126 releases on linux/amd64, linux/arm64 and darwin/arm64, with four feature sets and independently selected race instrumentation. Go tooling resolves the compiler in the caller's context. Family source selection remains a compile-time boundary; exact compiler and source fingerprints distinguish artifacts.
 
-Each family owns hooks split by rt/kernel/fs/net, replacement shims, native ABI, source origins, private layouts, module pins and capability/policy manifests. Generation reads the pinned compiler and x/sys declarations for both Linux architectures; it rejects missing or changed required symbols and verifies generated output. The old hook/shared-shim trees and retired generation path are absent.
+Each family owns hooks split by rt/kernel/fs/net, replacement shims, native ABI, source origins, private layouts, module pins and capability/policy manifests. Generation reads a recorded baseline compiler and x/sys declarations for both Linux source architectures; it rejects missing or changed required symbols and verifies generated output. Baseline origin and adapter records describe generation provenance, not a caller admission list. Ordinary builds check actual hook signatures, layouts and constants against family contracts, with successful checks cached by compiler/source content. Adding a family requires its registry/catalog entries, compile-time adapters, contracts and representative native tests, not a per-patch checksum ledger. The old hook/shared-shim trees and retired generation path are absent.
 
 Package policies distinguish translated code, reviewed native-pure helpers, explicit bridges and rejected packages. Host compiler/runner networking is separate from simulated application imports. Disabled-feature wrappers remain linkable but enter the fatal feature gate and import no disabled model. Application recovery cannot convert that abort into success.
 
@@ -122,7 +124,11 @@ Unmodified HTTP/gRPC/crypto stacks with known translation gaps remain explicitly
 
 ## Build, cache and artifact identities
 
-All commands share strict `gosim.json` loading and `-config`/`GOSIM_CONFIG`, `-go`, `-features`, and `-race` semantics. Features are a complete replacement override. Unknown fields, unapproved build environment/flags, unsupported workers and mismatched exact patches fail. Commands use the validated executable directly; normal CLI execution does not bootstrap another toolchain worker.
+The optional schema-2 `gosim.json` contains features and simulation_os only; its absence selects rt/fs/net and Linux. All commands share `-config`/`GOSIM_CONFIG`, optional explicit `-go`, `-features`, and `-race` semantics. Schema-1 compiler selections remain deprecated explicit overrides. Features are a complete replacement override. Unknown fields, unapproved build flags, unsupported families and incompatible contracts fail.
+
+The family-independent launcher asks Go tooling to resolve the caller module/workspace compiler and Gosim dependency, including replacements. It freezes the selected executable and constructs a content-keyed native worker cache under `workers/v1`. The key binds exact compiler/stdlib, source, worker dependency graph, platform and build protocol. Per-key cancellable locks, rechecks, private staging and atomic publication permit concurrent reuse. Binary hashes, build metadata and a bounded handshake validate cache hits. A private invocation file conveys the resolved context; the worker revalidates it before command execution. Cancellation signals and reaps owned process groups. There is no install-time Gosim-source fallback.
+
+Application loading retains the original module/workspace context. Generated composition, contract inspection and translated output use private modules with GOWORK off, preserving the original graph roots and selected replacements. Graph comparison rejects upgrades, missing dependencies and extra dependencies before compilation. This respects Go's pruned graph without promoting every transitive dependency to a direct root. Caller go.mod/go.sum/go.work files are not rewritten by these private builds.
 
 Identity includes exact toolchain/stdlib fingerprints, selected profile and adapter revision, runtime/provider revisions, translated input sources, module graph, host and simulated platform, features, race/tags and approved debug policy. Every framework source/test/script input participates in the executable-source fingerprint; documentation, `.git`, `.gosim`, and the designated status/evidence files are excluded. Certification metadata is independent of executable identity and cannot gate ordinary use. Application module-graph differences still separate artifacts.
 
@@ -141,7 +147,7 @@ This per-package path resolves the planning clarification that one identity dire
 
 ## Metatesting and certification
 
-Native metatests use identity/package-specific prebuilt workers. The versioned handshake validates content and the concrete compiler before execution; children and forwarded stderr are owned and reaped. Rebuild diagnostics name the matching configuration. Certification status does not enter artifact identity.
+Native metatests freeze their running test process’s compiler and automatically obtain a matching CLI worker from the caller-selected Gosim source. They use identity/package-specific prebuilt simulation executables; uncached runs can prepare them. Explicit GOSIMTOOL overrides require a matching cached worker manifest. The versioned handshake validates content and the concrete compiler before execution; children and forwarded stderr are owned and reaped. Rebuild diagnostics name the matching configuration. Certification status does not enter artifact identity.
 
 Certification is an optional manual operation, absent from CI and ordinary-command admission. Manual reports bind the exact source/build, actual worker architecture, execution mode, image digest where applicable, mandatory suites and log hashes. Missing or stale reports do not prevent ordinary use. Historical profile tuple/evidence files are no longer support allowlists and are not rewritten by test snapshots.
 
@@ -155,6 +161,6 @@ The suite applicability registry separates runtime, fs, net and full integration
 
 ## Scope and supporting records
 
-The design does not include mutable/per-machine feature sets, concurrent independent engines, native scheduling with virtual fs/net, external provider plugins, extra host platforms, non-Linux simulation, automatic worker bootstrap, or repairs to the documented HTTP/gRPC and syscall-model gaps.
+The design does not include mutable/per-machine feature sets, concurrent independent engines, native scheduling with virtual fs/net, external provider plugins, extra host platforms, non-Linux simulation, or repairs to the documented HTTP/gRPC and syscall-model gaps.
 
 The [usage guide](../README.md) describes current APIs and commands. The [historical syscall audit](reports/syscall-support-for-gquorum.md) records application requirements that remain outside this refactor. Family [go125](../internal/compat/go125/profile/capabilities.json) and [go126](../internal/compat/go126/profile/capabilities.json) capability manifests retain the distinction between modeled, limited, stub and rejected behavior. Passing a simulator test does not establish correctness for an application that relies on a known missing semantic.

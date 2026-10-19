@@ -1,15 +1,16 @@
 /*
 Gosim translates, builds and executes deterministic simulation tests.
 
-Build the CLI with the same exact patch requested by its commands:
+Build the independent launcher; Go tooling selects each caller’s worker compiler:
 
-	GOTOOLCHAIN=go1.25.14 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
+	go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
 
 # Configuration
 
 Commands share gosim.json, -config (or GOSIM_CONFIG), -go, -features and -race.
-Features must be explicitly selected as rt, rt,fs, rt,net, or rt,fs,net; a command
-line feature selection replaces the entire configured list. The simulated OS is
+Schema 2 selects rt, rt,fs, rt,net, or rt,fs,net without a compiler pin.
+Absent configuration defaults to rt,fs,net. A command-line feature selection
+replaces the entire configured list. -go is an optional explicit override. The simulated OS is
 Linux, while the executable uses the actual supported host OS/architecture.
 
 Normal commands do not require certification evidence. Compatibility and artifact
@@ -18,11 +19,11 @@ operation, outside CI and ordinary tests.
 
 # Commands
 
-	gosim test -go go1.25.14 -features rt -run TestName -v -seeds 1-20 ./package
-	gosim translate -go go1.25.14 -features rt ./package
-	gosim build-tests -go go1.25.14 -features rt ./package
-	gosim prepare-selftest -go go1.25.14 -features rt,fs,net
-	gosim debug -go go1.25.14 -features rt -package ./package -test TestName -seed 1 -step 11
+	gosim test -features rt -run TestName -v -seeds 1-20 ./package
+	gosim translate -features rt ./package
+	gosim build-tests -features rt ./package
+	gosim prepare-selftest -features rt,fs,net
+	gosim debug -features rt -package ./package -test TestName -seed 1 -step 11
 
 Test translates/builds applicable packages and executes the resulting binaries.
 The seed syntax accepts comma-separated values and ranges. Trace output can be
