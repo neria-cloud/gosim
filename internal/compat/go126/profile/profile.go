@@ -10,7 +10,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed hooks.json tuples.json policies.json origin.json bridges.json native_imports.json capabilities.json shims.json
+//go:embed hooks.json tuples.json policies.json origin.json bridges.json native_imports.json capabilities.json shims.json probes.json modules.json shared_globals.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
@@ -65,10 +65,13 @@ func decode(name string, result any) {
 	}
 }
 
-// PolicyManifest currently owns runtime boundaries; Task 17 adds the selected
-// shim and initialization audit before Task 21 may activate this profile.
+// PolicyManifest owns the reviewed Go 1.26 boundaries.
+// TODO(migration): Task 18 binds process/syscall probes; Task 21 activates composition.
 func PolicyManifest() spec.PolicyManifest {
 	var m spec.PolicyManifest
+	decode("shared_globals.json", &m.SharedGlobals)
+	decode("probes.json", &m.Probes)
+	decode("modules.json", &m.Modules)
 	decode("bridges.json", &m.Bridges)
 	decode("native_imports.json", &m.NativeImports)
 	decode("capabilities.json", &m.Capabilities)
@@ -76,3 +79,7 @@ func PolicyManifest() spec.PolicyManifest {
 }
 
 func ShimManifest() []spec.Hook { var shims []spec.Hook; decode("shims.json", &shims); return shims }
+
+func VerifyModules(tc buildspec.Toolchain, directory string) error {
+	return spec.VerifyModules(tc, directory, PolicyManifest().Modules)
+}

@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–16 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–17 (including their recorded children) implemented and verified. Remaining tasks are unchecked.
 
 ## Important notices
 
@@ -417,14 +417,14 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§3 native/translated boundary; T§8 shims; T§10/11 required probe classification; I's shim declarations.  
 **Budget:** 3,000–4,800 changed lines. **Dependency:** 13, 16.
 
-- [ ] Implement complete reflect/testing and required maps/synctest/crypto helper surfaces against go1.26.9. Preserve deterministic time/random/global behavior; explicitly reject unsupported boundaries.
-- [ ] Repeat the package and stdlib-init audit for this family, including any new runtime/crypto package structure. Do not inherit a permissive broad-prefix skip simply because it existed in go125 or the old translator.
-- [ ] Share only demonstrably stable pure helpers outside executable adapters; family directories remain independently testable. Bound all executable version-specific files correctly.
+- [x] Implement complete reflect/testing and required maps/synctest/crypto helper surfaces against go1.26.9. Preserve deterministic time/random/global behavior; explicitly reject unsupported boundaries.
+- [x] Repeat the package and stdlib-init audit for this family, including any new runtime/crypto package structure. Do not inherit a permissive broad-prefix skip simply because it existed in go125 or the old translator.
+- [x] Share only demonstrably stable pure helpers outside executable adapters; family directories remain independently testable. Bound all executable version-specific files correctly.
 
 #### Verification
 
-- [ ] Both families' reflection/testing/random/map fixtures pass; unsupported application network/native entropy and invalid ABI fixtures fail with useful diagnostics.
-- [ ] Run common commit gate and regenerate family policy manifests without changes to the other family.
+- [x] Both families' reflection/testing/random/map fixtures pass; unsupported application network/native entropy and invalid ABI fixtures fail with useful diagnostics.
+- [x] Run common commit gate and regenerate family policy manifests without changes to the other family.
 
 #### Task 17.1: Go 1.26 shim implementations and exact-source surface checks
 
@@ -437,8 +437,8 @@ The original generator is 892 lines, existing temporary decoders are approximate
 
 **Budget:** 800–2,000 changed lines. Depends on 17.1; completes parent 17.
 
-- [ ] Audit exact-patch package/init/crypto structure and populate bounded policies, native imports, probes, capabilities and module records without executable cross-family imports.
-- [ ] Verify both-family fixtures and explicit unsupported application network/native entropy/ABI diagnostics, reproducible metadata and unchanged Go 1.25 source; run the common commit gate.
+- [x] Audit exact-patch package/init/crypto structure and populate bounded policies, native imports, probes, capabilities and module records without executable cross-family imports.
+- [x] Verify both-family fixtures and explicit unsupported application network/native entropy/ABI diagnostics, reproducible metadata and unchanged Go 1.25 source; run the common commit gate.
 
 ### Task 18: Generate Go 1.26 amd64 syscall and control adapters
 
@@ -446,6 +446,7 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§5/7 routes and payloads; T§8/9 generation; T§2 exact amd64 tuple.  
 **Budget:** 2,500–4,000 changed lines. **Dependency:** 14, 16–17.
 
+- [ ] Implement the Go 1.26-specific `syscall.runtimeClearenv(map[string]int)` process hook found by Task 17.2; keep its map translated and clear machine/debug state without native environment access.
 - [ ] Generate all amd64 routes using go1.26.9 and the pinned external module graph; reuse the logical manifest, not older ABI declarations. Cover shared descriptor, fs, net, process and control ownership completely.
 - [ ] Verify disabled wrappers require features before domain calls and import no domain models. Preserve deterministic errno/capability classification, pointer marshalling and race annotations.
 - [ ] Check generated outputs contain no old simulation, go123, go125-executable or old engine import.
