@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–27 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 28–33 remain unchecked. Full race suites are deferred to final verification.
+**Status:** in progress; Tasks 1–28 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 29–33 remain unchecked. Full race suites are deferred to final verification.
 
 ## Important notices
 
@@ -753,14 +753,14 @@ The two retired hook trees contain 3,708 lines; their old translator selection/c
 **References:** T§3 final package graph; T§5 kernel/dispatcher; T§7 services; T§9 generator; I: syscallabi.  
 **Budget:** 3,000–4,900 changed lines; split if the actual remaining file count exceeds the cap. **Dependency:** 26–27.
 
-- [ ] Verify each lifecycle/syscall/control/ABI responsibility has moved to its target owner, then delete its retired source and no-longer-used helpers. Delete duplicate memory-view declarations; ABI is the sole native memory boundary.
-- [ ] Remove retired concrete fs/net coordinator fields, unconditional provider setup, old syscall trampolines and old Runtime.Setup/run entry. No hidden full-feature composition remains.
-- [ ] Update generation commands and CI to target `cmd/gosim-gen` only. Verify old simulation package does not survive as a stub facade.
+- [x] Verify each lifecycle/syscall/control/ABI responsibility has moved to its target owner, then delete its retired source and no-longer-used helpers. Delete duplicate memory-view declarations; ABI is the sole native memory boundary.
+- [x] Remove retired concrete fs/net coordinator fields, unconditional provider setup, old syscall trampolines and old Runtime.Setup/run entry. No hidden full-feature composition remains.
+- [x] Update generation commands and CI to target `cmd/gosim-gen` only. Verify old simulation package does not survive as a stub facade.
 
 #### Verification
 
-- [ ] Source/import/route ledger audit shows no lost responsibility, remaining old package or old generation path.
-- [ ] Run common commit gate, including full ordinary lifecycle tests under both target patches; defer full race suites to final verification per the amended cadence.
+- [x] Source/import/route ledger audit shows no lost responsibility, remaining old package or old generation path.
+- [x] Run common commit gate, including full ordinary lifecycle tests under both target patches; defer full race suites to final verification per the amended cadence.
 
 ### Task 29: Remove obsolete shared shims and native ABI helpers
 
