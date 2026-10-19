@@ -41,17 +41,25 @@ func runCertificationCommand(command string, args []string) {
 	flags := addBuildFlags(f)
 	options := MatrixOptions{}
 	suite := suiteOptions{}
+	ordinary := false
+	if command == "verify" {
+		f.BoolVar(&ordinary, "ordinary", false, "run ordinary tests (default); incompatible with -race")
+	}
 	f.IntVar(&suite.concurrency, "concurrency", min(4, runtime.GOMAXPROCS(0)), "maximum concurrent test workers")
 	f.IntVar(&suite.parallel, "test-parallel", 0, "parallel native tests per package (zero divides the worker budget)")
 	f.IntVar(&suite.packages, "test-packages", 0, "parallel native packages (zero divides the worker budget)")
 	f.BoolVar(&suite.json, "json", false, "stream Go JSON events for persistent test reports")
 	f.BoolVar(&suite.large, "large", false, "include selected-tuple make test-large coverage for certification")
-	f.StringVar(&options.OutputDir, "output", ".gosim/certification", "evidence output directory")
+	defaultOutput := ".gosim/certification"
+	if command == "verify" {
+		defaultOutput = ".gosim/verification"
+	}
+	f.StringVar(&options.OutputDir, "output", defaultOutput, "suite output directory")
 	f.StringVar(&options.ExecutionMode, "execution-mode", "native", "native|container-native|container-emulated")
 	f.StringVar(&options.ContainerImageDigest, "image-digest", "", "resolved container image sha256 digest")
 	f.Parse(args)
-	if f.NArg() != 0 || suite.concurrency < 1 || suite.parallel < 0 || suite.packages < 0 {
-		fmt.Fprintln(os.Stderr, "require no positional arguments and positive -concurrency")
+	if f.NArg() != 0 || suite.concurrency < 1 || suite.parallel < 0 || suite.packages < 0 || (ordinary && flags.Options.Race) {
+		fmt.Fprintln(os.Stderr, "require no positional arguments, positive -concurrency, and one test mode")
 		os.Exit(2)
 	}
 	var err error
@@ -66,8 +74,8 @@ func runCertificationCommand(command string, args []string) {
 	}
 }
 
-// certify records one declared pending tuple. Reports stay candidate and never
-// edit reviewed profile metadata. Package applicability comes from one registry.
+// certify is a manually invoked exact-build report. It never edits profile
+// metadata or controls ordinary use. Package applicability comes from one registry.
 func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (report CertificationReport, err error) {
 	if err := validateCertificationSelection(runtime.GOARCH, flags.Options.Race); err != nil {
 		return report, err
@@ -127,34 +135,29 @@ func validateCertificationSelection(hostArch string, race bool) error {
 	return nil
 }
 
-// verifyStep and certify share the full suite runner; neither recurses through
-// the shell entry point or claims compatibility promotion.
+// verifyStep runs only the requested local test mode and writes suite logs.
+// It does not create a certification report or implicitly add race/large suites.
 func verifyStep(flags BuildFlags, output string, suite suiteOptions) error {
-	if err := exec.Command("./.ci/gofmt", "check").Run(); err != nil {
+	if suite.large {
+		return fmt.Errorf("large suites are separate; use make test-large explicitly")
+	}
+	resolved, err := resolveBuild("internal-candidate", flags)
+	if err != nil {
 		return err
 	}
-	for _, race := range []bool{false, true} {
-		flags.Options.Race = race
-		resolved, err := resolveBuild("internal-candidate", flags)
-		if err != nil {
-			return err
-		}
-		if len(resolved.Identity.Features) != 3 {
-			return fmt.Errorf("verify requires rt,fs,net")
-		}
-		cfg, err := gosimtool.NewBuildConfig(resolved.Selection, resolved.Toolchain)
-		if err != nil {
-			return err
-		}
-		dir := filepath.Join(output, cfg.Digest)
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return err
-		}
-		if _, err := runFullSuite(cfg, dir, suite); err != nil {
-			return err
-		}
+	if len(resolved.Identity.Features) != 3 {
+		return fmt.Errorf("verify requires rt,fs,net")
 	}
-	return nil
+	cfg, err := gosimtool.NewBuildConfig(resolved.Selection, resolved.Toolchain)
+	if err != nil {
+		return err
+	}
+	dir := filepath.Join(output, cfg.Digest)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	_, err = runFullSuite(cfg, dir, suite)
+	return err
 }
 
 func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (results []SuiteResult, err error) {

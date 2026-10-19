@@ -4,12 +4,12 @@ Gosim is a deterministic Go simulation testing framework. It translates applicat
 
 ## Build and validation
 
-The exact initial toolchain targets are `go1.25.14` and `go1.26.9`. The module's Go 1.25 language minimum does not authorize other patches. Normal CLI commands require matching certified tuple/source evidence; internal candidate commands require declared pending tuples.
+The supported Go families are stable `go1.25.*` and `go1.26.*` releases. Go tooling selects the compiler; exact compiler/source identity still separates build artifacts. Certification is an optional, explicitly invoked manual operation. It is not a CI step, an ordinary-test implementation detail, or a prerequisite for library use.
 
 ### Running tests and reading results
 
 Use `make test` for ordinary local native and simulation tests. It runs in an
-isolated source snapshot, uses Go 1.26.9 by default, and starts no Docker, Colima,
+isolated source snapshot, uses the compiler resolved by Go tooling, and starts no Docker, Colima,
 VMs, or cross-architecture jobs. For a single-test fix, run only the relevant
 test unless broader validation is explicitly requested.
 
@@ -17,7 +17,7 @@ test unless broader validation is explicitly requested.
 explicitly includes an item to run and check that suite.** A general request to
 test, fix tests, finish a task, or perform final verification does not authorize
 either suite. This restriction also applies to aliases and equivalent commands
-such as `make test-unit-race`, `./test.sh`, direct race commands, and direct
+such as `make test-unit-race`, `./test.sh --race`, direct race commands, and direct
 invocation of the large suites. Do not enable them through environment variables
 or invoke a matrix to bypass this restriction.
 
@@ -37,7 +37,7 @@ The terminal prints the exact report directory and failing log paths. Check the
 exit status and report for failures/errors; distinguish skips from passed tests.
 
 Use `UNIT_PACKAGES` and `UNIT_PARALLEL` to set package and test concurrency
-(currently 2 and 4), `GOSIM_TOOLCHAIN` to select the exact supported patch, and
+(currently 2 and 4), `GOSIM_TOOLCHAIN` for an optional exact compiler override, and
 `TEST_REPORTS_DIR` to change the report root. For example:
 
 ```sh
@@ -55,18 +55,18 @@ entry also rejects changes to the working checkout.
 # Build an exact worker; retain linkname flags.
 GOTOOLCHAIN=go1.25.14 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
 
-# Complete ordinary checks in a private source-matched candidate copy.
+# Complete ordinary checks in a private source-matched copy.
 GOSIM_TOOLCHAIN=go1.25.14 ./.ci/verify-step.sh --ordinary
 GOSIM_TOOLCHAIN=go1.26.9 ./.ci/verify-step.sh --ordinary
 
-# Complete ordinary/race verification; only with explicit instruction to run and check race tests.
-GOSIM_TOOLCHAIN=go1.25.14 ./test.sh
-GOSIM_TOOLCHAIN=go1.26.9 ./test.sh
+# Local race verification; only with explicit instruction to run and check race tests.
+GOSIM_TOOLCHAIN=go1.25.14 ./test.sh --race
+GOSIM_TOOLCHAIN=go1.26.9 ./test.sh --race
 
 # Focused native checks.
 GOTOOLCHAIN=go1.25.14 go test -ldflags=-checklinkname=0 -tags=linkname ./internal/kernel ./internal/contracts
 
-# Focused simulation checks on a declared pending checkout.
+# Focused simulation checks with a matching worker.
 ./.gosim/gosimtool internal-candidate test -go go1.25.14 -features rt,fs,net -seeds 1-20 -run TestName ./internal/tests/integration
 
 # Formatting and orchestration checks.
@@ -75,7 +75,7 @@ GOTOOLCHAIN=go1.25.14 go test -ldflags=-checklinkname=0 -tags=linkname ./interna
 python3 -B -m unittest discover -s .ci/crossarch-tests -p '*_test.py'
 ```
 
-The verification entry creates an isolated copy, verifies equal executable inputs and resets only the copy's excluded status/evidence metadata to pending. It leaves the original profiles unchanged and does not promote results. Independent copies keep concurrent patches from overwriting selftest artifacts. Final verification does not override the explicit-instruction requirement for race and large suites.
+The verification entry creates an isolated copy and verifies equal executable inputs without rewriting status/evidence metadata. It runs only the selected ordinary or race mode; no certification report is produced. Independent copies keep concurrent patches from overwriting selftest artifacts. Final verification does not override the explicit-instruction requirement for race and large suites.
 
 Do not run bare native `go test ./...` against stale or missing prebuilt simulation workers. Metatesting requires matching patch/features/race manifests and a matching CLI. `build-tests` and `prepare-selftest` use the same explicit build selection; the verification entry handles preparation.
 
@@ -109,7 +109,7 @@ The four valid immutable feature sets are `rt`, `rt,fs`, `rt,net`, `rt,fs,net`. 
 - Preserve `-ldflags=-checklinkname=0 -tags=linkname` on host builds/tests. Simulated source is loaded with Linux source ABI and application cgo disabled; native host race/SQLite tooling may use cgo.
 - Source/profile/config changes invalidate artifacts and certification. Do not promote skipped, compile-only or stale results. Status/evidence metadata alone is excluded from executable digests.
 
-## Generation and final matrix
+## Generation and manual certification
 
 Use `cmd/gosim-gen`, not a retired syscall generator:
 
@@ -121,7 +121,7 @@ GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -
 
 Omit `-check` only when intentionally regenerating adapters. Run `go run ./internal/compat/genprofile` when version-owned source/facade inputs change. The filesystem model's separate stringer generation remains supported.
 
-Final certification currently runs 16 tuples: 2 exact patches × 2 ARM64 host tuples (Linux and Darwin) × 4 feature sets, without race instrumentation. AMD64 and race certification processes are disabled in CI, the matrix runner, and direct certification workers/commands. Ordinary validation and explicitly requested race tests remain available; they do not certify these excluded tuples. Use `run-matrix.sh --native --platform OS/arm64` on an actual matching native worker. The Colima route uses `--context colima --platform linux/arm64` from Darwin ARM64. Preserve observed architecture and image metadata. The runner copies artifacts through Docker's API and does not recreate the VM. Historical AMD64/race evidence does not authorize new certification jobs.
+Explicit manual certification currently defaults to 16 tuples: 2 exact patches × 2 ARM64 host tuples (Linux and Darwin) × 4 feature sets, without race instrumentation. CI runs ordinary native tests and publishes `test-reports`; it never invokes certification. AMD64 and race certification remain disabled in the manual matrix runner and certification workers/commands. Ordinary validation and explicitly requested race tests remain available; they do not certify these excluded tuples. Use `run-matrix.sh --native --platform OS/arm64` on an actual matching native worker. The Colima route uses `--context colima --platform linux/arm64` from Darwin ARM64. Preserve observed architecture and image metadata. The runner copies artifacts through Docker's API and does not recreate the VM. Historical AMD64/race evidence does not authorize new certification jobs.
 
 ## Test conventions
 

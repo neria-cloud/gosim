@@ -160,7 +160,7 @@ class ReportTest(unittest.TestCase):
         options = argparse.Namespace(suite="unit", parallel=3, packages=2, race=True)
         [(label, command)] = report.commands(options, [])
         self.assertEqual(label, "library")
-        self.assertIn("--ordinary", command)
+        self.assertNotIn("--ordinary", command)
         self.assertIn("--json", command)
         self.assertIn("--race", command)
         self.assertNotIn("--large", command)

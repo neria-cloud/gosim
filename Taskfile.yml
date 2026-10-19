@@ -47,13 +47,13 @@ tasks:
 
   go-test:
     cmds:
-      - ./test.sh --ordinary
+      - make test
 
   go-race-test:
-    # Final verification includes both ordinary and race suites.
+    # Explicitly selected race suite only.
     cmds:
-      - ./test.sh
+      - make test-race
 
   test:
     cmds:
-      - ./test.sh
+      - make test

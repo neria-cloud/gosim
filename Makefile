@@ -6,7 +6,8 @@
 UNIT_PARALLEL ?= 4
 UNIT_PACKAGES ?= 2
 TEST_REPORTS_DIR ?= test-reports
-GOSIM_TOOLCHAIN ?= go1.26.9
+# Optional override; otherwise Go resolves the compiler normally.
+GOSIM_TOOLCHAIN ?=
 export GOSIM_TOOLCHAIN
 
 help: ## List available targets

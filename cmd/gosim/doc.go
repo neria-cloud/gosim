@@ -12,10 +12,9 @@ Features must be explicitly selected as rt, rt,fs, rt,net, or rt,fs,net; a comma
 line feature selection replaces the entire configured list. The simulated OS is
 Linux, while the executable uses the actual supported host OS/architecture.
 
-Normal commands require reviewed certified evidence matching the exact tuple and
-current executable source. A mismatched worker patch requires rebuilding; there is
-no automatic worker bootstrap or force-unsupported option. Candidate development
-commands require declared pending tuples and never promote results automatically.
+Normal commands do not require certification evidence. Compatibility and artifact
+checks bind the actual compiler and source. Certification is an optional manual
+operation, outside CI and ordinary tests.
 
 # Commands
 
@@ -37,10 +36,10 @@ manifest for each package build. Matching identity alone cannot reuse another
 package's contents. Prepare-selftest creates matching host test infrastructure.
 
 Internal-candidate test/translate/build-tests/prepare-selftest use the same build
-selection with candidate identities. Internal-candidate certify records one tuple's
-actual suites; verify runs the full ordinary/race repository gate. Repository
-verification scripts create explicit pending copies so a promoted checkout can be
-tested without changing its original certification metadata. See README.md for the
-matrix runner, exact supported patches, platform boundaries and final promotion.
+selection as ordinary commands. Internal-candidate certify manually records one
+exact build's actual suites and requires explicit large-suite coverage. Verify
+runs ordinary tests by default or only race tests with -race. Repository test
+scripts use immutable source copies without rewriting certification metadata.
+CI invokes make test and publishes test-reports; it does not invoke certify.
 */
 package main

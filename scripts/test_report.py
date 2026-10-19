@@ -465,13 +465,17 @@ def commands(options, extra):
             command.append("-race")
         return [("library", command)]
     command = [sys.executable, "-B", str(ROOT / ".ci/crossarch-tests/verify.py"),
-               "--ordinary", "--json", "--allow-worktree-changes",
+               "--json", "--allow-worktree-changes",
                "--concurrency", str(options.parallel * options.packages),
                "--parallel", str(options.parallel), "--packages", str(options.packages)]
-    if options.race:
-        command.append("--race")
     if options.suite == "large":
+        if options.race:
+            raise ValueError("large and race suites must be requested separately")
         command.append("--large")
+    elif options.race:
+        command.append("--race")
+    else:
+        command.append("--ordinary")
     return [("library", command)]
 
 
@@ -499,8 +503,7 @@ def main(argv=None):
         parser.error("extra Go flags are not supported by the complete local gate")
     run = Run(options.suite, options.reports_dir.resolve(), options.race)
     result = 0
-    env = dict(os.environ, GOSIM_TOOLCHAIN=os.environ.get("GOSIM_TOOLCHAIN", "go1.26.9"),
-               PYTHONDONTWRITEBYTECODE="1")
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     if options.tuple:
         env.update(GOSIM_TEST_LARGE="1", GOSIM_LARGE_TUPLE=options.tuple,
                    GOSIM_CANDIDATE_WORKER="1", GOSIM_TRANSLATION_WORKER="1")

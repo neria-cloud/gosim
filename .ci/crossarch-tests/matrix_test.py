@@ -134,7 +134,7 @@ class MatrixTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 matrix.validate_evidence(root, job, "native", "")
 
-    def test_pending_copy_preserves_source_and_original_certification(self):
+    def test_snapshot_preserves_source_and_certification_metadata(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / ".gosim").mkdir()
@@ -155,9 +155,9 @@ class MatrixTests(unittest.TestCase):
                 rel = Path("internal/compat") / family / "profile"
                 self.assertEqual(json.loads((root / rel / "tuples.json").read_text()), original)
                 copied = json.loads((destination / rel / "tuples.json").read_text())
-                self.assertEqual(copied, [{"status": "pending", "toolchain": "go1.25.14", "features": ["rt"]}])
-                self.assertEqual(json.loads((destination / rel / "evidence.json").read_text()), [])
-                self.assertEqual(metadata[family]["previously_certified"], 1)
+                self.assertEqual(copied, original)
+                self.assertEqual(json.loads((destination / rel / "evidence.json").read_text()), [{"reviewed": True}])
+                self.assertEqual(metadata["input_count"], len(inputs))
 
     def test_source_copy_ignores_artifacts_but_detects_changed_tests(self):
         with tempfile.TemporaryDirectory() as tmp:

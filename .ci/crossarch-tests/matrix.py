@@ -7,17 +7,16 @@ import json
 import os
 from pathlib import Path
 import platform
-import shutil
 import subprocess
 import sys
 import tempfile
 
+from test_support import ROOT, memory_limit, source_files, snapshot as copy_snapshot
 from worker import CERTIFICATION_PLATFORMS, arch, validate_certification
 
 PATCHES = ("go1.25.14", "go1.26.9")
 PLATFORMS = CERTIFICATION_PLATFORMS
 FEATURES = ("rt", "rt,fs", "rt,net", "rt,fs,net")
-ROOT = Path(__file__).resolve().parents[2]
 
 
 def enumerate_jobs(platforms, patches, smoke=False):
@@ -44,52 +43,8 @@ def checked(command, log=None, cwd=None, env=None):
     return result.stdout
 
 
-def source_files(root):
-    files = {}
-    for current, directories, names in os.walk(root):
-        relative = Path(current).relative_to(root)
-        directories[:] = [n for n in directories if n not in {".git", ".gosim"}
-                          and not (relative == Path(".") and n in {"docs", "test-reports"})]
-        for name in names:
-            path = Path(current) / name
-            rel = path.relative_to(root).as_posix()
-            if name == ".git" or name.endswith(".md"):
-                continue
-            if rel in {f"internal/compat/{f}/profile/{n}.json"
-                       for f in ("go125", "go126") for n in ("tuples", "evidence")}:
-                continue
-            if path.is_symlink() or not path.is_file():
-                raise RuntimeError(f"unsupported source input {rel}")
-            files[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
-    return files
-
-
 def snapshot(destination, expected):
-    """Copy identical executable inputs; declare only the copied tuples pending."""
-    shutil.copytree(ROOT, destination, ignore=shutil.ignore_patterns(".git", ".gosim", "test-reports"))
-    if source_files(destination) != expected:
-        raise RuntimeError("source changed while copying validation workspace")
-    metadata = {}
-    for family in ("go125", "go126"):
-        profile = destination / "internal/compat" / family / "profile"
-        path = profile / "tuples.json"
-        original = path.read_bytes()
-        tuples = json.loads(original)
-        certified = 0
-        for item in tuples:
-            if item["status"] not in ("pending", "certified"):
-                raise RuntimeError("cannot prepare invalid compatibility metadata")
-            certified += item["status"] == "certified"
-            item["status"] = "pending"
-            item.pop("source_digest", None)
-            item.pop("result_digest", None)
-        metadata[family] = {"tuples": len(tuples), "previously_certified": certified,
-                            "original_tuple_digest": hashlib.sha256(original).hexdigest()}
-        path.write_text(json.dumps(tuples, indent=2) + "\n")
-        (profile / "evidence.json").write_text("[]\n")
-    if source_files(destination) != expected:
-        raise RuntimeError("candidate preparation changed executable inputs")
-    return metadata
+    return copy_snapshot(ROOT, destination, expected)
 
 
 def native_platform():
@@ -102,12 +57,6 @@ def validate_route(native, context, requested, actual):
             raise ValueError("native execution requires the requested OS/architecture")
     elif actual != "darwin/arm64" or context != "colima" or not requested.startswith("linux/"):
         raise ValueError("Colima routes require a Darwin ARM64 host and a Linux target; use native CI elsewhere")
-
-
-def memory_limit():
-    if sys.platform == "darwin":
-        return int(checked(["sysctl", "-n", "hw.memsize"]))
-    return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
 
 
 def worker_budget(requested_jobs, cpus, memory, count):
@@ -193,7 +142,7 @@ def execute(job, run, args, inputs, docker, daemon, images):
             common += ["--race"]
         if args.native:
             source = directory / "source"
-            record["candidate_metadata"] = snapshot(source, inputs)
+            record["snapshot_metadata"] = snapshot(source, inputs)
             mode, image = "native", ""
             env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GOCACHE=str(run / "go-build-cache"))
             checked([sys.executable, "-B", str(source / ".ci/crossarch-tests/worker.py"),
@@ -288,12 +237,12 @@ def main(argv=None):
             available_memory = int(daemon["MemTotal"])
             available_cpus = int(daemon["NCPU"])
             source = run / "image-source"
-            candidate_metadata = snapshot(source, inputs)
+            snapshot_metadata = snapshot(source, inputs)
             for job in jobs:
                 key = job["platform"], job["patch"]
                 if key not in images:
                     images[key] = docker_image(docker, job, run, source)
-                    images[key]["candidate_metadata"] = candidate_metadata
+                    images[key]["snapshot_metadata"] = snapshot_metadata
     except Exception as error:
         plan.update(status="failed", preparation_error=str(error))
         manifest.write_text(json.dumps(plan, indent=2) + "\n")
