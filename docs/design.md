@@ -67,9 +67,9 @@ The host ABI facade selects version-owned native coroutine and race implementati
 
 Startup proceeds as follows:
 
-1. Reserve a fresh epoch and descriptor table.
+1. Reserve a fresh epoch and descriptor table, then allocate a stopped runtime machine.
 2. Ask enabled sessions to `Prepare`, in deterministic FS/Net order. Preparation cannot publish packets, flush retained disks, run application init or yield.
-3. Validate stable bindings and service ownership; allocate a stopped runtime machine.
+3. Validate stable bindings and service ownership.
 4. Commit under the supervisor's transition barrier. Install bindings, publish instances, mark the epoch running and then admit application execution.
 
 A failed prepare releases its own allocations. Successful preparations become transaction-owned and are either published once or aborted. Abort unwinds in reverse order, leaves retained state unchanged and releases addresses, descriptors and runtime staging. Repeated/aborted commit returns the transaction-state error. A publication panic or yield is an invariant failure that aborts the run.

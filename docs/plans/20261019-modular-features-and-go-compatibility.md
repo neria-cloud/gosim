@@ -849,6 +849,20 @@ Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for 
 - [ ] Execute and independently verify all 48 combinations against the corrected frozen source; retain execution/image/architecture/log evidence.
 - [ ] Complete Task 32's promotion, normal-command acceptance and rejection checks, then commit only reviewed metadata/documentation and mark the parent complete.
 
+### Task 32.2.1: Complete source preflight and batch architectural corrections
+
+**Split recorded before source edits:** reviewing T§4/5 while the restarted matrix ran found that public Destroy accepts an already-destroyed handle, contrary to the target's accepted-state and ErrMachineNotFound contract. Stop certification and finish the section-by-section source preflight before another matrix attempt, so remaining source fixes are grouped. Task 33 still performs final evidence/closure verification after promotion.
+
+**Files:** owning public/kernel/provider/runtime/build components and focused regression tests as the preflight requires; documentation/progress records. **Budget:** at most 5,000 changed lines per corrective commit; split before exceeding this cap.
+
+- [x] Review all T§1–12 source contracts, algorithms and entry-point wiring; record each concrete discrepancy before fixing it. Keep runtime-model exclusions unchanged.
+- [x] Make public Destroy reject a destroyed handle with ErrMachineNotFound while preserving idempotent provider cleanup; cover native-kernel and real translated public calls.
+- [x] Correct any other required preflight gaps in their owning subsystem, then run focused checks and both ordinary gates. Record a new final source snapshot and commit all source changes before resuming the matrix.
+
+### Task 32.2.2: Certify the audited final source
+
+- [ ] Restart all 48 tuples only after 32.2.1 finishes; independently validate complete matching reports, then perform Task 32.2's promotion and normal-command checks.
+
 ### Task 33: Architectural delta verification and closure of every implementation gap
 
 **Files:** Inspect all touched source/generated/test/config/doc files; update this plan's evidence/gap logs and make bounded fixes where required.  
@@ -914,8 +928,8 @@ Host test invocations retain `-ldflags=-checklinkname=0 -tags=linkname` and addi
 The generator uses explicit `-toolchain`, `-profile`, `-arches`, and repository-root `-output` flags. Task 19 adds the planned `-check` mode, which compares temporary generated output without overwriting tracked files:
 
 ```sh
-GOTOOLCHAIN=go1.25.14 go run ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=. -check
-GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -arches=amd64,arm64 -output=. -check
+GOTOOLCHAIN=go1.25.14 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=. -check
+GOTOOLCHAIN=go1.26.9 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -arches=amd64,arm64 -output=. -check
 ```
 
 Task 25's import/declaration checks run from the candidate suite against each actual generated graph, not a hand-maintained allowlist alone. Include normal and race variants and inspect transitive package paths.
@@ -1010,6 +1024,7 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | State | Target / task | Gap and evidence | Resolution / validation |
 | --- | --- | --- | --- |
 | Fixed | T§2/9/11; Task 32.1 | Worker mismatch rebuild command omits required linkname flags; strict-linker probe fails on runtime.newcoro | Corrected flags/module path; both emitted opposite-patch rebuild commands and complete ordinary gates passed. Task 32.2 reruns all 48 final-source tuples |
+| Fixed | T§4/5; Task 32.2.1 | Public Destroy accepted an invalidated handle | Removed the success exception; native and translated New/Stopped/Crashed regressions and both full ordinary gates pass; provider cleanup remains idempotent |
 
 ## NOT PLANNED CHANGES
 

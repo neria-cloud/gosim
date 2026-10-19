@@ -265,7 +265,7 @@ func TestWaitCapturesEpochAndStaleHandles(t *testing.T) {
 			if err := k.Destroy(target); err != nil {
 				t.Fatal(err)
 			}
-			if err := k.Destroy(target); err != nil {
+			if err := k.Destroy(target); !errors.Is(err, contracts.ErrMachineNotFound) {
 				t.Fatal(err)
 			}
 			if _, err := k.Lookup(target); !errors.Is(err, contracts.ErrMachineNotFound) {

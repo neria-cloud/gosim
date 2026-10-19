@@ -134,7 +134,7 @@ All build commands share configuration and identity validation:
 
 Debug requires Delve and supports `-headless`. Logging includes machine, goroutine and step information. `rt.SetTimeout` sets the simulation timeout; `rt.Info` reports the actual build identity and certification state. `-simtrace syscall` enables syscall tracing.
 
-[Metatesting](metatesting/) runs prebuilt simulation workers from native Go tests. Prepare with the matching patch, features and race mode using `build-tests` and `prepare-selftest`. The runner checks the manifest, contents and versioned handshake before executing. A mismatch reports a rebuild command; it cannot reuse another feature set or a candidate artifact as certified output.
+[Metatesting](metatesting/) runs prebuilt simulation workers from native Go tests. Prepare application workers with `build-tests` using the matching patch, features and race mode. `prepare-selftest` additionally prepares this repository’s own native test infrastructure and is run from the Gosim checkout. The runner checks the manifest, contents and versioned handshake before executing. A mismatch reports a rebuild command; it cannot reuse another feature set or a candidate artifact as certified output.
 
 Artifacts are stored per identity **and package content** at `.gosim/v2/<identity>/packages/<package-digest>/`. Manifests hash the binary and generated files. The SQLite translation cache uses the v2 namespace and treats corrupt entries as observable misses; old cache formats are not decoded.
 

@@ -232,12 +232,6 @@ func requestSelfExit(exits simrt.Chan[[3]uint64], token simrt.MachineToken, kind
 }
 
 func (k *Kernel) Destroy(ref contracts.MachineRef) error {
-	// Repeated destruction is idempotent, while lookup/use of its handle fails.
-	if ref.RunID == k.runID {
-		if m := k.machineByID[ref.ID]; m != nil && m.state == StateDestroyed {
-			return nil
-		}
-	}
 	m, err := k.Lookup(ref)
 	if err != nil {
 		return err

@@ -3,6 +3,7 @@
 package behavior_test
 
 import (
+	"errors"
 	"log/slog"
 	"sync"
 	"testing"
@@ -12,6 +13,30 @@ import (
 	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
+
+func TestMachineDestroyedHandle(t *testing.T) {
+	for _, terminal := range []string{"new", "stopped", "crashed"} {
+		t.Run(terminal, func(t *testing.T) {
+			m, err := gosim.NewMachine(gosim.MachineConfig{Main: func() { select {} }})
+			testsupport.Check(t, err)
+			if terminal != "new" {
+				testsupport.Check(t, m.Start())
+				if terminal == "stopped" {
+					testsupport.Check(t, m.Stop())
+				} else {
+					testsupport.Check(t, m.Crash())
+				}
+			}
+			testsupport.Check(t, m.Destroy())
+			if err := m.Destroy(); !errors.Is(err, gosim.ErrMachineNotFound) {
+				t.Fatalf("second Destroy: %v", err)
+			}
+			if _, err := m.State(); !errors.Is(err, gosim.ErrMachineNotFound) {
+				t.Fatalf("State after Destroy: %v", err)
+			}
+		})
+	}
+}
 
 func TestMachineCrash(t *testing.T) {
 	m := testsupport.Start(t, func() {
