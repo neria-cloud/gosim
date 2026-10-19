@@ -14,7 +14,7 @@ jobs:
           - {runner: ubuntu-24.04, platform: linux/amd64}
           - {runner: ubuntu-24.04-arm, platform: linux/arm64}
           - {runner: macos-15, platform: darwin/arm64}
-        toolchain: [go1.25.14, go1.26.9]
+        toolchain: ['1.25.14', '1.26.9']
     runs-on: ${{ matrix.worker.runner }}
     timeout-minutes: 180
     steps:
@@ -34,7 +34,7 @@ jobs:
         run: >-
           ./.ci/crossarch-tests/run-matrix.sh --native
           --platform '${{ matrix.worker.platform }}'
-          --toolchains '${{ matrix.toolchain }}' --jobs 1
+          --toolchains 'go${{ matrix.toolchain }}' --jobs 1
           --output .gosim/certification
       - name: Preserve execution evidence
         if: always()

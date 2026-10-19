@@ -6,6 +6,7 @@ vars:
   # GOSIM: go run github.com/neria-cloud/gosim/cmd/gosim
   GOSIM: $(pwd)/.gosim/gosimtool
   MATRIX_PLATFORM: darwin/arm64
+  COLIMA_PLATFORM: linux/amd64
   MATRIX_TOOLCHAINS: go1.25.14,go1.26.9
   SIMPACKAGES: ./internal/tests/rt ./internal/tests/fs ./internal/tests/net ./internal/tests/integration ./nemesis ./examples
 
@@ -30,7 +31,7 @@ tasks:
 
   certification-colima:
     cmds:
-      - ./.ci/crossarch-tests/run-matrix.sh --context colima --platform {{.MATRIX_PLATFORM}} --toolchains {{.MATRIX_TOOLCHAINS}} --output .gosim/certification
+      - ./.ci/crossarch-tests/run-matrix.sh --context colima --platform {{.COLIMA_PLATFORM}} --toolchains {{.MATRIX_TOOLCHAINS}} --output .gosim/certification
 
   gosim-tool:
     run: once
@@ -40,30 +41,18 @@ tasks:
   gosim-prepare-selftest:
     run: once
     cmds:
-      - "{{.GOSIM}} internal-candidate prepare-selftest"
+      - "{{.GOSIM}} prepare-selftest"
     deps:
       - gosim-tool
 
   go-test:
-    env:
-      GOSIMTOOL: "{{.USER_WORKING_DIR}}/.gosim/scripttest/bin/gosim"
     cmds:
-      - "{{.GOSIM}} internal-candidate build-tests {{.SIMPACKAGES}}"
-      - go test -ldflags=-checklinkname=0 -tags=linkname ./...
-    deps:
-      - gosim-tool
-      - gosim-prepare-selftest
+      - ./test.sh --ordinary
 
   go-race-test:
-    env:
-      GOSIMTOOL: "{{.USER_WORKING_DIR}}/.gosim/scripttest/bin/gosim"
+    # Final verification includes both ordinary and race suites.
     cmds:
-      - "{{.GOSIM}} internal-candidate build-tests -race {{.SIMPACKAGES}} ./internal/tests/race/testdata"
-      # todo: get rid of this janky thing???
-      - go test -ldflags=-checklinkname=0 -tags=linkname -race ./...
-    deps:
-      - gosim-tool
-      - gosim-prepare-selftest
+      - ./test.sh
 
   test:
     cmds:

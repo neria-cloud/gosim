@@ -46,7 +46,7 @@ class MatrixTests(unittest.TestCase):
     def test_job_failure_is_persisted_and_returned(self):
         with tempfile.TemporaryDirectory() as tmp:
             job = matrix.enumerate_jobs(["darwin/arm64"], matrix.PATCHES, smoke=True)[0]
-            with patch.object(matrix, "snapshot"), patch.object(matrix, "checked", side_effect=RuntimeError("worker failed")):
+            with patch.object(matrix, "snapshot", return_value={}), patch.object(matrix, "checked", side_effect=RuntimeError("worker failed")):
                 result = matrix.execute(job, Path(tmp), argparse.Namespace(native=True), {}, [], {}, {})
             self.assertEqual(result["status"], "failed")
             path = Path(tmp) / matrix.job_name(job) / "execution.json"
@@ -97,6 +97,31 @@ class MatrixTests(unittest.TestCase):
             path.write_text(json.dumps(report))
             with self.assertRaises(RuntimeError):
                 matrix.validate_evidence(root, job, "native", "")
+
+    def test_pending_copy_preserves_source_and_original_certification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".gosim").mkdir()
+            (root / "implementation.go").write_text("package implementation")
+            original = [{"status": "certified", "toolchain": "go1.25.14", "features": ["rt"],
+                         "source_digest": "source", "result_digest": "result"}]
+            for family in ("go125", "go126"):
+                profile = root / "internal/compat" / family / "profile"
+                profile.mkdir(parents=True)
+                (profile / "tuples.json").write_text(json.dumps(original))
+                (profile / "evidence.json").write_text('[{"reviewed":true}]')
+            inputs = matrix.source_files(root)
+            destination = root / ".gosim/copy"
+            with patch.object(matrix, "ROOT", root):
+                metadata = matrix.snapshot(destination, inputs)
+            self.assertEqual(inputs, matrix.source_files(destination))
+            for family in ("go125", "go126"):
+                rel = Path("internal/compat") / family / "profile"
+                self.assertEqual(json.loads((root / rel / "tuples.json").read_text()), original)
+                copied = json.loads((destination / rel / "tuples.json").read_text())
+                self.assertEqual(copied, [{"status": "pending", "toolchain": "go1.25.14", "features": ["rt"]}])
+                self.assertEqual(json.loads((destination / rel / "evidence.json").read_text()), [])
+                self.assertEqual(metadata[family]["previously_certified"], 1)
 
     def test_source_copy_ignores_artifacts_but_detects_changed_tests(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,65 +1,46 @@
 /*
-Gosim is a tool for working with gosim simulation testing framework.
+Gosim translates, builds and executes deterministic simulation tests.
 
-Usage: gosim <command> [arguments]
+Build the CLI with the same exact patch requested by its commands:
 
-The commands are:
+	GOTOOLCHAIN=go1.25.14 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
 
-	test           test packages
-	debug          debug a test in a package
-	build-tests    build packages for metatesting
-	translate      translate packages
-	help           print this help
+# Configuration
 
-The 'translate' command:
+Commands share gosim.json, -config (or GOSIM_CONFIG), -go, -features and -race.
+Features must be explicitly selected as rt, rt,fs, rt,net, or rt,fs,net; a command
+line feature selection replaces the entire configured list. The simulated OS is
+Linux, while the executable uses the actual supported host OS/architecture.
 
-Usage: gosim translate [-race] [packages]
+Normal commands require reviewed certified evidence matching the exact tuple and
+current executable source. A mismatched worker patch requires rebuilding; there is
+no automatic worker bootstrap or force-unsupported option. Candidate development
+commands require declared pending tuples and never promote results automatically.
 
-The translate command translates packages without running the resulting code.
-The output will be placed in <module root>/.gosim/translated. Translation
-is cached by package, so re-running translate after modifying some files
-in the current package should be fast.
+# Commands
 
-Packages should be listed as if they were arguments to 'go test' or 'go build'
-command. All listed packages must be part of the current module. The current
-module must have a dependency on gosim by importing
-'github.com/neria-cloud/gosim' somewhere in the code.
+	gosim test -go go1.25.14 -features rt -run TestName -v -seeds 1-20 ./package
+	gosim translate -go go1.25.14 -features rt ./package
+	gosim build-tests -go go1.25.14 -features rt ./package
+	gosim prepare-selftest -go go1.25.14 -features rt,fs,net
+	gosim debug -go go1.25.14 -features rt -package ./package -test TestName -seed 1 -step 11
 
-Translate translates code with specific build flags sets. The GOOS is fixed to
-linux, and the GOARCH is the one used to compile translate.
+Test translates/builds applicable packages and executes the resulting binaries.
+The seed syntax accepts comma-separated values and ranges. Trace output can be
+selected with -simtrace. Debug runs a matching binary through Delve and supports
+-headless; it requires an installed dlv executable.
 
-The -race flag translates all code with the race build tag set.
+Translate applies selected Go-family hooks/shims and generated composition before
+package loading. Build-tests publishes content-verified artifacts for metatesting.
+Artifacts are stored under .gosim/v2/<identity>/packages/<package-digest>/ with a
+manifest for each package build. Matching identity alone cannot reuse another
+package's contents. Prepare-selftest creates matching host test infrastructure.
 
-The 'test' command:
-
-Usage: gosim test [-race] [-run=...] [-seeds=...] [-v] [packages]
-
-The test command translates and runs tests for the specified packages.  It first
-invokes translate, and then invokes 'go test' on the translated code, passing
-through the -run and -v flags.
-
-The -seeds flag specifies what seeds to run the tests on as a comma-separated
-list of seeds and ranges, such as -seeds=1,2,5-10. The default is -seeds=1.
-
-The 'debug' command:
-
-Usage: gosim debug [-race] [-headless] -package=[package] -test=[test] [-seed=...] -step=[step]
-
-The debug command translates and runs a specific test using the delve debugger.
-It first invokes translate, and then runs 'dlv test' on the specific test. The
--step flag is the step to pause at as seen in the logs from running 'gosim test'.
-
-The -seed flag is the seed to run. The default is -seed=1.
-
-The -headless flag optionally runs delve in headless mode for use with an
-external interface like an IDE.
-
-The 'build-tests' command:
-
-Usage: gosim build-tests [-race] [packages]
-
-The build-tests command translates and then builds tests for use with the
-metatesting package. Metatesting in a cached go test run requires pre-building
-tests; see the metatesting package documentation for details.
+Internal-candidate test/translate/build-tests/prepare-selftest use the same build
+selection with candidate identities. Internal-candidate certify records one tuple's
+actual suites; verify runs the full ordinary/race repository gate. Repository
+verification scripts create explicit pending copies so a promoted checkout can be
+tested without changing its original certification metadata. See README.md for the
+matrix runner, exact supported patches, platform boundaries and final promotion.
 */
 package main

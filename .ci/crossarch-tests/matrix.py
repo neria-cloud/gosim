@@ -64,9 +64,31 @@ def source_files(root):
 
 
 def snapshot(destination, expected):
+    """Copy identical executable inputs; declare only the copied tuples pending."""
     shutil.copytree(ROOT, destination, ignore=shutil.ignore_patterns(".git", ".gosim"))
     if source_files(destination) != expected:
         raise RuntimeError("source changed while copying validation workspace")
+    metadata = {}
+    for family in ("go125", "go126"):
+        profile = destination / "internal/compat" / family / "profile"
+        path = profile / "tuples.json"
+        original = path.read_bytes()
+        tuples = json.loads(original)
+        certified = 0
+        for item in tuples:
+            if item["status"] not in ("pending", "certified"):
+                raise RuntimeError("cannot prepare invalid compatibility metadata")
+            certified += item["status"] == "certified"
+            item["status"] = "pending"
+            item.pop("source_digest", None)
+            item.pop("result_digest", None)
+        metadata[family] = {"tuples": len(tuples), "previously_certified": certified,
+                            "original_tuple_digest": hashlib.sha256(original).hexdigest()}
+        path.write_text(json.dumps(tuples, indent=2) + "\n")
+        (profile / "evidence.json").write_text("[]\n")
+    if source_files(destination) != expected:
+        raise RuntimeError("candidate preparation changed executable inputs")
+    return metadata
 
 
 def native_platform():
@@ -159,7 +181,7 @@ def execute(job, run, args, inputs, docker, daemon, images):
             common += ["--race"]
         if args.native:
             source = directory / "source"
-            snapshot(source, inputs)
+            record["candidate_metadata"] = snapshot(source, inputs)
             mode, image = "native", ""
             env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GOCACHE=str(run / "go-build-cache"))
             checked([sys.executable, "-B", str(source / ".ci/crossarch-tests/worker.py"),
@@ -251,11 +273,12 @@ def main(argv=None):
                 raise RuntimeError("Docker daemon is not Linux")
             available_memory = int(daemon["MemTotal"])
             source = run / "image-source"
-            snapshot(source, inputs)
+            candidate_metadata = snapshot(source, inputs)
             for job in jobs:
                 key = job["platform"], job["patch"]
                 if key not in images:
                     images[key] = docker_image(docker, job, run, source)
+                    images[key]["candidate_metadata"] = candidate_metadata
     except Exception as error:
         plan.update(status="failed", preparation_error=str(error))
         manifest.write_text(json.dumps(plan, indent=2) + "\n")

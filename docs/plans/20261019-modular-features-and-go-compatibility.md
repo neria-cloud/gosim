@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–30 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 31–33 remain unchecked. Full race suites are deferred to final verification.
+**Status:** in progress; Tasks 1–31 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 32–33 remain unchecked. Full race suites are deferred to final verification.
 
 ## Important notices
 
@@ -803,17 +803,17 @@ Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for 
 **References:** T§1–4 public behavior; T§8/9 configuration and version ownership; T§11 exclusions; planning clarifications table.  
 **Budget:** 1,000–2,500 changed lines. **Dependency:** 25–30.
 
-- [ ] Prepare validation of a promoted checkout before final certification: candidate gates must use an explicitly unpromoted isolated source copy, preserving the exact tuple allowlist and executable inputs while resetting only excluded status/evidence metadata. Keep normal commands bound to reviewed certified evidence. Verify this workflow and document that a candidate rerun does not renew certification; do not weaken the pending-only candidate selector. This prerequisite is required because existing candidate tests and verification commands correctly require pending records, whereas Task 32 promotes the original checkout.
-- [ ] Document the actual package graph, native/translated boundary, exact four feature sets, unstarted machine workflow, fs snapshot ownership, network controls, explicit disabled-feature abort and native ErrNotSim behavior. Remove old API examples rather than showing deprecated wrappers.
-- [ ] Document exact patch selection, pending vs certified status, rebuild command on worker mismatch, generated family selection, replay scope, candidate developer workflow and public normal CLI behavior.
-- [ ] Align T§9's artifact path with per-package manifests and record the planning clarifications in architecture documentation. Repair historical report links to `docs/reports/`; do not rewrite syscall capability claims as newly implemented features.
-- [ ] Set the module's minimum Go language version consistently with supporting 1.25 and 1.26, without confusing a go.mod directive with an exact compatibility allowlist or forcing newer automatic selection. Retain only necessary dependency updates supported by both families.
-- [ ] Compile/run supported examples with explicit configs; preserve clearly labeled unsupported HTTP/gRPC examples as rejection demonstrations or documentation, not silent successful native execution. Document scope exclusions with accurate capability tables.
+- [x] Prepare validation of a promoted checkout before final certification: candidate gates must use an explicitly unpromoted isolated source copy, preserving the exact tuple allowlist and executable inputs while resetting only excluded status/evidence metadata. Keep normal commands bound to reviewed certified evidence. Verify this workflow and document that a candidate rerun does not renew certification; do not weaken the pending-only candidate selector. This prerequisite is required because existing candidate tests and verification commands correctly require pending records, whereas Task 32 promotes the original checkout.
+- [x] Document the actual package graph, native/translated boundary, exact four feature sets, unstarted machine workflow, fs snapshot ownership, network controls, explicit disabled-feature abort and native ErrNotSim behavior. Remove old API examples rather than showing deprecated wrappers.
+- [x] Document exact patch selection, pending vs certified status, rebuild command on worker mismatch, generated family selection, replay scope, candidate developer workflow and public normal CLI behavior.
+- [x] Align T§9's artifact path with per-package manifests and record the planning clarifications in architecture documentation. Repair historical report links to `docs/reports/`; do not rewrite syscall capability claims as newly implemented features.
+- [x] Set the module's minimum Go language version consistently with supporting 1.25 and 1.26, without confusing a go.mod directive with an exact compatibility allowlist or forcing newer automatic selection. Retain only necessary dependency updates supported by both families.
+- [x] Compile/run supported examples with explicit configs; preserve clearly labeled unsupported HTTP/gRPC examples as rejection demonstrations or documentation, not silent successful native execution. Document scope exclusions with accurate capability tables.
 
 #### Verification
 
-- [ ] Documentation links and example commands match real flags/APIs; supported examples execute and invalid configurations fail as described.
-- [ ] Run common commit gate. Do all source/config changes before final certification so its fingerprints cover the final implementation.
+- [x] Documentation links and example commands match real flags/APIs; supported examples execute and invalid configurations fail as described.
+- [x] Run common commit gate. Do all source/config changes before final certification so its fingerprints cover the final implementation.
 
 ### Task 32: Execute all target tuples and promote verified compatibility evidence
 
@@ -888,7 +888,7 @@ GOTOOLCHAIN=go1.26.9 GOSIM_TOOLCHAIN=go1.26.9 ./.ci/verify-step.sh
 git diff --check
 ```
 
-Execution cadence amended at the user's request during Task 27.2: the combined `verify-step.sh` commands above are final-verification commands from this point onward. For intermediate commits, run formatting and task-specific checks, build the CLI with each exact patch, then invoke its `internal-candidate certify -go PATCH -features rt,fs,net -output DIR` command without `-race`. This invokes the same complete ordinary suite runner and validates its report. Use separate source-matched roots for parallel patch jobs so selftest artifacts cannot collide. Reports remain candidate evidence and do not promote compatibility. Full race suites and race matrix jobs remain required during the final verification phase (Tasks 32–33), after implementation; interrupted race runs are recorded as canceled, never passed. Earlier completed race evidence is retained unchanged.
+Execution cadence amended at the user's request during Task 27.2: the combined `verify-step.sh` commands above are final-verification commands from this point onward. For intermediate commits, run formatting and task-specific checks, then `GOSIM_TOOLCHAIN=go1.25.14 ./.ci/verify-step.sh --ordinary` and `GOSIM_TOOLCHAIN=go1.26.9 ./.ci/verify-step.sh --ordinary`. Task 31 makes this entry create an isolated source-matched pending copy, build the exact CLI and invoke `internal-candidate certify -go PATCH -features rt,fs,net -output DIR` without `-race`. Only the copied status/evidence metadata is reset; the original checkout and exact tuple allowlist are preserved. This invokes the same complete ordinary suite runner and validates its report. Use separate source-matched roots for parallel patch jobs so selftest artifacts cannot collide. Reports remain candidate evidence and do not promote compatibility. Full race suites and race matrix jobs remain required during the final verification phase (Tasks 32–33), after implementation; interrupted race runs are recorded as canceled, never passed. Earlier completed race evidence is retained unchanged.
 
 Host test invocations retain `-ldflags=-checklinkname=0 -tags=linkname` and additionally `-race` for the race pass. Simulation invocations receive the same patch, explicit feature set and race mode. Prepare-selftest/build-tests and the intentionally racing fixtures run under matching manifests; running bare `go test ./...` with stale prebuilts is not an equivalent gate.
 
@@ -995,6 +995,10 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | — | — | None recorded during planning | Architectural clarifications are listed separately above |
 
 ## NOT PLANNED CHANGES
+
+### Task 31 — Preserve developer verification after promotion
+
+`.ci/crossarch-tests/{matrix.py,verify.py}` and `.ci/verify-step.sh`: existing candidate selectors and candidate test fixtures require pending tuples. Validation now creates an explicit pending copy while preserving all executable inputs, exact allowlists and original certification metadata. Added a certified-original preservation regression fixture. `Taskfile.yml` delegates ordinary/final gates to this entry and fixes its Colima platform default. `.github/workflows/main.yml` gives setup-go bare semantic versions and retains the `go` prefix for the matrix CLI. These are prerequisites/configuration corrections discovered before final certification; normal selectors and the target design are unchanged. Diff: snapshot metadata reset/record, isolated verification entry, task command delegation and action version formatting in this task's commit.
 
 ### Task 25 — Default machine label prevents an accidental filesystem dependency
 
