@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
@@ -111,45 +110,29 @@ func TestInvalidRouteSchemas(t *testing.T) {
 
 func TestGeneratedOutputIsCurrent(t *testing.T) {
 	t.Parallel()
-	for _, family := range []struct{ id, patch string }{{"go125", "go1.25.14"}, {"go126", "go1.26.9"}} {
-		t.Run(family.id, func(t *testing.T) {
-			tc, err := buildcfg.Resolve(family.patch)
-			if err != nil {
-				t.Fatal(err)
-			}
-			out := t.TempDir()
-			if err := GenerateProfile(tc, family.id, []string{"amd64", "arm64"}, out, GenerateOptions{}); err != nil {
-				t.Fatal(err)
-			}
-			outputs := readOutputTree(t, out)
-			for name, want := range outputs {
-				got, err := os.ReadFile(filepath.Join("../..", name))
-				if err != nil {
-					t.Fatal(err)
-				}
-				if !bytes.Equal(got, want) {
-					t.Fatalf("stale generated output %s; run gosim-gen", name)
-				}
-			}
-		})
+	tc, profile, options := currentGeneration(t)
+	out := t.TempDir()
+	if err := GenerateProfile(tc, profile.ID, []string{"amd64", "arm64"}, out, options); err != nil {
+		t.Fatal(err)
+	}
+	for name, data := range readOutputTree(t, out) {
+		assertGeneratedMatchesBaseline(t, tc, name, data)
 	}
 }
 
-func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
+func TestSelectedGenerationIsScopedAndRepeatable(t *testing.T) {
 	t.Parallel()
-	tc, err := buildcfg.Resolve("go1.25.14")
-	if err != nil {
-		t.Fatal(err)
-	}
+	tc, profile, options := currentGeneration(t)
 	out := t.TempDir()
-	protected := filepath.Join(out, "internal/compat/go126/profile/routes_arm64.json")
+	other := otherFamily(profile.ID)
+	protected := filepath.Join(out, "internal/compat/"+other+"/profile/routes_arm64.json")
 	if err := os.MkdirAll(filepath.Dir(protected), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(protected, []byte("unselected-family"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out, GenerateOptions{}); err != nil {
+	if err := GenerateProfile(tc, profile.ID, []string{"amd64"}, out, options); err != nil {
 		t.Fatal(err)
 	}
 	first := readOutputTree(t, out)
@@ -158,7 +141,7 @@ func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out, GenerateOptions{}); err != nil {
+	if err := GenerateProfile(tc, profile.ID, []string{"amd64"}, out, options); err != nil {
 		t.Fatal(err)
 	}
 	after, err := os.Stat(file)
@@ -168,28 +151,28 @@ func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
 	if !reflect.DeepEqual(first, readOutputTree(t, out)) || !before.ModTime().Equal(after.ModTime()) {
 		t.Fatal("repeat generation changed bytes or unchanged file mtime")
 	}
-	if string(first["internal/compat/go126/profile/routes_arm64.json"]) != "unselected-family" {
+	if string(first["internal/compat/"+other+"/profile/routes_arm64.json"]) != "unselected-family" {
 		t.Fatal("modified unselected family")
 	}
-	if _, err := os.Stat(filepath.Join(out, "internal/compat/go125/profile/routes_arm64.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(out, "internal/compat/"+profile.ID+"/profile/routes_arm64.json")); !os.IsNotExist(err) {
 		t.Fatal("modified unselected architecture")
 	}
 	var record GenerationRecord
-	if err := json.Unmarshal(first["internal/compat/go125/profile/routes_amd64.json"], &record); err != nil {
+	if err := json.Unmarshal(first["internal/compat/"+profile.ID+"/profile/routes_amd64.json"], &record); err != nil {
 		t.Fatal(err)
 	}
-	if record.Stage != "typed-adapters" || !buildspec.ValidDigest(record.AdapterDigest) || record.GeneratedWith != "go1.25.14" || len(record.Modules) == 0 || !buildspec.ValidDigest(record.OriginDigest) {
+	if record.Stage != "typed-adapters" || !buildspec.ValidDigest(record.AdapterDigest) || record.GeneratedWith != tc.Version || len(record.Modules) == 0 || !buildspec.ValidDigest(record.OriginDigest) {
 		t.Fatalf("generation identity=%+v", record)
 	}
 	for _, test := range []struct {
 		family, patch string
 		arches        []string
 	}{
-		{"go126", "go1.25.14", []string{"amd64"}},
-		{"go125", "go1.25.13", []string{"amd64"}},
-		{"go125", "go1.25.14", nil},
-		{"go125", "go1.25.14", []string{"386"}},
-		{"go125", "go1.25.14", []string{"amd64", "amd64"}},
+		{other, tc.Version, []string{"amd64"}},
+		{profile.ID, "go1.999.0", []string{"amd64"}},
+		{profile.ID, tc.Version, nil},
+		{profile.ID, tc.Version, []string{"386"}},
+		{profile.ID, tc.Version, []string{"amd64", "amd64"}},
 	} {
 		bad := tc
 		bad.Version = test.patch
@@ -199,7 +182,7 @@ func TestPinnedGenerationIsScopedAndRepeatable(t *testing.T) {
 	}
 	bad := tc
 	bad.Executable = "/missing/go"
-	if err := GenerateProfile(bad, "go125", []string{"amd64"}, out, GenerateOptions{}); err == nil {
+	if err := GenerateProfile(bad, profile.ID, []string{"amd64"}, out, GenerateOptions{}); err == nil {
 		t.Fatal("unverified executable admitted")
 	}
 	if !reflect.DeepEqual(first, readOutputTree(t, out)) {
@@ -236,16 +219,13 @@ func readOutputTree(t *testing.T, root string) map[string][]byte {
 
 func TestArm64GenerationPreservesAMD64(t *testing.T) {
 	t.Parallel()
-	tc, err := buildcfg.Resolve("go1.25.14")
-	if err != nil {
-		t.Fatal(err)
-	}
+	tc, profile, options := currentGeneration(t)
 	out := t.TempDir()
-	if err := GenerateProfile(tc, "go125", []string{"amd64"}, out, GenerateOptions{}); err != nil {
+	if err := GenerateProfile(tc, profile.ID, []string{"amd64"}, out, options); err != nil {
 		t.Fatal(err)
 	}
 	before := readOutputTree(t, out)
-	if err := GenerateProfile(tc, "go125", []string{"arm64"}, out, GenerateOptions{}); err != nil {
+	if err := GenerateProfile(tc, profile.ID, []string{"arm64"}, out, options); err != nil {
 		t.Fatal(err)
 	}
 	both := readOutputTree(t, out)
@@ -254,12 +234,12 @@ func TestArm64GenerationPreservesAMD64(t *testing.T) {
 			t.Fatal("arm64 generation changed existing amd64/common output", path)
 		}
 	}
-	arm := filepath.Join(out, "internal/compat/go125/hooks/fs/syscalls_arm64.go")
+	arm := filepath.Join(out, "internal/compat/"+profile.ID+"/hooks/fs/syscalls_arm64.go")
 	first, err := os.Stat(arm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go125", []string{"arm64"}, out, GenerateOptions{}); err != nil {
+	if err := GenerateProfile(tc, profile.ID, []string{"arm64"}, out, options); err != nil {
 		t.Fatal(err)
 	}
 	second, err := os.Stat(arm)

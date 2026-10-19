@@ -7,56 +7,48 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neria-cloud/gosim/internal/buildcfg"
-	p126 "github.com/neria-cloud/gosim/internal/compat/go126/profile"
+	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
+func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 	t.Parallel()
-	tc, err := buildcfg.Resolve("go1.26.9")
-	if err != nil {
-		t.Fatal(err)
-	}
+	tc, profile, options := currentGeneration(t)
+	other := otherFamily(profile.ID)
 	output := t.TempDir()
-	protected := filepath.Join(output, "internal/compat/go125/profile/routes_amd64.json")
+	protected := filepath.Join(output, "internal/compat/"+other+"/profile/routes_amd64.json")
 	if err := os.MkdirAll(filepath.Dir(protected), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(protected, []byte("other family"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go126", []string{"amd64"}, output, GenerateOptions{}); err != nil {
+	if err := GenerateProfile(tc, profile.ID, []string{"amd64"}, output, options); err != nil {
 		t.Fatal(err)
 	}
 	first := readOutputTree(t, output)
 	for name, want := range first {
-		if strings.Contains(name, "/go125/") {
+		if strings.Contains(name, "/"+other+"/") {
 			if string(want) != "other family" {
 				t.Fatal("changed other family")
 			}
 			continue
 		}
-		got, err := os.ReadFile(filepath.Join("../..", name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(got, want) {
-			t.Fatalf("stale output %s", name)
-		}
-		if strings.HasSuffix(name, ".go") && strings.Contains(name, "/go126/") {
-			for _, forbidden := range []string{"/internal/compat/go125/", "/internal/simulation", "/internal/fs", "/internal/net", "/internal/hooks/", "/gosimruntime"} {
+		assertGeneratedMatchesBaseline(t, tc, name, want)
+		got := want
+		if strings.HasSuffix(name, ".go") && strings.Contains(name, "/"+profile.ID+"/") {
+			for _, forbidden := range []string{"/internal/compat/" + other + "/", "/internal/simulation", "/internal/fs", "/internal/net", "/internal/hooks/", "/gosimruntime"} {
 				if bytes.Contains(got, []byte(forbidden)) {
 					t.Fatalf("%s imports %s", name, forbidden)
 				}
 			}
 		}
 	}
-	file := filepath.Join(output, "internal/compat/go126/hooks/fs/syscalls_amd64.go")
+	file := filepath.Join(output, "internal/compat/"+profile.ID+"/hooks/fs/syscalls_amd64.go")
 	stat, err := os.Stat(file)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := GenerateProfile(tc, "go126", []string{"amd64"}, output, GenerateOptions{}); err != nil {
+	if err := GenerateProfile(tc, profile.ID, []string{"amd64"}, output, options); err != nil {
 		t.Fatal(err)
 	}
 	second, err := os.Stat(file)
@@ -72,14 +64,14 @@ func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
 			t.Fatalf("generation changed %s: %v", name, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(output, "internal/compat/go126/hooks/fs/syscalls_arm64.go")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(output, "internal/compat/"+profile.ID+"/hooks/fs/syscalls_arm64.go")); !os.IsNotExist(err) {
 		t.Fatal("unselected architecture emitted")
 	}
 	manifest, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	profile := p126.Descriptor()
+	profile.Hooks = append([]spec.Hook(nil), profile.Hooks...)
 	for i, h := range profile.Hooks {
 		if h.Package == "syscall" && h.Symbol == "Fstat" {
 			profile.Hooks[i].Signature = "func(int) error"
@@ -90,12 +82,12 @@ func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
 	}
 	// Optional-domain gates precede all argument marshalling, even invalid pointers.
 	for _, owner := range []string{"fs", "net"} {
-		path := filepath.Join(output, "internal/compat/go126/hooks", owner, "syscalls_amd64.go")
+		path := filepath.Join(output, "internal/compat/"+profile.ID+"/hooks", owner, "syscalls_amd64.go")
 		data, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, h := range p126.Descriptor().Hooks {
+		for _, h := range profile.Hooks {
 			if h.Owner != owner || (h.Package != "syscall" && h.Package != "golang.org/x/sys/unix") {
 				continue
 			}

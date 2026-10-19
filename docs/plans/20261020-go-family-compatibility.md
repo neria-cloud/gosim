@@ -53,7 +53,7 @@ References: target §§7–8, 12.
 
 - [x] Separate verify from certify; remove certification/reset metadata from ordinary test paths and CI.
 - [x] Remove local exact-patch defaults/allowlists; retain report layout, parallel budgets and explicit long-suite gating.
-- [ ] Adapt boundary/translation/script test assumptions without reintroducing duplicated sweeps; focused orchestration tests; commit.
+- [x] Adapt boundary/translation/script test assumptions without reintroducing duplicated sweeps; focused orchestration tests; commit.
 
 ### Task 7: Local verification, documentation and architecture audit
 

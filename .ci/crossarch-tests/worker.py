@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 
 
@@ -19,6 +20,13 @@ def validate_certification(platform, race=False):
         raise ValueError("AMD64 and race certification are disabled; use ARM64 without race")
 
 
+def validate_toolchain(value):
+    # Syntax only: the Go family registry owns compatibility policy. These
+    # explicit versions schedule manual jobs; they are not a support allowlist.
+    if not re.fullmatch(r"go[1-9][0-9]*\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)", value):
+        raise ValueError("require an exact stable Go version, e.g. go1.25.1")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch", required=True)
@@ -32,6 +40,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         validate_certification(args.platform, args.race)
+        validate_toolchain(args.patch)
     except ValueError as error:
         parser.error(str(error))
     if args.concurrency < 1:

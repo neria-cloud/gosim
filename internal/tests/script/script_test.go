@@ -6,13 +6,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/rogpeppe/go-internal/gotooltest"
 	"github.com/rogpeppe/go-internal/testscript"
 
 	"github.com/neria-cloud/gosim/internal/gosimtool"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 func TestScript(t *testing.T) {
@@ -24,6 +24,16 @@ func TestScript(t *testing.T) {
 		Dir: "testdata",
 	}
 	gotooltest.Setup(&p)
+	originalCondition := p.Condition
+	p.Condition = func(cond string) (bool, error) {
+		if cond == "gosimrace" {
+			return hostabi.RaceEnabled, nil
+		}
+		if originalCondition != nil {
+			return originalCondition(cond)
+		}
+		return false, fmt.Errorf("unknown condition %q", cond)
+	}
 
 	curModDir, err := gosimtool.FindGoModDir()
 	if err != nil {
@@ -57,7 +67,7 @@ func TestScript(t *testing.T) {
 			return err
 		}
 
-		config := fmt.Sprintf(`{"schema":1,"toolchain":%q,"features":["rt","fs","net"],"simulation_os":"linux"}`, runtime.Version())
+		config := `{"schema":2,"features":["rt","fs","net"],"simulation_os":"linux"}`
 		if err := os.WriteFile(filepath.Join(e.WorkDir, "gosim.json"), []byte(config), 0o644); err != nil {
 			return err
 		}

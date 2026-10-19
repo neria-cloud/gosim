@@ -10,31 +10,31 @@ env META_CONFIG=net.json
 env EXPECT_FEATURES='[rt net]'
 exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
 stdout 'PASS'
-exec gosim build-tests -config net.json -race .
-exec go test -ldflags=-checklinkname=0 -tags=linkname -race -v .
-stdout 'PASS'
+[gosimrace] exec gosim build-tests -config net.json -race .
+[gosimrace] exec go test -ldflags=-checklinkname=0 -tags=linkname -race -v .
+[gosimrace] stdout 'PASS'
 
 # Invoke a prebuilt host metatest directly so Go's outer result cache cannot
 # bypass source checking when content changes preserve timestamps and size.
 env META_CONFIG=rt.json
 env EXPECT_FEATURES=[rt]
-exec go test -ldflags=-checklinkname=0 -tags=linkname -c -o meta.test .
-exec ./meta.test -test.v
+exec go test -ldflags=-checklinkname=0 -tags=linkname -c -o .gosim/meta.test .
+exec ./.gosim/meta.test -test.v
 stdout 'PASS'
-exec cp -p probe_test.go stamp
+exec cp -p probe_test.go .gosim/stamp
 cp changed.txt probe_test.go
-exec touch -r stamp probe_test.go
-! exec ./meta.test -test.v
-stdout 'Could not find pre-built gosim test binary'
+exec touch -r .gosim/stamp probe_test.go
+! exec ./.gosim/meta.test -test.v
+stdout 'prebuilt .* unavailable'
 
 -- makeconfig.go --
 //go:build ignore
 
 package main
-import("encoding/json";"os";"runtime")
+import("encoding/json";"os")
 func main(){
  for name,features:=range map[string][]string{"rt.json":{"rt"},"net.json":{"rt","net"}}{
-  data,err:=json.Marshal(struct{Schema int `json:"schema"`;Toolchain string `json:"toolchain"`;Features []string `json:"features"`}{1,runtime.Version(),features});if err!=nil{panic(err)}
+  data,err:=json.Marshal(struct{Schema int `json:"schema"`;SimulationOS string `json:"simulation_os"`;Features []string `json:"features"`}{2,"linux",features});if err!=nil{panic(err)}
   if err:=os.WriteFile(name,data,0600);err!=nil{panic(err)}
  }
 }

@@ -1,26 +1,26 @@
-# Public commands cannot use candidate identities, including lookup/resolution.
-! exec gosim-user translate .
-stderr 'pending'
-! exec gosim-user test .
-stderr 'pending'
-! exec gosim-user build-tests .
-stderr 'pending'
-! exec gosim-user prepare-selftest
-stderr 'pending'
-! exec gosim-user lookup-test .
-stderr 'pending'
-! exec gosim-user resolve-build
-stderr 'pending'
+# Public commands work without certification or pending tuple declarations.
+exec gosim-user translate .
+exec gosim-user test -v .
+stdout 'PASS'
+exec gosim-user build-tests .
+exec gosim-user lookup-test .
+stdout '"binary"'
 
-# The repository wrapper explicitly selects the internal candidate workflow.
+# The legacy candidate entry resolves the same evidence-independent identity.
+mkdir .gosim/identity
+exec gosim-user resolve-build
+stdout '"schema":2'
+! stdout 'certification'
+cp stdout .gosim/identity/public.json
 exec gosim resolve-build
-stdout '"certification":"candidate"'
+cmp stdout .gosim/identity/public.json
+
 ! exec gosim-user test -force-unsupported .
 stderr 'flag provided but not defined'
 ! exec gosim test -features net .
 stderr 'rt'
-! exec gosim test -go go1.26.0 .
-stderr 'unsupported|distribution'
+! exec gosim test -go go1.27.0 .
+stderr 'unsupported'
 -- probe_test.go --
 package fixture
 import "testing"

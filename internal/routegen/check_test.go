@@ -6,26 +6,36 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/neria-cloud/gosim/internal/buildcfg"
 )
 
 func TestCheckProfileDoesNotRepairStaleFiles(t *testing.T) {
 	t.Parallel()
-	tc, err := buildcfg.Resolve("go1.26.9")
-	if err != nil {
+	tc, profile, options := currentGeneration(t)
+	out := t.TempDir()
+	if err := GenerateProfile(tc, profile.ID, []string{"arm64"}, out, options); err != nil {
 		t.Fatal(err)
 	}
-	out := t.TempDir()
-	if err := GenerateProfile(tc, "go126", []string{"arm64"}, out, GenerateOptions{}); err != nil {
+	expected := t.TempDir()
+	if err := GenerateProfile(tc, profile.ID, []string{"arm64"}, expected, options); err != nil {
 		t.Fatal(err)
+	}
+	check := func() error {
+		if options.RefreshOrigin {
+			return compareGeneratedOutputs(expected, out)
+		}
+		return CheckProfile(tc, profile.ID, []string{"arm64"}, out)
+	}
+	if options.RefreshOrigin {
+		if err := CheckProfile(tc, profile.ID, []string{"arm64"}, out); err == nil {
+			t.Fatal("baseline check accepted another generation compiler")
+		}
 	}
 	file := filepath.Join(out, "internal/kernel/routes_gen.go")
 	before, err := os.Stat(file)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := CheckProfile(tc, "go126", []string{"arm64"}, out); err != nil {
+	if err := check(); err != nil {
 		t.Fatal(err)
 	}
 	after, err := os.Stat(file)
@@ -39,7 +49,7 @@ func TestCheckProfileDoesNotRepairStaleFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	stale := readOutputTree(t, out)
-	if err := CheckProfile(tc, "go126", []string{"arm64"}, out); err == nil || !strings.Contains(err.Error(), "stale generated") {
+	if err := check(); err == nil || !strings.Contains(err.Error(), "stale generated") {
 		t.Fatal("stale output accepted", err)
 	}
 	if !reflect.DeepEqual(stale, readOutputTree(t, out)) {
@@ -48,13 +58,13 @@ func TestCheckProfileDoesNotRepairStaleFiles(t *testing.T) {
 	if err := os.Remove(file); err != nil {
 		t.Fatal(err)
 	}
-	if err := CheckProfile(tc, "go126", []string{"arm64"}, out); err == nil {
+	if err := check(); err == nil {
 		t.Fatal("missing output accepted")
 	}
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Fatal("check created missing output")
 	}
-	if err := CheckProfile(tc, "go126", []string{"arm64"}, ""); err == nil {
+	if err := CheckProfile(tc, profile.ID, []string{"arm64"}, ""); err == nil {
 		t.Fatal("implicit output accepted")
 	}
 }

@@ -2,7 +2,7 @@
 
 # Cached metatest fails without binary
 ! exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
-stdout 'Could not find pre-built gosim test binary'
+stdout 'prebuilt .* unavailable'
 
 # Inner test should work
 exec gosim test -v .
@@ -36,7 +36,7 @@ cp changed.go.txt test_test.go
 
 # Cached metatest no longer works
 ! exec go test -ldflags=-checklinkname=0 -tags=linkname -v .
-stdout 'Could not find pre-built gosim test binary'
+stdout 'prebuilt .* unavailable'
 
 # Uncached metatest still works
 exec go test -ldflags=-checklinkname=0 -tags=linkname -v -count=1 .

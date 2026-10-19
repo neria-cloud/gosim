@@ -2,8 +2,8 @@
 exec gosim test -v .
 stdout 'native runtime and ABI boundary passed'
 
-exec gosim test -race -v .
-stdout 'native runtime and ABI boundary passed'
+[gosimrace] exec gosim test -race -v .
+[gosimrace] stdout 'native runtime and ABI boundary passed'
 
 -- runtimeabi_test.go --
 package boundary_test

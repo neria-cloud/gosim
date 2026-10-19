@@ -21,10 +21,7 @@ import (
 func profileSelection(t *testing.T, features ...string) buildspec.Selection {
 	t.Helper()
 	p := selected.Profile()
-	patch := "go1.26.9"
-	if p.ID == "go125" {
-		patch = "go1.25.14"
-	}
+	patch := runtime.Version()
 	d := strings.Repeat("a", 64)
 	id := buildspec.Identity{
 		Schema: 2, Toolchain: patch, Profile: p.ID, AdapterRevision: p.Revision,

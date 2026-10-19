@@ -23,6 +23,10 @@ func CheckProfile(tc buildspec.Toolchain, profileID string, arches []string, out
 	if err := GenerateProfile(tc, profileID, arches, staging, GenerateOptions{}); err != nil {
 		return err
 	}
+	return compareGeneratedOutputs(staging, output)
+}
+
+func compareGeneratedOutputs(staging, output string) error {
 	return filepath.WalkDir(staging, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err

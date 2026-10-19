@@ -13,6 +13,8 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
+	"github.com/neria-cloud/gosim/internal/compat/selected"
+	"github.com/neria-cloud/gosim/internal/compat/spec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/hostabi"
 	"github.com/neria-cloud/gosim/internal/translate/cache"
@@ -27,7 +29,7 @@ func TestSelectedTranslation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, patch := range []string{"go1.25.14", "go1.26.9"} {
+	for _, patch := range []string{runtime.Version()} {
 		t.Run(patch, func(t *testing.T) {
 			tc, err := buildcfg.Resolve(patch)
 			if err != nil {
@@ -41,7 +43,7 @@ func TestSelectedTranslation(t *testing.T) {
 			cmd.Env = append(cmd.Env, "GOSIM_TRANSLATION_WORKER=1")
 			out, err := cmd.CombinedOutput()
 			if err != nil {
-				t.Fatalf("pinned translation worker %s: %v\n%s", patch, err, out)
+				t.Fatalf("selected translation worker %s: %v\n%s", patch, err, out)
 			}
 		})
 	}
@@ -60,12 +62,6 @@ func TestSelectedTranslationWorker(t *testing.T) {
 		t.Fatal(err)
 	}
 	tc, err := buildcfg.Resolve(runtime.Version())
-	if err != nil {
-		t.Fatal(err)
-	}
-	selection := profileSelection(t, "rt")
-	selection.Identity.Race = hostabi.RaceEnabled
-	cfg, err := gosimtool.NewBuildConfig(t.Context(), selection, buildspec.Resolution{Toolchain: tc})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +98,18 @@ func TestWork(t *testing.T) { if Work() != 2 { t.Fatal("work") } }
 		t.Fatal(err)
 	}
 	defer os.Chdir(previous)
-	db, err := cache.NewDB(filepath.Join(project, "cache.db"))
+	if err := os.WriteFile(filepath.Join(project, "tools.go"), []byte("//go:build never\npackage fixture\nimport _ \"github.com/neria-cloud/gosim\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tidy := buildcfg.Command(tc, project, "mod", "tidy")
+	if out, err := tidy.CombinedOutput(); err != nil {
+		t.Fatalf("fixture setup: %v\n%s", err, out)
+	}
+	cfg := liveTranslationConfig(t)
+	if err := os.MkdirAll(filepath.Join(project, ".gosim"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	db, err := cache.NewDB(filepath.Join(project, ".gosim", "cache.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,6 +158,7 @@ func TestWork(t *testing.T) { if Work() != 2 { t.Fatal("work") } }
 	if err := os.Chtimes(app, stat.ModTime(), stat.ModTime()); err != nil {
 		t.Fatal(err)
 	}
+	cfg = liveTranslationConfig(t)
 	third, err := translatePackages(cached, []string{"."}, t.TempDir(), cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -176,6 +184,7 @@ func testCurrentSourceDiscovery(t *testing.T, cfg gosimtool.BuildConfig, cached 
 	t.Helper()
 	inspect := func(pattern string) map[string]string {
 		t.Helper()
+		cfg = liveTranslationConfig(t)
 		deps, err := InspectDependencies(&TranslateInput{Packages: []string{pattern}, Cfg: cfg})
 		if err != nil {
 			t.Fatal(err)
@@ -189,7 +198,7 @@ func testCurrentSourceDiscovery(t *testing.T, cfg gosimtool.BuildConfig, cached 
 		}
 		return deps[pkg]
 	}
-	if !maps.Equal(inspect("."), original) {
+	if !maps.Equal(appSourceInputs(project, inspect(".")), appSourceInputs(project, original)) {
 		t.Fatal("inspection disagrees with translated source inputs")
 	}
 	other := filepath.Join(project, "other")
@@ -206,11 +215,12 @@ func testCurrentSourceDiscovery(t *testing.T, cfg gosimtool.BuildConfig, cached 
 	write(embed, "before")
 	write(filepath.Join(other, "other.go"), "package other\nimport _ \"embed\"\n//go:embed payload.txt\nvar Payload string\n")
 	write(filepath.Join(other, "other_test.go"), "package other_test\nimport (\"testing\"; \"test/other\")\nfunc TestOther(t *testing.T) { if other.Payload != \"before\" { t.Fatal(other.Payload) } }\n")
+	cfg = liveTranslationConfig(t)
 	batch, err := translatePackages(cached, []string{".", "./other"}, t.TempDir(), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !maps.Equal(batch.Deps["translated/test"], original) {
+	if !maps.Equal(appSourceInputs(project, batch.Deps["translated/test"]), appSourceInputs(project, original)) {
 		t.Fatal("batch membership changed root package inputs")
 	}
 	otherInputs := inspect("./other")
@@ -231,21 +241,63 @@ func testCurrentSourceDiscovery(t *testing.T, cfg gosimtool.BuildConfig, cached 
 	if maps.Equal(inspect("./other"), otherInputs) {
 		t.Fatal("embedded content change with unchanged mtime was missed")
 	}
-	if !maps.Equal(inspect("."), original) {
+	if !maps.Equal(appSourceInputs(project, inspect(".")), appSourceInputs(project, original)) {
 		t.Fatal("unrelated package mutation invalidated root")
 	}
 	extra := filepath.Join(project, "extra.go")
 	write(extra, "package fixture\nvar Extra = 1\n")
 	added := inspect(".")
-	if added[extra] == "" || maps.Equal(added, original) {
+	if added[extra] == "" || maps.Equal(appSourceInputs(project, added), appSourceInputs(project, original)) {
 		t.Fatal("new source was missed")
 	}
 	if err := os.Remove(extra); err != nil {
 		t.Fatal(err)
 	}
-	if !maps.Equal(inspect("."), original) {
+	if !maps.Equal(appSourceInputs(project, inspect(".")), appSourceInputs(project, original)) {
 		t.Fatal("removing added source did not restore original inputs")
 	}
+}
+
+func liveTranslationConfig(t *testing.T) gosimtool.BuildConfig {
+	t.Helper()
+	r, err := buildcfg.ResolveRunningProcess(t.Context(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := selected.Profile()
+	inputs, err := buildcfg.Fingerprint(r.Toolchain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts := buildspec.BuildOptions{Race: hostabi.RaceEnabled}
+	contract, err := spec.CheckContracts(t.Context(), r, p, opts, inputs, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := buildcfg.Identity(t.Context(), buildspec.Config{Schema: 2, Features: []string{"rt"}, SimulationOS: "linux"}, r, p, opts, inputs, contract)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selection, err := p.Select(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := gosimtool.NewBuildConfig(t.Context(), selection, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cfg
+}
+
+func appSourceInputs(project string, inputs map[string]string) map[string]string {
+	result := make(map[string]string)
+	for name, digest := range inputs {
+		rel, err := filepath.Rel(project, name)
+		if err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !strings.HasPrefix(rel, ".gosim"+string(filepath.Separator)) {
+			result[name] = digest
+		}
+	}
+	return result
 }
 
 func readTree(t *testing.T, root string) map[string][]byte {

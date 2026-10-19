@@ -33,8 +33,7 @@ func TestCandidate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The common gate runs once under each exact patch. A tuple worker tests
-	// its selected compiler, avoiding unrelated toolchain installs in matrix jobs.
+	// Each job exercises its selected compiler without installing other patches.
 	for _, patch := range []string{runtime.Version()} {
 		t.Run(patch, func(t *testing.T) {
 			tc, err := buildcfg.Resolve(patch)
@@ -131,7 +130,7 @@ func TestCandidateWorker(t *testing.T) {
 			if err := os.Chdir(root); err != nil {
 				t.Fatal(err)
 			}
-			// Matrix certification already ran the positive suites for this tuple.
+			// A prepared tuple runs only its additional candidate coverage.
 			if tuple == "" {
 				packages, err := suites.Packages(features)
 				if err != nil {

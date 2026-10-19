@@ -2,6 +2,7 @@ package translate
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -22,10 +23,15 @@ func TestLinuxArm64SourceBuildsForNativeDarwin(t *testing.T) {
 	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" {
 		t.Skip("Darwin arm64 native worker probe")
 	}
-	for _, family := range []struct{ id, patch, bounds string }{
-		{"go125", "go1.25.14", "go1.25 && !go1.26"},
-		{"go126", "go1.26.9", "go1.26 && !go1.27"},
-	} {
+	version, err := buildspec.ParseGoVersion(runtime.Version())
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected, err := buildspec.LookupFamily(version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, family := range []struct{ id, patch, bounds string }{{selected.Profile, runtime.Version(), fmt.Sprintf("go%d.%d && !go%d.%d", version.Major, version.Minor, version.Major, version.Minor+1)}} {
 		t.Run(family.id, func(t *testing.T) {
 			// Use the actual selected Linux layout source, then apply the existing
 			// translator's filename/constraint rewriting before invoking a native compiler.

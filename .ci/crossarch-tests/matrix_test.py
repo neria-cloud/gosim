@@ -11,23 +11,39 @@ import worker
 
 
 class MatrixTests(unittest.TestCase):
+    def test_versions_are_scheduling_inputs_not_an_allowlist(self):
+        versions = ["go1.25.1", "go1.26.0", "go1.26.999"]
+        jobs = matrix.enumerate_jobs(["darwin/arm64"], versions)
+        self.assertEqual({job["patch"] for job in jobs}, set(versions))
+        for version in ["go1.26", "go1.26rc1", "go1.026.1", "go1.26.01", "../go1.26.1", "go1.26.1+auto"]:
+            with self.subTest(version=version):
+                with self.assertRaises(ValueError):
+                    matrix.enumerate_jobs(["darwin/arm64"], [version])
+                args = ["--patch", version, "--platform", "darwin/arm64",
+                        "--features", "rt", "--evidence", "unused"]
+                with patch.object(worker.subprocess, "check_output") as observe, patch.object(worker.Path, "mkdir") as mkdir:
+                    with self.assertRaises(SystemExit):
+                        worker.main(args)
+                    observe.assert_not_called()
+                    mkdir.assert_not_called()
+
     def test_complete_enumeration(self):
-        jobs = matrix.enumerate_jobs(matrix.PLATFORMS, matrix.PATCHES)
+        jobs = matrix.enumerate_jobs(matrix.PLATFORMS, matrix.DEFAULT_TOOLCHAINS)
         self.assertEqual(len(jobs), 16)
         self.assertEqual(len({matrix.job_name(j) for j in jobs}), 16)
         self.assertTrue(all(j["platform"].endswith("/arm64") and not j["race"] for j in jobs))
         for platform in matrix.PLATFORMS:
             self.assertEqual(sum(j["platform"] == platform for j in jobs), 8)
-        smoke = matrix.enumerate_jobs(matrix.PLATFORMS, matrix.PATCHES, smoke=True)
+        smoke = matrix.enumerate_jobs(matrix.PLATFORMS, matrix.DEFAULT_TOOLCHAINS, smoke=True)
         self.assertEqual(len(smoke), 2)
         self.assertTrue(all(not j["race"] and j["features"] == "rt" for j in smoke))
 
     def test_disabled_certification_rejected_before_execution(self):
         with self.assertRaises(ValueError):
-            matrix.enumerate_jobs(["linux/amd64"], matrix.PATCHES)
+            matrix.enumerate_jobs(["linux/amd64"], matrix.DEFAULT_TOOLCHAINS)
         for platform, race in [("linux/amd64", False), ("linux/arm64", True), ("darwin/arm64", True)]:
             with self.subTest(platform=platform, race=race):
-                args = ["--patch", matrix.PATCHES[0], "--platform", platform,
+                args = ["--patch", matrix.DEFAULT_TOOLCHAINS[0], "--platform", platform,
                         "--features", "rt", "--evidence", "unused"]
                 if race:
                     args.append("--race")
@@ -37,7 +53,7 @@ class MatrixTests(unittest.TestCase):
                     self.assertEqual(error.exception.code, 2)
                     observe.assert_not_called()
                     mkdir.assert_not_called()
-                job = dict(platform=platform, patch=matrix.PATCHES[0], features="rt", race=race)
+                job = dict(platform=platform, patch=matrix.DEFAULT_TOOLCHAINS[0], features="rt", race=race)
                 with tempfile.TemporaryDirectory() as tmp, patch.object(matrix, "checked") as command, patch.object(matrix, "snapshot") as snapshot:
                     result = matrix.execute(job, Path(tmp), argparse.Namespace(native=True), {}, [], {}, {})
                     self.assertEqual(result["status"], "failed")
@@ -70,7 +86,7 @@ class MatrixTests(unittest.TestCase):
 
     def test_job_failure_is_persisted_and_returned(self):
         with tempfile.TemporaryDirectory() as tmp:
-            job = matrix.enumerate_jobs(["darwin/arm64"], matrix.PATCHES, smoke=True)[0]
+            job = matrix.enumerate_jobs(["darwin/arm64"], matrix.DEFAULT_TOOLCHAINS, smoke=True)[0]
             with patch.object(matrix, "snapshot", return_value={}), patch.object(matrix, "checked", side_effect=RuntimeError("worker failed")):
                 result = matrix.execute(job, Path(tmp), argparse.Namespace(native=True, worker_concurrency=2), {}, [], {}, {})
             self.assertEqual(result["status"], "failed")
@@ -78,7 +94,7 @@ class MatrixTests(unittest.TestCase):
             self.assertIn("worker failed", json.loads(path.read_text())["error"])
 
     def test_container_failure_collects_evidence_and_removes_owned_container(self):
-        job = matrix.enumerate_jobs(["linux/arm64"], matrix.PATCHES, smoke=True)[0]
+        job = matrix.enumerate_jobs(["linux/arm64"], matrix.DEFAULT_TOOLCHAINS, smoke=True)[0]
         calls = []
 
         def command(args, *unused, **keywords):
@@ -99,7 +115,7 @@ class MatrixTests(unittest.TestCase):
         self.assertFalse(any("type=bind" in arg for cmd in calls for arg in cmd))
 
     def test_report_requires_all_applicable_logs(self):
-        job = matrix.enumerate_jobs(["darwin/arm64"], matrix.PATCHES, smoke=True)[0]
+        job = matrix.enumerate_jobs(["darwin/arm64"], matrix.DEFAULT_TOOLCHAINS, smoke=True)[0]
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             report = {"identity": {"toolchain": job["patch"], "host_os": "darwin", "host_arch": "arm64",

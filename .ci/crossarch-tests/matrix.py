@@ -12,9 +12,9 @@ import sys
 import tempfile
 
 from test_support import ROOT, memory_limit, source_files, snapshot as copy_snapshot
-from worker import CERTIFICATION_PLATFORMS, arch, validate_certification
+from worker import CERTIFICATION_PLATFORMS, arch, validate_certification, validate_toolchain
 
-PATCHES = ("go1.25.14", "go1.26.9")
+DEFAULT_TOOLCHAINS = ("go1.25.14", "go1.26.9")
 PLATFORMS = CERTIFICATION_PLATFORMS
 FEATURES = ("rt", "rt,fs", "rt,net", "rt,fs,net")
 
@@ -22,6 +22,8 @@ FEATURES = ("rt", "rt,fs", "rt,net", "rt,fs,net")
 def enumerate_jobs(platforms, patches, smoke=False):
     for platform in platforms:
         validate_certification(platform)
+    for toolchain in patches:
+        validate_toolchain(toolchain)
     return [dict(platform=p, patch=v, features=f, race=False)
             for p, v, f in itertools.product(platforms, patches[:1] if smoke else patches,
                                             FEATURES[:1] if smoke else FEATURES)]
@@ -197,7 +199,7 @@ def main(argv=None):
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--context", default="colima")
     parser.add_argument("--platform", choices=(*PLATFORMS, "all"), required=True)
-    parser.add_argument("--toolchains", default=",".join(PATCHES))
+    parser.add_argument("--toolchains", default=",".join(DEFAULT_TOOLCHAINS))
     parser.add_argument("--output", default=".gosim/certification")
     parser.add_argument("--jobs", type=int, default=None,
                         help="maximum concurrent tuples (default: CPU/memory bounded)")
@@ -205,10 +207,13 @@ def main(argv=None):
     parser.add_argument("--smoke", action="store_true", help="one ordinary rt tuple per platform; never a full matrix")
     args = parser.parse_args(argv)
     patches = args.toolchains.split(",")
-    if not patches or len(set(patches)) != len(patches) or any(p not in PATCHES for p in patches) or (args.jobs is not None and args.jobs < 1):
-        parser.error("require unique pinned toolchains and a positive job limit")
+    if not patches or len(set(patches)) != len(patches) or (args.jobs is not None and args.jobs < 1):
+        parser.error("require unique exact stable toolchains and a positive job limit")
     platforms = PLATFORMS if args.platform == "all" else (args.platform,)
-    jobs = enumerate_jobs(platforms, patches, args.smoke)
+    try:
+        jobs = enumerate_jobs(platforms, patches, args.smoke)
+    except ValueError as error:
+        parser.error(str(error))
     if args.dry_run:
         print(json.dumps(jobs, indent=2))
         return 0
