@@ -356,7 +356,7 @@ func selectedModuleFiles(cfg gosimtool.BuildConfig, modulePath string) (map[stri
 	if err != nil {
 		return nil, err
 	}
-	return buildspec.ModuleFiles(cfg.Resolution, modules, modulePath, gosimtool.Module)
+	return buildspec.ModuleFiles(cfg.Resolution, modules, modulePath)
 }
 
 func createSelectedDirectory(root, relative string) (string, error) {

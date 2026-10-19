@@ -16,7 +16,7 @@ import (
 // ModuleFiles flattens Go's effective module/workspace selection into a private
 // module. It never edits a caller module and never consults an install-time
 // framework graph. The resulting module builds with GOWORK=off.
-func ModuleFiles(r Resolution, modules []Module, modulePath string, additionalRoots ...string) (map[string][]byte, error) {
+func ModuleFiles(r Resolution, modules []Module, modulePath string) (map[string][]byte, error) {
 	if err := ValidateVersion(r.Toolchain.Version); err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func ModuleFiles(r Resolution, modules []Module, modulePath string, additionalRo
 				return nil, err
 			}
 			for _, req := range selected.Require {
-				if m.Main || slices.Contains(additionalRoots, m.Path) {
+				if m.Main {
 					required[req.Mod.Path] = true
 				}
 				if old, main := versions[req.Mod.Path]; main && semver.Compare(req.Mod.Version, old) > 0 {

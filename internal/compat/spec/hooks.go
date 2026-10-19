@@ -68,7 +68,7 @@ func hookInspectionContext(ctx context.Context, r buildspec.Resolution) (string,
 	if err != nil {
 		return "", nil, err
 	}
-	files, err := buildspec.ModuleFiles(r, modules, "gosim-hook-source", "github.com/neria-cloud/gosim")
+	files, err := buildspec.ModuleFiles(r, modules, "gosim-hook-source")
 	if err != nil {
 		return "", nil, err
 	}

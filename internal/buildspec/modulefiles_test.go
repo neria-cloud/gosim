@@ -93,3 +93,56 @@ func TestPrivateModulePreservesWorkspaceSelection(t *testing.T) {
 		t.Fatal("accepted extra module")
 	}
 }
+
+func TestPrivateModuleDoesNotExpandPrunedDependencies(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	write := func(name, content string) {
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("app/go.mod", `module example.org/app
+go 1.25
+require example.org/framework v0.0.0
+replace example.org/framework => ../framework
+replace example.org/dep => ../dep
+replace example.org/unneeded => ../unneeded
+`)
+	write("framework/go.mod", "module example.org/framework\ngo 1.25\nrequire example.org/dep v0.0.0\n")
+	write("dep/go.mod", "module example.org/dep\ngo 1.25\nrequire example.org/unneeded v0.0.0\n")
+	write("unneeded/go.mod", "module example.org/unneeded\ngo 1.25\n")
+	r, err := buildcfg.ResolveRunningProcess(t.Context(), filepath.Join(root, "app"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, err := buildspec.ResolveModuleGraph(t.Context(), r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range input {
+		if m.Path == "example.org/unneeded" {
+			t.Fatal("fixture does not exercise a pruned dependency")
+		}
+	}
+	files, err := buildspec.ModuleFiles(r, input, "gosim-private")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, data := range files {
+		write(filepath.Join("output", name), string(data))
+	}
+	flat := r
+	flat.Context = buildspec.ModuleContext{Directory: filepath.Join(root, "output"), GoWork: "off", GoMod: filepath.Join(root, "output/go.mod")}
+	output, err := buildspec.ResolveModuleGraph(t.Context(), flat)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := buildspec.MatchModuleGraph(input, output, "gosim-private"); err != nil {
+		t.Fatal(err)
+	}
+}
