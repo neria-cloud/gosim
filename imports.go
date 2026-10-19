@@ -14,12 +14,6 @@ import (
 	// Allow running the CLI.
 	_ "github.com/neria-cloud/gosim/cmd/gosim"
 
-	// Packages listed in internal/translate.TranslatedRuntimePackages.
-	_ "github.com/neria-cloud/gosim/internal/hooks/go123"
-	_ "github.com/neria-cloud/gosim/internal/reflect"
-	_ "github.com/neria-cloud/gosim/internal/simulation"
-	_ "github.com/neria-cloud/gosim/internal/testing"
-
 	// Tools used by gosim. For this repository.
 	_ "github.com/go-task/task/v3/cmd/task"
 	_ "golang.org/x/tools/cmd/goimports"

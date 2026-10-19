@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–26 (including their recorded children) implemented and verified; Tasks 27–33 remain unchecked.
+**Status:** in progress; Tasks 1–26 (including their recorded children) implemented and verified; Task 27.1 is complete; parent Task 27 and Tasks 28–33 remain in progress or unchecked.
 
 ## Important notices
 
@@ -720,6 +720,33 @@ The expanded integration graph exposed missing deterministic hash/x/sys hooks, L
 - [ ] No old hook import survives in production, generated output or goldens. Both selected families' hook signature checks pass.
 - [ ] Run common commit gate on both target patches.
 
+#### Execution split recorded before Task 27 implementation
+
+The two retired hook trees contain 3,708 lines; their old translator selection/cache/tables add 1,434 lines before generator cleanup, audits and documentation. Deleting the complete obsolete path in one commit would exceed 5,000 changed lines. Remove the already excluded translator path first, then the hook trees. Both children run the common gate on both exact patches; parent requirements remain mandatory. No target or supported execution behavior changes.
+
+### Task 27.1: Remove the retired translator hook-selection path
+
+**Files:** DELETE `internal/translate/{legacy_main,cache_legacy,hooks_go123,hooks_go123_amd64_gen,hooks_go123_arm64_gen}.go`; UPDATE residual generation/dependency references in `internal/simulation/gensyscall/main.go` and `imports.go`.
+**References:** Parent Task 27; T§8 compile-time family selection, T§9 removal of fixed hook/runtime package selection. **Dependency:** 26.
+**Budget:** 1,500–1,900 changed lines.
+
+- [x] Remove the excluded translator/cache path and hardcoded go123 hook tables/constants, along with their obsolete generator and dependency pointers. Retain the selected profile-driven translator and tool dependency declarations.
+- [x] Verify the remaining old hook trees are excluded and have no supported entry point; preserve their source-based completeness audit for Task 27.2.
+
+#### Verification
+
+- [x] Selected-family hook/declaration/translation checks pass; no retired translator entry or hook-table generator remains.
+- [x] Run common commit gate on both exact patches and commit the buildable removal before Task 27.2.
+
+### Task 27.2: Remove old hook trees and preserve their independent audit
+
+**Files:** DELETE `internal/hooks/go123/`, `internal/hooks/go125/`; UPDATE `internal/routegen/adapters_test.go` and its immutable baseline fixture.
+**References:** Parent Task 27; T§8 complete hook inventory and bounded selection. **Dependency:** 27.1.
+**Budget:** 3,800–4,200 changed lines.
+
+- [ ] Freeze the source-based legacy wrapper audit before deleting both old trees; retain the complete declaration ledger and selected-family signature checks.
+- [ ] Complete every remaining parent Task 27 implementation and verification item, including import/constraint checks and both exact-patch common gates; only then mark the parent complete.
+
 ### Task 28: Remove the monolithic simulation coordinator and old syscall ABI
 
 **Files:** DELETE remaining retired `internal/simulation/{simulation,gosim,gosim_gen,userspace,os_linux,os_other,linux_syscall,generate}.go`, old syscallabi dispatcher/poll files and obsolete gensyscall entry; retain no old model directories.  
@@ -755,6 +782,8 @@ The expanded integration graph exposed missing deterministic hash/x/sys hooks, L
 **Files:** UPDATE `.ci/crossarch-tests/{Dockerfile.test,docker-compose.yml,test-amd64.sh,test-arm64.sh}`, CREATE `run-matrix.sh`; UPDATE `.github/workflows/main.yml`, Taskfile and evidence collection helpers.  
 **References:** T§2 48 combinations/Colima evidence; T§9 CI files/report schemas; T§10 compatibility gates.  
 **Budget:** 1,500–3,000 changed lines. **Dependency:** 24–29.
+
+Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for arm64 architecture.
 
 - [ ] Parameterize Docker by exact patch and resolved image digest. Correct the arm64 service's current erroneous amd64 platform. Retain build-essential/SQLite/race dependencies for host tooling and prevent copying stale `.gosim` artifacts into an image.
 - [ ] Implement the Validation Commands matrix CLI with explicit context/platform/toolchain/output arguments. Use existing `colima` context for both Linux architectures, amd64 emulation where necessary, and direct host execution for darwin/arm64. Do not recreate the user's Colima VM or assume performance equivalence under emulation.

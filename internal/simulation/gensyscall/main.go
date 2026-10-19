@@ -30,7 +30,6 @@ import (
 	"strings"
 
 	"github.com/neria-cloud/gosim/internal/gosimtool"
-	"github.com/neria-cloud/gosim/internal/translate"
 )
 
 // findAndReadSources looks up the paths of files in go packages path using `go
@@ -399,74 +398,6 @@ func maybeMapType(usecase Usecase, typ string) string {
 		return "simulation." + known
 	}
 	return known
-}
-
-func uppercase(s string) string {
-	return strings.ToUpper(s[0:1]) + s[1:]
-}
-
-func writeProxies(rootDir string, pkgs []string, syscalls []syscallInfo, version string, arch string) {
-	proxyTexts := make(map[string]*outputSorter)
-	for _, pkg := range pkgs {
-		proxyTexts[pkg] = newOutputSorter()
-	}
-	translateTexts := newOutputSorter()
-	for _, info := range syscalls {
-		pkg, funcName, sysName, inputsStr, outputsStr := info.pkg, info.funcName, info.sysName, info.inputsStr, info.outputsStr
-
-		in := parseParamList(inputsStr)
-		out := parseParamList(outputsStr)
-
-		proxyName := translate.RewriteSelector(pkg, funcName)
-		ifaceName := ifaceName(sysName)
-
-		var proxyArgs, proxyCallArgs []string
-		for _, p := range in {
-			proxyArgs = append(proxyArgs, fmt.Sprintf("%s %s%s", p.Name, p.Kind, maybeMapType(Proxy, p.Type)))
-			proxyCallArgs = append(proxyCallArgs, p.Name)
-		}
-		var proxyRets []string
-		for _, p := range out {
-			proxyRets = append(proxyRets, p.Orig)
-		}
-		var proxyRet string
-		if len(out) > 0 {
-			proxyRet = fmt.Sprintf(" (%s)", strings.Join(proxyRets, ", "))
-		}
-		proxyText := "" +
-			fmt.Sprintf("func %s(%s)%s {\n", proxyName, strings.Join(proxyArgs, ", "), proxyRet) +
-			fmt.Sprintf("\treturn simulation.Syscall%s(%s)\n", ifaceName, strings.Join(proxyCallArgs, ", ")) +
-			"}\n\n"
-		proxyTexts[pkg].append(funcName, proxyText)
-		translateText := fmt.Sprintf("\t{Pkg: %s, Selector: %s}: {Pkg: hooks%sPackage},\n", strconv.Quote(pkg), strconv.Quote(funcName), uppercase(version))
-		translateTexts.append(pkg+" "+funcName, translateText)
-	}
-	for _, pkg := range pkgs {
-		file := strings.Replace(pkg, ".", "", -1)
-		file = strings.Replace(file, "/", "_", -1)
-		path := path.Join(rootDir, "internal/hooks/"+version, file+"_gen_"+arch+".go")
-
-		writeFormattedGoFile(path, `//go:build linux
-package `+version+`
-
-import (
-	"unsafe"
-
-	"`+gosimtool.Module+`/internal/simulation"
-)
-
-// prevent unused imports
-var _ unsafe.Pointer
-
-`+proxyTexts[pkg].output())
-	}
-	writeFormattedGoFile(path.Join(rootDir, "internal/translate/hooks_"+version+"_"+arch+"_gen.go"), `package translate
-
-func init() {
-	hooksGensyscall`+uppercase(version)+`ByArch["`+arch+`"] = map[PackageSelector]PackageSelector{
-`+translateTexts.output()+`}
-}
-`)
 }
 
 func writeSyscalls(outputPath string, syscalls []syscallInfo, sysnums map[string]int, isMachine bool) {
@@ -850,22 +781,6 @@ func main() {
 	if *machineOnly {
 		writeSyscalls(path.Join(rootDir, "internal/simulation/gosim_gen.go"), machineCalls, nil, true)
 		return
-	}
-
-	for _, arch := range []string{"arm64", "amd64"} {
-		pkgs := []string{
-			"syscall",
-			"golang.org/x/sys/unix",
-		}
-
-		syscalls := parseSyscalls([]string{
-			"syscall/syscall_linux.go",
-			"syscall/syscall_linux_" + arch + ".go",
-			"golang.org/x/sys/unix/syscall_linux.go",
-			"golang.org/x/sys/unix/syscall_linux_" + arch + ".go",
-		}, filter[arch])
-
-		writeProxies(rootDir, pkgs, syscalls, "go123", arch)
 	}
 
 	writeSyscalls(path.Join(rootDir, "internal/simulation/gosim_gen.go"), machineCalls, nil, true)
