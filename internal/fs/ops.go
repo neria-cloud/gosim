@@ -2,7 +2,6 @@ package fs
 
 import (
 	"encoding/binary"
-	"errors"
 	"io"
 	"math"
 	"os"
@@ -234,13 +233,13 @@ func statResult(stat model.StatResp) contracts.Stat {
 }
 
 func statError(err error) error {
-	if errors.Is(err, os.ErrNotExist) {
-		return syscall.ENOENT
+	if err == nil {
+		return nil
 	}
-	if err != nil {
-		return syscall.EINVAL
+	if errno, ok := err.(syscall.Errno); ok {
+		return errno
 	}
-	return nil
+	return syscall.EINVAL
 }
 
 func (i *Instance) Fstat(ctx contracts.CallContext, fd int) (contracts.Stat, error) {

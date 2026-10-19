@@ -103,6 +103,25 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 	if err != nil {
 		return nil, err
 	}
+	infrastructure := make(map[string]bool)
+	var markInfrastructure func(string)
+	markInfrastructure = func(id string) {
+		if infrastructure[id] {
+			return
+		}
+		infrastructure[id] = true
+		for _, dep := range graph.deps[id] {
+			markInfrastructure(dep)
+		}
+	}
+	for _, root := range runtimeRoots {
+		markInfrastructure(root.ID)
+	}
+	definitions, err := pushedDefinitions(graph, policies)
+	if err != nil {
+		return nil, err
+	}
+
 	toolHash, err := computeTranslateToolHash(cfg.Identity)
 	if err != nil {
 		return nil, err
@@ -162,7 +181,7 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 			}
 		}
 		gather(id)
-		result, err := translatePackage(&translatePackageArgs{cfg: cfg, Selection: cfg.Selection, pkg: graph.nodes[id], hooksPackage: compositionPath, packageNames: names, pkgWithTypesAndAst: typed[id], replacedPkgs: replaced, importResults: imports})
+		result, err := translatePackage(&translatePackageArgs{cfg: cfg, Selection: cfg.Selection, infrastructure: infrastructure[id], definitions: definitions, pkg: graph.nodes[id], hooksPackage: compositionPath, packageNames: names, pkgWithTypesAndAst: typed[id], replacedPkgs: replaced, importResults: imports})
 		if err != nil {
 			return nil, err
 		}

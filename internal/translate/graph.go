@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"slices"
 	"strconv"
+	"strings"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -227,4 +228,47 @@ func sourceNativeImports(pkg *packages.Package) (map[string]bool, error) {
 		}
 	}
 	return native, nil
+}
+
+// A bodyless declaration is valid when another selected translated package
+// pushes its implementation with linkname (notably os -> net.newUnixFile).
+// Definitions removed by hooks and all native destinations are excluded.
+func pushedDefinitions(graph *selectedGraph, policies PackagePolicies) (map[PackageSelector]bool, error) {
+	definitions := make(map[PackageSelector]bool)
+	for _, id := range graph.order {
+		if graph.native[id] {
+			continue
+		}
+		pkg := graph.nodes[id]
+		for _, path := range pkg.CompiledGoFiles {
+			file, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ParseComments)
+			if err != nil {
+				return nil, err
+			}
+			bodies := make(map[string]bool)
+			for _, decl := range file.Decls {
+				if fn, ok := decl.(*ast.FuncDecl); ok && fn.Body != nil && fn.Recv == nil {
+					_, hooked := policies.hooks[PackageSelector{Pkg: pkg.PkgPath, Selector: fn.Name.Name}]
+					bodies[fn.Name.Name] = !hooked
+				}
+			}
+			for _, group := range file.Comments {
+				for _, comment := range group.List {
+					fields := strings.Fields(comment.Text)
+					if len(fields) != 3 || fields[0] != "//go:linkname" || !bodies[fields[1]] {
+						continue
+					}
+					target, err := splitSymbol(fields[2])
+					if err != nil {
+						return nil, err
+					}
+					policy, err := policies.packagePolicy(target.Pkg, !strings.Contains(strings.Split(target.Pkg, "/")[0], "."))
+					if err == nil && policy.Mode == "translate" {
+						definitions[target] = true
+					}
+				}
+			}
+		}
+	}
+	return definitions, nil
 }

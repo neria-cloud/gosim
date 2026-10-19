@@ -42,6 +42,7 @@ func DescriptorForArch(arch string) (spec.Profile, error) {
 			"github.com/neria-cloud/gosim/internal/compat/go126/shims/maps",
 			"github.com/neria-cloud/gosim/internal/compat/go126/shims/synctest",
 			"github.com/neria-cloud/gosim/internal/compat/go126/shims/cryptorand",
+			"github.com/neria-cloud/gosim/internal/compat/go126/shims/runtimebridge",
 		},
 	}
 	decode("hooks.json", &p.Hooks)

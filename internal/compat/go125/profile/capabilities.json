@@ -214,5 +214,6 @@
 {"package":"testing","symbol":"Testing","status":"implemented","reason":"The simulated entrypoint always runs tests."},
 {"package":"testing","symbol":"Verbose","status":"limited","reason":"The simulated runner always emits verbose events."},
 {"package":"os","symbol":"ignoreSIGSYS","status":"rejected","reason":"Native signal suppression around pidfd probing is not modeled; abort without changing host signal handling."},
-{"package":"os","symbol":"restoreSIGSYS","status":"rejected","reason":"Native signal suppression around pidfd probing is not modeled; abort without changing host signal handling."}
+{"package":"os","symbol":"restoreSIGSYS","status":"rejected","reason":"Native signal suppression around pidfd probing is not modeled; abort without changing host signal handling."},
+{"package":"net","symbol":"maxListenerBacklog","status":"limited","reason":"The modeled accept queue has five entries; no host kernel backlog tuning or proc filesystem probe."}
 ]

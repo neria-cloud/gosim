@@ -1,6 +1,6 @@
-//go:build go1.26 && !go1.27 && race
+//go:build go1.25 && !go1.26 && race
 
-package rt
+package runtimebridge
 
 import (
 	"bytes"
@@ -14,10 +14,10 @@ import (
 
 // Match upstream's single pointer slot, independently of the target's Go type.
 //
-//go:linkname objectRead github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalRace_ReadObjectPC
+//go:linkname objectRead github.com/neria-cloud/gosim/internal/compat/go125/shims/runtimebridge.InternalRace_ReadObjectPC
 func objectRead(*struct{}, unsafe.Pointer, uintptr, uintptr)
 
-//go:linkname objectWrite github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalRace_WriteObjectPC
+//go:linkname objectWrite github.com/neria-cloud/gosim/internal/compat/go125/shims/runtimebridge.InternalRace_WriteObjectPC
 func objectWrite(*struct{}, unsafe.Pointer, uintptr, uintptr)
 
 func TestObjectRaceABI(t *testing.T) {

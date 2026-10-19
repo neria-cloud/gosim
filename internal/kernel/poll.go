@@ -9,10 +9,10 @@ import (
 )
 
 var (
-	ErrPollClosing = errors.New("poll descriptor is closing")
-	ErrPollTimeout = errors.New("poll deadline exceeded")
-	ErrNotPollable = errors.New("descriptor is not pollable")
-	errPending     = errors.New("invocation awaits completion")
+	ErrPollClosing error = contracts.Sentinel("poll descriptor is closing")
+	ErrPollTimeout error = contracts.Sentinel("poll deadline exceeded")
+	ErrNotPollable error = contracts.Sentinel("descriptor is not pollable")
+	errPending     error = contracts.Sentinel("invocation awaits completion")
 )
 
 type pollDirection struct {

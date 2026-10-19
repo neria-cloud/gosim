@@ -14,7 +14,7 @@ import (
 
 // Translated machine-local state, deliberately without an init expression.
 // The generated boot callback configures it before running package initializers.
-// TODO(migration): Task 21 wires ConfigureProcess into each machine boot.
+// Composition configures root startup; each later machine boot uses the same process setup.
 var process struct {
 	args, env []string
 	update    func(string, string)

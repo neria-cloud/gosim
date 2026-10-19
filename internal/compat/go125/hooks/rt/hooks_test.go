@@ -142,6 +142,9 @@ func TestHooksDoNotImportPrivateNativeFacade(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			if name == "github.com/neria-cloud/gosim/internal/compat/go125/shims/runtimebridge" {
+				continue
+			} // Selected translated leaf, never a native island.
 			if strings.HasPrefix(name, "github.com/neria-cloud/gosim/") && name != "github.com/neria-cloud/gosim/rt/runtime" && name != "github.com/neria-cloud/gosim/rt/runtime/abi" {
 				t.Errorf("%s imports native/private implementation %s", path, name)
 			}

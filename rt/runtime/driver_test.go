@@ -18,7 +18,7 @@ func TestEngineRunCaptureAndOwnership(t *testing.T) {
 		}
 		env[0] = "EXAMPLE=mutated"
 		if err := e.Run(func() {
-			if !TraceSyscall.Enabled() || !slices.Contains(Envs(), "EXAMPLE=value") || slices.Contains(Envs(), "EXAMPLE=mutated") {
+			if !slices.Contains(Envs(), "TZ=UTC") || !TraceSyscall.Enabled() || !slices.Contains(Envs(), "EXAMPLE=value") || slices.Contains(Envs(), "EXAMPLE=mutated") {
 				panic("run inputs not owned")
 			}
 			WriteLog([]byte("captured output\n"))
@@ -103,10 +103,29 @@ func TestCaptureDoesNotMutateAnotherActiveEngine(t *testing.T) {
 		if err := inner.Run(func() { panic("nested engine") }); !errors.Is(err, ErrEngineBusy) {
 			panic("nested engine accepted")
 		}
-		if !TraceSyscall.Enabled() || TraceNetwork.Enabled() {
+		if !slices.Contains(Envs(), "TZ=UTC") || !TraceSyscall.Enabled() || TraceNetwork.Enabled() {
 			panic("rejected run changed active trace flags")
 		}
 	}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestEngineCapturePreservesExplicitTimezone(t *testing.T) {
+	for _, timezone := range []string{"TZ=", "TZ=Custom"} {
+		e := testEngine(t)
+		if err := e.ConfigureRun(RunConfig{Seed: 42, ExtraEnv: []string{timezone}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := e.Run(func() {
+			if !slices.Contains(Envs(), timezone) || slices.Contains(Envs(), "TZ=UTC") {
+				panic("explicit timezone replaced")
+			}
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if err := e.Close(); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

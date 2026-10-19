@@ -16,7 +16,7 @@ const (
 	Aborted
 )
 
-var ErrTxnState = errors.New("invalid start transaction state")
+var ErrTxnState error = contracts.Sentinel("invalid start transaction state")
 
 type RuntimePrepared struct {
 	RuntimeID uint64
@@ -141,8 +141,8 @@ func (tx *StartTxn) Commit() error {
 		delete(k.transactions, tx.machine.ref.ID)
 		main, runtimeToken, exits := tx.machine.main, tx.runtimeStaged.Token(), k.exits
 		k.engine.PublishMachine(tx.runtimeStaged.Token(), func() {
-			// Composition's boot closure initializes translated packages before
-			// calling user Main. No code in this closure runs before publication.
+			// Engine's composition initializer runs before this boot callback.
+			// No application code runs before publication.
 			main()
 			requestSelfExit(exits, runtimeToken, contracts.StopGraceful)
 		})

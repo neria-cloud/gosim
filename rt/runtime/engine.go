@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"math"
+	"runtime/debug"
 	"slices"
 
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
@@ -50,22 +51,24 @@ type randomKey struct {
 // Engine owns one scheduler and all native machine allocations in a run.
 // Its methods run on the serialized supervisor (or through a native upcall).
 type Engine struct {
-	capture         *runCapture
-	timeoutTimer    *Timer
-	config          EngineConfig
-	scheduler       *scheduler
-	machines        map[uint64]*engineMachine
-	lastEpoch       map[uint64]uint64
-	events          map[uint64]engineEvent
-	nextEvent       uint64
-	random          map[randomKey]*Random
-	supervisor      *Machine
-	supervisorToken RaceToken
-	running         bool
-	cleaning        bool
-	ran             bool
-	closed          bool
-	result          error
+	initializedGlobals map[*Globals]bool
+	machineInitializer func()
+	capture            *runCapture
+	timeoutTimer       *Timer
+	config             EngineConfig
+	scheduler          *scheduler
+	machines           map[uint64]*engineMachine
+	lastEpoch          map[uint64]uint64
+	events             map[uint64]engineEvent
+	nextEvent          uint64
+	random             map[randomKey]*Random
+	supervisor         *Machine
+	supervisorToken    RaceToken
+	running            bool
+	cleaning           bool
+	ran                bool
+	closed             bool
+	result             error
 }
 
 func NewEngine(config EngineConfig) (*Engine, error) {
@@ -96,7 +99,7 @@ func (e *Engine) onSupervisor(f func()) error {
 		defer func() {
 			if failure := recover(); failure != nil {
 				failed = true
-				e.scheduler.abortErr = &AbortError{Diagnostic: abi.Diagnostic{Kind: "InvariantFailure", Message: fmt.Sprint(failure)}}
+				e.scheduler.abortErr = &AbortError{Diagnostic: abi.Diagnostic{Kind: "InvariantFailure", Message: fmt.Sprint(failure) + "\n" + string(debug.Stack())}}
 			}
 		}()
 		f()
@@ -135,6 +138,16 @@ func (e *Engine) PrepareMachine(id, epoch uint64, label string) (MachineToken, e
 	return token, errors.Join(err, result)
 }
 
+// SetMachineInitializer installs composition's process/global setup before Run.
+// It executes on every published machine, including restarts, before its boot.
+func (e *Engine) SetMachineInitializer(initialize func()) error {
+	if e.running || e.ran || e.closed || initialize == nil || e.machineInitializer != nil {
+		return ErrEngineState
+	}
+	e.machineInitializer = initialize
+	return nil
+}
+
 //go:norace
 func (e *Engine) PublishMachine(token MachineToken, boot func()) {
 	var invalid bool
@@ -149,7 +162,11 @@ func (e *Engine) PublishMachine(token MachineToken, boot func()) {
 		m.published = true
 		// Starting the coroutine parks before its entry function; no boot/init
 		// executes within this publication barrier.
-		e.scheduler.Go(boot, m.machine, entryToken)
+		entry := boot
+		if initialize := e.machineInitializer; initialize != nil {
+			entry = func() { initialize(); boot() }
+		}
+		e.scheduler.Go(entry, m.machine, entryToken)
 	})
 	if err != nil || invalid {
 		e.invariant("publish invalid runtime machine")
@@ -366,7 +383,7 @@ func (e *Engine) Run(supervise func()) (result error) {
 	e.ran, e.running = true, true
 	defer func() {
 		if failure := recover(); failure != nil {
-			result = &AbortError{Diagnostic: abi.Diagnostic{Kind: "InvariantFailure", Message: fmt.Sprint(failure)}}
+			result = &AbortError{Diagnostic: abi.Diagnostic{Kind: "InvariantFailure", Message: fmt.Sprint(failure) + "\n" + string(debug.Stack())}}
 		}
 		e.running = false
 		e.result = result
@@ -420,6 +437,8 @@ func (e *Engine) Close() error {
 		e.supervisor.globals = nil
 	}
 	e.machines, e.events, e.random, e.lastEpoch = nil, nil, nil, nil
+	e.initializedGlobals = nil
+	e.machineInitializer = nil
 	e.scheduler.clock.heap = newTimerHeap()
 	e.timeoutTimer = nil
 	e.closed = true

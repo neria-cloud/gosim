@@ -1,7 +1,3 @@
-// Copyright 2015 The Go Authors. All rights reserved.  Use of this source code
-// is governed by a BSD-style license that can be found at
-// https://go.googlesource.com/go/+/refs/heads/master/LICENSE.
-
 //go:build go1.26 && !go1.27
 
 package rt
@@ -9,44 +5,32 @@ package rt
 import (
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/rt/runtime"
+	bridge "github.com/neria-cloud/gosim/internal/compat/go126/shims/runtimebridge"
 )
 
-// InternalRaceEnabled is the translated stdlib race constant.
-const InternalRaceEnabled = gosimruntime.RaceEnabled
+const InternalRaceEnabled = bridge.InternalRaceEnabled
 
-func InternalRace_Acquire(addr unsafe.Pointer) { gosimruntime.RaceAcquire(addr) }
-
-func InternalRace_Release(addr unsafe.Pointer) { gosimruntime.RaceRelease(addr) }
-
-func InternalRace_ReleaseMerge(addr unsafe.Pointer) { gosimruntime.RaceReleaseMerge(addr) }
-
-func InternalRace_Disable() { gosimruntime.RaceDisable() }
-
-func InternalRace_Enable() { gosimruntime.RaceEnable() }
-
-func InternalRace_Read(addr unsafe.Pointer) { gosimruntime.RaceRead(addr) }
-
+func InternalRace_Acquire(addr unsafe.Pointer)      { bridge.InternalRace_Acquire(addr) }
+func InternalRace_Release(addr unsafe.Pointer)      { bridge.InternalRace_Release(addr) }
+func InternalRace_ReleaseMerge(addr unsafe.Pointer) { bridge.InternalRace_ReleaseMerge(addr) }
+func InternalRace_Disable()                         { bridge.InternalRace_Disable() }
+func InternalRace_Enable()                          { bridge.InternalRace_Enable() }
+func InternalRace_Read(addr unsafe.Pointer)         { bridge.InternalRace_Read(addr) }
 func InternalRace_ReadPC(addr unsafe.Pointer, callerpc, pc uintptr) {
-	gosimruntime.RaceReadPC(addr, callerpc, pc)
+	bridge.InternalRace_ReadPC(addr, callerpc, pc)
 }
 
 func InternalRace_ReadObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
-	gosimruntime.RaceReadObjectPC(t, addr, callerpc, pc)
+	bridge.InternalRace_ReadObjectPC(t, addr, callerpc, pc)
 }
-
-func InternalRace_Write(addr unsafe.Pointer) { gosimruntime.RaceWrite(addr) }
-
+func InternalRace_Write(addr unsafe.Pointer) { bridge.InternalRace_Write(addr) }
 func InternalRace_WritePC(addr unsafe.Pointer, callerpc, pc uintptr) {
-	gosimruntime.RaceWritePC(addr, callerpc, pc)
+	bridge.InternalRace_WritePC(addr, callerpc, pc)
 }
 
 func InternalRace_WriteObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
-	gosimruntime.RaceWriteObjectPC(t, addr, callerpc, pc)
+	bridge.InternalRace_WriteObjectPC(t, addr, callerpc, pc)
 }
-
-func InternalRace_ReadRange(addr unsafe.Pointer, len int) { gosimruntime.RaceReadRange(addr, len) }
-
-func InternalRace_WriteRange(addr unsafe.Pointer, len int) { gosimruntime.RaceWriteRange(addr, len) }
-
-func InternalRace_Errors() int { return gosimruntime.RaceErrors() }
+func InternalRace_ReadRange(addr unsafe.Pointer, len int)  { bridge.InternalRace_ReadRange(addr, len) }
+func InternalRace_WriteRange(addr unsafe.Pointer, len int) { bridge.InternalRace_WriteRange(addr, len) }
+func InternalRace_Errors() int                             { return bridge.InternalRace_Errors() }

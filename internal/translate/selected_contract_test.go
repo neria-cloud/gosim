@@ -213,3 +213,40 @@ func TestSelectedTranslationReturnsInputErrors(t *testing.T) {
 		t.Fatalf("missing source: %v", err)
 	}
 }
+
+func TestSelectedPushedDefinitions(t *testing.T) {
+	p, err := Policies(profileSelection(t, "rt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(t.TempDir(), "push.go")
+	text := `package impl
+//go:linkname valid net.newUnixFile
+func valid(){}
+//go:linkname removed net.removed
+func removed(){}
+//go:linkname native runtime.native
+func native(){}
+//go:linkname absent net.absent
+func absent()
+`
+	if err := os.WriteFile(source, []byte(text), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pkg := &packages.Package{ID: "example.com/impl", PkgPath: "example.com/impl", CompiledGoFiles: []string{source}}
+	graph := &selectedGraph{order: []string{pkg.ID}, nodes: map[string]*packages.Package{pkg.ID: pkg}, native: map[string]bool{}}
+	p.hooks[PackageSelector{Pkg: pkg.PkgPath, Selector: "removed"}] = PackageSelector{Pkg: "owned", Selector: "hook"}
+	got, err := pushedDefinitions(graph, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[PackageSelector]bool{{Pkg: "net", Selector: "newUnixFile"}: true}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("definitions=%v, want %v", got, want)
+	}
+	graph.native[pkg.ID] = true
+	got, err = pushedDefinitions(graph, p)
+	if err != nil || len(got) != 0 {
+		t.Fatal("native definitions admitted", got, err)
+	}
+}

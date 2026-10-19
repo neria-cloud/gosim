@@ -644,6 +644,13 @@
     "owner": "rt"
   },
   {
+    "package": "net",
+    "symbol": "maxListenerBacklog",
+    "signature": "func() int",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Net_maxListenerBacklog",
+    "owner": "net"
+  },
+  {
     "owner": "kernel",
     "package": "os",
     "signature": "func() error",

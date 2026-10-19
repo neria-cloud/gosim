@@ -59,7 +59,7 @@ func TestGo126RuntimePolicy(t *testing.T) {
 	}
 	for _, symbol := range []string{"Acquire", "ReadObjectPC", "WriteObjectPC", "ReadRange", "WriteRange"} {
 		target, err := m.ResolveSymbol(p, "internal/race", symbol, true)
-		if err != nil || !strings.Contains(target.Package, "/go126/hooks/rt") {
+		if err != nil || !strings.Contains(target.Package, "/go126/shims/runtimebridge") {
 			t.Fatalf("race %s: %+v %v", symbol, target, err)
 		}
 	}

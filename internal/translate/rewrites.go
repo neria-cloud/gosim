@@ -236,7 +236,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 				decl.Name.Name, pkg, selector))
 			t.needsUnsafe = true
 
-		} else if decl.Name.Name == "newUnixFile" {
+		} else if t.profile != nil && t.profile.definitions[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] || t.profile == nil && decl.Name.Name == "newUnixFile" {
 			// need a go:linkname that is not required in the standard library...
 			decl.Decs.Start = append(decl.Decs.Start, fmt.Sprintf("//go:linkname %s",
 				decl.Name.Name))

@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–20 (including their recorded children) implemented and verified. Tasks 21.1–21.3 are also implemented and verified; remaining tasks are unchecked.
+**Status:** in progress; Tasks 1–21 (including their recorded children) implemented and verified; remaining tasks are unchecked.
 
 ## Important notices
 
@@ -524,17 +524,17 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§3 composition diagram; T§8 profile policy; T§9 BuildConfig/TranslateInput/TranslateOutput/Driver and build flow; T§12 Generate/resolveBuild.  
 **Budget:** 3,000–4,900 changed lines. **Dependency:** 5–6, 9, 11, 19–20.
 
-- [ ] Implement Generate/ValidateImports with only enabled concrete provider constructors, selected family hooks/shims, and disabled-feature rejection wrappers. Generate before packages.Load. Public controls and kernel must never gain concrete provider imports.
-- [ ] Change BuildConfig to `{Identity,Selection,Toolchain,Digest}`, TranslateInput to `{Packages,Cfg}`, and TranslateOutput to `{RootOutputDir,Packages,Deps map[string]map[string]string,Identity}`. Thread immutable selection through translatePackages/translatePackage/renameFile; return errors instead of exiting through log.Fatal.
-- [ ] Implement Policies/ValidateBoundary and selected RuntimePackages/hook maps; load simulated Linux sources with app cgo off, then compile native-host output with the pinned toolchain and required linkname flags. Source hashes use the actually compiled files.
-- [ ] Connect v2 cache and package artifacts. Generate the Driver that enters one Engine, opens kernel/provider sessions, binds control before init, runs the root machine and performs ordered cleanup. Use exact native RunConfig/RunResult ABI records.
-- [ ] Add an internal candidate execution path for a tuple already in pending data. Initially run small isolated source fixtures that use the new composition without the old public root API; retain old full-suite entry wiring only until Task 22. All new artifacts are stamped candidate, never certified.
-- [ ] Validate all four generated import graphs and a new-path rt-only translated program. Record/remediate any profile-boundary gap before public cutover; no blanket skip or host fallback is allowed.
+- [x] Implement Generate/ValidateImports with only enabled concrete provider constructors, selected family hooks/shims, and disabled-feature rejection wrappers. Generate before packages.Load. Public controls and kernel must never gain concrete provider imports.
+- [x] Change BuildConfig to `{Identity,Selection,Toolchain,Digest}`, TranslateInput to `{Packages,Cfg}`, and TranslateOutput to `{RootOutputDir,Packages,Deps map[string]map[string]string,Identity}`. Thread immutable selection through translatePackages/translatePackage/renameFile; return errors instead of exiting through log.Fatal.
+- [x] Implement Policies/ValidateBoundary and selected RuntimePackages/hook maps; load simulated Linux sources with app cgo off, then compile native-host output with the pinned toolchain and required linkname flags. Source hashes use the actually compiled files.
+- [x] Connect v2 cache and package artifacts. Generate the Driver that enters one Engine, opens kernel/provider sessions, binds control before init, runs the root machine and performs ordered cleanup. Use exact native RunConfig/RunResult ABI records.
+- [x] Add an internal candidate execution path for a tuple already in pending data. Initially run small isolated source fixtures that use the new composition without the old public root API; retain old full-suite entry wiring only until Task 22. All new artifacts are stamped candidate, never certified.
+- [x] Validate all four generated import graphs and a new-path rt-only translated program. Record/remediate any profile-boundary gap before public cutover; no blanket skip or host fallback is allowed.
 
 #### Verification
 
-- [ ] Real translated rt-only and provider fixtures execute via generated Driver, with cache hit and miss paths; disabled imports are absent transitively in both original and translated graphs.
-- [ ] Current full-suite harness still passes, along with both-family new-path probes and common commit gate. Candidate artifacts cannot be mistaken for existing/certified prebuilts.
+- [x] Real translated rt-only and provider fixtures execute via generated Driver, with cache hit and miss paths; disabled imports are absent transitively in both original and translated graphs.
+- [x] Current full-suite harness still passes, along with both-family new-path probes and common commit gate. Candidate artifacts cannot be mistaken for existing/certified prebuilts.
 
 ### Task 21.1: Resolve immutable profile policies and reject unsafe source boundaries
 
@@ -571,9 +571,9 @@ The original generator is 892 lines, existing temporary decoders are approximate
 **References:** T§3 transitive graph; T§9 build/artifact/Driver flow; parent Task 21 verification.
 **Budget:** 2,000–4,900 changed lines. **Dependency:** 21.3.
 
-- [ ] Build pending-tuple-only candidate fixtures using the pinned native-host compiler and package manifests. Execute the generated Driver with exact RunConfig/RunResult records.
-- [ ] Run real rt-only and provider translated programs under both families, with cache hits/misses and all four original/translated transitive import graphs. Fix discovered boundary gaps before cutover, with no blanket skip/native fallback.
-- [ ] Verify candidate isolation and complete all parent Task 21 checks; run common commit gate with old full-suite entry retained until Task 22.
+- [x] Build pending-tuple-only candidate fixtures using the pinned native-host compiler and package manifests. Execute the generated Driver with exact RunConfig/RunResult records.
+- [x] Run real rt-only and provider translated programs under both families, with cache hits/misses and all four original/translated transitive import graphs. Fix discovered boundary gaps before cutover, with no blanket skip/native fallback.
+- [x] Verify candidate isolation and complete all parent Task 21 checks; run common commit gate with old full-suite entry retained until Task 22.
 
 ### Task 22: Perform the public API and live runtime cutover
 
@@ -917,6 +917,8 @@ Implementation has started. Unchecked tasks above are planned work, not discover
 | — | — | None recorded during planning | Architectural clarifications are listed separately above |
 
 ## NOT PLANNED CHANGES
+
+- Task 21.4: real translated programs exposed boundaries that native composition probes could not exercise. Added family-owned translated runtime/race leaf bridges to break a stdlib import cycle; private hook-source module inspection; canonical vendored paths and selected pushed definitions; explicit-only global sharing, constant array len/cap and per-machine embedded data initialization. Added composition initialization for every machine boot and isolated supervisor package initialization using the existing native transition/race discipline. Comparable domain sentinels preserve errors.Is across globals, stat adapters preserve errno without os initialization, net backlog probes use the existing bounded queue, and unset local time defaults to UTC so ordinary logging works without fs. Diff: this task's `internal/{candidate,compat,compose,contracts,fs,kernel,net,translate,routegen}` and `rt/runtime` changes; the progress record explains each observed failure and correction. Native-only composition fixtures synchronize their shared process setup; generated production/candidate code retains actual machine isolation. Regenerated four route origin records and profile revisions; handwritten capability probes have explicit first-gate checks alongside generated syscall wrappers. Target architecture remains unchanged.
 
 - Task 21.3: connecting the selected source graph exposed adapter boundaries not exercised by native adapter tests. Removed reflect shim dependencies on bytes/strings to break the errors/reflection cycle; explicitly admitted slog/internal and its buffer subpackage as translated state; selected math/big's existing pure Go arithmetic through an owned source-selection tag. Added empty simulated GOROOT (no installed simulated toolchain) and translated fatal cleanup adapters while retaining rejection of application AddCleanup. Added focused regression tests and regenerated revisions. Diff: this task's `internal/compat/go{125,126}/{hooks/rt/runtime*,shims/reflect/*,profile/*}` and `internal/translate/{graph,load,profile}.go` changes. Target architecture remains unchanged.
 

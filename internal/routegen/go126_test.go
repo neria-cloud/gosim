@@ -95,7 +95,7 @@ func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, h := range p126.Descriptor().Hooks {
-			if h.Owner != owner {
+			if h.Owner != owner || (h.Package != "syscall" && h.Package != "golang.org/x/sys/unix") {
 				continue
 			}
 			name := adapterPrefix(h.Package) + h.Symbol
@@ -108,6 +108,30 @@ func TestGo126GenerationCurrentScopedAndVerified(t *testing.T) {
 			if brace < 0 || !strings.HasPrefix(strings.TrimSpace(body[brace+2:]), "kh.Require(") {
 				t.Fatalf("missing first gate: %s", name)
 			}
+		}
+	}
+}
+
+// Listener capability probes are handwritten adapters, not generated syscall
+// wrappers. Check their first-operation gate alongside the generated wrappers.
+func TestListenerProbeGate(t *testing.T) {
+	for _, family := range []string{"go125", "go126"} {
+		data, err := os.ReadFile(filepath.Join("../../internal/compat", family, "hooks/net/listen.go"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		source := string(data)
+		at := strings.Index(source, "func Net_maxListenerBacklog() int {")
+		if at < 0 {
+			t.Fatal("missing listener probe", family)
+		}
+		body := source[at:]
+		brace := strings.Index(body, "{\n")
+		if brace < 0 || !strings.HasPrefix(strings.TrimSpace(body[brace+2:]), "kh.Require(contracts.Net,") {
+			t.Fatal("listener probe lacks first-operation gate", family)
+		}
+		if !strings.Contains(body, "return contracts.ListenerBacklog") {
+			t.Fatal("listener probe detached from model capacity", family)
 		}
 	}
 }

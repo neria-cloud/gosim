@@ -59,6 +59,7 @@ func render(selection buildspec.Selection) ([]byte, []string, error) {
 		gosimtool.Module + "/internal/contracts": "contracts", gosimtool.Module + "/internal/control": "control",
 		gosimtool.Module + "/internal/kernel": "kernel", gosimtool.Module + "/rt/runtime": "simrt", gosimtool.Module + "/rt/runtime/abi": "abi",
 		gosimtool.Module + "/internal/compat/" + id.Profile + "/shims/testing": "simtesting",
+		gosimtool.Module + "/internal/compat/" + id.Profile + "/hooks/kernel":  "processhooks",
 	}
 	for _, path := range selection.RuntimePackages {
 		if _, ok := imports[path]; !ok {
@@ -231,13 +232,17 @@ func (Driver) Run(config simrt.RunConfig, main func()) simrt.RunResult {
  var failure string
  record:=func(err error){if err!=nil {if failure!="" {failure+="; "};failure+=err.Error()}}
  if err:=engine.ConfigureRun(config);err!=nil {record(err);engine.Close();return engine.RunResult(IdentityDigest,failure)}
+ if err:=engine.SetMachineInitializer(func(){
+  if err:=processhooks.ConfigureProcess([]string{"gosimapp"},simrt.Envs());err!=nil {panic(err)}
+  simrt.InitGlobals(false,false)
+ });err!=nil {record(err);engine.Close();return engine.RunResult(IdentityDigest,failure)}
  runErr:=engine.Run(func(){
   providers:=[]contracts.Provider{ {{range .Constructors}}{{.}},{{end}} }
   k,err:=kernel.New(kernel.Config{Identity:expected,RuntimeRevision:{{printf "%q" .RuntimeRevision}},BuildDigest:IdentityDigest,Certified:{{.Certified}},Features:contracts.FeatureSet({{.Features}}),TimeoutNS:timeoutNS},engine,providers)
   if err!=nil {record(err);return}
   control.Bind(k)
   defer func(){record(k.Close());control.Bind(nil)}()
-  record(k.Run(func(){simrt.InitGlobals(false,false);main()}))
+  record(k.Run(main))
  })
  record(runErr)
  if closeErr:=engine.Close();runErr==nil {record(closeErr)}

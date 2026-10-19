@@ -2,6 +2,9 @@ package contracts
 
 import "github.com/neria-cloud/gosim/rt/runtime/abi"
 
+// ListenerBacklog is the bounded accept queue capacity exposed by net adapters.
+const ListenerBacklog = 5
+
 type Address struct {
 	Family uint16
 	IPv4   [4]byte

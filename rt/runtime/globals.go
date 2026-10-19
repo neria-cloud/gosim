@@ -38,6 +38,7 @@ func allocGlobals() unsafe.Pointer {
 
 type Global[T any] struct {
 	offset uintptr
+	info   *Globals
 }
 
 func (g *Global[T]) typ() reflect.Type {
@@ -52,11 +53,49 @@ func (g *Global[T]) setOffset(x uintptr) {
 
 type Globaler interface {
 	setOffset(uintptr)
+	setInfo(*Globals)
 	typ() reflect.Type
 }
 
+func (g *Global[T]) setInfo(info *Globals) { g.info = info }
+
 func (g Global[T]) Get() *T {
+	if e := infrastructureEngine(); e != nil {
+		e.initializeInfrastructure(g.info)
+	}
 	return (*T)(unsafe.Pointer((uintptr(globalPtr.get()) + g.offset)))
+}
+
+// Only native scheduler metadata is inspected here. Application accesses through
+// the returned global pointer remain instrumented by the race detector.
+//
+//go:norace
+func infrastructureEngine() *Engine {
+	if s := gs.get(); s != nil && s.engine != nil && s.engine.supervisor != nil && globalPtr.get() == s.engine.supervisor.globals {
+		return s.engine
+	}
+	return nil
+}
+
+// Supervisor storage is independent of every application machine. Initialize
+// owned composition dependencies on first access, including transitive globals
+// used by their initializers. Application and test initializers never run here.
+func (e *Engine) initializeInfrastructure(info *Globals) {
+	if info == nil || !info.Infrastructure {
+		panic("application globals accessed on supervisor")
+	}
+	if e.initializedGlobals[info] {
+		return
+	}
+	if e.initializedGlobals == nil {
+		e.initializedGlobals = make(map[*Globals]bool)
+	}
+	e.initializedGlobals[info] = true // initializer writes reenter Global.Get
+	if err := e.BeginTransition(); err != nil {
+		panic(err)
+	}
+	defer e.EndTransition()
+	info.Initializers(false)
 }
 
 var mergedGlobalTyp reflect.Type
@@ -168,18 +207,21 @@ func prepareGlobals() {
 	for _, pkg := range packages {
 		if pkg.Globals != nil {
 			pkg.Globals.Globals.setOffset(mergedGlobalTyp.Field(offset).Offset)
+			pkg.Globals.Globals.setInfo(pkg.Globals)
 			offset++
 		}
 		if pkg.ForTest != nil {
 			pkg.ForTest.Globals.setOffset(mergedGlobalTyp.Field(offset).Offset)
+			pkg.ForTest.Globals.setInfo(pkg.ForTest)
 			offset++
 		}
 	}
 }
 
 type Globals struct {
-	Globals      Globaler
-	Initializers func(initializeShared bool)
+	Globals        Globaler
+	Initializers   func(initializeShared bool)
+	Infrastructure bool
 }
 
 type PackageInfo struct {

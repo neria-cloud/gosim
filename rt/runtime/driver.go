@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"slices"
+	"strings"
 
 	"github.com/neria-cloud/gosim/internal/hostabi"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
@@ -57,6 +58,11 @@ func (e *Engine) startCapture() (func(), error) {
 	e.scheduler.logger = logger
 	e.scheduler.checksummer = checksum
 	e.scheduler.envs = append(slices.Clone(c.config.ExtraEnv), "GOSIM_LOG_LEVEL=INFO")
+	// Local time defaults to UTC without probing /etc/localtime. Explicit TZ
+	// settings remain available and may require simulated filesystem support.
+	if !slices.ContainsFunc(c.config.ExtraEnv, func(value string) bool { return strings.HasPrefix(value, "TZ=") }) {
+		e.scheduler.envs = append(e.scheduler.envs, "TZ=UTC")
+	}
 	checksum.recordIntInt(checksumKeyRunStarted, 0, 0)
 	return restore, nil
 }

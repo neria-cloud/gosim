@@ -28,6 +28,7 @@ type PackagePolicies struct {
 	packages           map[string]string
 	native             map[string]bool
 	shared             map[PackageSelector]bool
+	definitions        map[PackageSelector]bool // pushed definitions in the selected translated source graph
 }
 
 func Policies(selection buildspec.Selection) (PackagePolicies, error) {
@@ -159,7 +160,7 @@ func ValidateBoundary(pkg *packages.Package, policies PackagePolicies) error {
 	if policy.Mode != "translate" {
 		return nil
 	}
-	if pkg.TypesInfo == nil || pkg.Types == nil || len(pkg.Syntax) == 0 {
+	if pkg.TypesInfo == nil || pkg.Types == nil || len(pkg.Syntax) == 0 && len(pkg.CompiledGoFiles) != 0 {
 		return fmt.Errorf("missing typed source for %s", pkg.PkgPath)
 	}
 	if len(pkg.Errors) > 0 {
@@ -187,7 +188,7 @@ func ValidateBoundary(pkg *packages.Package, policies PackagePolicies) error {
 				return fmt.Errorf("unresolved import %s from %s", path, pkg.PkgPath)
 			}
 			native := nativeDirective(imp)
-			if err := policies.importPolicy(pkg.PkgPath, path, standardPackage(dep), native); err != nil {
+			if err := policies.importPolicy(pkg.PkgPath, dep.PkgPath, standardPackage(dep), native); err != nil {
 				return fmt.Errorf("%s imports %s: %w", pkg.PkgPath, path, err)
 			}
 			if native {
@@ -319,6 +320,9 @@ func (p PackagePolicies) validateDeclarations(pkg *packages.Package, file *ast.F
 			continue
 		}
 		if _, ok := p.hooks[PackageSelector{Pkg: pkg.PkgPath, Selector: fn.Name.Name}]; !ok && !linked[fn.Name.Name] {
+			if p.definitions[PackageSelector{Pkg: pkg.PkgPath, Selector: fn.Name.Name}] {
+				continue
+			}
 			return fmt.Errorf("unreviewed bodyless function %s.%s", pkg.PkgPath, fn.Name.Name)
 		}
 	}

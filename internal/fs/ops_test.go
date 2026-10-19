@@ -273,3 +273,14 @@ func TestMappingSurvivesUnlinkCloseAndCleansUp(t *testing.T) {
 		t.Fatal("epoch retained mappings")
 	}
 }
+
+func TestStatErrorPreservesErrno(t *testing.T) {
+	for _, err := range []error{nil, syscall.ENOENT, syscall.ENOTDIR, syscall.EACCES} {
+		if got := statError(err); got != err {
+			t.Fatalf("statError(%v)=%v", err, got)
+		}
+	}
+	if got := statError(errors.New("unclassified model error")); got != syscall.EINVAL {
+		t.Fatal(got)
+	}
+}

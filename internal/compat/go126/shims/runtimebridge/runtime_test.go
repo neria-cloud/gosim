@@ -1,6 +1,6 @@
 //go:build go1.26 && !go1.27
 
-package rt
+package runtimebridge
 
 import (
 	"errors"

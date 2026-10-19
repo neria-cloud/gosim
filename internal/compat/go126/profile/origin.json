@@ -622,6 +622,10 @@
       "digest": "34cb2ed4ee74833234158b4f1e3a052713cec5657af1fa18e2284e70c6ee5604"
     },
     {
+      "path": "src/net/sock_linux.go",
+      "digest": "ab937db35b43c476ca474fb4fbe6a929547485f30488a16bc9a0cd26e4404888"
+    },
+    {
       "path": "src/os/executable_procfs.go",
       "digest": "61240d3520f1294d95bf0de8e8a324367cd66b06727b319ecb55e2b3046e5e46"
     },
@@ -1045,6 +1049,10 @@
     {
       "path": "src/time/time.go",
       "digest": "e8b6ea9e6e7cb890aeed1d24ee7163a2237b6fa78ffc564efb8688dba717f02a"
+    },
+    {
+      "path": "src/time/zoneinfo_unix.go",
+      "digest": "d2001a2351a080f1a47ebb3999be74f99caceb4a8f1ea6369a3c843fa0442f08"
     },
     {
       "path": "src/unicode/utf16/utf16.go",

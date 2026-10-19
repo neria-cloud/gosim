@@ -192,6 +192,27 @@ func TestNativeGeneratedDriver(t *testing.T) {
 		if _, err := Generate(s, sub); err != nil {
 			t.Fatal(err)
 		}
+		// Native probes deliberately lack translated machine globals. Serialize
+		// only their shared process setup; candidate tests execute the unchanged
+		// generated source with real isolation and no such fixture adaptation.
+		path := filepath.Join(sub, "composition.go")
+		source, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := strings.Replace(string(source), "import (", "import (\n \"sync\"", 1)
+		text = strings.Replace(text, "processhooks.ConfigureProcess(", "nativeConfigureProcess(", 1)
+		text += `
+var nativeProcessMutex sync.Mutex
+func nativeConfigureProcess(args,env []string) error {
+ nativeProcessMutex.Lock()
+ defer nativeProcessMutex.Unlock()
+ return processhooks.ConfigureProcess(args,env)
+}
+`
+		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
 		test := strings.ReplaceAll(driverProbe, "FEATURES", `"`+strings.Join(features, `","`)+`"`)
 		if err := os.WriteFile(filepath.Join(sub, "driver_test.go"), []byte(test), 0o644); err != nil {
 			t.Fatal(err)

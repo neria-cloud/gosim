@@ -235,6 +235,10 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 		field = "ForTest"
 	}
 
+	for _, embedded := range t.embedded {
+		inits = append(inits, embedded.initializer(t, funcName))
+	}
+
 	var lastIfSmt *dst.BlockStmt
 
 	for _, initializer := range t.typesInfo.InitOrder {
@@ -428,6 +432,9 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 			},
 		},
 	}
+	if t.infrastructure && !forTest {
+		globals.Elts = append(globals.Elts, &dst.KeyValueExpr{Key: dst.NewIdent("Infrastructure"), Value: dst.NewIdent("true")})
+	}
 
 	dstFile.Decls = append(dstFile.Decls, &dst.FuncDecl{
 		Name: dst.NewIdent("init"),
@@ -464,4 +471,34 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 	dstFile.Decls = append(dstFile.Decls, makeBindFuncs(t.collect.bindspecs)...)
 
 	return dstFile, nil
+}
+
+// len/cap of an array can be constant even when the array is a mutable global.
+// Replacing that global with G().field introduces a call, which would destroy
+// constant-expression semantics. Preserve the type checker's constant value.
+func (t *packageTranslator) rewriteConstantArrayLen(c *dstutil.Cursor) bool {
+	call, ok := c.Node().(*dst.CallExpr)
+	if !ok {
+		return false
+	}
+	original, ok := t.astMap.Nodes[call].(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := original.Fun.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	builtin, ok := t.typesInfo.Uses[ident].(*types.Builtin)
+	if !ok || (builtin.Name() != "len" && builtin.Name() != "cap") {
+		return false
+	}
+	value := t.typesInfo.Types[original].Value
+	if value == nil {
+		return false
+	}
+	literal := &dst.BasicLit{Kind: token.INT, Value: value.ExactString()}
+	literal.Decs.NodeDecs = call.Decs.NodeDecs
+	c.Replace(literal)
+	return true
 }

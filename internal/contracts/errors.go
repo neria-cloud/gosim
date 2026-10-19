@@ -1,19 +1,24 @@
 package contracts
 
 import (
-	"errors"
 	"fmt"
 )
 
+// Sentinel identifies a domain failure by value across isolated machine and
+// supervisor globals. Pointer-based errors.New values would differ per machine.
+type Sentinel string
+
+func (e Sentinel) Error() string { return string(e) }
+
 var (
-	ErrNotSim           = errors.New("not running in a simulation")
-	ErrWrongRun         = errors.New("handle belongs to another simulation run")
-	ErrMachineNotFound  = errors.New("machine not found or destroyed")
-	ErrInvalidState     = errors.New("invalid machine state")
-	ErrNotStarted       = errors.New("machine has not started")
-	ErrSelfTransition   = errors.New("returning self transition is not permitted")
-	ErrInvalidConfig    = errors.New("invalid simulator configuration")
-	ErrEnumerationLimit = errors.New("crash-state enumeration limit reached")
+	ErrNotSim           error = Sentinel("not running in a simulation")
+	ErrWrongRun         error = Sentinel("handle belongs to another simulation run")
+	ErrMachineNotFound  error = Sentinel("machine not found or destroyed")
+	ErrInvalidState     error = Sentinel("invalid machine state")
+	ErrNotStarted       error = Sentinel("machine has not started")
+	ErrSelfTransition   error = Sentinel("returning self transition is not permitted")
+	ErrInvalidConfig    error = Sentinel("invalid simulator configuration")
+	ErrEnumerationLimit error = Sentinel("crash-state enumeration limit reached")
 )
 
 type FailureCode string

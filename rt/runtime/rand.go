@@ -17,7 +17,7 @@ func Fastrand64() uint64 {
 		return 0
 	}
 	if e := gs.get().engine; e != nil {
-		return e.RandomFor("application", getg().machine.token.ID).Uint64()
+		return e.RandomFor("application", CurrentMachineToken().ID).Uint64()
 	}
 	// TODO(migration): remove legacy integration fallback in Task 22.
 	return fastrand64()
@@ -29,7 +29,7 @@ func Fastrandn(n uint32) uint32 {
 		return 0
 	}
 	if e := gs.get().engine; e != nil {
-		return uint32(e.RandomFor("application", getg().machine.token.ID).Uint64N(uint64(n)))
+		return uint32(e.RandomFor("application", CurrentMachineToken().ID).Uint64N(uint64(n)))
 	}
 	// TODO(migration): remove legacy integration fallback in Task 22.
 	return fastrandn(n)

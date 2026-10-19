@@ -26,6 +26,8 @@ import (
 )
 
 type translatePackageArgs struct {
+	infrastructure     bool
+	definitions        map[PackageSelector]bool
 	Selection          buildspec.Selection
 	legacy             bool // TODO(migration): remove in Task 22.
 	cfg                gosimtool.BuildConfig
@@ -144,6 +146,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 			return nil, err
 		}
 		policies = &resolved
+		policies.definitions = args.definitions
 	}
 
 	kind, extractedPath := classifyPackage(args.pkg)
@@ -260,6 +263,16 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 		shared = policies.shared
 	}
 	globals := collectGlobalsAndTests(dstFiles, dec.Ast, args.pkg.PkgPath, args.pkg.TypesInfo, shared)
+	if policies != nil {
+		// The legacy collector also infers sharing from initializer shapes (for
+		// example errors.New). Selection owns every shared global on this path.
+		globals.shouldShare = make(map[string]bool)
+		for _, name := range globals.globalsFields {
+			if policies.shared[PackageSelector{Pkg: args.pkg.PkgPath, Selector: name}] {
+				globals.shouldShare[name] = true
+			}
+		}
+	}
 	globalInfo := &PackageGlobalInfo{
 		Container:   make(map[string]string),
 		ShouldShare: make(map[string]bool),
@@ -341,6 +354,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 	maps.Copy(hooks, hooksGensyscallGo123ByArch[args.cfg.Identity.SimulationArch])
 
 	translator := &packageTranslator{
+		infrastructure:      args.infrastructure,
 		profile:             policies,
 		typesInfo:           args.pkg.TypesInfo,
 		astMap:              dec.Map.Ast,
@@ -361,6 +375,11 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 	}
 
 	if policies != nil {
+		var err error
+		translator.embedded, err = collectEmbeddedGlobals(args.pkg, pkgFiles)
+		if err != nil {
+			return nil, err
+		}
 		translator.hooks = policies.hooks
 		translator.acceptedLinknames = nil
 		translator.keepAsmPkgs = nil
@@ -459,13 +478,15 @@ type PackageSelector struct {
 }
 
 type packageTranslator struct {
-	profile       *PackagePolicies
-	typesInfo     *types.Info
-	suffixCounter int
-	astMap        decorator.AstMap
-	dstMap        decorator.DstMap
-	replacedPkgs  map[string]string
-	pkgPath       string
+	embedded       []embeddedGlobal
+	infrastructure bool
+	profile        *PackagePolicies
+	typesInfo      *types.Info
+	suffixCounter  int
+	astMap         decorator.AstMap
+	dstMap         decorator.DstMap
+	replacedPkgs   map[string]string
+	pkgPath        string
 
 	hooks             map[PackageSelector]PackageSelector
 	acceptedLinknames map[PackageSelector]PackageSelector
@@ -565,6 +586,9 @@ func (t *packageTranslator) preApply(c *dstutil.Cursor) bool {
 		}
 	}
 
+	if t.profile != nil && t.rewriteConstantArrayLen(c) {
+		return false
+	}
 	t.rewriteTestFunc(c)
 	t.rewriteIdent(c)
 	t.rewriteImport(c)

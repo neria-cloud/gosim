@@ -242,7 +242,7 @@ func (n *Stack) OpenListener(port uint16) (*Listener, error) {
 
 	l := &Listener{
 		owner:    n,
-		incoming: make([]*Stream, 5),
+		incoming: make([]*Stream, contracts.ListenerBacklog),
 
 		closed: false,
 
