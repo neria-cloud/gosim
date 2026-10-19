@@ -6,7 +6,9 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -56,6 +58,33 @@ func TestFeatureApplicabilityAndPreservedInventory(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("lost baseline %s:%s (mapped to %s)", entry.Source, entry.Name, entry.Destination)
+		}
+	}
+}
+
+func TestNativeUnitsExcludeDisabledModels(t *testing.T) {
+	for _, names := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}} {
+		packages, err := NativePackages(names)
+		if err != nil {
+			t.Fatal(err)
+		}
+		args := append([]string{"list", "-tags=linkname", "-deps", "-test"}, packages...)
+		command := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), args...)
+		command.Dir = "../../.."
+		output, err := command.CombinedOutput()
+		if err != nil {
+			t.Fatalf("native graph: %v: %s", err, output)
+		}
+		for _, domain := range []string{"fs", "net"} {
+			if slices.Contains(names, domain) {
+				continue
+			}
+			prefix := "github.com/neria-cloud/gosim/internal/" + domain
+			for _, path := range strings.Fields(string(output)) {
+				if path == prefix || strings.HasPrefix(path, prefix+"/") {
+					t.Fatalf("%v imports disabled native model %s", names, path)
+				}
+			}
 		}
 	}
 }

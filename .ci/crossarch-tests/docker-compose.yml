@@ -1,21 +1,30 @@
+x-test: &test
+  build:
+    context: ../..
+    dockerfile: .ci/crossarch-tests/Dockerfile.test
+    args:
+      GO_IMAGE: ${GOSIM_GO_IMAGE:?set a resolved golang image@sha256 digest}
+      GO_PATCH: ${GOSIM_TOOLCHAIN:?set the exact Go patch}
+  volumes:
+    - cache:/cache
+  environment:
+    GOMAXPROCS: '2'
 services:
   test-linux-arm64:
-    platform: linux/amd64
-    build:
-      context: ../..
-      dockerfile: ./.ci/crossarch-tests/Dockerfile.test
+    <<: *test
+    platform: linux/arm64
     volumes:
       - cache:/cache
-
+      - evidence-arm64:/evidence
+    command: [--patch, '${GOSIM_TOOLCHAIN}', --platform, linux/arm64, --features, '${GOSIM_FEATURES:-rt}', '${GOSIM_RACE_FLAG:---no-race}', --evidence, /evidence, --mode, '${GOSIM_EXECUTION_MODE:?set observed execution mode}', --image, '${GOSIM_IMAGE_DIGEST:?set built image digest}']
   test-linux-amd64:
+    <<: *test
     platform: linux/amd64
-    build:
-      context: ../..
-      dockerfile: ./.ci/crossarch-tests/Dockerfile.test
     volumes:
       - cache:/cache
-
+      - evidence-amd64:/evidence
+    command: [--patch, '${GOSIM_TOOLCHAIN}', --platform, linux/amd64, --features, '${GOSIM_FEATURES:-rt}', '${GOSIM_RACE_FLAG:---no-race}', --evidence, /evidence, --mode, '${GOSIM_EXECUTION_MODE:?set observed execution mode}', --image, '${GOSIM_IMAGE_DIGEST:?set built image digest}']
 volumes:
   cache:
-
-
+  evidence-arm64:
+  evidence-amd64:

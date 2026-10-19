@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–29 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 30–33 remain unchecked. Full race suites are deferred to final verification.
+**Status:** in progress; Tasks 1–30 (including their recorded children) implemented and verified under the amended validation cadence; Tasks 31–33 remain unchecked. Full race suites are deferred to final verification.
 
 ## Important notices
 
@@ -785,17 +785,17 @@ The two retired hook trees contain 3,708 lines; their old translator selection/c
 
 Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for arm64 architecture.
 
-- [ ] Parameterize Docker by exact patch and resolved image digest. Correct the arm64 service's current erroneous amd64 platform. Retain build-essential/SQLite/race dependencies for host tooling and prevent copying stale `.gosim` artifacts into an image.
-- [ ] Implement the Validation Commands matrix CLI with explicit context/platform/toolchain/output arguments. Use existing `colima` context for both Linux architectures, amd64 emulation where necessary, and direct host execution for darwin/arm64. Do not recreate the user's Colima VM or assume performance equivalence under emulation.
-- [ ] Expand exactly 2 patches × 3 host tuples × 4 feature sets × 2 race modes. Determine actual worker/container/daemon architectures and record observed execution mode; an image build or cross-compile never counts as executed tests. Missing emulation or failing race startup makes the job fail.
-- [ ] Use Task 25's suite applicability table. Full-feature jobs run complete integration/metatesting plus ordinary/race host suites; reduced-feature jobs execute relevant model/runtime/native-unit suites and negative fixtures without importing excluded domains through an all-tests package. Mandatory suite coverage is explicit in each report.
-- [ ] Separate artifacts/cache identities per tuple and per package, bound job concurrency to available memory, propagate all exit statuses and persist complete logs/reports. An omitted/skipped job cannot be represented as a passing tuple.
-- [ ] Wire native GitHub runners where available and the same local matrix command for Colima. CI runner availability is an execution prerequisite, not permission to claim an unrun platform.
+- [x] Parameterize Docker by exact patch and resolved image digest. Correct the arm64 service's current erroneous amd64 platform. Retain build-essential/SQLite/race dependencies for host tooling and prevent copying stale `.gosim` artifacts into an image.
+- [x] Implement the Validation Commands matrix CLI with explicit context/platform/toolchain/output arguments. Use existing `colima` context for both Linux architectures, amd64 emulation where necessary, and direct host execution for darwin/arm64. Do not recreate the user's Colima VM or assume performance equivalence under emulation.
+- [x] Expand exactly 2 patches × 3 host tuples × 4 feature sets × 2 race modes. Determine actual worker/container/daemon architectures and record observed execution mode; an image build or cross-compile never counts as executed tests. Missing emulation or failing race startup makes the job fail.
+- [x] Use Task 25's suite applicability table. Full-feature jobs run complete integration/metatesting plus ordinary/race host suites; reduced-feature jobs execute relevant model/runtime/native-unit suites and negative fixtures without importing excluded domains through an all-tests package. Mandatory suite coverage is explicit in each report.
+- [x] Separate artifacts/cache identities per tuple and per package, bound job concurrency to available memory, propagate all exit statuses and persist complete logs/reports. An omitted/skipped job cannot be represented as a passing tuple.
+- [x] Wire native GitHub runners where available and the same local matrix command for Colima. CI runner availability is an execution prerequisite, not permission to claim an unrun platform.
 
 #### Verification
 
-- [ ] Matrix enumeration dry-run produces 48 unique tuples and correct platforms; validate shell/YAML and failure propagation. Execute one real candidate smoke tuple on each available worker route before the full matrix.
-- [ ] Run common commit gate; Docker architecture/readiness evidence is accurate and does not mutate unrelated Colima settings.
+- [x] Matrix enumeration dry-run produces 48 unique tuples and correct platforms; validate shell/YAML and failure propagation. Execute one real candidate smoke tuple on each available worker route before the full matrix.
+- [x] Run common commit gate; Docker architecture/readiness evidence is accurate and does not mutate unrelated Colima settings.
 
 ### Task 31: Update usage, architecture, examples and final dependency/configuration metadata
 
@@ -803,6 +803,7 @@ Colima should be used only for MacOS arm64. Linux amd64 shouldn't run tests for 
 **References:** T§1–4 public behavior; T§8/9 configuration and version ownership; T§11 exclusions; planning clarifications table.  
 **Budget:** 1,000–2,500 changed lines. **Dependency:** 25–30.
 
+- [ ] Prepare validation of a promoted checkout before final certification: candidate gates must use an explicitly unpromoted isolated source copy, preserving the exact tuple allowlist and executable inputs while resetting only excluded status/evidence metadata. Keep normal commands bound to reviewed certified evidence. Verify this workflow and document that a candidate rerun does not renew certification; do not weaken the pending-only candidate selector. This prerequisite is required because existing candidate tests and verification commands correctly require pending records, whereas Task 32 promotes the original checkout.
 - [ ] Document the actual package graph, native/translated boundary, exact four feature sets, unstarted machine workflow, fs snapshot ownership, network controls, explicit disabled-feature abort and native ErrNotSim behavior. Remove old API examples rather than showing deprecated wrappers.
 - [ ] Document exact patch selection, pending vs certified status, rebuild command on worker mismatch, generated family selection, replay scope, candidate developer workflow and public normal CLI behavior.
 - [ ] Align T§9's artifact path with per-package manifests and record the planning clarifications in architecture documentation. Repair historical report links to `docs/reports/`; do not rewrite syscall capability claims as newly implemented features.

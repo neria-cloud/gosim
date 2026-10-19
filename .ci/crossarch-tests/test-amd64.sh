@@ -1,5 +1,3 @@
 #!/bin/bash
-cd "${0%/*}"
-set -e
-
-docker compose -f ./docker-compose.yml run --build --rm test-linux-amd64
+set -euo pipefail
+exec "$(dirname "$0")/run-matrix.sh" --context colima --platform linux/amd64 "$@"

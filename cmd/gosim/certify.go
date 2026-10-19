@@ -207,6 +207,22 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string) (results []SuiteResult,
 	if err != nil || full {
 		return results, err
 	}
+	units, err := features.NativePackages(cfg.Identity.Features)
+	if err != nil {
+		return results, err
+	}
+	args = []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "-timeout=30m", "-count=1"}
+	if cfg.Identity.Race {
+		args = append(args, "-race")
+	}
+	args = append(args, units...)
+	unitCommand := buildcfg.Command(cfg.Toolchain, "", args...)
+	unitCommand.Env = cmd.Env
+	result, err = runLogged(unitCommand, dir, "native-units")
+	results = append(results, result)
+	if err != nil {
+		return results, err
+	}
 	// Full native testing includes all candidate workers. Reduced certification
 	// also executes its isolated negative, replay and generated-graph checks.
 	args = []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "-timeout=25m", "./internal/candidate", "-run=^TestCandidateWorker$/^" + strings.Join(cfg.Identity.Features, ",") + "$", "-count=1", "-v"}

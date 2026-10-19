@@ -39,3 +39,21 @@ func Packages(names []string) ([]string, error) {
 	}
 	return packages, nil
 }
+
+// NativePackages covers runtime and model units without pulling the other
+// provider into reduced-feature jobs through provider integration test imports.
+// Full-feature certification runs ./..., including those integration tests.
+func NativePackages(names []string) ([]string, error) {
+	names, err := buildspec.Features(names)
+	if err != nil {
+		return nil, err
+	}
+	packages := []string{"./rt/runtime/...", "./internal/hostabi", "./internal/contracts"}
+	if slices.Contains(names, "fs") {
+		packages = append(packages, "./internal/fs/model")
+	}
+	if slices.Contains(names, "net") {
+		packages = append(packages, "./internal/net/model")
+	}
+	return packages, nil
+}

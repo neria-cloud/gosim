@@ -91,6 +91,11 @@ func TestReducedReportRequiresApplicableNativeAndBoundarySuites(t *testing.T) {
 	}
 	report.Suites = append(report.Suites, buildspec.SuiteResult{Name: "boundaries", Passed: true, LogDigest: buildspec.Hash([]byte("boundaries"))})
 	report.ResultDigest, _ = buildspec.ReportDigest(report)
+	if err := buildspec.ValidateReport(report); err == nil {
+		t.Fatal("reduced tuple omitted runtime/model unit suites")
+	}
+	report.Suites = append(report.Suites, buildspec.SuiteResult{Name: "native-units", Passed: true, LogDigest: buildspec.Hash([]byte("native-units"))})
+	report.ResultDigest, _ = buildspec.ReportDigest(report)
 	if err := buildspec.ValidateReport(report); err != nil {
 		t.Fatal(err)
 	}

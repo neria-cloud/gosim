@@ -1,27 +1,51 @@
 name: Test
-
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
-
+    branches: [main]
+  workflow_dispatch:
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  certify:
+    strategy:
+      fail-fast: false
+      matrix:
+        worker:
+          - {runner: ubuntu-24.04, platform: linux/amd64}
+          - {runner: ubuntu-24.04-arm, platform: linux/arm64}
+          - {runner: macos-15, platform: darwin/arm64}
+        toolchain: [go1.25.14, go1.26.9]
+    runs-on: ${{ matrix.worker.runner }}
+    timeout-minutes: 180
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
-
-      # run tests with -trimpath to hopefully share cache between gosim
-      # invocations in different folders
-      - name: Test
-        run: GOFLAGS=-trimpath ./test.sh --concurrency 1
+          go-version: ${{ matrix.toolchain }}
+          check-latest: false
+      - name: Native compiler dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential libsqlite3-dev python3
+      - name: Format and matrix runner checks
+        run: |
+          ./.ci/gofmt check
+          python3 -B -m unittest discover -s .ci/crossarch-tests -p '*_test.py'
+      - name: Execute exact native tuples
+        run: >-
+          ./.ci/crossarch-tests/run-matrix.sh --native
+          --platform '${{ matrix.worker.platform }}'
+          --toolchains '${{ matrix.toolchain }}' --jobs 1
+          --output .gosim/certification
+      - name: Preserve execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-${{ matrix.worker.runner }}-${{ matrix.toolchain }}
+          path: |
+            .gosim/certification/**/matrix.json
+            .gosim/certification/**/execution.json
+            .gosim/certification/**/source.json
+            .gosim/certification/**/job.log
+            .gosim/certification/**/evidence/**
+          include-hidden-files: true
+          if-no-files-found: error
