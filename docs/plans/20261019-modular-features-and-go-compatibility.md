@@ -9,7 +9,7 @@
 **Full brainstorm log:** [docs/brainstorms/20261018-modular-features-and-go-compatibility.md](../brainstorms/20261018-modular-features-and-go-compatibility.md)  
 **Declaration inventory:** [110 files / 1,604 declarations](../brainstorms/20261018-modular-features-and-go-compatibility-inventory.md)  
 **Related evidence:** [gquorum syscall audit](../reports/syscall-support-for-gquorum.md)  
-**Status:** in progress; Tasks 1–25 (including their recorded children) implemented and verified; Tasks 26–33 remain unchecked.
+**Status:** in progress; Tasks 1–26 (including their recorded children) implemented and verified; Tasks 27–33 remain unchecked.
 
 ## Important notices
 
@@ -697,13 +697,13 @@ The expanded integration graph exposed missing deterministic hash/x/sys hooks, L
 **References:** T§7 routing coverage; T§8 family source ownership; T§9 profile-specific generation.  
 **Budget:** approximately 4,680 deleted generated lines, at most 5,000 total. **Dependency:** 22, 25.
 
-- [ ] Confirm the active generated route inventory covers every old supported wrapper and records all limited/stub/rejected ones. Remove the retired files, not the selected family outputs.
-- [ ] Verify no imports/build scripts/generate directives or fixture expectations name the old output locations. Keep this commit limited to the generated-wrapper deletion budget.
+- [x] Confirm the active generated route inventory covers every old supported wrapper and records all limited/stub/rejected ones. Remove the retired files, not the selected family outputs.
+- [x] Verify no imports/build scripts/generate directives or fixture expectations name the old output locations. Keep this commit limited to the generated-wrapper deletion budget.
 
 #### Verification
 
-- [ ] All four selected-family/architecture outputs regenerate cleanly and active import graphs use them; old generated wrappers are absent.
-- [ ] Run common commit gate on both target patches; ordinary and race suites remain green.
+- [x] All four selected-family/architecture outputs regenerate cleanly and active import graphs use them; old generated wrappers are absent.
+- [x] Run common commit gate on both target patches; ordinary and race suites remain green.
 
 ### Task 27: Remove the two superseded hook trees
 

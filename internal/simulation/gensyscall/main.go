@@ -865,29 +865,7 @@ func main() {
 			"golang.org/x/sys/unix/syscall_linux_" + arch + ".go",
 		}, filter[arch])
 
-		sysnums := parseSysnums([]string{
-			"golang.org/x/sys/unix/zsysnum_linux_" + arch + ".go",
-		})
-
 		writeProxies(rootDir, pkgs, syscalls, "go123", arch)
-		deduped := dedupSyscalls(syscalls)
-
-		deduped = append(deduped, []syscallInfo{
-			{
-				sysName:    "POLL_OPEN",
-				inputsStr:  "fd int, desc *syscallabi.PollDesc",
-				outputsStr: "code int",
-				synthetic:  true,
-			},
-			{
-				sysName:    "POLL_CLOSE",
-				inputsStr:  "fd int, desc *syscallabi.PollDesc",
-				outputsStr: "code int",
-				synthetic:  true,
-			},
-		}...)
-
-		writeSyscalls(path.Join(rootDir, "internal/simulation/linux_gen_"+arch+".go"), deduped, sysnums, false)
 	}
 
 	writeSyscalls(path.Join(rootDir, "internal/simulation/gosim_gen.go"), machineCalls, nil, true)

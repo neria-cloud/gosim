@@ -27,27 +27,20 @@ func TestInventoryCoversLegacyRoutes(t *testing.T) {
 			legacy[old] = true
 		}
 	}
-	// This source audit remains until the legacy path is deleted in Task 26.
-	for _, name := range []string{"linux_gen_amd64.go", "linux_gen_arm64.go", "gosim_gen.go", "os_linux.go"} {
-		f, err := parser.ParseFile(token.NewFileSet(), filepath.Join("../simulation", name), nil, 0)
-		if err != nil {
-			t.Fatal(err)
+	// Frozen AST inventory of the two generated syscall interfaces, machine
+	// interface and manual syscall methods at b7d5176. Keep this independent
+	// of routes.json after deleting the retired implementation.
+	data, err := os.ReadFile("testdata/legacy_routes.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if buildspec.Hash(data) != "6b4667c9f423976b414d22ccf4ebf04ff48c84000bdb944cc822c40d5f38a509" {
+		t.Fatal("baseline route inventory changed")
+	}
+	for _, name := range strings.Fields(string(data)) {
+		if !legacy[name] {
+			t.Errorf("unclassified legacy route %s", name)
 		}
-		ast.Inspect(f, func(n ast.Node) bool {
-			if iface, ok := n.(*ast.InterfaceType); ok {
-				for _, field := range iface.Methods.List {
-					for _, name := range field.Names {
-						if !legacy[name.Name] {
-							t.Errorf("unclassified legacy route %s", name.Name)
-						}
-					}
-				}
-			}
-			if fn, ok := n.(*ast.FuncDecl); ok && fn.Recv != nil && strings.HasPrefix(fn.Name.Name, "Sys") && !legacy[fn.Name.Name] {
-				t.Errorf("unclassified manual syscall %s", fn.Name.Name)
-			}
-			return true
-		})
 	}
 	// Preserve the published intermediate route numbers when adding controls.
 	expected := strings.Fields("Read Write Close FcntlInt Getrandom Getpid Uname PollOpen PollClose PollWait PollReset PollDeadline PollUnblock Wait Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync Fstat Statat Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise Socket Bind Listen Accept Connect LocalAddress PeerAddress SetOption GetOption")
