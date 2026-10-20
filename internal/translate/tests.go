@@ -45,7 +45,7 @@ func (t *packageTranslator) rewriteTestFunc(c *dstutil.Cursor) {
 }
 
 func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []PackageSelector, runtime string) (*dst.File, error) {
-	elts := make([]dst.Expr, 0, len(tests))
+	var elts []dst.Expr
 	slices.SortFunc(tests, func(a, b PackageSelector) int {
 		if d := cmp.Compare(a.Pkg, b.Pkg); d != 0 {
 			return d

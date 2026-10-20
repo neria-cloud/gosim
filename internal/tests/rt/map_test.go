@@ -383,7 +383,7 @@ func TestMapSimpleIter(t *testing.T) {
 		{13, 7},
 	}
 
-	seen := make([]pair, 0, len(m))
+	var seen []pair
 	for k, v := range m {
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -402,14 +402,14 @@ func TestMapSmallRandomIter(t *testing.T) {
 	m[2] = 5
 	m[3] = 8
 
-	firstSeen := make([]pair, 0, len(m))
+	var firstSeen []pair
 	for k, v := range m {
 		firstSeen = append(firstSeen, pair{key: k, value: v})
 	}
 
 	success := false
 	for i := 0; i < 20; i++ {
-		seen := make([]pair, 0, len(m))
+		var seen []pair
 		for k, v := range m {
 			seen = append(seen, pair{key: k, value: v})
 		}
@@ -432,14 +432,14 @@ func TestMapRandomIter(t *testing.T) {
 	m[11] = 9
 	m[13] = 7
 
-	firstSeen := make([]pair, 0, len(m))
+	var firstSeen []pair
 	for k, v := range m {
 		firstSeen = append(firstSeen, pair{key: k, value: v})
 	}
 
 	success := false
 	for i := 0; i < 20; i++ {
-		seen := make([]pair, 0, len(m))
+		var seen []pair
 		for k, v := range m {
 			seen = append(seen, pair{key: k, value: v})
 		}
@@ -467,7 +467,7 @@ func TestMapLiteral(t *testing.T) {
 		{3, 8},
 	}
 
-	seen := make([]pair, 0, len(m))
+	var seen []pair
 	for k, v := range m {
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -492,7 +492,7 @@ func TestMapSmallIterDelete(t *testing.T) {
 		{4, 10},
 	}
 
-	seen := make([]pair, 0, len(m))
+	var seen []pair
 	for k, v := range m {
 		if k == 2 || k == 3 {
 			expected = append(expected, pair{k, v})
@@ -532,7 +532,7 @@ func TestMapIterDelete(t *testing.T) {
 		{6, 13},
 	}
 
-	seen := make([]pair, 0, len(m))
+	var seen []pair
 	for k, v := range m {
 		if k == 2 || k == 3 {
 			expected = append(expected, pair{k, v})
@@ -713,7 +713,7 @@ func TestMapIterDeleteRestore(t *testing.T) {
 	m[2] = 5
 	m[3] = 8
 
-	expected := make([]pair, 0, len(m))
+	expected := []pair{}
 
 	var seen []pair
 	for k, v := range m {

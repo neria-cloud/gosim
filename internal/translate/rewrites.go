@@ -56,6 +56,11 @@ func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
 	if t.nativeImports[ident.Path] {
 		return
 	}
+	lookupPath := ident.Path
+	if lookupPath == "" {
+		lookupPath = t.pkgPath
+	}
+
 	// special case new plan
 	/*
 		if info, ok := t.globalInfo.ByPackage[lookupPath]; ok {

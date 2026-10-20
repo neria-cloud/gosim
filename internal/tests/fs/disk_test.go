@@ -622,7 +622,7 @@ func TestDiskSeekBasic(t *testing.T) {
 	ok(0, io.SeekCurrent, 22)
 
 	// invalid seek from end
-	_, _ = f.Seek(-23, io.SeekEnd)
+	pos, err = f.Seek(-23, io.SeekEnd)
 	bad(-23, io.SeekEnd, syscall.EINVAL)
 	ok(0, io.SeekCurrent, 22)
 

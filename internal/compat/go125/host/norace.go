@@ -12,13 +12,13 @@ import (
 
 const RaceEnabled = false
 
-func RaceAcquire(_ unsafe.Pointer) {
+func RaceAcquire(addr unsafe.Pointer) {
 }
 
-func RaceRelease(_ unsafe.Pointer) {
+func RaceRelease(addr unsafe.Pointer) {
 }
 
-func RaceReleaseMerge(_ unsafe.Pointer) {
+func RaceReleaseMerge(addr unsafe.Pointer) {
 }
 
 func RaceDisable() {
@@ -33,7 +33,7 @@ func RaceRead(addr unsafe.Pointer) {
 func RaceReadPC(addr unsafe.Pointer, callerpc, pc uintptr) {
 }
 
-func RaceReadObjectPC(_ unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+func RaceReadObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
 }
 
 func RaceWrite(addr unsafe.Pointer) {
@@ -42,7 +42,7 @@ func RaceWrite(addr unsafe.Pointer) {
 func RaceWritePC(addr unsafe.Pointer, callerpc, pc uintptr) {
 }
 
-func RaceWriteObjectPC(_ unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+func RaceWriteObjectPC(t unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
 }
 
 func RaceReadRange(addr unsafe.Pointer, len int) {
