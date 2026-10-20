@@ -10,23 +10,48 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+const (
+	regularFileMode    = 0o644
+	ownerOnlyFileMode  = 0o600
+	ownerGroupFileMode = 0o640
+	allPermissionBits  = 0o777
+	directoryMode      = 0o755
+	readWriteMode      = 0o666
+	privateDirMode     = 0o700
+
+	sparseFileSize    = 4096
+	sparseWriteOffset = 2048
+	blockOffset       = 512
+	blockLength       = 1024
+	blockEnd          = 1536
+
+	threeBlocks = 3
+	ownerUID    = 27
+	ownerGID    = 31
+	updatedGID  = 32
+	userUID     = 123
+	userGID     = 456
+	otherUID    = 789
+	otherGID    = 999
+)
+
 func TestUsedBlocksCountsAllocatedLiveFiles(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
 	if got := fs.UsedBlocks(); got != 1 {
 		t.Fatalf("initial blocks = %d, want hosts block", got)
 	}
-	inode, err := fs.OpenFile(RootInode, "/app/sparse", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
+	inode, err := fs.OpenFile(RootInode, "/app/sparse", os.O_CREATE|os.O_RDWR, regularFileMode, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.Truncate(inode, 4096, DefaultCapacityBytes); err != nil {
+	if err := fs.Truncate(inode, sparseFileSize, DefaultCapacityBytes); err != nil {
 		t.Fatal(err)
 	}
 	if got := fs.UsedBlocks(); got != 1 {
 		t.Fatalf("sparse grow allocated %d blocks", got)
 	}
-	if _, err := fs.Write(inode, 2048, abi.ByteView{Ptr: []byte("x")}, DefaultCapacityBytes); err != nil {
+	if _, err := fs.Write(inode, sparseWriteOffset, abi.ByteView{Ptr: []byte("x")}, DefaultCapacityBytes); err != nil {
 		t.Fatal(err)
 	}
 	if got := fs.UsedBlocks(); got != 2 {
@@ -49,7 +74,7 @@ func TestUsedBlocksCountsAllocatedLiveFiles(t *testing.T) {
 func TestCapacityAdmissionIsAtomic(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
-	inode, err := fs.OpenFile(RootInode, "/app/full", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
+	inode, err := fs.OpenFile(RootInode, "/app/full", os.O_CREATE|os.O_RDWR, regularFileMode, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +125,7 @@ func TestCapacityAdmissionIsAtomic(t *testing.T) {
 func TestOverCapacityImageAllowsExistingBlocks(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
-	inode, err := fs.OpenFile(RootInode, "/app/recovered", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
+	inode, err := fs.OpenFile(RootInode, "/app/recovered", os.O_CREATE|os.O_RDWR, regularFileMode, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +134,7 @@ func TestOverCapacityImageAllowsExistingBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 	const capacity = 2 * StorageBlockSize
-	if stats := fs.Stats(capacity); stats.UsedBytes != 3*StorageBlockSize || stats.FreeBytes != 0 {
+	if stats := fs.Stats(capacity); stats.UsedBytes != uint64(threeBlocks)*StorageBlockSize || stats.FreeBytes != 0 {
 		t.Fatalf("over-capacity stats: %+v", stats)
 	}
 	if n, err := fs.Write(inode, 0, abi.ByteView{Ptr: []byte("x")}, capacity); n != 1 || err != nil {
@@ -132,21 +157,21 @@ func TestOverCapacityImageAllowsExistingBlocks(t *testing.T) {
 func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
-	inode, err := fs.OpenFile(RootInode, "/app/reserved", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
+	inode, err := fs.OpenFile(RootInode, "/app/reserved", os.O_CREATE|os.O_RDWR, regularFileMode, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer fs.CloseFile(inode)
 	fs.FlushEverything()
 	const capacity = 3 * StorageBlockSize // hosts plus two reserved blocks
-	if err := fs.Fallocate(inode, 512, 1024, capacity); err != nil {
+	if err := fs.Fallocate(inode, blockOffset, blockLength, capacity); err != nil {
 		t.Fatal(err)
 	}
-	if stat, err := fs.Statfd(inode); err != nil || stat.Size != 1536 || fs.UsedBlocks() != 3 {
+	if stat, err := fs.Statfd(inode); err != nil || stat.Size != blockEnd || fs.UsedBlocks() != threeBlocks {
 		t.Fatalf("reservation did not allocate range: stat=%+v err=%v blocks=%d", stat, err, fs.UsedBlocks())
 	}
-	zeros := make([]byte, 1024)
-	if n := fs.Read(inode, 512, abi.ByteView{Ptr: zeros}); n != len(zeros) {
+	zeros := make([]byte, blockLength)
+	if n := fs.Read(inode, blockOffset, abi.ByteView{Ptr: zeros}); n != len(zeros) {
 		t.Fatalf("reserved range read %d bytes", n)
 	}
 	for _, b := range zeros {
@@ -155,13 +180,13 @@ func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
 		}
 	}
 	before := fs.GetInodeInfo(inode).Ops
-	if err := fs.Fallocate(inode, 0, 1024, capacity); err != nil || fs.UsedBlocks() != 3 {
+	if err := fs.Fallocate(inode, 0, blockLength, capacity); err != nil || fs.UsedBlocks() != threeBlocks {
 		t.Fatalf("overlapping reserve: err=%v blocks=%d", err, fs.UsedBlocks())
 	}
-	if err := fs.Fallocate(inode, 2048, 1, capacity); !errors.Is(err, syscall.ENOSPC) {
+	if err := fs.Fallocate(inode, sparseWriteOffset, 1, capacity); !errors.Is(err, syscall.ENOSPC) {
 		t.Fatalf("overcapacity reserve: %v", err)
 	}
-	if stat, _ := fs.Statfd(inode); stat.Size != 1536 || fs.GetInodeInfo(inode).Ops != before {
+	if stat, _ := fs.Statfd(inode); stat.Size != blockEnd || fs.GetInodeInfo(inode).Ops != before {
 		t.Fatal("failed reservation changed file or pending operations")
 	}
 	image := fs.FreezeCrash()
@@ -175,7 +200,7 @@ func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
 		switch state.UsedBlocks() {
 		case 1:
 			seenDurable = true
-		case 3:
+		case threeBlocks:
 			seenPending = true
 		default:
 			t.Fatalf("unexpected crash usage %d", state.UsedBlocks())
@@ -190,7 +215,7 @@ func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
 	image = fs.FreezeCrash()
 	recovered := image.Clone(false, nil)
 	image.Release()
-	if recovered.UsedBlocks() != 3 {
+	if recovered.UsedBlocks() != threeBlocks {
 		t.Fatalf("sync lost reservation: %d", recovered.UsedBlocks())
 	}
 	recovered.Release()
@@ -202,40 +227,40 @@ func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
 func TestMetadataOwnershipAndDurability(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
-	inode, err := fs.OpenFile(RootInode, "/app/meta", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
+	inode, err := fs.OpenFile(RootInode, "/app/meta", os.O_CREATE|os.O_RDWR, regularFileMode, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer fs.CloseFile(inode)
 	fs.FlushEverything()
 	initial, err := fs.Statfd(inode)
-	if err != nil || initial.Mode != 0o644 || initial.UID != 0 || initial.GID != 0 || initial.Nlink != 1 {
+	if err != nil || initial.Mode != regularFileMode || initial.UID != 0 || initial.GID != 0 || initial.Nlink != 1 {
 		t.Fatalf("initial metadata: %+v, %v", initial, err)
 	}
-	if err := fs.Chmod(inode, 0o600, Identity{UID: 7}); !errors.Is(err, syscall.EPERM) {
+	if err := fs.Chmod(inode, ownerOnlyFileMode, Identity{UID: 7}); !errors.Is(err, syscall.EPERM) {
 		t.Fatalf("unowned chmod: %v", err)
 	}
-	if err := fs.Chmod(inode, 0o600, Identity{}); err != nil {
+	if err := fs.Chmod(inode, ownerOnlyFileMode, Identity{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.Chown(inode, 27, 31, Identity{}); err != nil {
+	if err := fs.Chown(inode, ownerUID, ownerGID, Identity{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.Chown(inode, -1, 32, Identity{}); err != nil {
+	if err := fs.Chown(inode, -1, updatedGID, Identity{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.Chmod(inode, 0o640, Identity{UID: 27}); err != nil {
+	if err := fs.Chmod(inode, ownerGroupFileMode, Identity{UID: ownerUID}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fs.Chown(inode, 1, 1, Identity{UID: 27}); !errors.Is(err, syscall.EPERM) {
+	if err := fs.Chown(inode, 1, 1, Identity{UID: ownerUID}); !errors.Is(err, syscall.EPERM) {
 		t.Fatalf("non-root chown: %v", err)
 	}
 	before := fs.GetInodeInfo(inode).Ops
-	if err := fs.Chmod(inode, 0o640, Identity{UID: 27}); err != nil || fs.GetInodeInfo(inode).Ops != before {
+	if err := fs.Chmod(inode, ownerGroupFileMode, Identity{UID: ownerUID}); err != nil || fs.GetInodeInfo(inode).Ops != before {
 		t.Fatal("identical chmod created pending op", err)
 	}
 	current, err := fs.Statfd(inode)
-	if err != nil || current.Mode != 0o640 || current.UID != 27 || current.GID != 32 {
+	if err != nil || current.Mode != ownerGroupFileMode || current.UID != ownerUID || current.GID != updatedGID {
 		t.Fatalf("live metadata: %+v, %v", current, err)
 	}
 	image := fs.FreezeCrash()
@@ -250,8 +275,8 @@ func TestMetadataOwnershipAndDurability(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		seenOld = seenOld || stat.Mode == 0o644 && stat.UID == 0
-		seenNew = seenNew || stat.Mode == 0o640 && stat.UID == 27 && stat.GID == 32
+		seenOld = seenOld || stat.Mode == regularFileMode && stat.UID == 0
+		seenNew = seenNew || stat.Mode == ownerGroupFileMode && stat.UID == ownerUID && stat.GID == updatedGID
 		state.Release()
 	}
 	image.Release()
@@ -263,7 +288,7 @@ func TestMetadataOwnershipAndDurability(t *testing.T) {
 	recovered := image.Clone(false, nil)
 	image.Release()
 	stat, err := recovered.Statfd(inode)
-	if err != nil || stat.Mode != 0o640 || stat.UID != 27 || stat.GID != 32 {
+	if err != nil || stat.Mode != ownerGroupFileMode || stat.UID != ownerUID || stat.GID != updatedGID {
 		t.Fatalf("synced metadata: %+v, %v", stat, err)
 	}
 	recovered.Release()
@@ -272,8 +297,8 @@ func TestMetadataOwnershipAndDurability(t *testing.T) {
 func TestIdentityAccessAndCreationModes(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
-	user := Identity{UID: 123, GID: 456}
-	if err := fs.Mkdir(RootInode, "/app/private", 0o777, user); err != nil {
+	user := Identity{UID: userUID, GID: userGID}
+	if err := fs.Mkdir(RootInode, "/app/private", allPermissionBits, user); err != nil {
 		t.Fatal(err)
 	}
 	dir, err := fs.Getdirinode(RootInode, "/app/private", user)
@@ -281,20 +306,20 @@ func TestIdentityAccessAndCreationModes(t *testing.T) {
 		t.Fatal(err)
 	}
 	stat, err := fs.Stat(RootInode, "/app/private", user)
-	if err != nil || stat.Mode != 0o755 || stat.UID != user.UID || stat.GID != user.GID {
+	if err != nil || stat.Mode != directoryMode || stat.UID != user.UID || stat.GID != user.GID {
 		t.Fatalf("directory metadata: %+v, %v", stat, err)
 	}
-	inode, err := fs.OpenFile(dir, "secret", os.O_CREATE|os.O_RDWR, 0o666, user)
+	inode, err := fs.OpenFile(dir, "secret", os.O_CREATE|os.O_RDWR, readWriteMode, user)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer fs.CloseFile(inode)
 	stat, err = fs.Statfd(inode)
-	if err != nil || stat.Mode != 0o644 || stat.UID != user.UID || stat.GID != user.GID {
+	if err != nil || stat.Mode != regularFileMode || stat.UID != user.UID || stat.GID != user.GID {
 		t.Fatalf("file metadata: %+v, %v", stat, err)
 	}
-	other := Identity{UID: 789, GID: 999}
-	if err := fs.Chmod(inode, 0o600, user); err != nil {
+	other := Identity{UID: otherUID, GID: otherGID}
+	if err := fs.Chmod(inode, ownerOnlyFileMode, user); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := fs.OpenFile(dir, "secret", os.O_RDONLY, 0, other); !errors.Is(err, syscall.EACCES) {
@@ -303,7 +328,7 @@ func TestIdentityAccessAndCreationModes(t *testing.T) {
 	if _, err := fs.OpenFile(dir, "secret", os.O_WRONLY, 0, other); !errors.Is(err, syscall.EACCES) {
 		t.Fatalf("other user write: %v", err)
 	}
-	if err := fs.Chmod(dir, 0o700, user); err != nil {
+	if err := fs.Chmod(dir, privateDirMode, user); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := fs.Stat(RootInode, "/app/private/secret", other); !errors.Is(err, syscall.EACCES) {
@@ -315,7 +340,7 @@ func TestIdentityAccessAndCreationModes(t *testing.T) {
 	if _, err := fs.ReadDir(dir, other); !errors.Is(err, syscall.EACCES) {
 		t.Fatalf("blocked directory listing: %v", err)
 	}
-	if err := fs.Chmod(inode, 0o644, other); !errors.Is(err, syscall.EPERM) {
+	if err := fs.Chmod(inode, regularFileMode, other); !errors.Is(err, syscall.EPERM) {
 		t.Fatalf("non-owner chmod: %v", err)
 	}
 	if err := fs.Chown(inode, 1, -1, user); !errors.Is(err, syscall.EPERM) {
