@@ -110,17 +110,16 @@ func certifyContext(ctx context.Context, flags BuildFlags, options MatrixOptions
 	if err != nil {
 		return report, err
 	}
-	dir, err := filepath.Abs(filepath.Join(options.OutputDir, cfg.Digest))
+	name := strings.Join([]string{cfg.Identity.HostOS, cfg.Identity.HostArch, cfg.Identity.Toolchain, strings.Join(cfg.Identity.Features, "-")}, "-")
+	dir, err := filepath.Abs(filepath.Join(options.OutputDir, name))
 	if err != nil {
 		return report, err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return report, err
-	}
-	dir, err = os.MkdirTemp(dir, "run-")
+	unlock, err := resetSuiteDirectory(ctx, dir)
 	if err != nil {
 		return report, err
 	}
+	defer unlock()
 	defer func() {
 		fmt.Fprintln(os.Stdout, "report:", filepath.Join(dir, "report.json"))
 		report.ResultDigest, _ = buildspec.ReportDigest(report)
@@ -167,10 +166,12 @@ func verifyStepContext(ctx context.Context, flags BuildFlags, output string, sui
 	if err != nil {
 		return err
 	}
-	dir := filepath.Join(output, cfg.Digest)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	dir := filepath.Join(output, "latest")
+	unlock, err := resetSuiteDirectory(ctx, dir)
+	if err != nil {
 		return err
 	}
+	defer unlock()
 	_, err = runFullSuite(cfg, dir, suite)
 	return err
 }
@@ -441,4 +442,22 @@ func (s suiteOptions) nativeFlags() []string {
 		flags = append(flags, "-json")
 	}
 	return flags
+}
+
+// resetSuiteDirectory keeps one output per selection. Hold the lock until all
+// writers finish, and reset old results so a failed run cannot inherit a pass.
+func resetSuiteDirectory(ctx context.Context, directory string) (func() error, error) {
+	unlock, err := buildspec.LockCache(ctx, directory+".lock")
+	if err != nil {
+		return nil, err
+	}
+	if err := os.RemoveAll(directory); err != nil {
+		unlock()
+		return nil, err
+	}
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		unlock()
+		return nil, err
+	}
+	return unlock, nil
 }

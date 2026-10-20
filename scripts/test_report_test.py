@@ -49,6 +49,30 @@ class ReportTest(unittest.TestCase):
         status = run.finish(status)
         return run, status
 
+    def test_reruns_replace_results_and_reject_concurrent_writers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp) / "latest"
+            with report.RunDirectory(directory) as first:
+                (first / "result").write_text("first")
+                with self.assertRaisesRegex(RuntimeError, "another run"):
+                    with report.RunDirectory(directory):
+                        self.fail("concurrent writer acquired output")
+                self.assertEqual((first / "result").read_text(), "first")
+            with report.RunDirectory(directory) as second:
+                self.assertEqual(second, first)
+                self.assertEqual(list(second.iterdir()), [])
+
+    def test_exception_releases_lock_and_preserves_diagnostics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp) / "latest"
+            with self.assertRaisesRegex(ValueError, "failed"):
+                with report.RunDirectory(directory):
+                    (directory / "failure.log").write_text("failure")
+                    raise ValueError("failed")
+            self.assertTrue((directory / "failure.log").is_file())
+            with report.RunDirectory(directory):
+                self.assertFalse((directory / "failure.log").exists())
+
     def test_parallel_wait_is_not_reported_as_execution(self):
         package = report.Package("library", report.MODULE, "library-root", report.timestamp("2026-10-12T00:00:00Z"), self.directory)
         for event in [self.event("run", 1, "TestParallel"), self.event("pause", 2, "TestParallel"),
@@ -148,10 +172,13 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertIn("FAIL", (run.directory / "report.md").read_text())
 
-    def test_new_runs_preserve_history_and_update_latest(self):
+    def test_new_runs_replace_previous_results(self):
         first, _ = self.run_events([self.event("start", 0), self.event("pass", 1, Elapsed=1)])
+        (first.directory / "stale.log").write_text("old failure")
         second, _ = self.run_events([self.event("start", 0), self.event("pass", 1, Elapsed=1)])
-        self.assertNotEqual(first.directory, second.directory)
+        self.assertFalse((second.directory / "stale.log").exists())
+        self.assertEqual([p.name for p in second.directory.parent.iterdir() if p.is_dir()], ["latest"])
+        self.assertEqual(first.directory, second.directory)
         self.assertTrue((first.directory / "report.md").exists())
         self.assertEqual((self.directory / "unit/latest").resolve(), second.directory)
 

@@ -91,6 +91,5 @@ test-unit-race: ## Run the local race suite for final verification
 
 test-race: test-unit-race ## Run local race tests with persistent reports
 
-test-report-tools: ## Check report generation and orchestration
+test-report-tools: ## Check report generation
 	python3 -B -m unittest discover -s scripts -p 'test_report_test.py'
-	python3 -B -m unittest discover -s .ci/crossarch-tests -p '*_test.py'

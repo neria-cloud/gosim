@@ -9,10 +9,10 @@ from pathlib import Path
 import platform
 import subprocess
 import sys
-import tempfile
+import shutil
 import time
 
-from test_support import ROOT, memory_limit, source_files, snapshot as copy_snapshot
+from test_support import ROOT, RunDirectory, memory_limit, source_files, snapshot as copy_snapshot
 from worker import CERTIFICATION_PLATFORMS, arch, validate_certification, validate_toolchain
 
 DEFAULT_TOOLCHAINS = ("go1.25.14", "go1.26.9")
@@ -159,8 +159,6 @@ def execute(job, run, args, inputs, docker, daemon, images):
             image = image_info["image"]
             record.update(image_info)
             mode = "container-native" if arch(daemon["Architecture"]) == job["platform"].split("/")[1] else "container-emulated"
-            state = directory / "state"
-            state.mkdir()
             cache = "gosim-matrix-" + job["platform"].replace("/", "-") + "-" + job["patch"]
             container = checked(docker + ["create", "--platform", job["platform"],
                                           "--mount", f"type=volume,source={cache},target=/cache",
@@ -178,11 +176,10 @@ def execute(job, run, args, inputs, docker, daemon, images):
             finally:
                 # Docker copies through the API: no VM mount configuration or
                 # assumption that a host /Volumes path exists in Colima.
-                for remote, local in [("/evidence/.", evidence), ("/workspace/.gosim/.", state)]:
-                    try:
-                        checked(docker + ["cp", container + ":" + remote, str(local)], log)
-                    except Exception as error:
-                        failures.append(str(error))
+                try:
+                    checked(docker + ["cp", container + ":/evidence/.", str(evidence)], log)
+                except Exception as error:
+                    failures.append(str(error))
                 try:
                     checked(docker + ["rm", "--force", container], log)
                 except Exception as error:
@@ -194,6 +191,10 @@ def execute(job, run, args, inputs, docker, daemon, images):
             raise RuntimeError("source changed during matrix execution")
     except Exception as error:
         record.update(status="failed", error=str(error))
+    finally:
+        source = directory / "source"
+        if source.exists():
+            shutil.rmtree(source)
     record["elapsed_seconds"] = round(time.monotonic() - started, 3)
     status.write_text(json.dumps(record, indent=2) + "\n")
     print(job_name(job), record["status"], f"({record['elapsed_seconds']:.1f}s)", flush=True)
@@ -240,7 +241,11 @@ def main(argv=None):
     if not output.is_relative_to(ROOT / ".gosim"):
         parser.error("output must be under the repository .gosim directory")
     output.mkdir(parents=True, exist_ok=True)
-    run = Path(tempfile.mkdtemp(prefix="matrix-", dir=output))
+    with RunDirectory(output / "matrix") as run:
+        return run_matrix(args, jobs, run, started)
+
+
+def run_matrix(args, jobs, run, started):
     print("matrix:", run, flush=True)
     inputs = source_files(ROOT)
     (run / "source.json").write_text(json.dumps(inputs, sort_keys=True, indent=2) + "\n")
@@ -269,6 +274,10 @@ def main(argv=None):
         plan.update(status="failed", preparation_error=str(error))
         manifest.write_text(json.dumps(plan, indent=2) + "\n")
         raise
+    finally:
+        source = run / "image-source"
+        if source.exists():
+            shutil.rmtree(source)
     concurrency, args.worker_concurrency = worker_budget(args.jobs, available_cpus, available_memory, len(jobs))
     plan = {"schema": 1, "jobs": jobs, "concurrency": concurrency, "memory_bytes": available_memory,
             "worker_concurrency": args.worker_concurrency, "cpus": available_cpus,

@@ -248,7 +248,7 @@ Run `make test-race` and `make test-large` only when explicitly instructed to ru
 and check those suites. They are separate opt-in commands. `make test-large`
 runs the candidate feature cases, selected-compiler translation checks and CLI
 script fixtures; it does not repeat other toolchains or silently enable race
-instrumentation. `make test-report-tools` checks reporting/orchestration without
+instrumentation. `make test-report-tools` checks report generation without
 running the library suites.
 
 | Command | Latest report directory |
@@ -257,7 +257,7 @@ running the library suites.
 | `make test-race` | `test-reports/unit-race/latest/` |
 | `make test-large` | `test-reports/large/latest/` |
 
-Each run is retained under `test-reports/<suite>/<run>/`. Read `report.md` for
+Each run replaces the previous results in `test-reports/<suite>/latest/`. Read `report.md` for
 pass/fail/error/skip totals, `timeline.md` or `timeline.json` for duration and
 parallel execution, and per-package `.log` files for failure details. Reports
 also retain raw events, JSON, JUnit XML and command logs. `TEST_REPORTS_DIR`
@@ -266,7 +266,7 @@ changes the report root. Skips are reported separately from passes.
 Results describe the startup source snapshot. Working-checkout edits during a
 reported run are recorded without invalidating that snapshot; mutations inside
 the tested copy fail verification. Snapshot details live under
-`.gosim/verification/<patch>/gate-*/verification.json`. The standalone
+`.gosim/verification/<patch>/<mode>/verification.json`. The standalone
 `./.ci/verify-step.sh --ordinary` also rejects checkout changes. `./test.sh`
 defaults to ordinary verification; `./test.sh --race` explicitly selects race.
 Neither path invokes certification or rewrites profile evidence.
@@ -297,7 +297,12 @@ invokes this matrix.
 
 Native matrix jobs reuse Go's content-addressed build cache across runs under
 `.gosim/certification/go-build-cache/` (or the caller's `GOCACHE`). Test results
-remain uncached and each tuple keeps its own source snapshot and evidence.
+remain uncached. Each matrix replaces `.gosim/certification/matrix/`; each tuple
+uses a private source snapshot that is deleted when it finishes. Logs and reports
+remain until the next run. Output locks reject overlapping matrices using the same
+output directory. Local verification also removes its snapshot after completion.
+`gosim translate` replaces `.gosim/translated/`. Build staging directories are
+temporary and cleaned up; compiler/source identities still separate cached artifacts.
 The runner prints tuple and total durations and links failed suite logs.
 
 See [the architecture](docs/design.md), [examples](examples/), and [nemesis](nemesis/) for implementation details and supported scenarios.

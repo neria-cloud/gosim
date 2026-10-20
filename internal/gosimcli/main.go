@@ -259,11 +259,29 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 		}
 		return 0, nil
 	case "translate":
+		project, err := cfg.ProjectRoot()
+		if err != nil {
+			return 1, err
+		}
+		directory := filepath.Join(project, ".gosim", "translated")
+		unlock, err := resetSuiteDirectory(ctx, directory)
+		if err != nil {
+			return 1, err
+		}
+		defer unlock()
 		output, err := translate.Translate(&translate.TranslateInput{Packages: patterns, Cfg: cfg})
 		if err != nil {
 			return 1, err
 		}
-		fmt.Fprintln(streams.Out, output.RootOutputDir)
+		defer os.RemoveAll(output.RootOutputDir)
+		// The staging directory is private until translation has completed.
+		if err := os.Remove(directory); err != nil {
+			return 1, err
+		}
+		if err := os.Rename(output.RootOutputDir, directory); err != nil {
+			return 1, err
+		}
+		fmt.Fprintln(streams.Out, directory)
 		return 0, nil
 	case "lookup-test":
 		if len(patterns) != 1 {
