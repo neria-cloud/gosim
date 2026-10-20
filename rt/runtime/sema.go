@@ -168,9 +168,10 @@ func Semrelease(addr *uint32) {
 // change their state, despite using correctly synchronized shared memory.
 func AtomicYield() {
 	// Trusted provider/lifecycle callbacks run as non-yielding supervisor
-	// transitions. Implicit atomic preemption cannot split their transactions;
-	// explicit yields and waits still fail checkTransition.
-	if gs.get().transitionDepth != 0 {
+	// transitions and final cleanup. Implicit atomic preemption cannot split them;
+	// explicit yields and waits remain forbidden.
+	s := gs.get()
+	if s.transitionDepth != 0 || s.engine != nil && s.engine.cleaning {
 		return
 	}
 	g := getg()

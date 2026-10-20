@@ -209,6 +209,30 @@ The reviewed [go125](internal/compat/go125/profile/capabilities.json) and [go126
 
 ## Development and test reports
 
+Run `make lint` to check the current contents of all staged, unstaged and
+untracked Go files under `./cmd` and `./examples` only. It checks entire changed
+files, with their package context, and reports findings only in those files (package type errors still
+fail). Deleted files are skipped. Nested modules are discovered from `go.mod`.
+The `.golangci.yml` and `revive.toml` rules come from gquorum, with golangci's
+path scope restricted to `cmd/` and `examples/` and its examples exclusion removed.
+Golangci-lint checks native packages with `linkname` and the selected compiler;
+standalone revive also checks files excluded by build tags, including `sim`
+tests. Lint does not execute tests or enforce rules in runtime or crypto/hash code.
+
+Run `make lint-full` to check all Go files within those same allowed paths,
+including unchanged tracked files and non-ignored untracked files. It uses
+the same rules and nested-module handling as `make lint`.
+
+`make lint-tools` installs gquorum's pinned tools under `.gosim/lint/`.
+Lint prefers those binaries, otherwise uses tools on `PATH`; `GOLANGCI` and
+`REVIVE` can override the executables. `GOSIM_TOOLCHAIN` selects the compiler
+used for analysis. Changes outside these directories and non-Go changes are a no-op.
+
+Run `make install-hooks` to enable the copied pre-commit hook. It runs
+`make lint-staged`'s runner against an isolated copy of the index, so partially
+staged files are checked exactly as they will be committed. Neither command
+changes or stages source files. `make test-lint-tools` checks this workflow.
+
 Run `make test` for ordinary local native and simulation checks. Go selects the
 compiler normally; `GOSIM_TOOLCHAIN` is an optional explicit override. The runner
 creates an isolated source snapshot and starts no Docker, Colima, VMs or
@@ -224,7 +248,7 @@ Run `make test-race` and `make test-large` only when explicitly instructed to ru
 and check those suites. They are separate opt-in commands. `make test-large`
 runs the candidate feature cases, selected-compiler translation checks and CLI
 script fixtures; it does not repeat other toolchains or silently enable race
-instrumentation. `make test-report-tools` checks reporting/orchestration without
+instrumentation. `make test-report-tools` checks report generation without
 running the library suites.
 
 | Command | Latest report directory |
@@ -233,7 +257,7 @@ running the library suites.
 | `make test-race` | `test-reports/unit-race/latest/` |
 | `make test-large` | `test-reports/large/latest/` |
 
-Each run is retained under `test-reports/<suite>/<run>/`. Read `report.md` for
+Each run replaces the previous results in `test-reports/<suite>/latest/`. Read `report.md` for
 pass/fail/error/skip totals, `timeline.md` or `timeline.json` for duration and
 parallel execution, and per-package `.log` files for failure details. Reports
 also retain raw events, JSON, JUnit XML and command logs. `TEST_REPORTS_DIR`
@@ -242,7 +266,7 @@ changes the report root. Skips are reported separately from passes.
 Results describe the startup source snapshot. Working-checkout edits during a
 reported run are recorded without invalidating that snapshot; mutations inside
 the tested copy fail verification. Snapshot details live under
-`.gosim/verification/<patch>/gate-*/verification.json`. The standalone
+`.gosim/verification/<patch>/<mode>/verification.json`. The standalone
 `./.ci/verify-step.sh --ordinary` also rejects checkout changes. `./test.sh`
 defaults to ordinary verification; `./test.sh --race` explicitly selects race.
 Neither path invokes certification or rewrites profile evidence.
@@ -270,6 +294,16 @@ requires complete selected-tuple large coverage and records exact source,
 compiler, observed architecture, image metadata and logs. Such a report never
 changes library usability or promotes a pending tuple. No normal command
 invokes this matrix.
+
+Native matrix jobs reuse Go's content-addressed build cache across runs under
+`.gosim/certification/go-build-cache/` (or the caller's `GOCACHE`). Test results
+remain uncached. Each matrix replaces `.gosim/certification/matrix/`; each tuple
+uses a private source snapshot that is deleted when it finishes. Logs and reports
+remain until the next run. Output locks reject overlapping matrices using the same
+output directory. Local verification also removes its snapshot after completion.
+`gosim translate` replaces `.gosim/translated/`. Build staging directories are
+temporary and cleaned up; compiler/source identities still separate cached artifacts.
+The runner prints tuple and total durations and links failed suite logs.
 
 See [the architecture](docs/design.md), [examples](examples/), and [nemesis](nemesis/) for implementation details and supported scenarios.
 

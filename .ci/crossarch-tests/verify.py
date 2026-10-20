@@ -6,9 +6,9 @@ import os
 from pathlib import Path
 import subprocess
 import re
-import tempfile
+import shutil
 
-from test_support import ROOT, snapshot, source_files, memory_limit
+from test_support import ROOT, RunDirectory, snapshot, source_files, memory_limit
 
 
 def check_inputs(root, source, inputs, allow_worktree_changes=False):
@@ -91,7 +91,17 @@ def main():
     patch, go, env = resolve_toolchain(ROOT, os.environ)
     parent = ROOT / ".gosim/verification" / patch
     parent.mkdir(parents=True, exist_ok=True)
-    output = Path(tempfile.mkdtemp(prefix="gate-", dir=parent))
+    mode = "large" if args.large else "race" if args.race else "ordinary"
+    with RunDirectory(parent / mode) as output:
+        try:
+            run_verification(args, patch, go, env, concurrency, output)
+        finally:
+            source = output / "source"
+            if source.exists():
+                shutil.rmtree(source)
+
+
+def run_verification(args, patch, go, env, concurrency, output):
     source = output / "source"
     inputs = source_files(ROOT)
     metadata = snapshot(ROOT, source, inputs)

@@ -15,7 +15,6 @@
 package etcd
 
 import (
-	"log"
 	"log/slog"
 
 	zapslog "github.com/tommoulard/zap-slog"
@@ -29,7 +28,7 @@ import (
 func MakeZapLogger() *zap.Logger {
 	lg, err := logutil.DefaultZapLoggerConfig.Build(zapslog.WrapCore(slog.Default()))
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return lg
 }
@@ -39,7 +38,7 @@ func MakeZapLogger() *zap.Logger {
 // logger using the config.
 func EtcdMain(cfg *embed.Config) {
 	if err := cfg.Validate(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	cfg.SetupGlobalLoggers()
 	lg := cfg.GetLogger()

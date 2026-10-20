@@ -9,16 +9,17 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import fcntl
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
-import tempfile
 import time
 import xml.etree.ElementTree as ET
 
@@ -176,6 +177,41 @@ class Package:
         (directory / f"{self.stem}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+class RunDirectory:
+    def __init__(self, directory):
+        self.directory = Path(directory)
+        self.lock = None
+
+    def __enter__(self):
+        self.directory.parent.mkdir(parents=True, exist_ok=True)
+        path = self.directory.with_name(self.directory.name + ".lock")
+        self.lock = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        try:
+            try:
+                fcntl.flock(self.lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as error:
+                raise RuntimeError(f"another run is using {self.directory}") from error
+            # Unlink an old latest symlink without deleting its target.
+            if self.directory.is_symlink():
+                self.directory.unlink()
+            elif self.directory.exists():
+                shutil.rmtree(self.directory)
+            self.directory.mkdir()
+            return self.directory
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        if self.lock is not None:
+            os.close(self.lock)
+            self.lock = None
+        # Never unlink the lock: another process may already have opened it.
+
+    def __exit__(self, *args):
+        self.close()
+
+
 class Run:
     def __init__(self, suite, reports, race=False):
         self.label = LABELS[suite] + (" Race" if race else "")
@@ -184,8 +220,8 @@ class Run:
         self.clock = time.monotonic()
         base = reports.resolve() / (suite + ("-race" if race else ""))
         base.mkdir(parents=True, exist_ok=True)
-        prefix = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ-")
-        self.directory = Path(tempfile.mkdtemp(prefix=prefix, dir=base))
+        self.output = RunDirectory(base / "latest")
+        self.directory = self.output.__enter__()
         self.console = (self.directory / "console.log").open("w", encoding="utf-8")
         self.events = (self.directory / "events.json").open("w", encoding="utf-8")
         self.packages = {}
@@ -313,6 +349,17 @@ class Run:
         return result
 
     def finish(self, result):
+        try:
+            return self._finish(result)
+        finally:
+            self.close()
+
+    def close(self):
+        self.events.close()
+        self.console.close()
+        self.output.close()
+
+    def _finish(self, result):
         ended = time.time()
         elapsed = time.monotonic() - self.clock
         packages = sorted(self.packages.values(), key=lambda p: p.stem)
@@ -353,9 +400,6 @@ class Run:
         (self.directory / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
         self.timeline(packages, ended, elapsed, status)
         self.events.close()
-        latest = self.directory.parent / (".latest-" + self.directory.name)
-        latest.symlink_to(self.directory.name, target_is_directory=True)
-        latest.replace(self.directory.parent / "latest")
         self.say(f"JUnit reports: {self.directory}/<module>-<pkg>.xml")
         self.say(f"Full package logs: {self.directory}/<module>-<pkg>.log")
         self.say(f"Summary: {self.directory / 'report.md'}")
@@ -502,19 +546,22 @@ def main(argv=None):
     if extra:
         parser.error("extra Go flags are not supported by the complete local gate")
     run = Run(options.suite, options.reports_dir.resolve(), options.race)
-    result = 0
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
-    if options.tuple:
-        env.update(GOSIM_TEST_LARGE="1", GOSIM_LARGE_TUPLE=options.tuple,
-                   GOSIM_CANDIDATE_WORKER="1", GOSIM_TRANSLATION_WORKER="1")
-    for module, command in commands(options, extra):
-        code = run.command(module, command, env=env)
-        result = result or code
-        if code == 130:
-            break
-    if options.suite == "large":
-        result = result or require_passes(run, required_large_tests(options.tuple))
-    return run.finish(result)
+    try:
+        result = 0
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+        if options.tuple:
+            env.update(GOSIM_TEST_LARGE="1", GOSIM_LARGE_TUPLE=options.tuple,
+                       GOSIM_CANDIDATE_WORKER="1", GOSIM_TRANSLATION_WORKER="1")
+        for module, command in commands(options, extra):
+            code = run.command(module, command, env=env)
+            result = result or code
+            if code == 130:
+                break
+        if options.suite == "large":
+            result = result or require_passes(run, required_large_tests(options.tuple))
+        return run.finish(result)
+    finally:
+        run.close()
 
 
 if __name__ == "__main__":

@@ -90,3 +90,31 @@ func TestNativeUnitsExcludeDisabledModels(t *testing.T) {
 		}
 	}
 }
+
+func TestMetatestPackagesExcludeSimOnlyExamples(t *testing.T) {
+	t.Parallel()
+	for _, names := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
+		packages, err := MetatestPackages(names)
+		if err != nil {
+			t.Fatal(err)
+		}
+		positive, err := Packages(names)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, pkg := range packages {
+			if !slices.Contains(positive, pkg) || strings.HasPrefix(pkg, "./examples/") && pkg != "./examples/simple" {
+				t.Fatalf("invalid native metatest package %s for %v", pkg, names)
+			}
+		}
+		args := append([]string{"list", "-tags=linkname"}, packages...)
+		command := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), args...)
+		command.Dir = "../../.."
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("native metatest packages: %v: %s", err, output)
+		}
+		if !slices.Contains(packages, "./internal/tests/rt") || !slices.Contains(packages, "./examples/simple") {
+			t.Fatalf("lost runtime metatest coverage: %v", packages)
+		}
+	}
+}
