@@ -36,7 +36,7 @@ type (
 )
 
 func All() []Description { return nil }
-func Read(samples []Sample) {
+func Read(_ []Sample) {
 	simrt.Abort(
 		abi.Diagnostic{
 			Kind:      "UnsupportedOperation",

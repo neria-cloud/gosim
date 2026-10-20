@@ -20,7 +20,7 @@ func unsupported(w http.ResponseWriter, r *http.Request) {
 		},
 	)
 }
-func Handler(name string) http.Handler               { return http.HandlerFunc(unsupported) }
+func Handler(_ string) http.Handler                  { return http.HandlerFunc(unsupported) }
 func Index(w http.ResponseWriter, r *http.Request)   { unsupported(w, r) }
 func Cmdline(w http.ResponseWriter, r *http.Request) { unsupported(w, r) }
 func Profile(w http.ResponseWriter, r *http.Request) { unsupported(w, r) }

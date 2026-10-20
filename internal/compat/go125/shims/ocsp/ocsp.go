@@ -5,14 +5,14 @@
 package ocsp
 
 import (
-	crypto "crypto"
-	pkix "crypto/x509/pkix"
+	"crypto"
+	"crypto/x509/pkix"
 
-	big "math/big"
+	"math/big"
 
-	time "time"
+	"time"
 
-	x509 "crypto/x509"
+	"crypto/x509"
 
 	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
@@ -28,6 +28,8 @@ func unsupported() {
 		},
 	)
 }
+
+const unsupportedAbortMessage = "abort returned"
 
 type Request struct {
 	HashAlgorithm  crypto.Hash
@@ -58,10 +60,10 @@ type Response struct {
 	ExtraExtensions    []pkix.Extension
 }
 
-func (v *Request) Marshal() ([]byte, error) { unsupported(); panic("abort returned") }
-func (v *Response) CheckSignatureFrom(issuer *x509.Certificate) error {
+func (_ *Request) Marshal() ([]byte, error) { unsupported(); panic(unsupportedAbortMessage) }
+func (_ *Response) CheckSignatureFrom(_ *x509.Certificate) error {
 	unsupported()
-	panic("abort returned")
+	panic(unsupportedAbortMessage)
 }
 
 const (
@@ -81,27 +83,27 @@ const (
 	Unspecified          = 0
 )
 
-func CreateRequest(cert *x509.Certificate, issuer *x509.Certificate, opts *RequestOptions) ([]byte, error) {
+func CreateRequest(_ *x509.Certificate, issuer *x509.Certificate, opts *RequestOptions) ([]byte, error) {
 	unsupported()
-	panic("abort returned")
+	panic(unsupportedAbortMessage)
 }
 
 func CreateResponse(
-	issuer *x509.Certificate,
-	responderCert *x509.Certificate,
-	template Response,
-	priv crypto.Signer,
+	_ *x509.Certificate,
+	_ *x509.Certificate,
+	_ Response,
+	_ crypto.Signer,
 ) ([]byte, error) {
 	unsupported()
-	panic("abort returned")
+	panic(unsupportedAbortMessage)
 }
-func ParseRequest(bytes []byte) (*Request, error) { unsupported(); panic("abort returned") }
-func ParseResponse(bytes []byte, issuer *x509.Certificate) (*Response, error) {
+func ParseRequest(bytes []byte) (*Request, error) { unsupported(); panic(unsupportedAbortMessage) }
+func ParseResponse(_ []byte, _ *x509.Certificate) (*Response, error) {
 	unsupported()
-	panic("abort returned")
+	panic(unsupportedAbortMessage)
 }
 
-func ParseResponseForCert(bytes []byte, cert *x509.Certificate, issuer *x509.Certificate) (*Response, error) {
+func ParseResponseForCert(_ []byte, _ *x509.Certificate, _ *x509.Certificate) (*Response, error) {
 	unsupported()
-	panic("abort returned")
+	panic(unsupportedAbortMessage)
 }

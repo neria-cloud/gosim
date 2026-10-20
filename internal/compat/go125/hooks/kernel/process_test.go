@@ -13,7 +13,7 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/contracts"
 	"github.com/neria-cloud/gosim/internal/control"
-	kernel "github.com/neria-cloud/gosim/internal/kernel"
+	"github.com/neria-cloud/gosim/internal/kernel"
 	netprovider "github.com/neria-cloud/gosim/internal/net"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"

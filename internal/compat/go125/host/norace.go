@@ -27,22 +27,22 @@ func RaceDisable() {
 func RaceEnable() {
 }
 
-func RaceRead(addr unsafe.Pointer) {
+func RaceRead(_ unsafe.Pointer) {
 }
 
-func RaceReadPC(addr unsafe.Pointer, callerpc, pc uintptr) {
+func RaceReadPC(_ unsafe.Pointer, callerpc, pc uintptr) {
 }
 
-func RaceReadObjectPC(_ unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+func RaceReadObjectPC(_ unsafe.Pointer, _ unsafe.Pointer, callerpc, pc uintptr) {
 }
 
-func RaceWrite(addr unsafe.Pointer) {
+func RaceWrite(_ unsafe.Pointer) {
 }
 
-func RaceWritePC(addr unsafe.Pointer, callerpc, pc uintptr) {
+func RaceWritePC(_ unsafe.Pointer, callerpc, pc uintptr) {
 }
 
-func RaceWriteObjectPC(_ unsafe.Pointer, addr unsafe.Pointer, callerpc, pc uintptr) {
+func RaceWriteObjectPC(_ unsafe.Pointer, _ unsafe.Pointer, callerpc, pc uintptr) {
 }
 
 func RaceReadRange(addr unsafe.Pointer, len int) {
