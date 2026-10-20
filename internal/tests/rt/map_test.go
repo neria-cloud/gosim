@@ -12,14 +12,22 @@ const (
 	mapKeyOne       = 1
 	mapKeyTwo       = 2
 	mapKeyThree     = 3
+	mapKeyFive      = 5
 	mapKeyNine      = 9
+	mapKeyEleven    = 11
 	mapKeySixteen   = 16
+	mapKeySeventeen = 17
+	mapKeyNineteen  = 19
 	mapKeyThirtyTwo = 32
 
+	mapValueOne         = 1
+	mapValueTwo         = 2
 	mapValueThree       = 3
 	mapValueFive        = 5
 	mapValueEight       = 8
+	mapValueNine        = 9
 	mapValueEleven      = 11
+	mapValueTen         = 10
 	mapValueSeven       = 7
 	mapValueNegativeOne = -1
 	mapRMWResult        = 6
@@ -158,40 +166,40 @@ func Values[M ~map[K]V, K comparable, V any](m M) []V {
 
 func TestMapsValues(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	delete(m, 2)
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	delete(m, mapKeyTwo)
 
 	values := Values(m)
 	slices.Sort(values)
 
-	if !reflect.DeepEqual(values, []int{3, 8}) {
+	if !reflect.DeepEqual(values, []int{mapValueThree, mapValueEight}) {
 		t.Error("bad values")
 	}
 }
 
 func TestMapsKeys(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	delete(m, 2)
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	delete(m, mapKeyTwo)
 
 	keys := Keys(m)
 	slices.Sort(keys)
 
-	if !reflect.DeepEqual(keys, []int{1, 3}) {
+	if !reflect.DeepEqual(keys, []int{mapKeyOne, mapKeyThree}) {
 		t.Error("bad keys")
 	}
 }
 
 func TestMapsClone(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	delete(m, 2)
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	delete(m, mapKeyTwo)
 
 	clone := maps.Clone(m)
 
@@ -207,157 +215,157 @@ func TestMapsClone(t *testing.T) {
 		}
 	}
 
-	if v, ok := m[3]; !ok || v != 8 {
+	if v, ok := m[mapKeyThree]; !ok || v != mapValueEight {
 		t.Error("bad get")
 	}
 
-	if v, ok := clone[3]; !ok || v != 8 {
+	if v, ok := clone[mapKeyThree]; !ok || v != mapValueEight {
 		t.Error("bad get")
 	}
 
-	delete(m, 3)
+	delete(m, mapKeyThree)
 
-	if _, ok := m[3]; ok {
+	if _, ok := m[mapKeyThree]; ok {
 		t.Error("bad get")
 	}
 
-	if v, ok := clone[3]; !ok || v != 8 {
+	if v, ok := clone[mapKeyThree]; !ok || v != mapValueEight {
 		t.Error("bad get")
 	}
 }
 
 func TestMapSmallGetMissing(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
-	if _, ok := m[5]; ok {
+	if _, ok := m[mapKeyFive]; ok {
 		t.Error("bad get")
 	}
 }
 
 func TestMapGetMissing(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[11] = 2
-	m[17] = 9
-	m[19] = 1
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyEleven] = mapValueTwo
+	m[mapKeySeventeen] = mapValueNine
+	m[mapKeyNineteen] = mapValueOne
 
-	if _, ok := m[5]; ok {
+	if _, ok := m[mapKeyFive]; ok {
 		t.Error("bad get")
 	}
 }
 
 func TestMapSmallGetMissingThenSet(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
-	if _, ok := m[5]; ok {
+	if _, ok := m[mapKeyFive]; ok {
 		t.Error("bad get")
 	}
 
-	m[5] = 10
+	m[mapKeyFive] = mapValueTen
 
-	if value, ok := m[5]; !ok || value != 10 {
+	if value, ok := m[mapKeyFive]; !ok || value != mapValueTen {
 		t.Error("bad get")
 	}
 }
 
 func TestMapGetMissingThenSet(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[11] = 2
-	m[17] = 9
-	m[19] = 1
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyEleven] = mapValueTwo
+	m[mapKeySeventeen] = mapValueNine
+	m[mapKeyNineteen] = mapValueOne
 
-	if _, ok := m[5]; ok {
+	if _, ok := m[mapKeyFive]; ok {
 		t.Error("bad get")
 	}
 
-	m[5] = 10
+	m[mapKeyFive] = mapValueTen
 
-	if value, ok := m[5]; !ok || value != 10 {
+	if value, ok := m[mapKeyFive]; !ok || value != mapValueTen {
 		t.Error("bad get")
 	}
 }
 
 func TestMapSmallDelete(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
-	if value, ok := m[2]; !ok || value != 5 {
+	if value, ok := m[mapKeyTwo]; !ok || value != mapValueFive {
 		t.Error("bad get")
 	}
 
-	delete(m, 2)
+	delete(m, mapKeyTwo)
 
-	if _, ok := m[2]; ok {
+	if _, ok := m[mapKeyTwo]; ok {
 		t.Error("bad get")
 	}
 }
 
 func TestMapDelete(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[11] = 2
-	m[17] = 9
-	m[19] = 1
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyEleven] = mapValueTwo
+	m[mapKeySeventeen] = mapValueNine
+	m[mapKeyNineteen] = mapValueOne
 
-	if value, ok := m[2]; !ok || value != 5 {
+	if value, ok := m[mapKeyTwo]; !ok || value != mapValueFive {
 		t.Error("bad get")
 	}
 
-	delete(m, 2)
+	delete(m, mapKeyTwo)
 
-	if _, ok := m[2]; ok {
+	if _, ok := m[mapKeyTwo]; ok {
 		t.Error("bad get")
 	}
 }
 
 func TestMapSmallDeleteMissing(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
-	if _, ok := m[5]; ok {
+	if _, ok := m[mapKeyFive]; ok {
 		t.Error("bad get")
 	}
 
-	delete(m, 5)
+	delete(m, mapKeyFive)
 
-	if _, ok := m[5]; ok {
+	if _, ok := m[mapKeyFive]; ok {
 		t.Error("bad get")
 	}
 }
 
 func TestMapDeleteMissing(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[11] = 2
-	m[17] = 9
-	m[19] = 1
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyEleven] = mapValueTwo
+	m[mapKeySeventeen] = mapValueNine
+	m[mapKeyNineteen] = mapValueOne
 
-	if _, ok := m[5]; ok {
+	if _, ok := m[mapKeyFive]; ok {
 		t.Error("bad get")
 	}
 
-	delete(m, 5)
+	delete(m, mapKeyFive)
 
-	if _, ok := m[5]; ok {
+	if _, ok := m[mapKeyFive]; ok {
 		t.Error("bad get")
 	}
 }
