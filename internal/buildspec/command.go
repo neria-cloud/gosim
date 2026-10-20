@@ -62,6 +62,9 @@ func OutputCommand(ctx context.Context, tc Toolchain, dir string, args ...string
 		"GOENV": "off", "GOFLAGS": "", "GOEXPERIMENT": "", "GODEBUG": "", "GOWORK": "off",
 		"GOAMD64": "v1", "GOARM64": "v8.0",
 	}
+	if tc.ModuleCache != "" {
+		replaced["GOMODCACHE"] = tc.ModuleCache
+	}
 	for _, entry := range os.Environ() {
 		key, _, _ := strings.Cut(entry, "=")
 		if _, ok := replaced[key]; !ok {
@@ -74,6 +77,9 @@ func OutputCommand(ctx context.Context, tc Toolchain, dir string, args ...string
 		"GOEXPERIMENT", "GODEBUG", "GOWORK", "GOAMD64", "GOARM64",
 	} {
 		cmd.Env = append(cmd.Env, key+"="+replaced[key])
+	}
+	if tc.ModuleCache != "" {
+		cmd.Env = append(cmd.Env, "GOMODCACHE="+tc.ModuleCache)
 	}
 	return cmd
 }

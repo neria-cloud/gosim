@@ -51,6 +51,9 @@ func ValidateInvocation(ctx context.Context, path string) (Invocation, error) {
 	if err != nil {
 		return in, err
 	}
+	// The launcher passes the resolved cache through the child environment,
+	// not the invocation protocol. Source/graph digests bind its contents.
+	in.Resolution.Toolchain.ModuleCache = observed.Toolchain.ModuleCache
 	expected := in.Resolution
 	// A graph digest may be attached by application resolution, not by go env.
 	expected.Context.GraphDigest = ""

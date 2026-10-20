@@ -44,7 +44,7 @@ func discoverWith(ctx context.Context, launcher, directory string, env []string)
 	if err != nil {
 		return result, err
 	}
-	cmd := exec.CommandContext(ctx, launcher, "env", "-json", "GOVERSION", "GOROOT", "GOHOSTOS", "GOHOSTARCH", "GOMOD", "GOWORK")
+	cmd := exec.CommandContext(ctx, launcher, "env", "-json", "GOVERSION", "GOROOT", "GOHOSTOS", "GOHOSTARCH", "GOMOD", "GOWORK", "GOMODCACHE")
 	cmd.Dir, cmd.Env = directory, env
 	var diagnostics bytes.Buffer
 	cmd.Stderr = &diagnostics
@@ -52,7 +52,7 @@ func discoverWith(ctx context.Context, launcher, directory string, env []string)
 	if err != nil {
 		return result, fmt.Errorf("resolve Go in %s: %w\n%s", directory, err, diagnostics.Bytes())
 	}
-	var info struct{ GOVERSION, GOROOT, GOHOSTOS, GOHOSTARCH, GOMOD, GOWORK string }
+	var info struct{ GOVERSION, GOROOT, GOHOSTOS, GOHOSTARCH, GOMOD, GOWORK, GOMODCACHE string }
 	if err := json.Unmarshal(data, &info); err != nil {
 		return result, fmt.Errorf("decode Go resolution: %w", err)
 	}
@@ -73,7 +73,7 @@ func discoverWith(ctx context.Context, launcher, directory string, env []string)
 	if err != nil {
 		return result, err
 	}
-	tc := buildspec.Toolchain{Executable: filepath.Join(root, "bin", "go"), Version: info.GOVERSION, GOROOT: root, HostOS: info.GOHOSTOS, HostArch: info.GOHOSTARCH}
+	tc := buildspec.Toolchain{Executable: filepath.Join(root, "bin", "go"), Version: info.GOVERSION, GOROOT: root, HostOS: info.GOHOSTOS, HostArch: info.GOHOSTARCH, ModuleCache: info.GOMODCACHE}
 	// Check the resolved executable directly. Do not re-enter the launcher's module.
 	version := exec.CommandContext(ctx, tc.Executable, "version")
 	version.Env = append(withoutEnv(withoutEnv(env, "GOTOOLCHAIN"), "GOROOT"), "GOTOOLCHAIN=local", "GOROOT="+root)
