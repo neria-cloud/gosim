@@ -32,11 +32,7 @@ type TranslateOutput struct {
 // NewBuildConfig takes independent ownership of the validated value records.
 // Distribution verification belongs to the build resolver. Translation rechecks
 // the worker executable and version instead of trusting the supplied digest.
-func NewBuildConfig(
-	ctx context.Context,
-	selection buildspec.Selection,
-	resolution buildspec.Resolution,
-) (BuildConfig, error) {
+func NewBuildConfig(ctx context.Context, selection buildspec.Selection, resolution buildspec.Resolution) (BuildConfig, error) {
 	p, _, err := selected.Resolve(selection)
 	if err != nil {
 		return BuildConfig{}, err
@@ -53,10 +49,7 @@ func NewBuildConfig(
 	if err != nil {
 		return BuildConfig{}, err
 	}
-	result := BuildConfig{
-		Context: ctx, Resolution: resolution, Identity: identity, Selection: owned,
-		Toolchain: resolution.Toolchain, Digest: digest,
-	}
+	result := BuildConfig{Context: ctx, Resolution: resolution, Identity: identity, Selection: owned, Toolchain: resolution.Toolchain, Digest: digest}
 	return result, result.Validate()
 }
 
@@ -81,9 +74,7 @@ func (b BuildConfig) Validate() error {
 		return fmt.Errorf("build digest differs from identity")
 	}
 	tc := b.Toolchain
-	identityMismatch := tc.Version != b.Identity.Toolchain || tc.HostOS != b.Identity.HostOS || tc.HostArch != b.Identity.HostArch
-	pathsMismatch := !filepath.IsAbs(tc.GOROOT) || tc.Executable != filepath.Join(tc.GOROOT, "bin", "go")
-	if identityMismatch || pathsMismatch {
+	if tc.Version != b.Identity.Toolchain || tc.HostOS != b.Identity.HostOS || tc.HostArch != b.Identity.HostArch || !filepath.IsAbs(tc.GOROOT) || tc.Executable != filepath.Join(tc.GOROOT, "bin", "go") {
 		return fmt.Errorf("selected toolchain differs from build identity/distribution")
 	}
 	return nil

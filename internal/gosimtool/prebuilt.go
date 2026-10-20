@@ -36,12 +36,7 @@ func PackageSourceDigest(pkg string, sources map[string]string) (PackageDigest, 
 
 // LookupArtifact never chooses the newest binary or scans another identity's
 // namespace. The selected current inputs determine one exact artifact slot.
-func LookupArtifact(
-	project string,
-	identity buildspec.Identity,
-	pkg string,
-	sources map[string]string,
-) (Artifact, error) {
+func LookupArtifact(project string, identity buildspec.Identity, pkg string, sources map[string]string) (Artifact, error) {
 	input, err := PackageSourceDigest(pkg, sources)
 	if err != nil {
 		return Artifact{}, err
@@ -56,10 +51,7 @@ func LookupArtifact(
 		return Artifact{}, err
 	}
 	if _, err := regularArtifactFile(project, filepath.ToSlash(relative)); err != nil {
-		return Artifact{}, fmt.Errorf(
-			"prebuilt %s unavailable for the selected identity and current sources: %w",
-			pkg, err,
-		)
+		return Artifact{}, fmt.Errorf("prebuilt %s unavailable for the selected identity and current sources: %w", pkg, err)
 	}
 	manifest, err := VerifyArtifact(directory, identity, inputs)
 	if err != nil {

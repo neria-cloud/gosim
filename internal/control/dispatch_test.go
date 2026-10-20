@@ -48,15 +48,10 @@ func run(t *testing.T, features contracts.FeatureSet, main func()) error {
 		if features.Has(contracts.Net) {
 			providers = append(providers, netprovider.NewProvider())
 		}
-		identity := abi.HostIdentity{
-			Toolchain: "test-toolchain", Profile: "test-profile", HostOS: "darwin", HostArch: "arm64",
-			SourceDigest: strings.Repeat("a", 64),
-		}
-		config := kernel.Config{
-			Identity: identity, RuntimeRevision: strings.Repeat("b", 64),
-			BuildDigest: strings.Repeat("c", 64), Features: features, TimeoutNS: 1e9,
-		}
-		k, err := kernel.New(config, e, providers)
+		k, err := kernel.New(kernel.Config{
+			Identity:        abi.HostIdentity{Toolchain: "test-toolchain", Profile: "test-profile", HostOS: "darwin", HostArch: "arm64", SourceDigest: strings.Repeat("a", 64)},
+			RuntimeRevision: strings.Repeat("b", 64), BuildDigest: strings.Repeat("c", 64), Features: features, TimeoutNS: 1e9,
+		}, e, providers)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -107,8 +102,7 @@ func TestTransportLifecycleAndRunIdentity(t *testing.T) {
 			child := must(t, kernel.CreateRequest{
 				Label: "child", Main: func() { entered.Send(CurrentRef()); simrt.NewChan[int](0).Recv() },
 			}, kernel.DecodeCreateResult).Machine
-			state := must(t, kernel.StateRequest{Machine: child}, kernel.DecodeStateResult).State
-			if state != kernel.StateNew {
+			if state := must(t, kernel.StateRequest{Machine: child}, kernel.DecodeStateResult).State; state != kernel.StateNew {
 				t.Fatal(state)
 			}
 			if label := must(t, kernel.LabelRequest{Machine: child}, kernel.DecodeLabelResult).Label; label != "child" {
@@ -204,12 +198,10 @@ func TestTransportProviderControls(t *testing.T) {
 			Config: contracts.NetConfig{MinNS: 1, MaxNS: 2, Lambda: 1, Repair: 1},
 		}, kernel.DecodeNetConfigureResult)
 		addr := [4]byte{11, 0, 0, 2}
-		configureAddress := kernel.NetConfigureMachineRequest{Machine: child, Address: addr}
-		must(t, configureAddress, kernel.DecodeNetConfigureMachineResult)
+		must(t, kernel.NetConfigureMachineRequest{Machine: child, Address: addr}, kernel.DecodeNetConfigureMachineResult)
 		must(t, kernel.StartRequest{Machine: child}, kernel.DecodeStartResult)
-		machineAddress := must(t, kernel.NetAddressRequest{Machine: child}, kernel.DecodeNetAddressResult).Address
-		if machineAddress != addr {
-			t.Fatal(machineAddress)
+		if got := must(t, kernel.NetAddressRequest{Machine: child}, kernel.DecodeNetAddressResult).Address; got != addr {
+			t.Fatal(got)
 		}
 		from := must(t, kernel.NetAddressRequest{Machine: root}, kernel.DecodeNetAddressResult).Address
 		link := contracts.NetLink{From: from, To: addr, Direction: 1}
@@ -221,8 +213,7 @@ func TestTransportProviderControls(t *testing.T) {
 		must(t, kernel.NetSetConnectivityRequest{Link: link, Connected: true}, kernel.DecodeNetSetConnectivityResult)
 		must(t, kernel.FSInspectInodeRequest{Machine: child, Inode: 1}, kernel.DecodeFSInspectInodeResult)
 		must(t, kernel.StopRequest{Machine: child, Kind: contracts.StopCrash}, kernel.DecodeStopResult)
-		enumerateRequest := kernel.FSEnumerateRequest{Machine: child, MaxStates: 10}
-		iterator := must(t, enumerateRequest, kernel.DecodeFSEnumerateResult).Iterator
+		iterator := must(t, kernel.FSEnumerateRequest{Machine: child, MaxStates: 10}, kernel.DecodeFSEnumerateResult).Iterator
 		next := must(t, kernel.FSNextSnapshotRequest{
 			RunID: root.RunID, Iterator: iterator,
 		}, kernel.DecodeFSNextSnapshotResult)
@@ -238,8 +229,7 @@ func TestTransportProviderControls(t *testing.T) {
 		must(t, kernel.FSRestoreRequest{
 			Machine: child, SnapshotRunID: root.RunID, Snapshot: next.Snapshot,
 		}, kernel.DecodeFSRestoreResult)
-		closeSnapshot := kernel.FSCloseSnapshotRequest{RunID: root.RunID, Snapshot: next.Snapshot}
-		must(t, closeSnapshot, kernel.DecodeFSCloseSnapshotResult)
+		must(t, kernel.FSCloseSnapshotRequest{RunID: root.RunID, Snapshot: next.Snapshot}, kernel.DecodeFSCloseSnapshotResult)
 		must(t, kernel.DestroyRequest{Machine: child}, kernel.DecodeDestroyResult)
 	})
 	if err != nil {

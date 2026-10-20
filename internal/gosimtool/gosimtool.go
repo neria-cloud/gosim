@@ -22,9 +22,8 @@ import (
 )
 
 const (
-	Module            = "github.com/neria-cloud/gosim"
-	OutputDirectory   = ".gosim"
-	moduleSearchLimit = 20
+	Module          = "github.com/neria-cloud/gosim"
+	OutputDirectory = ".gosim"
 )
 
 func FindGoMod() (string, *modfile.File, error) {
@@ -33,9 +32,9 @@ func FindGoMod() (string, *modfile.File, error) {
 		return "", nil, err
 	}
 
-	for i := 0; i < moduleSearchLimit; i++ {
+	for i := 0; i < 20; i++ {
 		p := path.Join(baseDir, "go.mod")
-		moduleBytes, err := os.ReadFile(p)
+		bytes, err := os.ReadFile(p)
 		if err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				return "", nil, err
@@ -48,7 +47,7 @@ func FindGoMod() (string, *modfile.File, error) {
 			return "", nil, errors.New("could not find go.mod file, hit root")
 		}
 
-		file, err := modfile.Parse(p, moduleBytes, nil)
+		file, err := modfile.Parse(p, bytes, nil)
 		if err != nil {
 			return "", nil, err
 		}
@@ -210,11 +209,11 @@ func ResolveTestIdentity(t *testing.T, configPath string) buildspec.Identity {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resolvedConfigPath, err := workerboot.ConfigPath(cwd, configPath)
+	configPath, err = workerboot.ConfigPath(cwd, configPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := buildcfg.Load(resolvedConfigPath, buildcfg.Overrides{})
+	cfg, err := buildcfg.Load(configPath, buildcfg.Overrides{})
 	if err != nil {
 		t.Fatal(err)
 	}
