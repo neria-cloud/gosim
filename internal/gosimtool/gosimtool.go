@@ -239,7 +239,7 @@ func ResolveTestIdentity(t *testing.T, configPath string) buildspec.Identity {
 }
 
 // GetPathForPrecompiledTestBinary reloads the current dependency closure and
-// verifies exactly the supplied identity, package digest and artifact byteutil.
+// verifies exactly the supplied identity, package digest and artifact bytes.
 func GetPathForPrecompiledTestBinary(t *testing.T, pkg string, identity buildspec.Identity) string {
 	t.Helper()
 	digest, err := buildspec.Digest(identity)
