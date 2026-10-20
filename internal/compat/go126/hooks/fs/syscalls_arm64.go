@@ -4,25 +4,22 @@
 package fs
 
 import (
-	"strings"
-	"syscall"
-	"unsafe"
-
 	kh "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel"
 	"github.com/neria-cloud/gosim/internal/contracts"
 	k "github.com/neria-cloud/gosim/internal/kernel"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
+	"strings"
+	"syscall"
+	"unsafe"
 )
 
-var (
-	_ = strings.IndexByte
-	_ = syscall.EINVAL
-	_ unsafe.Pointer
-	_ = abi.ByteView{}
-	_ = simrt.RaceEnabled
-	_ = contracts.RT
-)
+var _ = strings.IndexByte
+var _ = syscall.EINVAL
+var _ unsafe.Pointer
+var _ = abi.ByteView{}
+var _ = simrt.RaceEnabled
+var _ = contracts.RT
 
 func Syscall_Chdir(p0 string) error {
 	kh.Require(contracts.FS, "syscall.Chdir")
@@ -528,7 +525,6 @@ func writeStat(p unsafe.Pointer, stat contracts.Stat) {
 	simrt.RaceWriteRange(p, int(unsafe.Sizeof(out)))
 	abi.NewValueView((*kh.Stat_t)(p)).Set(out)
 }
-
 func writeStatFS(p unsafe.Pointer, stats contracts.FSStorageStats) {
 	flags := int64(0)
 	if stats.ReadOnly {
@@ -538,7 +534,6 @@ func writeStatFS(p unsafe.Pointer, stats contracts.FSStorageStats) {
 	simrt.RaceWriteRange(p, int(unsafe.Sizeof(out)))
 	abi.NewValueView((*kh.Statfs_t)(p)).Set(out)
 }
-
 func fcntlLock(fd, command int, p unsafe.Pointer) error {
 	if command != 5 && command != 6 && command != 7 {
 		return syscall.EINVAL

@@ -5,7 +5,7 @@ package syncmap
 import (
 	"sync" //gosim:notranslate
 
-	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 // Map models sync.Map using the deterministic translated map. Each operation

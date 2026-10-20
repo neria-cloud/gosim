@@ -5,7 +5,7 @@ package behavior_test
 import (
 	"testing"
 
-	behavior "github.com/neria-cloud/gosim/internal/tests/rt"
+	"github.com/neria-cloud/gosim/internal/tests/rt"
 	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 )
 

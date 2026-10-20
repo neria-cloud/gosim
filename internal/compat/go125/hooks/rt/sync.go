@@ -5,7 +5,7 @@ package rt
 import (
 	"unsafe"
 
-	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 

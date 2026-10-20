@@ -30,7 +30,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 type writer struct{}

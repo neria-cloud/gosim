@@ -11,7 +11,7 @@ package rand
 import (
 	"io"
 
-	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
@@ -35,10 +35,7 @@ var Reader io.Reader = &deterministicReader{}
 // Read fills b with deterministic random bytes from gosim's PRNG.
 func Read(b []byte) (int, error) {
 	if _, err := io.ReadFull(Reader, b); err != nil {
-		gosimruntime.Abort(abi.Diagnostic{
-			Kind: "RuntimeFatal", Feature: "rt", Operation: "crypto/rand.Read",
-			Message: "failed to read random data: " + err.Error(),
-		})
+		gosimruntime.Abort(abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "crypto/rand.Read", Message: "failed to read random data: " + err.Error()})
 	}
 	return len(b), nil
 }

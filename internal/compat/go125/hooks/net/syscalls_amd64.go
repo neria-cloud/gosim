@@ -4,25 +4,22 @@
 package net
 
 import (
-	"strings"
-	"syscall"
-	"unsafe"
-
 	kh "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel"
 	"github.com/neria-cloud/gosim/internal/contracts"
 	k "github.com/neria-cloud/gosim/internal/kernel"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
+	"strings"
+	"syscall"
+	"unsafe"
 )
 
-var (
-	_ = strings.IndexByte
-	_ = syscall.EINVAL
-	_ unsafe.Pointer
-	_ = abi.ByteView{}
-	_ = simrt.RaceEnabled
-	_ = contracts.RT
-)
+var _ = strings.IndexByte
+var _ = syscall.EINVAL
+var _ unsafe.Pointer
+var _ = abi.ByteView{}
+var _ = simrt.RaceEnabled
+var _ = contracts.RT
 
 func Syscall_accept4(p0 int, p1 *kh.RawSockaddrAny, p2 *uint32, p3 int) (int, error) {
 	kh.Require(contracts.Net, "syscall.accept4")
@@ -243,7 +240,6 @@ func readAddress(p unsafe.Pointer, length uint32) (contracts.Address, error) {
 	raw := abi.NewValueView((*kh.RawSockaddrInet4)(p)).Get()
 	return contracts.Address{Family: raw.Family, IPv4: raw.Addr, Port: raw.Port>>8 | raw.Port<<8}, nil
 }
-
 func checkAddressOutput(p unsafe.Pointer, length *uint32) error {
 	if p == nil || length == nil {
 		return syscall.EFAULT
@@ -254,7 +250,6 @@ func checkAddressOutput(p unsafe.Pointer, length *uint32) error {
 	}
 	return nil
 }
-
 func writeAddress(p unsafe.Pointer, length *uint32, address contracts.Address) {
 	raw := kh.RawSockaddrInet4{Family: address.Family, Port: address.Port>>8 | address.Port<<8, Addr: address.IPv4}
 	simrt.RaceWriteRange(p, 16)

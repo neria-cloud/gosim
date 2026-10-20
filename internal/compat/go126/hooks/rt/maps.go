@@ -3,7 +3,7 @@
 package rt
 
 import (
-	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func Maps_clone(m any) any {

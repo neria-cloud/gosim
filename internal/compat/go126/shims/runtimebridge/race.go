@@ -9,7 +9,7 @@ package runtimebridge
 import (
 	"unsafe"
 
-	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 // InternalRaceEnabled is the translated stdlib race constant.

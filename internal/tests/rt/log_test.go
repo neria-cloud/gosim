@@ -13,7 +13,7 @@ import (
 	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/internal/gosimlog"
 	"github.com/neria-cloud/gosim/internal/tests/testsupport"
-	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func TestLogSLog(t *testing.T) {
