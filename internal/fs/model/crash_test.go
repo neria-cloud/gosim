@@ -82,7 +82,7 @@ func TestCrashPlanDeepAndCopiedResults(t *testing.T) {
 	t.Parallel()
 	const count = 100000
 	p := &crashPlan{}
-	for i := 0; i < count; i++ {
+	for i := range count {
 		op := plannedOp{op: &allocOp{inode: i}, stores: []depKey{{inode: int32(i + 1)}}}
 		if i > 0 {
 			op.depends = []depKey{{inode: int32(i)}}

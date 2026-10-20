@@ -568,7 +568,7 @@ func TestMapSmallIterAdd(t *testing.T) {
 		{3, 8},
 	}
 
-	var seen []pair
+	seen := make([]pair, 0, len(m))
 	for k, v := range m {
 		if k == 4 {
 			expected = append(expected, pair{k, v})
@@ -607,7 +607,7 @@ func TestMapIterAdd(t *testing.T) {
 		{6, 13},
 	}
 
-	var seen []pair
+	seen := make([]pair, 0, len(m))
 	for k, v := range m {
 		if k == 4 {
 			expected = append(expected, pair{k, v})
@@ -682,7 +682,7 @@ func TestMapIterDeleteAdd(t *testing.T) {
 		{4, 10},
 	}
 
-	var seen []pair
+	seen := make([]pair, 0, len(m))
 	for k, v := range m {
 		if k == 2 || k == 3 || k == 5 {
 			expected = append(expected, pair{k, v})
@@ -715,7 +715,7 @@ func TestMapIterDeleteRestore(t *testing.T) {
 
 	expected := make([]pair, 0, len(m))
 
-	var seen []pair
+	seen := make([]pair, 0, len(m))
 	for k, v := range m {
 		delete(m, k)
 		m[k] = v
@@ -824,7 +824,7 @@ func TestMapAliasConversions(t *testing.T) {
 		map[int]int{3: 8},
 	}
 
-	var seen []pair
+	seen := make([]pair, 0, 3)
 	for _, m := range x {
 		for k, v := range m {
 			seen = append(seen, pair{key: k, value: v})

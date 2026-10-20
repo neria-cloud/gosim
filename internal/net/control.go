@@ -15,7 +15,16 @@ func (s *Session) Configure(config contracts.NetConfig) error {
 	if err := contracts.ValidateNetConfig(config); err != nil {
 		return err
 	}
-	return s.network.ApplyControl(model.ControlRequest{Kind: model.ReplaceGlobal, Config: model.Config{Latency: model.LatencyConfig{Min: time.Duration(config.MinNS), Max: time.Duration(config.MaxNS), Lambda: config.Lambda}, Loss: model.LossConfig{FailProbability: config.Fail, RepairProbability: config.Repair}, ConnectionTimeout: time.Duration(config.ConnectionTimeoutNS), TCPBufferSize: config.TCPBufferSize}})
+	return s.network.ApplyControl(model.ControlRequest{
+		Kind: model.ReplaceGlobal,
+		Config: model.Config{
+			Latency: model.LatencyConfig{
+				Min: time.Duration(config.MinNS), Max: time.Duration(config.MaxNS), Lambda: config.Lambda,
+			},
+			Loss:              model.LossConfig{FailProbability: config.Fail, RepairProbability: config.Repair},
+			ConnectionTimeout: time.Duration(config.ConnectionTimeoutNS), TCPBufferSize: config.TCPBufferSize,
+		},
+	})
 }
 
 func (s *Session) ConfigureMachine(ref contracts.MachineRef, addr [4]byte, automatic bool) error {
@@ -63,7 +72,9 @@ func (s *Session) SetLinkPolicy(link contracts.NetLink, policy contracts.NetLink
 	var latency *model.LatencyConfig
 	var loss *model.LossConfig
 	if policy.SetLatency {
-		latency = &model.LatencyConfig{Min: time.Duration(policy.MinNS), Max: time.Duration(policy.MaxNS), Lambda: policy.Lambda}
+		latency = &model.LatencyConfig{
+			Min: time.Duration(policy.MinNS), Max: time.Duration(policy.MaxNS), Lambda: policy.Lambda,
+		}
 	}
 	if policy.SetLoss {
 		loss = &model.LossConfig{FailProbability: policy.Fail, RepairProbability: policy.Repair}

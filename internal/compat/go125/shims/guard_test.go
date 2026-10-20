@@ -28,7 +28,10 @@ func TestOptionalOperationsAbort(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			// A process can own only one active simulation engine.
-			e, err := engine.NewEngine(engine.EngineConfig{Seed: 1, TimeoutNS: int64(time.Second), ReplayRevision: engine.ReplayRevision})
+			config := engine.EngineConfig{
+				Seed: 1, TimeoutNS: int64(time.Second), ReplayRevision: engine.ReplayRevision,
+			}
+			e, err := engine.NewEngine(config)
 			if err != nil {
 				t.Fatal(err)
 			}

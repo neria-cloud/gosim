@@ -38,13 +38,13 @@ func WithLabels(ctx context.Context, labels LabelSet) context.Context {
 }
 
 func Label(ctx context.Context, key string) (string, bool) {
-	labels, _ := ctx.Value(labelKey{}).(LabelSet)
+	labels := labelsForContext(ctx)
 	value, ok := labels.values[key]
 	return value, ok
 }
 
 func ForLabels(ctx context.Context, f func(key, value string) bool) {
-	labels, _ := ctx.Value(labelKey{}).(LabelSet)
+	labels := labelsForContext(ctx)
 	for k, v := range labels.values {
 		if !f(k, v) {
 			break
@@ -53,7 +53,7 @@ func ForLabels(ctx context.Context, f func(key, value string) bool) {
 }
 
 func SetGoroutineLabels(ctx context.Context) {
-	labels, _ := ctx.Value(labelKey{}).(LabelSet)
+	labels := labelsForContext(ctx)
 	data, err := json.Marshal(labels.values)
 	if err != nil {
 		panic(err)
@@ -61,28 +61,39 @@ func SetGoroutineLabels(ctx context.Context) {
 	gosimruntime.SetProfileLabels(string(data))
 }
 
+func labelsForContext(ctx context.Context) LabelSet {
+	labels, ok := ctx.Value(labelKey{}).(LabelSet)
+	if !ok {
+		return LabelSet{}
+	}
+	return labels
+}
+
 func Do(ctx context.Context, labels LabelSet, f func(context.Context)) {
 	previous := gosimruntime.ProfileLabels()
 	defer gosimruntime.SetProfileLabels(previous)
-	ctx = WithLabels(ctx, labels)
-	SetGoroutineLabels(ctx)
-	f(ctx)
+	labeledCtx := WithLabels(ctx, labels)
+	SetGoroutineLabels(labeledCtx)
+	f(labeledCtx)
 }
 
 func unsupported() {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime/pprof", Message: "native profiling is not available in simulation"})
+	gosimruntime.Abort(abi.Diagnostic{
+		Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime/pprof",
+		Message: "native profiling is not available in simulation",
+	})
 }
 
 type Profile struct{}
 
-func NewProfile(name string) *Profile                   { unsupported(); return nil }
-func Lookup(name string) *Profile                       { unsupported(); return nil }
-func Profiles() []*Profile                              { unsupported(); return nil }
-func (p *Profile) Name() string                         { unsupported(); return "" }
-func (p *Profile) Count() int                           { unsupported(); return 0 }
-func (p *Profile) Add(value any, skip int)              { unsupported() }
-func (p *Profile) Remove(value any)                     { unsupported() }
-func (p *Profile) WriteTo(w io.Writer, debug int) error { unsupported(); return nil }
-func StartCPUProfile(w io.Writer) error                 { unsupported(); return nil }
-func StopCPUProfile()                                   { unsupported() }
-func WriteHeapProfile(w io.Writer) error                { unsupported(); return nil }
+func NewProfile(_ string) *Profile                  { unsupported(); return nil }
+func Lookup(_ string) *Profile                      { unsupported(); return nil }
+func Profiles() []*Profile                          { unsupported(); return nil }
+func (_ *Profile) Name() string                     { unsupported(); return "" }
+func (_ *Profile) Count() int                       { unsupported(); return 0 }
+func (_ *Profile) Add(_ any, _ int)                 { unsupported() }
+func (_ *Profile) Remove(_ any)                     { unsupported() }
+func (_ *Profile) WriteTo(_ io.Writer, _ int) error { unsupported(); return nil }
+func StartCPUProfile(_ io.Writer) error             { unsupported(); return nil }
+func StopCPUProfile()                               { unsupported() }
+func WriteHeapProfile(_ io.Writer) error            { unsupported(); return nil }

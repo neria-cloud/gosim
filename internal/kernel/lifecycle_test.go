@@ -217,7 +217,7 @@ func TestAbortedTransactionAndRestartPreserveTerminalState(t *testing.T) {
 
 func TestWaitCapturesEpochAndStaleHandles(t *testing.T) {
 	var firstRunID uint64
-	for run := 0; run < 2; run++ {
+	for range 2 {
 		_, err := fixture(t, contracts.FeatureSet(contracts.RT), nil, func(k *Kernel) {
 			if firstRunID != 0 && firstRunID == k.runID {
 				t.Fatal("run ID reused")
