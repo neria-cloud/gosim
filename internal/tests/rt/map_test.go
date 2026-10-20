@@ -15,6 +15,7 @@ const (
 	mapKeyFive      = 5
 	mapKeyNine      = 9
 	mapKeyEleven    = 11
+	mapKeyThirteen  = 13
 	mapKeySixteen   = 16
 	mapKeySeventeen = 17
 	mapKeyNineteen  = 19
@@ -36,6 +37,7 @@ const (
 	mapLengthFive       = 5
 	mapMissingKey       = 10
 	mapZeroValue        = 0
+	mapIterationTrials  = 20
 )
 
 func TestMapSmallGetOK(t *testing.T) {
@@ -374,14 +376,14 @@ type pair struct{ key, value int }
 
 func TestMapSmallSimpleIter(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
 	expected := []pair{
-		{1, 3},
-		{2, 5},
-		{3, 8},
+		{mapKeyOne, mapValueThree},
+		{mapKeyTwo, mapValueFive},
+		{mapKeyThree, mapValueEight},
 	}
 
 	var seen []pair
@@ -399,18 +401,18 @@ func TestMapSmallSimpleIter(t *testing.T) {
 
 func TestMapSimpleIter(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[11] = 9
-	m[13] = 7
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyEleven] = mapValueNine
+	m[mapKeyThirteen] = mapValueSeven
 
 	expected := []pair{
-		{1, 3},
-		{2, 5},
-		{3, 8},
-		{11, 9},
-		{13, 7},
+		{mapKeyOne, mapValueThree},
+		{mapKeyTwo, mapValueFive},
+		{mapKeyThree, mapValueEight},
+		{mapKeyEleven, mapValueNine},
+		{mapKeyThirteen, mapValueSeven},
 	}
 
 	var seen []pair
@@ -428,9 +430,9 @@ func TestMapSimpleIter(t *testing.T) {
 
 func TestMapSmallRandomIter(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
 	var firstSeen []pair
 	for k, v := range m {
@@ -438,7 +440,7 @@ func TestMapSmallRandomIter(t *testing.T) {
 	}
 
 	success := false
-	for i := 0; i < 20; i++ {
+	for i := 0; i < mapIterationTrials; i++ {
 		var seen []pair
 		for k, v := range m {
 			seen = append(seen, pair{key: k, value: v})
@@ -456,11 +458,11 @@ func TestMapSmallRandomIter(t *testing.T) {
 
 func TestMapRandomIter(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[11] = 9
-	m[13] = 7
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyEleven] = mapValueNine
+	m[mapKeyThirteen] = mapValueSeven
 
 	var firstSeen []pair
 	for k, v := range m {
@@ -468,7 +470,7 @@ func TestMapRandomIter(t *testing.T) {
 	}
 
 	success := false
-	for i := 0; i < 20; i++ {
+	for i := 0; i < mapIterationTrials; i++ {
 		var seen []pair
 		for k, v := range m {
 			seen = append(seen, pair{key: k, value: v})
