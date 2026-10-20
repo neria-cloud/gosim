@@ -13,6 +13,22 @@ import (
 
 var testPair = HostPair{netip.MustParseAddr("10.0.0.1"), netip.MustParseAddr("10.0.0.2")}
 
+const (
+	configMaxLatencyMillis  = 100
+	configMinLatencyMillis  = 20
+	configPairCurve         = 2.5
+	configPairFailRate      = 0.125
+	configGlobalCurve       = 8
+	configGlobalFailRate    = 0.9
+	configGeneration        = 7
+	configChangedCurve      = 99
+	configInvalidKind       = 255
+	configInheritedCurve    = 3
+	configRepairRate        = 0.2
+	configChangedRepairRate = 0.4
+	configResetCurve        = 7
+)
+
 func testNetwork(t *testing.T, rng contracts.Random) *Network {
 	t.Helper()
 	events := newTestEvents()
@@ -34,7 +50,12 @@ func localRequest(kind ControlKind) ControlRequest {
 
 func TestConfigDefaultsValidation(t *testing.T) {
 	t.Parallel()
-	want := Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second, TCPBufferSize: 1024}
+	want := Config{
+		Latency:           LatencyConfig{Max: configMaxLatencyMillis * time.Millisecond, Lambda: 5},
+		Loss:              LossConfig{RepairProbability: 1},
+		ConnectionTimeout: time.Second,
+		TCPBufferSize:     1024,
+	}
 	if DefaultConfig() != want {
 		t.Fatal(DefaultConfig())
 	}
@@ -101,14 +122,15 @@ func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 	}
 	// Invalid cross-field updates must not allocate a local snapshot or record.
 	c := DefaultConfig()
-	c.Latency.Min = 20 * time.Millisecond
+	c.Latency.Min = configMinLatencyMillis * time.Millisecond
 	control(t, n, ControlRequest{Kind: ReplaceGlobal, Config: c})
 	invalid := c
 	invalid.ConnectionTimeout = -1
 	if n.ApplyControl(ControlRequest{Kind: ReplaceGlobal, Config: invalid}) != syscall.EINVAL || n.config != c {
 		t.Fatal("invalid timeout change was not atomic")
 	}
-	if n.ApplyControl(ControlRequest{Kind: SetGlobalMaxLatency, Duration: time.Millisecond}) != syscall.EINVAL || n.config != c {
+	if n.ApplyControl(ControlRequest{Kind: SetGlobalMaxLatency, Duration: time.Millisecond}) != syscall.EINVAL ||
+		n.config != c {
 		t.Fatal("invalid global change was not atomic")
 	}
 	r := localRequest(SetPairMaxLatency)
@@ -117,20 +139,23 @@ func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 		t.Fatal("invalid update allocated a record")
 	}
 	r = localRequest(SetPairCurve)
-	r.Lambda = 2.5
+	r.Lambda = configPairCurve
 	control(t, n, r)
 	r = localRequest(SetPairFailRate)
-	r.Probability = 0.125
+	r.Probability = configPairFailRate
 	control(t, n, r)
 	s := n.links[key]
-	if s.Latency.Min != 20*time.Millisecond || s.Latency.Max != 100*time.Millisecond || s.Loss.RepairProbability != 1 {
+	if s.Latency.Min != configMinLatencyMillis*time.Millisecond ||
+		s.Latency.Max != configMaxLatencyMillis*time.Millisecond ||
+		s.Loss.RepairProbability != 1 {
 		t.Fatal("incomplete group snapshot", s)
 	}
-	c.Latency = LatencyConfig{Max: time.Second, Lambda: 8}
-	c.Loss = LossConfig{FailProbability: 0.9, RepairProbability: 0.4}
+	c.Latency = LatencyConfig{Max: time.Second, Lambda: configGlobalCurve}
+	c.Loss = LossConfig{FailProbability: configGlobalFailRate, RepairProbability: configChangedRepairRate}
 	control(t, n, ControlRequest{Kind: ReplaceGlobal, Config: c})
 	effective := n.effectiveConfig(s)
-	if effective.Latency.Lambda != 2.5 || effective.Loss.FailProbability != 0.125 || effective.Loss.RepairProbability != 1 {
+	if effective.Latency.Lambda != configPairCurve || effective.Loss.FailProbability != configPairFailRate ||
+		effective.Loss.RepairProbability != 1 {
 		t.Fatal(effective)
 	}
 	before := effective
@@ -140,13 +165,14 @@ func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 		t.Fatal("invalid update mutated snapshot")
 	}
 	s.Status = linkRandomPartition
-	s.Generation = 7
+	s.Generation = configGeneration
 	control(t, n, localRequest(ResetPairLatency))
 	if s.Latency != nil || s.Loss == nil || n.effectiveConfig(s).Latency != c.Latency {
 		t.Fatal("reset did not restore latency inheritance")
 	}
 	control(t, n, localRequest(ResetPairLoss))
-	if s.Loss != nil || s.Status != linkRandomPartition || s.Generation != 7 || n.effectiveConfig(s) != c {
+	if s.Loss != nil || s.Status != linkRandomPartition || s.Generation != configGeneration ||
+		n.effectiveConfig(s) != c {
 		t.Fatal("reset changed state")
 	}
 	if err := n.SetDelay(testPair, 0); err != nil {
@@ -156,11 +182,11 @@ func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 		t.Fatal("zero delay was not fixed")
 	}
 	// Replacing caller-owned values cannot change installed values.
-	c.Latency.Lambda = 99
-	if n.config.Latency.Lambda != 8 {
+	c.Latency.Lambda = configChangedCurve
+	if n.config.Latency.Lambda != configGlobalCurve {
 		t.Fatal("config alias")
 	}
-	for _, r := range []ControlRequest{{Kind: 255}, {Kind: SetGlobalCurve, Lambda: math.NaN()}, {Kind: SetGlobalFailRate, Probability: -1}, {Kind: SetPairLatency, A: "invalid", B: "10.0.0.1"}} {
+	for _, r := range []ControlRequest{{Kind: configInvalidKind}, {Kind: SetGlobalCurve, Lambda: math.NaN()}, {Kind: SetGlobalFailRate, Probability: -1}, {Kind: SetPairLatency, A: "invalid", B: "10.0.0.1"}} {
 		before := n.config
 		state := *s
 		if err := n.ApplyControl(r); err != syscall.EINVAL {
@@ -176,21 +202,22 @@ func TestConfigIndependentGroupInheritance(t *testing.T) {
 	t.Parallel()
 	n := testNetwork(t, &scriptedRandom{})
 	r := localRequest(SetPairCurve)
-	r.Lambda = 3
+	r.Lambda = configInheritedCurve
 	control(t, n, r)
-	control(t, n, ControlRequest{Kind: SetGlobalRepairRate, Probability: 0.2})
+	control(t, n, ControlRequest{Kind: SetGlobalRepairRate, Probability: configRepairRate})
 	c := n.effectiveConfig(n.links[edgeKey(testPair)])
-	if c.Loss.RepairProbability != 0.2 || c.Latency.Lambda != 3 {
+	if c.Loss.RepairProbability != configRepairRate || c.Latency.Lambda != configInheritedCurve {
 		t.Fatal(c)
 	}
 	control(t, n, localRequest(ResetPairLatency))
 	r = localRequest(SetPairRepairRate)
-	r.Probability = 0.4
+	r.Probability = configChangedRepairRate
 	control(t, n, r)
-	control(t, n, ControlRequest{Kind: SetGlobalCurve, Lambda: 7})
+	control(t, n, ControlRequest{Kind: SetGlobalCurve, Lambda: configResetCurve})
 	control(t, n, ControlRequest{Kind: SetGlobalFailRate, Probability: 0.5})
 	c = n.effectiveConfig(n.links[edgeKey(testPair)])
-	if c.Latency.Lambda != 7 || c.Loss.FailProbability != 0 || c.Loss.RepairProbability != 0.4 {
+	if c.Latency.Lambda != configResetCurve || c.Loss.FailProbability != 0 ||
+		c.Loss.RepairProbability != configChangedRepairRate {
 		t.Fatal(c)
 	}
 }

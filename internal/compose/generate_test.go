@@ -73,7 +73,13 @@ func TestGeneratedImportSetsAndConcurrentPublication(t *testing.T) {
 				if bytes.Contains(data, []byte(path)) != slices.Contains(features, feature) {
 					t.Fatalf("wrong %s provider import", feature)
 				}
-				if bytes.Contains(data, []byte(feature+"provider.NewProvider()")) != slices.Contains(features, feature) {
+				if bytes.Contains(
+					data,
+					[]byte(feature+"provider.NewProvider()"),
+				) != slices.Contains(
+					features,
+					feature,
+				) {
 					t.Fatalf("wrong %s constructor", feature)
 				}
 			}
@@ -180,7 +186,9 @@ func TestNativeGeneratedDriver(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	mod := "module " + gosimtool.Module + "/.gosim/compositionprobe\n\ngo 1.25.3\nrequire " + gosimtool.Module + " v0.0.0\nreplace " + gosimtool.Module + " => " + strconv.Quote(root) + "\n"
+	mod := "module " + gosimtool.Module + "/.gosim/compositionprobe\n\ngo 1.25.3\nrequire " + gosimtool.Module + " v0.0.0\nreplace " + gosimtool.Module + " => " + strconv.Quote(
+		root,
+	) + "\n"
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(mod), 0o644); err != nil {
 		t.Fatal(err)
 	}

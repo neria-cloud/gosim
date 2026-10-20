@@ -8,15 +8,27 @@ import (
 	"time"
 )
 
-func TestChanSendRecvClose(t *testing.T) {
-	ch := make(chan int, 10)
+const (
+	chanBufferSize  = 10
+	chanLoopCount   = 5
+	chanTotalSends  = 20
+	chanBeforeBlock = 9
+	chanAfterBlock  = 11
+	chanWaitMillis  = 10
+	chanSendValue   = 10
+	chanBad         = "bad"
+	chanShouldBlock = "should've blocked"
+)
 
-	for i := 0; i < 5; i++ {
+func TestChanSendRecvClose(t *testing.T) {
+	ch := make(chan int, chanBufferSize)
+
+	for i := 0; i < chanLoopCount; i++ {
 		ch <- i
 	}
 	close(ch)
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < chanLoopCount; i++ {
 		v, ok := <-ch
 		if !ok || v != i {
 			t.Error(v, ok)
@@ -76,25 +88,25 @@ func TestGoZeroChanSendRecvClose(t *testing.T) {
 }
 
 func TestGoChanBlock(t *testing.T) {
-	sent := make([]bool, 20)
-	sentCh := make([]chan struct{}, 20)
-	for i := 0; i < 20; i++ {
+	sent := make([]bool, chanTotalSends)
+	sentCh := make([]chan struct{}, chanTotalSends)
+	for i := 0; i < chanTotalSends; i++ {
 		sentCh[i] = make(chan struct{})
 	}
 
-	ch := make(chan int, 10)
+	ch := make(chan int, chanBufferSize)
 
 	go func() {
-		for i := 0; i < 20; i++ {
+		for i := 0; i < chanTotalSends; i++ {
 			ch <- i
 			sent[i] = true
 			close(sentCh[i])
 		}
 	}()
 
-	<-sentCh[9]
+	<-sentCh[chanBeforeBlock]
 	// XXX: time.Sleep here, spin??? have introspection API that says other goroutine is blocked???
-	if sent[10] {
+	if sent[chanBufferSize] {
 		t.Error("sent 10")
 	}
 
@@ -103,9 +115,9 @@ func TestGoChanBlock(t *testing.T) {
 		t.Error(v)
 	}
 
-	<-sentCh[10]
+	<-sentCh[chanBufferSize]
 	// XXX: time.Sleep here, spin???
-	if sent[11] {
+	if sent[chanAfterBlock] {
 		t.Error("sent 10")
 	}
 
@@ -122,18 +134,18 @@ func TestGoChanBlock(t *testing.T) {
 }
 
 func TestGoChanDeterministic(t *testing.T) {
-	ch := make(chan int, 10)
+	ch := make(chan int, chanBufferSize)
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < chanLoopCount; i++ {
 		go func() {
-			for j := 0; j < 5; j++ {
+			for j := 0; j < chanLoopCount; j++ {
 				ch <- i
 			}
 		}()
 	}
 
 	result := ""
-	for i := 0; i < 5*5; i++ {
+	for i := 0; i < chanLoopCount*chanLoopCount; i++ {
 		v, ok := <-ch
 		if !ok {
 			t.Error(ok)
@@ -147,23 +159,23 @@ func TestGoChanDeterministic(t *testing.T) {
 }
 
 func TestGoSelectBasicRecv(t *testing.T) {
-	ch1 := make(chan int, 10)
-	ch2 := make(chan int, 10)
+	ch1 := make(chan int, chanBufferSize)
+	ch2 := make(chan int, chanBufferSize)
 
 	go func() {
-		for i := 0; i < 5; i++ {
+		for i := 0; i < chanLoopCount; i++ {
 			ch1 <- 0
 		}
 	}()
 	go func() {
-		for i := 0; i < 5; i++ {
+		for i := 0; i < chanLoopCount; i++ {
 			ch2 <- 1
 		}
 	}()
 
 	result := ""
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < chanBufferSize; i++ {
 		select {
 		case v, ok := <-ch1:
 			if !ok {
@@ -189,19 +201,19 @@ func TestGoSelectZeroRecv(t *testing.T) {
 	ch2 := make(chan int)
 
 	go func() {
-		for i := 0; i < 5; i++ {
+		for i := 0; i < chanLoopCount; i++ {
 			ch1 <- 0
 		}
 	}()
 	go func() {
-		for i := 0; i < 5; i++ {
+		for i := 0; i < chanLoopCount; i++ {
 			ch2 <- 1
 		}
 	}()
 
 	result := ""
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < chanBufferSize; i++ {
 		select {
 		case v, ok := <-ch1:
 			if !ok {
@@ -230,7 +242,7 @@ func TestChanSendSelf(t *testing.T) {
 	select {
 	case <-ch:
 		t.Error("help")
-	case ch <- 10:
+	case ch <- chanSendValue:
 		t.Error("help")
 	case <-done:
 	}
@@ -262,7 +274,7 @@ func TestChanMultipleZeroSelect(t *testing.T) {
 	case <-b:
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(chanWaitMillis * time.Millisecond)
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -275,7 +287,7 @@ func TestChanRange(t *testing.T) {
 	ch := make(chan int)
 
 	go func() {
-		for i := 0; i < 5; i++ {
+		for i := 0; i < chanLoopCount; i++ {
 			ch <- i
 		}
 		close(ch)
@@ -284,44 +296,44 @@ func TestChanRange(t *testing.T) {
 	j := 0
 	for i := range ch {
 		if i != j {
-			t.Error("bad")
+			t.Error(chanBad)
 		}
 		j++
 	}
-	if j != 5 {
-		t.Error("bad")
+	if j != chanLoopCount {
+		t.Error(chanBad)
 	}
 }
 
 func TestChanLenCap(t *testing.T) {
 	ch := make(chan int)
 	if cap(ch) != 0 {
-		t.Error("bad")
+		t.Error(chanBad)
 	}
 
-	ch = make(chan int, 5)
-	if cap(ch) != 5 {
-		t.Error("bad")
+	ch = make(chan int, chanLoopCount)
+	if cap(ch) != chanLoopCount {
+		t.Error(chanBad)
 	}
 
 	if len(ch) != 0 {
-		t.Error("bad")
+		t.Error(chanBad)
 	}
 
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= chanLoopCount; i++ {
 		ch <- i
 		if len(ch) != i {
-			t.Error("bad")
+			t.Error(chanBad)
 		}
 	}
 
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= chanLoopCount; i++ {
 		j := <-ch
 		if i != j {
-			t.Error("bad")
+			t.Error(chanBad)
 		}
-		if len(ch) != 5-i {
-			t.Error("bad")
+		if len(ch) != chanLoopCount-i {
+			t.Error(chanBad)
 		}
 	}
 }
@@ -331,10 +343,10 @@ func TestChanNilChanSend(t *testing.T) {
 
 	go func() {
 		ch <- struct{}{}
-		panic("should've blocked")
+		panic(chanShouldBlock)
 	}()
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(chanWaitMillis * time.Millisecond)
 }
 
 func TestChanNilChanSendSelectOne(t *testing.T) {
@@ -344,10 +356,10 @@ func TestChanNilChanSendSelectOne(t *testing.T) {
 		select {
 		case ch <- struct{}{}:
 		}
-		panic("should've blocked")
+		panic(chanShouldBlock)
 	}()
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(chanWaitMillis * time.Millisecond)
 }
 
 func TestChanNilChanSendSelectDefault(t *testing.T) {
@@ -355,7 +367,7 @@ func TestChanNilChanSendSelectDefault(t *testing.T) {
 
 	select {
 	case ch <- struct{}{}:
-		panic("should've blocked")
+		panic(chanShouldBlock)
 	default:
 	}
 }
@@ -366,7 +378,7 @@ func TestChanNilChanSendSelectMore(t *testing.T) {
 
 	select {
 	case ch <- struct{}{}:
-		panic("should've blocked")
+		panic(chanShouldBlock)
 	case chOk <- struct{}{}:
 	default:
 	}
@@ -377,10 +389,10 @@ func TestChanNilChanRecv(t *testing.T) {
 
 	go func() {
 		<-ch
-		panic("should've blocked")
+		panic(chanShouldBlock)
 	}()
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(chanWaitMillis * time.Millisecond)
 }
 
 func TestChanNilChanRecvOk(t *testing.T) {
@@ -389,10 +401,10 @@ func TestChanNilChanRecvOk(t *testing.T) {
 	go func() {
 		_, ok := <-ch
 		_ = ok
-		panic("should've blocked")
+		panic(chanShouldBlock)
 	}()
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(chanWaitMillis * time.Millisecond)
 }
 
 func TestChanNilChanRecvSelectOne(t *testing.T) {
@@ -402,10 +414,10 @@ func TestChanNilChanRecvSelectOne(t *testing.T) {
 		select {
 		case <-ch:
 		}
-		panic("should've blocked")
+		panic(chanShouldBlock)
 	}()
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(chanWaitMillis * time.Millisecond)
 }
 
 func TestChanNilChanRecvSelectDefault(t *testing.T) {
@@ -413,7 +425,7 @@ func TestChanNilChanRecvSelectDefault(t *testing.T) {
 
 	select {
 	case <-ch:
-		panic("should've blocked")
+		panic(chanShouldBlock)
 	default:
 	}
 }
@@ -425,7 +437,7 @@ func TestChanNilChanRecvSelectMore(t *testing.T) {
 
 	select {
 	case <-ch:
-		panic("should've blocked")
+		panic(chanShouldBlock)
 	case <-chOk:
 	default:
 	}

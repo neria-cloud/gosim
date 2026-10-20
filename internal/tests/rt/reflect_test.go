@@ -11,6 +11,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+const (
+	reflectFirstKey   = 3
+	reflectSecondKey  = 5
+	reflectOtherValue = 4
+	reflectGreeting   = "hello"
+	reflectFoo        = "foo"
+	reflectBar        = "bar"
+)
+
 func TestReflectFormatMap(t *testing.T) {
 	formatted := fmt.Sprint(map[string]int{"foo": 1, "bar": 2})
 	if formatted != "map[bar:2 foo:1]" {
@@ -23,8 +32,8 @@ func TestReflectFormatMapInterface(t *testing.T) {
 		Bar int
 	}
 
-	x := Foo{Bar: 3}
-	y := Foo{Bar: 5}
+	x := Foo{Bar: reflectFirstKey}
+	y := Foo{Bar: reflectSecondKey}
 
 	formatted1 := fmt.Sprint(map[any]int{"foo": 1, "bar": 2, x: 3, y: 4, &x: 10, &y: 11})
 	formatted2 := fmt.Sprint(map[any]int{"foo": 1, "bar": 2, x: 3, y: 4, &x: 10, &y: 11})
@@ -44,15 +53,15 @@ func TestReflectMapValue(t *testing.T) {
 		t.Error(value.Kind())
 	}
 
-	m[3] = "hello"
-	res := value.MapIndex(reflect.ValueOf(3))
-	if res.Kind() != reflect.String || res.Interface() != "hello" {
+	m[reflectFirstKey] = reflectGreeting
+	res := value.MapIndex(reflect.ValueOf(reflectFirstKey))
+	if res.Kind() != reflect.String || res.Interface() != reflectGreeting {
 		t.Error(res)
 	}
 
-	value.SetMapIndex(reflect.ValueOf(5), reflect.ValueOf("world"))
-	if m[5] != "world" {
-		t.Error(m[5])
+	value.SetMapIndex(reflect.ValueOf(reflectSecondKey), reflect.ValueOf("world"))
+	if m[reflectSecondKey] != "world" {
+		t.Error(m[reflectSecondKey])
 	}
 
 	mapKeys := value.MapKeys()
@@ -64,7 +73,7 @@ func TestReflectMapValue(t *testing.T) {
 	for _, key := range mapKeys {
 		gotMapKeys[key.Interface().(int)] = true
 	}
-	if len(gotMapKeys) != 2 || !gotMapKeys[3] || !gotMapKeys[5] {
+	if len(gotMapKeys) != 2 || !gotMapKeys[reflectFirstKey] || !gotMapKeys[reflectSecondKey] {
 		t.Error(gotMapKeys)
 	}
 
@@ -73,7 +82,7 @@ func TestReflectMapValue(t *testing.T) {
 	for iter.Next() {
 		gotIter[iter.Key().Interface().(int)] = iter.Value().Interface().(string)
 	}
-	if len(gotIter) != 2 || gotIter[3] != "hello" || gotIter[5] != "world" {
+	if len(gotIter) != 2 || gotIter[reflectFirstKey] != reflectGreeting || gotIter[reflectSecondKey] != "world" {
 		t.Error(gotIter)
 	}
 
@@ -116,8 +125,8 @@ func TestReflectJSON(t *testing.T) {
 	}
 
 	x := Foo{
-		A: 5,
-		B: "hello",
+		A: reflectSecondKey,
+		B: reflectGreeting,
 		C: map[string]any{
 			"x": "y",
 			"bar": Bar{
@@ -145,7 +154,7 @@ func TestReflectJSON(t *testing.T) {
 
 	if !reflect.DeepEqual(out, map[string]any{
 		"A":   5.0,
-		"buz": "hello",
+		"buz": reflectGreeting,
 		"C": map[string]any{
 			"x": "y",
 			"bar": map[string]any{
@@ -175,23 +184,23 @@ func TestReflectDeepEqual(t *testing.T) {
 		Equal bool
 	}{
 		{
-			A:     "foo",
+			A:     reflectFoo,
 			B:     "bar",
 			Equal: false,
 		},
 		{
-			A:     "foo",
-			B:     "foo",
+			A:     reflectFoo,
+			B:     reflectFoo,
 			Equal: true,
 		},
 		{
-			A:     map[string]int{"foo": 3, "bar": 4},
-			B:     map[string]int{"foo": 4, "bar": 3},
+			A:     map[string]int{reflectFoo: reflectFirstKey, reflectBar: reflectOtherValue},
+			B:     map[string]int{reflectFoo: reflectOtherValue, reflectBar: reflectFirstKey},
 			Equal: false,
 		},
 		{
-			A:     map[string]int{"foo": 3, "bar": 4},
-			B:     map[string]int{"foo": 3, "bar": 4},
+			A:     map[string]int{reflectFoo: reflectFirstKey, reflectBar: reflectOtherValue},
+			B:     map[string]int{reflectFoo: reflectFirstKey, reflectBar: reflectOtherValue},
 			Equal: true,
 		},
 	}
@@ -209,9 +218,9 @@ func TestReflectGoCmp(t *testing.T) {
 		MustContain []string
 	}{
 		{
-			A:           "foo",
-			B:           "bar",
-			MustContain: []string{"foo", "bar"},
+			A:           reflectFoo,
+			B:           reflectBar,
+			MustContain: []string{reflectFoo, reflectBar},
 		},
 	}
 

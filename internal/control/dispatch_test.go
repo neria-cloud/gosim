@@ -48,7 +48,23 @@ func run(t *testing.T, features contracts.FeatureSet, main func()) error {
 		if features.Has(contracts.Net) {
 			providers = append(providers, netprovider.NewProvider())
 		}
-		k, err := kernel.New(kernel.Config{Identity: abi.HostIdentity{Toolchain: "test-toolchain", Profile: "test-profile", HostOS: "darwin", HostArch: "arm64", SourceDigest: strings.Repeat("a", 64)}, RuntimeRevision: strings.Repeat("b", 64), BuildDigest: strings.Repeat("c", 64), Features: features, TimeoutNS: 1e9}, e, providers)
+		k, err := kernel.New(
+			kernel.Config{
+				Identity: abi.HostIdentity{
+					Toolchain:    "test-toolchain",
+					Profile:      "test-profile",
+					HostOS:       "darwin",
+					HostArch:     "arm64",
+					SourceDigest: strings.Repeat("a", 64),
+				},
+				RuntimeRevision: strings.Repeat("b", 64),
+				BuildDigest:     strings.Repeat("c", 64),
+				Features:        features,
+				TimeoutNS:       1e9,
+			},
+			e,
+			providers,
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -77,7 +93,10 @@ func TestTransportLifecycleAndRunIdentity(t *testing.T) {
 				if root.RunID == previous.RunID {
 					t.Fatal("run ID reused")
 				}
-				if _, err := invoke(kernel.LabelRequest{Machine: previous}, kernel.DecodeLabelResult); !errors.Is(err, contracts.ErrWrongRun) {
+				if _, err := invoke(kernel.LabelRequest{Machine: previous}, kernel.DecodeLabelResult); !errors.Is(
+					err,
+					contracts.ErrWrongRun,
+				) {
 					t.Fatal(err)
 				}
 			}
@@ -95,7 +114,14 @@ func TestTransportLifecycleAndRunIdentity(t *testing.T) {
 				t.Fatal(result, err)
 			}
 			entered := simrt.NewChan[contracts.MachineRef](0)
-			child := must(t, kernel.CreateRequest{Label: "child", Main: func() { entered.Send(CurrentRef()); simrt.NewChan[int](0).Recv() }}, kernel.DecodeCreateResult).Machine
+			child := must(
+				t,
+				kernel.CreateRequest{
+					Label: "child",
+					Main:  func() { entered.Send(CurrentRef()); simrt.NewChan[int](0).Recv() },
+				},
+				kernel.DecodeCreateResult,
+			).Machine
 			if state := must(t, kernel.StateRequest{Machine: child}, kernel.DecodeStateResult).State; state != kernel.StateNew {
 				t.Fatal(state)
 			}
@@ -124,24 +150,38 @@ func TestTransportLifecycleAndRunIdentity(t *testing.T) {
 				t.Fatal(exit)
 			}
 			must(t, kernel.DestroyRequest{Machine: child}, kernel.DecodeDestroyResult)
-			if _, err := invoke(kernel.LabelRequest{Machine: child}, kernel.DecodeLabelResult); !errors.Is(err, contracts.ErrMachineNotFound) {
+			if _, err := invoke(kernel.LabelRequest{Machine: child}, kernel.DecodeLabelResult); !errors.Is(
+				err,
+				contracts.ErrMachineNotFound,
+			) {
 				t.Fatal(err)
 			}
-			if _, err := invoke(kernel.StopRequest{Machine: root}, kernel.DecodeStopResult); !errors.Is(err, contracts.ErrSelfTransition) {
+			if _, err := invoke(kernel.StopRequest{Machine: root}, kernel.DecodeStopResult); !errors.Is(
+				err,
+				contracts.ErrSelfTransition,
+			) {
 				t.Fatal(err)
 			}
-			if _, err := invoke(kernel.WaitRequest{Machine: root}, kernel.DecodeWaitResult); !errors.Is(err, contracts.ErrSelfTransition) {
+			if _, err := invoke(kernel.WaitRequest{Machine: root}, kernel.DecodeWaitResult); !errors.Is(
+				err,
+				contracts.ErrSelfTransition,
+			) {
 				t.Fatal(err)
 			}
 			info := must(t, kernel.InfoRequest{}, kernel.DecodeInfoResult)
-			if info.Seed != 17 || info.Profile != "test-profile" || info.RuntimeRevision != strings.Repeat("b", 64) || len(info.Features) != 1 || info.Certified {
+			if info.Seed != 17 || info.Profile != "test-profile" || info.RuntimeRevision != strings.Repeat("b", 64) ||
+				len(info.Features) != 1 ||
+				info.Certified {
 				t.Fatal(info)
 			}
 			info.Features[0] = "mutation"
 			if must(t, kernel.InfoRequest{}, kernel.DecodeInfoResult).Features[0] != "rt" {
 				t.Fatal("run info leaked mutable state")
 			}
-			if _, err := invoke(kernel.SetTimeoutRequest{}, kernel.DecodeSetTimeoutResult); !errors.Is(err, contracts.ErrInvalidConfig) {
+			if _, err := invoke(kernel.SetTimeoutRequest{}, kernel.DecodeSetTimeoutResult); !errors.Is(
+				err,
+				contracts.ErrInvalidConfig,
+			) {
 				t.Fatal(err)
 			}
 			must(t, kernel.SetTimeoutRequest{TimeoutNS: 1e6}, kernel.DecodeSetTimeoutResult)
@@ -173,36 +213,86 @@ func TestTransportLifecycleAndRunIdentity(t *testing.T) {
 func TestTransportProviderControls(t *testing.T) {
 	err := run(t, contracts.FeatureSet(contracts.RT|contracts.FS|contracts.Net), func() {
 		root := CurrentRef()
-		child := must(t, kernel.CreateRequest{Label: "storage", Main: func() { simrt.NewChan[int](0).Recv() }}, kernel.DecodeCreateResult).Machine
-		must(t, kernel.FSConfigureMachineRequest{Machine: child, Config: contracts.FSConfig{WorkingDir: "/app"}}, kernel.DecodeFSConfigureMachineResult)
+		child := must(
+			t,
+			kernel.CreateRequest{Label: "storage", Main: func() { simrt.NewChan[int](0).Recv() }},
+			kernel.DecodeCreateResult,
+		).Machine
+		must(
+			t,
+			kernel.FSConfigureMachineRequest{Machine: child, Config: contracts.FSConfig{WorkingDir: "/app"}},
+			kernel.DecodeFSConfigureMachineResult,
+		)
 		must(t, kernel.FSSetCrashModeRequest{Machine: child, Mode: 1}, kernel.DecodeFSSetCrashModeResult)
-		must(t, kernel.FSSetSyncFaultRequest{Machine: child, Fault: contracts.FSFaultConfig{}}, kernel.DecodeFSSetSyncFaultResult)
-		must(t, kernel.NetConfigureRequest{Config: contracts.NetConfig{MinNS: 1, MaxNS: 2, Lambda: 1, Repair: 1}}, kernel.DecodeNetConfigureResult)
+		must(
+			t,
+			kernel.FSSetSyncFaultRequest{Machine: child, Fault: contracts.FSFaultConfig{}},
+			kernel.DecodeFSSetSyncFaultResult,
+		)
+		must(
+			t,
+			kernel.NetConfigureRequest{Config: contracts.NetConfig{MinNS: 1, MaxNS: 2, Lambda: 1, Repair: 1}},
+			kernel.DecodeNetConfigureResult,
+		)
 		addr := [4]byte{11, 0, 0, 2}
-		must(t, kernel.NetConfigureMachineRequest{Machine: child, Address: addr}, kernel.DecodeNetConfigureMachineResult)
+		must(
+			t,
+			kernel.NetConfigureMachineRequest{Machine: child, Address: addr},
+			kernel.DecodeNetConfigureMachineResult,
+		)
 		must(t, kernel.StartRequest{Machine: child}, kernel.DecodeStartResult)
 		if got := must(t, kernel.NetAddressRequest{Machine: child}, kernel.DecodeNetAddressResult).Address; got != addr {
 			t.Fatal(got)
 		}
 		from := must(t, kernel.NetAddressRequest{Machine: root}, kernel.DecodeNetAddressResult).Address
 		link := contracts.NetLink{From: from, To: addr, Direction: 1}
-		must(t, kernel.NetSetLinkPolicyRequest{Link: link, Policy: contracts.NetLinkPolicy{SetLatency: true, MinNS: 2, MaxNS: 3, Lambda: 1}}, kernel.DecodeNetSetLinkPolicyResult)
+		must(
+			t,
+			kernel.NetSetLinkPolicyRequest{
+				Link:   link,
+				Policy: contracts.NetLinkPolicy{SetLatency: true, MinNS: 2, MaxNS: 3, Lambda: 1},
+			},
+			kernel.DecodeNetSetLinkPolicyResult,
+		)
 		must(t, kernel.NetResetLinkPolicyRequest{Link: link}, kernel.DecodeNetResetLinkPolicyResult)
 		must(t, kernel.NetSetConnectivityRequest{Link: link, Connected: false}, kernel.DecodeNetSetConnectivityResult)
 		must(t, kernel.NetSetConnectivityRequest{Link: link, Connected: true}, kernel.DecodeNetSetConnectivityResult)
 		must(t, kernel.FSInspectInodeRequest{Machine: child, Inode: 1}, kernel.DecodeFSInspectInodeResult)
 		must(t, kernel.StopRequest{Machine: child, Kind: contracts.StopCrash}, kernel.DecodeStopResult)
-		iterator := must(t, kernel.FSEnumerateRequest{Machine: child, MaxStates: 10}, kernel.DecodeFSEnumerateResult).Iterator
-		next := must(t, kernel.FSNextSnapshotRequest{RunID: root.RunID, Iterator: iterator}, kernel.DecodeFSNextSnapshotResult)
+		iterator := must(
+			t,
+			kernel.FSEnumerateRequest{Machine: child, MaxStates: 10},
+			kernel.DecodeFSEnumerateResult,
+		).Iterator
+		next := must(
+			t,
+			kernel.FSNextSnapshotRequest{RunID: root.RunID, Iterator: iterator},
+			kernel.DecodeFSNextSnapshotResult,
+		)
 		if !next.OK || next.Snapshot == 0 {
 			t.Fatal(next)
 		}
-		must(t, kernel.FSCloseIteratorRequest{RunID: root.RunID, Iterator: iterator}, kernel.DecodeFSCloseIteratorResult)
-		if _, err := invoke(kernel.FSRestoreRequest{Machine: child, SnapshotRunID: root.RunID + 1, Snapshot: next.Snapshot}, kernel.DecodeFSRestoreResult); !errors.Is(err, contracts.ErrWrongRun) {
+		must(
+			t,
+			kernel.FSCloseIteratorRequest{RunID: root.RunID, Iterator: iterator},
+			kernel.DecodeFSCloseIteratorResult,
+		)
+		if _, err := invoke(kernel.FSRestoreRequest{Machine: child, SnapshotRunID: root.RunID + 1, Snapshot: next.Snapshot}, kernel.DecodeFSRestoreResult); !errors.Is(
+			err,
+			contracts.ErrWrongRun,
+		) {
 			t.Fatal(err)
 		}
-		must(t, kernel.FSRestoreRequest{Machine: child, SnapshotRunID: root.RunID, Snapshot: next.Snapshot}, kernel.DecodeFSRestoreResult)
-		must(t, kernel.FSCloseSnapshotRequest{RunID: root.RunID, Snapshot: next.Snapshot}, kernel.DecodeFSCloseSnapshotResult)
+		must(
+			t,
+			kernel.FSRestoreRequest{Machine: child, SnapshotRunID: root.RunID, Snapshot: next.Snapshot},
+			kernel.DecodeFSRestoreResult,
+		)
+		must(
+			t,
+			kernel.FSCloseSnapshotRequest{RunID: root.RunID, Snapshot: next.Snapshot},
+			kernel.DecodeFSCloseSnapshotResult,
+		)
 		must(t, kernel.DestroyRequest{Machine: child}, kernel.DecodeDestroyResult)
 	})
 	if err != nil {

@@ -38,7 +38,9 @@ func must(t *testing.T, err error) {
 
 func withKernel(t *testing.T, extra []contracts.Provider, body func(*kernel.Kernel, *Session, *simrt.Engine)) {
 	t.Helper()
-	e, err := simrt.NewEngine(simrt.EngineConfig{Seed: 42, TimeoutNS: int64(10 * time.Second), ReplayRevision: simrt.ReplayRevision})
+	e, err := simrt.NewEngine(
+		simrt.EngineConfig{Seed: 42, TimeoutNS: int64(10 * time.Second), ReplayRevision: simrt.ReplayRevision},
+	)
 	must(t, err)
 	defer e.Close()
 	must(t, e.Run(func() {
@@ -47,7 +49,11 @@ func withKernel(t *testing.T, extra []contracts.Provider, body func(*kernel.Kern
 		if len(extra) > 0 {
 			features |= contracts.FeatureSet(contracts.FS)
 		}
-		k, err := kernel.New(kernel.Config{Features: features, TimeoutNS: int64(10 * time.Second), BuildDigest: strings.Repeat("a", 64)}, e, append(extra, provider))
+		k, err := kernel.New(
+			kernel.Config{Features: features, TimeoutNS: int64(10 * time.Second), BuildDigest: strings.Repeat("a", 64)},
+			e,
+			append(extra, provider),
+		)
 		must(t, err)
 		defer func() {
 			must(t, k.Close())
@@ -145,7 +151,10 @@ func TestNetworkControlsLifecycleAndReservations(t *testing.T) {
 		if err := c.ConfigureMachine(ref, [4]byte{}, true); !errors.Is(err, contracts.ErrInvalidState) {
 			t.Fatal(err)
 		}
-		if _, err := s.machines[ref.ID].prepared.Bindings().Sockets.Socket(contracts.CallContext{Epoch: contracts.EpochRef{Machine: ref, Epoch: 1}}, 2, socketFlags, 0); !errors.Is(err, contracts.ErrInvalidState) {
+		if _, err := s.machines[ref.ID].prepared.Bindings().Sockets.Socket(contracts.CallContext{Epoch: contracts.EpochRef{Machine: ref, Epoch: 1}}, 2, socketFlags, 0); !errors.Is(
+			err,
+			contracts.ErrInvalidState,
+		) {
 			t.Fatal("staged service callable", err)
 		}
 		tx.Abort()
@@ -188,7 +197,10 @@ func TestNetworkControlsLifecycleAndReservations(t *testing.T) {
 		if _, err := c.Address(ref); !errors.Is(err, contracts.ErrMachineNotFound) {
 			t.Fatal("destroyed address", err)
 		}
-		if _, err := instance.Socket(contextOf(instance), 2, socketFlags, 0); !errors.Is(err, contracts.ErrInvalidState) {
+		if _, err := instance.Socket(contextOf(instance), 2, socketFlags, 0); !errors.Is(
+			err,
+			contracts.ErrInvalidState,
+		) {
 			t.Fatal("stale instance", err)
 		}
 	})
@@ -340,7 +352,9 @@ func TestReadinessLifecycleAndPeerStopModes(t *testing.T) {
 			oldRef := b.ref
 			must(t, k.Stop(b.machine.ref, kind))
 			staleServer.Notify(oldRef, accepted, contracts.ReadReady)
-			if !server.released || server.closeReason != map[contracts.StopKind]contracts.CloseReason{contracts.StopGraceful: contracts.CloseGraceful, contracts.StopCrash: contracts.CloseCrash}[kind] || len(server.subscriptions) != 0 {
+			if !server.released ||
+				server.closeReason != map[contracts.StopKind]contracts.CloseReason{contracts.StopGraceful: contracts.CloseGraceful, contracts.StopCrash: contracts.CloseCrash}[kind] ||
+				len(server.subscriptions) != 0 {
 				t.Fatal("stop did not release owned socket")
 			}
 			simrt.Sleep(1)
@@ -380,7 +394,8 @@ func TestFailedDescriptorTransferAndControlCopies(t *testing.T) {
 		simrt.Sleep(1)
 		original = b.fds
 		b.fds = rejectingTable{original}
-		if _, _, err := b.Accept(contextOf(b), listener, socketNonblock|socketCloseExec); err != syscall.EMFILE || len(b.sockets) != 1 {
+		if _, _, err := b.Accept(contextOf(b), listener, socketNonblock|socketCloseExec); err != syscall.EMFILE ||
+			len(b.sockets) != 1 {
 			t.Fatal("failed accept leaked", err)
 		}
 		b.fds = original
@@ -402,7 +417,10 @@ func TestFailedDescriptorTransferAndControlCopies(t *testing.T) {
 		must(t, c.SetConnectivity(link, false))
 		must(t, c.SetConnectivity(link, true))
 		must(t, c.ResetLinkPolicy(link))
-		if err := c.SetLinkPolicy(contracts.NetLink{Direction: 2}, contracts.NetLinkPolicy{}); !errors.Is(err, contracts.ErrInvalidConfig) {
+		if err := c.SetLinkPolicy(contracts.NetLink{Direction: 2}, contracts.NetLinkPolicy{}); !errors.Is(
+			err,
+			contracts.ErrInvalidConfig,
+		) {
 			t.Fatal(err)
 		}
 	})
@@ -474,19 +492,27 @@ func TestSocketPendingAndFailedConnectStatus(t *testing.T) {
 
 func TestFailedPreparationDoesNotConsumeRandomStreams(t *testing.T) {
 	run := func(fail bool) (draws [3]uint64) {
-		withKernel(t, []contracts.Provider{fsprovider.NewProvider()}, func(k *kernel.Kernel, s *Session, e *simrt.Engine) {
-			a := start(t, k, s)
-			ref := create(t, k)
-			c := netControl(t, k, ref)
-			must(t, c.ConfigureMachine(ref, a.machine.address, false))
-			if fail {
-				if err := k.Start(ref); err != syscall.EADDRINUSE {
-					t.Fatal(err)
+		withKernel(
+			t,
+			[]contracts.Provider{fsprovider.NewProvider()},
+			func(k *kernel.Kernel, s *Session, e *simrt.Engine) {
+				a := start(t, k, s)
+				ref := create(t, k)
+				c := netControl(t, k, ref)
+				must(t, c.ConfigureMachine(ref, a.machine.address, false))
+				if fail {
+					if err := k.Start(ref); err != syscall.EADDRINUSE {
+						t.Fatal(err)
+					}
 				}
-			}
-			// Use the native stream API, never inspect its scheduler-owned memory.
-			draws = [3]uint64{e.RandomFor("fs", ref.ID).Uint64(), e.RandomFor("net", 0).Uint64(), e.RandomFor("scheduler", 0).Uint64()}
-		})
+				// Use the native stream API, never inspect its scheduler-owned memory.
+				draws = [3]uint64{
+					e.RandomFor("fs", ref.ID).Uint64(),
+					e.RandomFor("net", 0).Uint64(),
+					e.RandomFor("scheduler", 0).Uint64(),
+				}
+			},
+		)
 		return
 	}
 	if run(false) != run(true) {

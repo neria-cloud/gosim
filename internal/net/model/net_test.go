@@ -10,6 +10,17 @@ import (
 	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
+const (
+	networkHostCount       = 5
+	networkLastHost        = 4
+	networkPacketCount     = 20
+	networkAfterDropCount  = 18
+	networkOtherWatermarks = 3
+	networkFreedPacketKind = 255
+	networkSampleValue     = 100
+	networkCurve           = 2.5
+)
+
 func attachTestEndpoints(n *Network, hosts ...netip.Addr) {
 	for _, addr := range hosts {
 		ref := contracts.EpochRef{Machine: contracts.MachineRef{RunID: 1, ID: uint64(addr.As4()[3])}, Epoch: 1}
@@ -106,7 +117,7 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 	t.Parallel()
 	rng := &scriptedRandom{}
 	n := testNetwork(t, rng)
-	hosts := make([]netip.Addr, 5)
+	hosts := make([]netip.Addr, networkHostCount)
 	for i := range hosts {
 		hosts[i] = netip.AddrFrom4([4]byte{10, 0, 0, byte(i + 1)})
 	}
@@ -116,57 +127,94 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 	c.Latency.Min = time.Hour
 	c.Latency.Max = time.Hour
 	control(t, n, ControlRequest{Kind: ReplaceGlobal, Config: c})
-	target := HostPair{hosts[1], hosts[4]}
+	target := HostPair{hosts[1], hosts[networkLastHost]}
 	key := edgeKey(target)
-	for i := 0; i < 5; i++ {
-		for j := i + 1; j < 5; j++ {
+	for i := 0; i < networkHostCount; i++ {
+		for j := i + 1; j < networkHostCount; j++ {
 			rng.exponentials = append(rng.exponentials, 0, 0)
 			pair := HostPair{hosts[i], hosts[j]}
 			sendTestPacket(n, pair)
 			sendTestPacket(n, pair.Flip())
 		}
 	}
-	if len(n.queue.items) != 20 {
+	if len(n.queue.items) != networkPacketCount {
 		t.Fatal(len(n.queue.items))
 	}
-	control(t, n, ControlRequest{Kind: SetPairLatency, A: hosts[1].String(), B: hosts[4].String(), Duration: 2 * time.Hour})
-	control(t, n, ControlRequest{Kind: SetPairFailRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 1})
-	control(t, n, ControlRequest{Kind: SetPairRepairRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 0})
+	control(
+		t,
+		n,
+		ControlRequest{
+			Kind:     SetPairLatency,
+			A:        hosts[1].String(),
+			B:        hosts[networkLastHost].String(),
+			Duration: 2 * time.Hour,
+		},
+	)
+	control(
+		t,
+		n,
+		ControlRequest{Kind: SetPairFailRate, A: hosts[1].String(), B: hosts[networkLastHost].String(), Probability: 1},
+	)
+	control(
+		t,
+		n,
+		ControlRequest{
+			Kind:        SetPairRepairRate,
+			A:           hosts[1].String(),
+			B:           hosts[networkLastHost].String(),
+			Probability: 0,
+		},
+	)
 	sendTestPacket(n, target)
 	sendTestPacket(n, target.Flip())
-	if len(n.queue.items) != 18 || n.links[key].Status != linkRandomPartition {
+	if len(n.queue.items) != networkAfterDropCount || n.links[key].Status != linkRandomPartition {
 		t.Fatal("pair failure did not purge exactly two packets")
 	}
 	for other, s := range n.links {
 		if other == key || other == edgeKey(target.Flip()) {
 			continue
 		}
-		if s.Latency != nil || s.Loss != nil || s.Status != linkHealthy || s.Generation != 0 || n.effectiveConfig(s) != c {
+		if s.Latency != nil || s.Loss != nil || s.Status != linkHealthy || s.Generation != 0 ||
+			n.effectiveConfig(s) != c {
 			t.Fatal("unrelated pair changed", other, s)
 		}
 	}
-	if _, ok := n.endpoints[hosts[1]].last[hosts[4]]; ok {
+	if _, ok := n.endpoints[hosts[1]].last[hosts[networkLastHost]]; ok {
 		t.Fatal("forward watermark retained")
 	}
-	if _, ok := n.endpoints[hosts[4]].last[hosts[1]]; ok {
+	if _, ok := n.endpoints[hosts[networkLastHost]].last[hosts[1]]; ok {
 		t.Fatal("reverse watermark retained")
 	}
-	if len(n.endpoints[hosts[1]].last) != 3 {
+	if len(n.endpoints[hosts[1]].last) != networkOtherWatermarks {
 		t.Fatal("unrelated watermarks cleared")
 	}
 	// Changing policy does not repair; repair is triggered by a subsequent send.
-	control(t, n, ControlRequest{Kind: SetPairFailRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 0})
+	control(
+		t,
+		n,
+		ControlRequest{Kind: SetPairFailRate, A: hosts[1].String(), B: hosts[networkLastHost].String(), Probability: 0},
+	)
 	if n.links[key].Status != linkRandomPartition {
 		t.Fatal("config repaired link")
 	}
 	sendTestPacket(n, target.Flip())
-	if len(n.queue.items) != 18 {
+	if len(n.queue.items) != networkAfterDropCount {
 		t.Fatal("repair probability zero ignored")
 	}
-	control(t, n, ControlRequest{Kind: SetPairRepairRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 1})
+	control(
+		t,
+		n,
+		ControlRequest{
+			Kind:        SetPairRepairRate,
+			A:           hosts[1].String(),
+			B:           hosts[networkLastHost].String(),
+			Probability: 1,
+		},
+	)
 	rng.exponentials = append(rng.exponentials, 0)
 	sendTestPacket(n, target.Flip())
-	if len(n.queue.items) != 19 || n.links[edgeKey(target.Flip())].Status != linkHealthy || n.links[key].Status != linkRandomPartition {
+	if len(n.queue.items) != 19 || n.links[edgeKey(target.Flip())].Status != linkHealthy ||
+		n.links[key].Status != linkRandomPartition {
 		t.Fatal("send did not repair")
 	}
 	for other := range n.links {
@@ -193,7 +241,8 @@ func TestNetworkDirectedConnectivity(t *testing.T) {
 		if err := n.SetConnectivity(pair, false, DirectionOneWay); err != nil {
 			t.Fatal(err)
 		}
-		if forward.Kind != 255 || len(n.queue.items) != 1 || n.queue.items[0] != backward || *n.links[edgeKey(pair.Flip())] != oldReverse {
+		if forward.Kind != networkFreedPacketKind || len(n.queue.items) != 1 || n.queue.items[0] != backward ||
+			*n.links[edgeKey(pair.Flip())] != oldReverse {
 			t.Fatal("forward partition affected reverse")
 		}
 		if _, ok := n.endpoints[pair.SourceHost].last[pair.DestHost]; ok {
@@ -224,7 +273,9 @@ func TestNetworkDirectedConnectivity(t *testing.T) {
 		}
 	}
 	n := testNetwork(t, &scriptedRandom{})
-	if n.SetConnectivity(HostPair{}, false, DirectionOneWay) != syscall.EINVAL || n.SetConnectivity(testPair, false, 99) != syscall.EINVAL || len(n.links) != 0 {
+	if n.SetConnectivity(HostPair{}, false, DirectionOneWay) != syscall.EINVAL ||
+		n.SetConnectivity(testPair, false, 99) != syscall.EINVAL ||
+		len(n.links) != 0 {
 		t.Fatal("invalid direction/address mutated state")
 	}
 }
@@ -235,12 +286,12 @@ func TestNetworkDropsWithoutSampling(t *testing.T) {
 	n := testNetwork(t, rng)
 	attachTestEndpoints(n, testPair.SourceHost)
 	p := sendTestPacket(n, testPair)
-	if p.Kind != 255 || len(n.links) != 0 {
+	if p.Kind != networkFreedPacketKind || len(n.links) != 0 {
 		t.Fatal("missing endpoint packet not released")
 	}
 	n.endpoints[testPair.SourceHost].closed = true
 	p = sendTestPacket(n, testPair)
-	if p.Kind != 255 {
+	if p.Kind != networkFreedPacketKind {
 		t.Fatal("closed endpoint packet not released")
 	}
 	n.endpoints[testPair.SourceHost].closed = false
@@ -249,7 +300,7 @@ func TestNetworkDropsWithoutSampling(t *testing.T) {
 		t.Fatal(err)
 	}
 	p = sendTestPacket(n, testPair)
-	if p.Kind != 255 || len(rng.calls) != 0 {
+	if p.Kind != networkFreedPacketKind || len(rng.calls) != 0 {
 		t.Fatal("explicit partition sampled or leaked packet")
 	}
 }
@@ -278,7 +329,7 @@ func TestNetworkCounterExhaustion(t *testing.T) {
 
 func TestNetworkSampledOrderAcrossGlobalUpdates(t *testing.T) {
 	t.Parallel()
-	rng := &scriptedRandom{exponentials: []float64{100, 0, 0}}
+	rng := &scriptedRandom{exponentials: []float64{networkSampleValue, 0, 0}}
 	n := testNetwork(t, rng)
 	attachTestEndpoints(n, testPair.SourceHost, testPair.DestHost)
 	first := sendTestPacket(n, testPair)
@@ -321,7 +372,7 @@ func TestTraceDoesNotSample(t *testing.T) {
 	rng := &scriptedRandom{}
 	n := testNetwork(t, rng)
 	r := localRequest(SetPairCurve)
-	r.Lambda = 2.5
+	r.Lambda = networkCurve
 	control(t, n, r)
 	control(t, n, ControlRequest{Kind: SetGlobalFailRate, Probability: 0.125})
 	if err := n.SetConnected(testPair, false); err != nil {

@@ -121,13 +121,28 @@ func typedBoundary(t *testing.T, path, source string, standard bool) *packages.P
 	if err != nil {
 		t.Fatal(err)
 	}
-	info := &types.Info{Types: make(map[ast.Expr]types.TypeAndValue), Uses: make(map[*ast.Ident]types.Object), Defs: make(map[*ast.Ident]types.Object), Implicits: make(map[ast.Node]types.Object), Selections: make(map[*ast.SelectorExpr]*types.Selection)}
+	info := &types.Info{
+		Types:      make(map[ast.Expr]types.TypeAndValue),
+		Uses:       make(map[*ast.Ident]types.Object),
+		Defs:       make(map[*ast.Ident]types.Object),
+		Implicits:  make(map[ast.Node]types.Object),
+		Selections: make(map[*ast.SelectorExpr]*types.Selection),
+	}
 	cfg := types.Config{Importer: importer.Default()}
 	tp, err := cfg.Check(path, fset, []*ast.File{file}, info)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pkg := &packages.Package{ID: path, PkgPath: path, Name: tp.Name(), Fset: fset, Types: tp, TypesInfo: info, Syntax: []*ast.File{file}, Imports: make(map[string]*packages.Package)}
+	pkg := &packages.Package{
+		ID:        path,
+		PkgPath:   path,
+		Name:      tp.Name(),
+		Fset:      fset,
+		Types:     tp,
+		TypesInfo: info,
+		Syntax:    []*ast.File{file},
+		Imports:   make(map[string]*packages.Package),
+	}
 	if !standard {
 		pkg.Module = &packages.Module{Path: "example.com/app"}
 	}
@@ -222,7 +237,12 @@ func TestHookedSourceAndOwnedNativeImports(t *testing.T) {
 	}
 	// The original body is replaced completely by the reviewed hook. Its native
 	// selector is not evidence of a native call surviving in generated code.
-	replaced := typedBoundary(t, "time", `package time; import "runtime"; func runtimeNano() int64{runtime.GC();return 0}`, true)
+	replaced := typedBoundary(
+		t,
+		"time",
+		`package time; import "runtime"; func runtimeNano() int64{runtime.GC();return 0}`,
+		true,
+	)
 	if err := ValidateBoundary(replaced, p); err != nil {
 		t.Fatal(err)
 	}
