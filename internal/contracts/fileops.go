@@ -16,6 +16,7 @@ type Lock struct {
 	PID          int32
 }
 type FileOps interface {
+	StorageDelayNS(CallContext) int64
 	Openat(CallContext, int, string, int, uint32) (int, error)
 	Renameat(CallContext, int, string, int, string) error
 	Getdents64(CallContext, int, abi.ByteView) (int, error)

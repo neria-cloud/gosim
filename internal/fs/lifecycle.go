@@ -133,3 +133,10 @@ func (i *Instance) validateCall(ctx contracts.CallContext) error {
 	}
 	return nil
 }
+
+func (i *Instance) StorageDelayNS(ctx contracts.CallContext) int64 {
+	if i.validateCall(ctx) != nil {
+		return 0
+	}
+	return i.machine.config.LatencyNS
+}

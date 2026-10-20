@@ -97,3 +97,15 @@ Implemented
 Verified
 - Both exact `gosim-gen -check` baselines, focused native/translated tests, `./.ci/gofmt check`, and `make build` passed.
 - `make test` passed: 1,823 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T141656.067148Z-riy4xdd4/report.md`).
+
+## Task 8 — Delay filesystem completions safely
+
+Implemented
+- Added per-machine storage delay to the FS service and classified covered data I/O and mutation routes in the dispatcher.
+- Executed provider effects once, cleared borrowed invocation arguments, then scheduled scalar completion on an epoch event.
+- Tracked and canceled pending timers on completion and epoch cancellation; distinguished read-only and mutating opens.
+- Added tests for deterministic time, immediate metadata/non-FS I/O, delayed `ENOSPC`/`EROFS`, cleared borrowed views and stop cancellation.
+
+Verified
+- Focused dispatcher/kernel tests, `./.ci/gofmt check`, and `make build` passed.
+- `make test` passed: 1,825 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T142420.758365Z-2obk3e90/report.md`).

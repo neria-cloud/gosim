@@ -3,6 +3,7 @@ package kernel
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"syscall"
 
@@ -69,12 +70,13 @@ type Dispatcher struct {
 	live      map[uint64]*invocationLease
 	envelopes map[*Invocation]uint64
 	canceled  map[uint64]contracts.EpochRef
+	timers    map[uint64]contracts.EventID
 }
 
 func NewDispatcher(kernel *Kernel) *Dispatcher {
 	return &Dispatcher{
 		kernel: kernel, incoming: simrt.NewChan[*Invocation](0), nextID: 1,
-		live: make(map[uint64]*invocationLease), envelopes: make(map[*Invocation]uint64), canceled: make(map[uint64]contracts.EpochRef),
+		live: make(map[uint64]*invocationLease), envelopes: make(map[*Invocation]uint64), canceled: make(map[uint64]contracts.EpochRef), timers: make(map[uint64]contracts.EventID),
 	}
 }
 
@@ -165,7 +167,15 @@ func (d *Dispatcher) DispatchOne(inv *Invocation) {
 	pending := false
 	err := k.protected(func() error {
 		var err error
+		openMutation := d.openatMutates(inv)
 		result, pending, err = d.decode(inv)
+		if err == nil && !pending {
+			var delay int64
+			delay, err = d.fsDelay(inv, openMutation)
+			if err == nil && delay > 0 {
+				pending, err = d.scheduleFSCompletion(inv, result, delay)
+			}
+		}
 		return err
 	})
 	if request, ok := err.(*contracts.CrashRequest); ok {
@@ -201,7 +211,93 @@ func (d *Dispatcher) DispatchOne(inv *Invocation) {
 }
 
 //go:norace
-func clearInvocation(inv *Invocation) { inv.Args, inv.Result = [5]any{}, Result{} }
+func clearInvocation(inv *Invocation) {
+	inv.Args, inv.Scalars, inv.Result = [5]any{}, [6]uintptr{}, Result{}
+}
+
+// fsDelay classifies the completed operation. Descriptor read/write is delayed
+// only when the descriptor belongs to the filesystem provider.
+func (d *Dispatcher) openatMutates(inv *Invocation) bool {
+	if inv.Route != RouteOpenat {
+		return false
+	}
+	p, ok := inv.Args[0].(OpenatRequest)
+	if !ok {
+		return false // decode reports malformed payload
+	}
+	if p.Flags&0x200 != 0 { // Linux O_TRUNC
+		return true
+	}
+	if p.Flags&0x40 == 0 { // Linux O_CREAT
+		return false
+	}
+	files, err := d.kernel.Filesystem(inv.Context)
+	if err != nil {
+		return false // decode handles unavailable services
+	}
+	_, err = files.Statat(inv.Context, p.DirFD, p.Path, 0)
+	return errors.Is(err, syscall.ENOENT)
+}
+
+func (d *Dispatcher) fsDelay(inv *Invocation, openMutation bool) (int64, error) {
+	switch inv.Route {
+	case RouteRead, RouteWrite:
+		var fd int
+		if inv.Route == RouteRead {
+			fd = inv.Args[0].(ReadRequest).FD
+		} else {
+			fd = inv.Args[0].(WriteRequest).FD
+		}
+		run, err := d.kernel.activeEpoch(inv.Context.Epoch)
+		if err != nil {
+			return 0, err
+		}
+		resource, err := run.descriptors.Lookup(fd)
+		if err != nil || resource.Owner() != contracts.FS {
+			return 0, nil
+		}
+	case RouteOpenat:
+		if !openMutation {
+			return 0, nil
+		}
+	case RoutePread, RoutePwrite, RouteFallocate, RouteTruncate, RouteSync,
+		RouteMkdirat, RouteRenameat, RouteUnlinkat, RouteFchmod, RouteChmodat,
+		RouteFchown, RouteChownat:
+	default:
+		return 0, nil
+	}
+	files, err := d.kernel.Filesystem(inv.Context)
+	if err != nil {
+		return 0, err
+	}
+	return files.StorageDelayNS(inv.Context), nil
+}
+
+// scheduleFSCompletion retains only the scalar result and epoch identity.
+// Borrowed ByteViews leave the supervisor envelope before any clock event runs.
+func (d *Dispatcher) scheduleFSCompletion(inv *Invocation, result Result, delay int64) (bool, error) {
+	if delay <= 0 {
+		return false, nil
+	}
+	now := d.kernel.Ports().Clock.NowNanos()
+	if now > math.MaxInt64-delay {
+		return false, contracts.ErrInvalidConfig
+	}
+	id, epoch := inv.Context.InvocationID, inv.Context.Epoch
+	clearInvocation(inv)
+	event, err := d.kernel.Ports().Events.Schedule(epoch, now+delay, func() {
+		if !d.ownsInvocation(contracts.CallContext{Epoch: epoch, InvocationID: id}) {
+			return
+		}
+		delete(d.timers, id)
+		_ = d.Complete(id, result)
+	})
+	if err != nil {
+		return false, err
+	}
+	d.timers[id] = event
+	return true, nil
+}
 
 // Complete drops borrowed arguments and the lease before waking a caller.
 // Missing issued IDs mean duplicate completion unless cancellation metadata
@@ -209,6 +305,10 @@ func clearInvocation(inv *Invocation) { inv.Args, inv.Result = [5]any{}, Result{
 //
 //go:norace
 func (d *Dispatcher) Complete(id uint64, result Result) error {
+	if event, ok := d.timers[id]; ok {
+		d.kernel.Ports().Events.Cancel(event)
+		delete(d.timers, id)
+	}
 	if epoch, ok := d.canceled[id]; ok {
 		d.kernel.Ports().Trace.Emit(epoch, "discard-canceled-completion", []contracts.Field{{Key: "invocation", Value: fmt.Sprint(id)}})
 		return nil
@@ -243,6 +343,10 @@ func (d *Dispatcher) Complete(id uint64, result Result) error {
 
 //go:norace
 func (d *Dispatcher) cancel(id uint64, entry *invocationLease) {
+	if event, ok := d.timers[id]; ok {
+		d.kernel.Ports().Events.Cancel(event)
+		delete(d.timers, id)
+	}
 	inv := entry.invocation
 	clearInvocation(inv)
 	d.kernel.engine.RetireSemaphore(abi.NewValueView(&inv.Sema))
@@ -281,7 +385,7 @@ func (d *Dispatcher) releaseEpoch(epoch contracts.EpochRef) {
 }
 
 func (d *Dispatcher) Drain() error {
-	if len(d.live) != 0 || len(d.envelopes) != 0 || len(d.kernel.waits) != 0 {
+	if len(d.live) != 0 || len(d.envelopes) != 0 || len(d.timers) != 0 || len(d.kernel.waits) != 0 {
 		return errors.New("dispatcher retained borrowed invocations or observers")
 	}
 	clear(d.canceled)

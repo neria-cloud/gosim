@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
@@ -84,6 +85,145 @@ func TestFilesystemApplicationDispatch(t *testing.T) {
 	})
 	if err != nil || !completed.Load() {
 		t.Fatal("application filesystem dispatch failed", err)
+	}
+}
+
+func TestFilesystemLatencyDelaysCompletionAndClearsBorrowedInput(t *testing.T) {
+	const delay = int64(100)
+	var inspected atomic.Bool
+	_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider()}, func(k *Kernel) {
+		done := simrt.NewChan[bool](0)
+		var control contracts.FSControl
+		var ref contracts.MachineRef
+		ref = createFor(t, k, "delayed-files", func() {
+			start := simrt.Nanotime()
+			fd := fsCall(t, k, OpenatRequest{DirFD: -100, Path: "delayed", Flags: 0x40 | 2, Mode: 0o600}, DecodeOpenatResult).FD
+			if elapsed := simrt.Nanotime() - start; elapsed != delay {
+				t.Fatalf("create delay = %d", elapsed)
+			}
+			start = simrt.Nanotime()
+			existing := fsCall(t, k, OpenatRequest{DirFD: -100, Path: "delayed", Flags: 0x40 | 2, Mode: 0o600}, DecodeOpenatResult).FD
+			if elapsed := simrt.Nanotime() - start; elapsed != 0 {
+				t.Fatalf("existing O_CREAT delay = %d", elapsed)
+			}
+			fsCall(t, k, CloseRequest{FD: existing}, DecodeCloseResult)
+			start = simrt.Nanotime()
+			fsCall(t, k, FstatRequest{FD: fd}, DecodeFstatResult)
+			if elapsed := simrt.Nanotime() - start; elapsed != 0 {
+				t.Fatalf("metadata read delay = %d", elapsed)
+			}
+			inv := WriteRequest{FD: fd, From: abi.ByteView{Ptr: []byte("x")}}.Invocation()
+			inv.Context = currentContext(k)
+			if _, err := k.Ports().Events.Schedule(inv.Context.Epoch, simrt.Nanotime()+delay/2, func() {
+				if inv.Args != ([5]any{}) || len(k.dispatcher.timers) != 1 {
+					t.Error("delayed completion retained borrowed arguments or lost timer")
+				}
+				inspected.Store(true)
+			}); err != nil {
+				t.Fatal(err)
+			}
+			start = simrt.Nanotime()
+			if err := k.dispatcher.Submit(&inv); err != nil {
+				t.Fatal(err)
+			}
+			if result, err := DecodeWriteResult(inv.TakeResult()); err != nil || result.Count != 1 {
+				t.Fatalf("delayed write: %+v, %v", result, err)
+			}
+			if elapsed := simrt.Nanotime() - start; elapsed != delay {
+				t.Fatalf("write delay = %d", elapsed)
+			}
+			buffer := make([]byte, 1)
+			start = simrt.Nanotime()
+			if n := fsCall(t, k, PreadRequest{FD: fd, Into: abi.ByteView{Ptr: buffer}, Offset: 0}, DecodePreadResult).Count; n != 1 || string(buffer) != "x" {
+				t.Fatalf("delayed read: n=%d data=%q", n, buffer)
+			}
+			if elapsed := simrt.Nanotime() - start; elapsed != delay {
+				t.Fatalf("read delay = %d", elapsed)
+			}
+			start = simrt.Nanotime()
+			netCall(t, k, PwriteRequest{FD: fd, From: abi.ByteView{Ptr: []byte("y")}, Offset: 1024}, syscall.ENOSPC, DecodePwriteResult)
+			if elapsed := simrt.Nanotime() - start; elapsed != delay {
+				t.Fatalf("ENOSPC delay = %d", elapsed)
+			}
+			if err := control.SetReadOnly(ref, true); err != nil {
+				t.Fatal(err)
+			}
+			start = simrt.Nanotime()
+			netCall(t, k, PwriteRequest{FD: fd, From: abi.ByteView{Ptr: []byte("z")}, Offset: 0}, syscall.EROFS, DecodePwriteResult)
+			if elapsed := simrt.Nanotime() - start; elapsed != delay {
+				t.Fatalf("EROFS delay = %d", elapsed)
+			}
+			start = simrt.Nanotime()
+			fsCall(t, k, WriteRequest{FD: 1, From: abi.ByteView{Ptr: []byte("diagnostic")}}, DecodeWriteResult)
+			if elapsed := simrt.Nanotime() - start; elapsed != 0 {
+				t.Fatalf("non-filesystem write delay = %d", elapsed)
+			}
+			done.Send(true)
+		})
+		var err error
+		control, err = k.FilesystemControl(contracts.CallContext{}, ref.RunID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := control.ConfigureMachine(ref, contracts.FSConfig{WorkingDir: "/app", CapacityBytes: 2 * 1024, LatencyNS: delay}); err != nil {
+			t.Fatal(err)
+		}
+		if err := k.Start(ref); err != nil {
+			t.Fatal(err)
+		}
+		if err := k.Run(func() { done.Recv() }); err != nil {
+			t.Fatal(err)
+		}
+		if err := k.dispatcher.Drain(); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if err != nil || !inspected.Load() {
+		t.Fatalf("filesystem latency: %v inspected=%v", err, inspected.Load())
+	}
+}
+
+func TestFilesystemDelayedCompletionCanceledOnStop(t *testing.T) {
+	var canceled, resumed atomic.Bool
+	k, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider()}, func(k *Kernel) {
+		var ref contracts.MachineRef
+		ref = createFor(t, k, "cancel-delayed-file", func() {
+			fd := fsCall(t, k, OpenatRequest{DirFD: -100, Path: "file", Flags: 0x40 | 2, Mode: 0o600}, DecodeOpenatResult).FD
+			inv := WriteRequest{FD: fd, From: abi.ByteView{Ptr: []byte("data")}}.Invocation()
+			inv.Context = currentContext(k)
+			if _, err := k.Ports().Events.Schedule(inv.Context.Epoch, simrt.Nanotime()+50, func() {
+				if inv.Args != ([5]any{}) || len(k.dispatcher.timers) != 1 {
+					t.Error("pending write retained borrowed input or lost timer")
+				}
+				if err := k.Stop(ref, contracts.StopCrash); err != nil {
+					t.Error(err)
+				}
+				if len(k.dispatcher.timers) != 0 || len(k.dispatcher.live) != 0 {
+					t.Error("stopped epoch retained delayed completion")
+				}
+				canceled.Store(true)
+			}); err != nil {
+				t.Fatal(err)
+			}
+			_ = k.dispatcher.Submit(&inv)
+			resumed.Store(true)
+		})
+		control, err := k.FilesystemControl(contracts.CallContext{}, ref.RunID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := control.ConfigureMachine(ref, contracts.FSConfig{WorkingDir: "/app", LatencyNS: 100}); err != nil {
+			t.Fatal(err)
+		}
+		if err := k.Start(ref); err != nil {
+			t.Fatal(err)
+		}
+		if err := k.Run(func() { simrt.Sleep(500) }); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if err != nil || !canceled.Load() || resumed.Load() || len(k.dispatcher.timers) != 0 {
+		t.Fatalf("delayed cancellation: %v canceled=%v resumed=%v", err, canceled.Load(), resumed.Load())
 	}
 }
 

@@ -7,6 +7,8 @@ type fakeFiles struct{}
 
 var _ FileOps = (*fakeFiles)(nil)
 
+func (*fakeFiles) StorageDelayNS(CallContext) int64 { return 0 }
+
 func (*fakeFiles) Openat(CallContext, int, string, int, uint32) (int, error) { return 0, errInjected }
 func (*fakeFiles) Renameat(CallContext, int, string, int, string) error      { return errInjected }
 func (*fakeFiles) Getdents64(CallContext, int, abi.ByteView) (int, error)    { return 0, errInjected }

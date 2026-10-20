@@ -186,14 +186,14 @@ The public `Config` converts explicitly to `contracts.FSConfig{WorkingDir,Capaci
 **References**: target §Architectural view (epoch event), §Public API and control wiring (`StorageDelayNS`, `scheduleFSCompletion`), §Data flows 7 and 8, §Method decision logic (`scheduleFSCompletion`), target failure table; `docs/design.md` §Dispatcher, descriptors and memory.  
 **Goal**: Apply configured fixed latency without yielding during provider calls or retaining borrowed views after synchronous execution.
 
-- [ ] Add `StorageDelayNS(CallContext) int64` to the FS service and return the machine's configured delay. Define a route classifier for FS descriptor `Read`/`Write`, `Pread`/`Pwrite`, `Fallocate`, `Truncate`, `Sync`, and mutating path/metadata operations. Delay `Openat` only when it creates or truncates. Do not delay socket/diagnostic descriptor I/O, control routes, `stat`/`statfs` or read-only open.
-- [ ] Execute the provider call once under the existing supervisor protection, copy the scalar result, clear borrowed arguments before scheduling, and return `pending`. Schedule completion at checked `NowNanos()+LatencyNS` using the injected epoch event port. Do not defer the provider call itself, copy a `ByteView` into an event callback or draw randomness.
-- [ ] Track timer ID by invocation ID, retire/cancel it on completion, `CancelEpoch` and dispatcher `Drain`; verify no duplicate completion, stale event wake or leaked lease. A sync fault/crash request aborts the delayed path and follows existing crash cleanup.
-- [ ] Test simulated time advancement, zero delay, latency on success and `ENOSPC`/`EROFS`, exact-once side effects, open/close/restart cancellation, race between event and cancellation, read buffer cleanup, and unaffected network/diagnostic operations. Preserve replay trace determinism.
+- [x] Add `StorageDelayNS(CallContext) int64` to the FS service and return the machine's configured delay. Define a route classifier for FS descriptor `Read`/`Write`, `Pread`/`Pwrite`, `Fallocate`, `Truncate`, `Sync`, and mutating path/metadata operations. Delay `Openat` only when it creates or truncates. Do not delay socket/diagnostic descriptor I/O, control routes, `stat`/`statfs` or read-only open.
+- [x] Execute the provider call once under the existing supervisor protection, copy the scalar result, clear borrowed arguments before scheduling, and return `pending`. Schedule completion at checked `NowNanos()+LatencyNS` using the injected epoch event port. Do not defer the provider call itself, copy a `ByteView` into an event callback or draw randomness.
+- [x] Track timer ID by invocation ID, retire/cancel it on completion, `CancelEpoch` and dispatcher `Drain`; verify no duplicate completion, stale event wake or leaked lease. A sync fault/crash request aborts the delayed path and follows existing crash cleanup.
+- [x] Test simulated time advancement, zero delay, latency on success and `ENOSPC`/`EROFS`, exact-once side effects, open/close/restart cancellation, race between event and cancellation, read buffer cleanup, and unaffected network/diagnostic operations. Preserve replay trace determinism.
 
 #### Verification
 
-- [ ] Run focused dispatcher/kernel/provider tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
+- [x] Run focused dispatcher/kernel/provider tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
 
 ---
 
