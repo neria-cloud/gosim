@@ -4,6 +4,8 @@ package behavior_test
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"os"
 	"syscall"
 	"testing"
@@ -68,6 +70,101 @@ func TestPublicStorageCapacityAndReadOnly(t *testing.T) {
 	}
 	testsupport.Check(t, simfs.SetReadOnly(m, false))
 	resume <- struct{}{}
+	testsupport.Wait(t, m)
+	testsupport.Check(t, m.Destroy())
+}
+
+func TestStorageFullDuringSequentialWrites(t *testing.T) {
+	m, err := gosim.NewMachine(gosim.MachineConfig{Main: func() {
+		f, err := os.OpenFile("disk-full", os.O_CREATE|os.O_RDWR, 0o600)
+		testsupport.Check(t, err)
+		defer f.Close()
+		first := make([]byte, 1024)
+		first[0] = 'a'
+		if n, err := f.Write(first); n != len(first) || err != nil {
+			t.Fatalf("first write: n=%d err=%v", n, err)
+		}
+		if n, err := f.Write([]byte("overflow")); n != 0 || !errors.Is(err, syscall.ENOSPC) {
+			t.Fatalf("write after storage fills: n=%d err=%v", n, err)
+		}
+		if offset, err := f.Seek(0, io.SeekCurrent); offset != 1024 || err != nil {
+			t.Fatalf("failed write advanced offset: offset=%d err=%v", offset, err)
+		}
+		if info, err := f.Stat(); err != nil || info.Size() != 1024 {
+			t.Fatalf("failed write changed size: info=%v err=%v", info, err)
+		}
+		if n, err := f.WriteAt([]byte("b"), 0); n != 1 || err != nil {
+			t.Fatalf("overwrite on full storage: n=%d err=%v", n, err)
+		}
+		data, err := os.ReadFile("disk-full")
+		testsupport.Check(t, err)
+		if len(data) != len(first) || data[0] != 'b' || data[1] != 0 {
+			t.Fatalf("file changed after full-storage failure: size=%d first=%q", len(data), data[:min(len(data), 2)])
+		}
+	}})
+	testsupport.Check(t, err)
+	config := simfs.DefaultConfig()
+	config.CapacityBytes = 2 * 1024 // /etc/hosts occupies the first block.
+	testsupport.Check(t, simfs.ConfigureMachine(m, config))
+	testsupport.Check(t, m.Start())
+	testsupport.Wait(t, m)
+	stats, err := simfs.Stats(m)
+	testsupport.Check(t, err)
+	if stats.TotalBytes != 2048 || stats.UsedBytes != 2048 || stats.FreeBytes != 0 {
+		t.Fatalf("full storage stats: %+v", stats)
+	}
+	testsupport.Check(t, m.Destroy())
+}
+
+func TestStorageBecomesReadOnlyBetweenWrites(t *testing.T) {
+	ready := make(chan error, 1)
+	proceed := make(chan struct{})
+	blocked := make(chan error, 1)
+	m, err := gosim.NewMachine(gosim.MachineConfig{Main: func() {
+		f, err := os.OpenFile("read-only-transition", os.O_CREATE|os.O_RDWR, 0o600)
+		if err != nil {
+			ready <- err
+			return
+		}
+		defer f.Close()
+		if n, err := f.Write([]byte("before")); n != 6 || err != nil {
+			ready <- fmt.Errorf("first write: n=%d err=%v", n, err)
+			return
+		}
+		ready <- nil
+		<-proceed
+		if n, err := f.Write([]byte("blocked")); n != 0 || !errors.Is(err, syscall.EROFS) {
+			blocked <- fmt.Errorf("write after read-only transition: n=%d err=%v", n, err)
+			return
+		}
+		if offset, err := f.Seek(0, io.SeekCurrent); offset != 6 || err != nil {
+			blocked <- fmt.Errorf("read-only failure advanced offset: offset=%d err=%v", offset, err)
+			return
+		}
+		blocked <- nil
+		<-proceed
+		if n, err := f.Write([]byte("after")); n != 5 || err != nil {
+			t.Fatalf("write after read-only cleared: n=%d err=%v", n, err)
+		}
+		data, err := os.ReadFile("read-only-transition")
+		testsupport.Check(t, err)
+		if string(data) != "beforeafter" {
+			t.Fatalf("read-only transition changed contents: %q", data)
+		}
+	}})
+	testsupport.Check(t, err)
+	testsupport.Check(t, m.Start())
+	testsupport.Check(t, <-ready)
+	testsupport.Check(t, simfs.SetReadOnly(m, true))
+	proceed <- struct{}{}
+	testsupport.Check(t, <-blocked)
+	stats, err := simfs.Stats(m)
+	testsupport.Check(t, err)
+	if !stats.ReadOnly {
+		t.Fatalf("read-only state not reported: %+v", stats)
+	}
+	testsupport.Check(t, simfs.SetReadOnly(m, false))
+	proceed <- struct{}{}
 	testsupport.Wait(t, m)
 	testsupport.Check(t, m.Destroy())
 }
