@@ -19,7 +19,7 @@ const (
 	childTimeoutExitCode = 3
 )
 
-func TestSuiteWorkerProcess(t *testing.T) {
+func TestSuiteWorkerProcess(_ *testing.T) {
 	if os.Getenv("GOSIM_SUITE_TEST_CHILD") != "1" {
 		return
 	}

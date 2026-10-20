@@ -7,15 +7,15 @@ import "unsafe"
 // link names used by the reflect2 package, used indirectly by etcd. expose them
 // to let the package compile. make all of them panic to prevent usage.
 
-func unsafe_New(rtype unsafe.Pointer) unsafe.Pointer {
+func unsafe_New(_ unsafe.Pointer) unsafe.Pointer {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }
 
-func typedmemmove(rtype unsafe.Pointer, dst, src unsafe.Pointer) {
+func typedmemmove(_ unsafe.Pointer, dst, src unsafe.Pointer) {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }
 
-func unsafe_NewArray(rtype unsafe.Pointer, length int) unsafe.Pointer {
+func unsafe_NewArray(_ unsafe.Pointer, length int) unsafe.Pointer {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }
 
@@ -25,15 +25,15 @@ type noSliceHeader struct {
 	Cap  int
 }
 
-func typedslicecopy(elemType unsafe.Pointer, dst, src noSliceHeader) int {
+func typedslicecopy(_ unsafe.Pointer, dst, src noSliceHeader) int {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }
 
-func mapassign(rtype unsafe.Pointer, m unsafe.Pointer, key, val unsafe.Pointer) {
+func mapassign(_ unsafe.Pointer, m unsafe.Pointer, key, val unsafe.Pointer) {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }
 
-func mapaccess(rtype unsafe.Pointer, m unsafe.Pointer, key unsafe.Pointer) (val unsafe.Pointer) {
+func mapaccess(_ unsafe.Pointer, m unsafe.Pointer, key unsafe.Pointer) (val unsafe.Pointer) {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }
 
@@ -43,18 +43,18 @@ type noHiter struct {
 	// rest fields are ignored
 }
 
-func mapiterinit(rtype unsafe.Pointer, m unsafe.Pointer) *noHiter {
+func mapiterinit(_ unsafe.Pointer, m unsafe.Pointer) *noHiter {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }
 
-func mapiternext(it *noHiter) {
+func mapiternext(_ *noHiter) {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }
 
-func ifaceE2I(rtype unsafe.Pointer, src interface{}, dst unsafe.Pointer) {
+func ifaceE2I(_ unsafe.Pointer, src interface{}, dst unsafe.Pointer) {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }
 
-func makemap(rtype unsafe.Pointer, cap int) (m unsafe.Pointer) {
+func makemap(_ unsafe.Pointer, cap int) (m unsafe.Pointer) {
 	panic("gosim go125 reflect: unsupported private reflect2 ABI")
 }

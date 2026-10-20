@@ -17,7 +17,7 @@ func InternalPoll_runtime_pollServerInit() {
 	// Registry is already owned by the bound kernel; no native epoll/kqueue fd.
 	Require(contracts.RT, "poll-server-init")
 }
-func InternalPoll_runtime_isPollServerDescriptor(fd uintptr) bool { return false }
+func InternalPoll_runtime_isPollServerDescriptor(_ uintptr) bool { return false }
 func InternalPoll_runtime_pollOpen(fd uintptr) (uintptr, int) {
 	result, err := Call(kernel.PollOpenRequest{FD: int(fd)}, kernel.DecodePollOpenResult)
 	if errno, ok := err.(syscall.Errno); ok {
@@ -63,7 +63,7 @@ func InternalPoll_runtime_pollUnblock(ctx uintptr) {
 	checked(Call(kernel.PollUnblockRequest{Handle: uint64(ctx)}, kernel.DecodePollUnblockResult))
 }
 
-func InternalPoll_runtime_pollWaitCanceled(ctx uintptr, mode int) {
+func InternalPoll_runtime_pollWaitCanceled(_ uintptr, mode int) {
 	Reject("internal/poll.runtime_pollWaitCanceled")
 }
 

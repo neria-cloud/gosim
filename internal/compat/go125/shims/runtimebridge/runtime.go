@@ -24,7 +24,7 @@ func Runtime_SetBlockProfileRate(rate int) {
 	)
 }
 
-func Runtime_ReadMemStats(stats any) {
+func Runtime_ReadMemStats(_ any) {
 	gosimruntime.Abort(
 		abi.Diagnostic{
 			Kind:      "UnsupportedOperation",
@@ -49,7 +49,7 @@ func Runtime_GOMAXPROCS(n int) int {
 	return 1
 }
 
-func Runtime_SetFinalizer(obj any, finalizer any) {
+func Runtime_SetFinalizer(_ any, finalizer any) {
 	// Named stub in the profile: no native GC callbacks. Machine lifecycle owns
 	// descriptors and resources; translated application objects do not escape.
 }
@@ -106,7 +106,7 @@ func Runtime_NumGoroutine() int {
 	panic("abort returned")
 }
 
-func Runtime_ThreadCreateProfile(p any) (int, bool) {
+func Runtime_ThreadCreateProfile(_ any) (int, bool) {
 	gosimruntime.Abort(
 		abi.Diagnostic{
 			Kind:      "UnsupportedOperation",

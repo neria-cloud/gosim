@@ -877,7 +877,7 @@ func Yield() {
 	getg().yield()
 }
 
-func SetFinalizer(obj any, finalizer any) {
+func SetFinalizer(_ any, finalizer any) {
 	// never do anything, hopefully no problems...
 
 	// TODO: maybe could have deterministic GC if we disable automatic GC and

@@ -40,9 +40,9 @@ func unsupported() {
 		},
 	)
 }
-func Current() (*User, error)                  { unsupported(); return nil, nil }
-func Lookup(username string) (*User, error)    { unsupported(); return nil, nil }
-func LookupId(uid string) (*User, error)       { unsupported(); return nil, nil }
-func LookupGroup(name string) (*Group, error)  { unsupported(); return nil, nil }
-func LookupGroupId(gid string) (*Group, error) { unsupported(); return nil, nil }
-func (u *User) GroupIds() ([]string, error)    { unsupported(); return nil, nil }
+func Current() (*User, error)                { unsupported(); return nil, nil }
+func Lookup(_ string) (*User, error)         { unsupported(); return nil, nil }
+func LookupId(_ string) (*User, error)       { unsupported(); return nil, nil }
+func LookupGroup(_ string) (*Group, error)   { unsupported(); return nil, nil }
+func LookupGroupId(_ string) (*Group, error) { unsupported(); return nil, nil }
+func (u *User) GroupIds() ([]string, error)  { unsupported(); return nil, nil }

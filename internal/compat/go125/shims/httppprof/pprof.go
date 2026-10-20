@@ -10,7 +10,7 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
-func unsupported(w http.ResponseWriter, r *http.Request) {
+func unsupported(_ http.ResponseWriter, r *http.Request) {
 	gosimruntime.Abort(
 		abi.Diagnostic{
 			Kind:      "UnsupportedOperation",

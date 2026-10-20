@@ -5,7 +5,7 @@
 package synctest
 
 // TODO(not planned): native synctest bubbles cannot share the simulation scheduler.
-func Run(f func()) { panic("gosim go125 synctest.Run: bubbles are unsupported") }
+func Run(_ func()) { panic("gosim go125 synctest.Run: bubbles are unsupported") }
 
 func Wait() { panic("gosim go125 synctest.Wait: bubbles are unsupported") }
 
@@ -25,9 +25,9 @@ func Associate[T any](p *T) Association {
 	return Unbubbled
 }
 
-func Disassociate[T any](p *T) {}
+func Disassociate[T any](_ *T) {}
 
-func IsAssociated[T any](p *T) bool { return false }
+func IsAssociated[T any](_ *T) bool { return false }
 
 // A Bubble is a synctest bubble — always nil in gosim.
 type Bubble struct{}

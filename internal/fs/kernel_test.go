@@ -141,7 +141,7 @@ func TestKernelFilesystemControlStateAndRunGuards(t *testing.T) {
 	if err := oldControl.CloseSnapshot(oldSnapshot); !errors.Is(err, contracts.ErrInvalidState) {
 		t.Fatal("closed-run control usable", err)
 	}
-	must(t, withKernel(t, nil, func(k *kernel.Kernel, s *Session) {
+	must(t, withKernel(t, nil, func(k *kernel.Kernel, _ *Session) {
 		ref := create(t, k)
 		if _, err := k.FilesystemControl(contracts.CallContext{}, oldRef.RunID); !errors.Is(
 			err,

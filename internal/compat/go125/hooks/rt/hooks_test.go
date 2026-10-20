@@ -70,7 +70,7 @@ func TestTimerHooks(t *testing.T) {
 			t.Error("inconsistent virtual time")
 		}
 		fired := gosimruntime.NewChan[int64](4)
-		callback := func(arg any, _ uintptr, delta int64) { arg.(gosimruntime.Chan[int64]).Send(Time_runtimeNano()) }
+		callback := func(arg any, _ uintptr, _ int64) { arg.(gosimruntime.Chan[int64]).Send(Time_runtimeNano()) }
 		timer := Time_newTimer(start+100, 0, callback, fired, nil)
 		if !Time_stopTimer(timer) || Time_stopTimer(timer) {
 			t.Error("stop state")

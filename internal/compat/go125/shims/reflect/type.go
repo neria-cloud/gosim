@@ -411,12 +411,12 @@ func PointerTo(t Type) Type {
 	return wrapType(reflect.PointerTo(t.(*typeImpl).inner))
 }
 
-func ChanOf(dir ChanDir, t Type) Type {
+func ChanOf(_ ChanDir, t Type) Type {
 	panic("gosim go125 reflect: unsupported operation")
 	// return wrapType(reflect.ChanOf(dir, t.(*typeImpl).inner))
 }
 
-func MapOf(key, elem Type) Type {
+func MapOf(_, elem Type) Type {
 	gosimruntime.Abort(
 		abi.Diagnostic{
 			Kind:      "UnsupportedOperation",
@@ -436,7 +436,7 @@ func SliceOf(t Type) Type {
 	return wrapType(reflect.SliceOf(t.(*typeImpl).inner))
 }
 
-func StructOf(fields []StructField) Type {
+func StructOf(_ []StructField) Type {
 	panic("gosim go125 reflect: unsupported operation")
 }
 

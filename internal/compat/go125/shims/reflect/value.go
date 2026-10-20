@@ -106,7 +106,7 @@ type SelectCase struct {
 	Send Value
 }
 
-func Select(cases []SelectCase) (chosen int, recv Value, recvOK bool) {
+func Select(_ []SelectCase) (chosen int, recv Value, recvOK bool) {
 	panic("gosim go125 reflect: unsupported operation")
 }
 
@@ -114,7 +114,7 @@ func MakeSlice(typ Type, len, cap int) Value {
 	return wrapValue(reflect.MakeSlice(typ.(*typeImpl).inner, len, cap))
 }
 
-func MakeChan(typ Type, buffer int) Value {
+func MakeChan(_ Type, buffer int) Value {
 	panic("gosim go125 reflect: unsupported operation")
 }
 
@@ -479,7 +479,7 @@ func (v Value) Recv() (x Value, ok bool) {
 	panic("abort returned")
 }
 
-func (v Value) Send(x Value) {
+func (v Value) Send(_ Value) {
 	gosimruntime.Abort(
 		abi.Diagnostic{
 			Kind:      "UnsupportedOperation",
@@ -555,7 +555,7 @@ func (v Value) TryRecv() (x Value, ok bool) {
 	panic("gosim go125 reflect: unsupported operation")
 }
 
-func (v Value) TrySend(x Value) bool {
+func (v Value) TrySend(_ Value) bool {
 	panic("gosim go125 reflect: unsupported operation")
 }
 

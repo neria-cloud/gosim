@@ -169,49 +169,49 @@ func (v *ClientSessionState) ResumptionState() (ticket []byte, state *SessionSta
 	panic(unsupportedAbortMessage)
 }
 func (v *Config) Clone() *Config { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Config) SetSessionTicketKeys(keys [][tlsKeySize]byte) {
+func (v *Config) SetSessionTicketKeys(_ [][tlsKeySize]byte) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 func (v *Config) BuildNameToCertificate() { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Config) EncryptTicket(cs ConnectionState, ss *SessionState) ([]byte, error) {
+func (v *Config) EncryptTicket(_ ConnectionState, ss *SessionState) ([]byte, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 
-func (v *Config) DecryptTicket(identity []byte, cs ConnectionState) (*SessionState, error) {
+func (v *Config) DecryptTicket(_ []byte, cs ConnectionState) (*SessionState, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 func (v *Conn) LocalAddr() net.Addr                { unsupported(); panic(unsupportedAbortMessage) }
 func (v *Conn) RemoteAddr() net.Addr               { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Conn) SetDeadline(t time.Time) error      { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Conn) SetReadDeadline(t time.Time) error  { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Conn) SetWriteDeadline(t time.Time) error { unsupported(); panic(unsupportedAbortMessage) }
+func (v *Conn) SetDeadline(_ time.Time) error      { unsupported(); panic(unsupportedAbortMessage) }
+func (v *Conn) SetReadDeadline(_ time.Time) error  { unsupported(); panic(unsupportedAbortMessage) }
+func (v *Conn) SetWriteDeadline(_ time.Time) error { unsupported(); panic(unsupportedAbortMessage) }
 func (v *Conn) NetConn() net.Conn                  { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Conn) Write(b []byte) (int, error)        { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Conn) Read(b []byte) (int, error)         { unsupported(); panic(unsupportedAbortMessage) }
+func (v *Conn) Write(_ []byte) (int, error)        { unsupported(); panic(unsupportedAbortMessage) }
+func (v *Conn) Read(_ []byte) (int, error)         { unsupported(); panic(unsupportedAbortMessage) }
 func (v *Conn) Close() error                       { unsupported(); panic(unsupportedAbortMessage) }
 func (v *Conn) CloseWrite() error                  { unsupported(); panic(unsupportedAbortMessage) }
 func (v *Conn) Handshake() error                   { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Conn) HandshakeContext(ctx context.Context) error {
+func (v *Conn) HandshakeContext(_ context.Context) error {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 func (v *Conn) ConnectionState() ConnectionState { unsupported(); panic(unsupportedAbortMessage) }
 func (v *Conn) OCSPResponse() []byte             { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Conn) VerifyHostname(host string) error { unsupported(); panic(unsupportedAbortMessage) }
-func (v *ConnectionState) ExportKeyingMaterial(label string, contextData []byte, length int) ([]byte, error) {
+func (v *Conn) VerifyHostname(_ string) error { unsupported(); panic(unsupportedAbortMessage) }
+func (v *ConnectionState) ExportKeyingMaterial(_ string, contextData []byte, length int) ([]byte, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 func (v CurveID) String() string { unsupported(); panic(unsupportedAbortMessage) }
-func (v *Dialer) Dial(network string, addr string) (net.Conn, error) {
+func (v *Dialer) Dial(_ string, addr string) (net.Conn, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 
-func (v *Dialer) DialContext(ctx context.Context, network string, addr string) (net.Conn, error) {
+func (v *Dialer) DialContext(_ context.Context, network string, addr string) (net.Conn, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
@@ -280,29 +280,29 @@ const (
 	X25519MLKEM768                                CurveID              = 4588
 )
 
-func Client(_ net.Conn, config *Config) *Conn { unsupported(); panic(unsupportedAbortMessage) }
-func Server(_ net.Conn, config *Config) *Conn { unsupported(); panic(unsupportedAbortMessage) }
-func Dial(_ string, addr string, config *Config) (*Conn, error) {
+func Client(_ net.Conn, _ *Config) *Conn { unsupported(); panic(unsupportedAbortMessage) }
+func Server(_ net.Conn, _ *Config) *Conn { unsupported(); panic(unsupportedAbortMessage) }
+func Dial(_ string, _ string, config *Config) (*Conn, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 
-func Listen(_ string, laddr string, config *Config) (net.Listener, error) {
+func Listen(_ string, _ string, config *Config) (net.Listener, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 
-func NewListener(_ net.Listener, config *Config) net.Listener {
+func NewListener(_ net.Listener, _ *Config) net.Listener {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 
-func LoadX509KeyPair(_ string, keyFile string) (Certificate, error) {
+func LoadX509KeyPair(_ string, _ string) (Certificate, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
 
-func X509KeyPair(_ []byte, keyPEMBlock []byte) (Certificate, error) {
+func X509KeyPair(_ []byte, _ []byte) (Certificate, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }

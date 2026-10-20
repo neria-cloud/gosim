@@ -56,7 +56,7 @@ func TestScript(t *testing.T) {
 	extractedModDir := filepath.Join(curModDir, gosimtool.OutputDirectory, "scripttest", "mod")
 
 	// add test dependencies to the copied gosim module
-	if err := filepath.Walk(extractedModDir, func(path string, info fs.FileInfo, err error) error {
+	if err := filepath.Walk(extractedModDir, func(_ string, info fs.FileInfo, err error) error {
 		return nil
 	}); err != nil {
 		log.Fatal(err)
@@ -89,7 +89,7 @@ func TestScript(t *testing.T) {
 		// add /bin to PATH in tests
 		binDir := filepath.Join(curModDir, gosimtool.OutputDirectory, "scripttest", "bin")
 		// add dependencies on /bin
-		if err := filepath.Walk(binDir, func(path string, info fs.FileInfo, err error) error {
+		if err := filepath.Walk(binDir, func(_ string, info fs.FileInfo, err error) error {
 			return nil
 		}); err != nil {
 			log.Fatal(err)

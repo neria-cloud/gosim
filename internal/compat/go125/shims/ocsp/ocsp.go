@@ -83,7 +83,7 @@ const (
 	Unspecified          = 0
 )
 
-func CreateRequest(_ *x509.Certificate, issuer *x509.Certificate, opts *RequestOptions) ([]byte, error) {
+func CreateRequest(_ *x509.Certificate, _ *x509.Certificate, opts *RequestOptions) ([]byte, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
@@ -97,7 +97,7 @@ func CreateResponse(
 	unsupported()
 	panic(unsupportedAbortMessage)
 }
-func ParseRequest(bytes []byte) (*Request, error) { unsupported(); panic(unsupportedAbortMessage) }
+func ParseRequest(_ []byte) (*Request, error) { unsupported(); panic(unsupportedAbortMessage) }
 func ParseResponse(_ []byte, _ *x509.Certificate) (*Response, error) {
 	unsupported()
 	panic(unsupportedAbortMessage)
