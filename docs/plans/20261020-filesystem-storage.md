@@ -80,15 +80,15 @@ The public `Config` converts explicitly to `contracts.FSConfig{WorkingDir,Capaci
 **References**: target §Storage schema and invariants (block accounting), §Model/provider methods (`AllocatedBlocks`, `NewBlocksForWrite`, `Write`, `Truncate`), §Data flows 3 and failure table, §Method decision logic (`UsedBlocks`, `Write`); brainstorm log §User choices 1 and 7.  
 **Goal**: Make writes atomic at capacity, preserving sparse behavior and offsets.
 
-- [ ] Implement `chunkedFile.AllocatedBlocks() uint64` and `NewBlocksForWrite(pos,size int) uint64`. Count each nil chunk touched by a nonempty write once, including a partial first/last block. Existing non-nil chunks and COW copies do not increase virtual usage.
-- [ ] Change model `Write` to return `(int,error)` and reject invalid or overflowing offsets before converting to `int`, making chunks or adding pending ops. Compare `newBlocks` with the remaining block budget without unsigned underflow; an over-capacity recovered image has zero headroom.
-- [ ] Preserve existing sparse growth from `Truncate`: extending logical length does not allocate file-data blocks, shrinking releases truncated blocks, and the last partial block is zeroed as it already is. Update method signature and callers to return errors and reject impossible sizes before `Resize`.
-- [ ] Update `File.writeAt`, `File.Write`, `Pwrite`, `Instance.Truncate` and open-with-truncate path to pass configured capacity and preserve atomic `ENOSPC` plus file offset semantics. Use `EROFS` checks for mutation only after Task 5 supplies the shared check; until then, add a direct policy check in `file.go` so read-only is effective immediately.
-- [ ] Test exactly-full, one-byte-over, sparse high-offset write, overwrite of existing blocks, zero-byte write, COW snapshot, truncate shrink/expand and a write to an unlinked open file. Assert no pending-op/file/offset mutation on `ENOSPC` and that `Stats` matches allocation.
+- [x] Implement `chunkedFile.AllocatedBlocks() uint64` and `NewBlocksForWrite(pos,size int) uint64`. Count each nil chunk touched by a nonempty write once, including a partial first/last block. Existing non-nil chunks and COW copies do not increase virtual usage.
+- [x] Change model `Write` to return `(int,error)` and reject invalid or overflowing offsets before converting to `int`, making chunks or adding pending ops. Compare `newBlocks` with the remaining block budget without unsigned underflow; an over-capacity recovered image has zero headroom.
+- [x] Preserve existing sparse growth from `Truncate`: extending logical length does not allocate file-data blocks, shrinking releases truncated blocks, and the last partial block is zeroed as it already is. Update method signature and callers to return errors and reject impossible sizes before `Resize`.
+- [x] Update `File.writeAt`, `File.Write`, `Pwrite`, `Instance.Truncate` and open-with-truncate path to pass configured capacity and preserve atomic `ENOSPC` plus file offset semantics. Use `EROFS` checks for mutation only after Task 5 supplies the shared check; until then, add a direct policy check in `file.go` so read-only is effective immediately.
+- [x] Test exactly-full, one-byte-over, sparse high-offset write, overwrite of existing blocks, zero-byte write, COW snapshot, truncate shrink/expand and a write to an unlinked open file. Assert no pending-op/file/offset mutation on `ENOSPC` and that `Stats` matches allocation.
 
 #### Verification
 
-- [ ] Run focused model and provider tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
+- [x] Run focused model and provider tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
 
 ---
 

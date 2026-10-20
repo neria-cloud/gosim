@@ -2,10 +2,12 @@ package fs
 
 import (
 	"errors"
+	"syscall"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
 	"github.com/neria-cloud/gosim/internal/fs/model"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 func TestStorageStatsAndReadOnlyLifecycle(t *testing.T) {
@@ -42,6 +44,37 @@ func TestStorageStatsAndReadOnlyLifecycle(t *testing.T) {
 		t.Fatalf("restart stats: %+v, %v", stats, err)
 	}
 	stop(t, i, contracts.StopGraceful)
+}
+
+func TestFileCapacityAndReadOnlyWithOpenDescriptor(t *testing.T) {
+	i, ctx, table := ioFixture(t)
+	i.machine.config.CapacityBytes = 2 * model.StorageBlockSize
+	fd := open(t, i, ctx, "limited", openCreate|2)
+	resource, err := table.Lookup(fd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := resource.(*File)
+	block := make([]byte, model.StorageBlockSize)
+	if n, err := f.Write(ctx, abi.ByteView{Ptr: block}); err != nil || n != len(block) {
+		t.Fatalf("fill: n=%d err=%v", n, err)
+	}
+	before := f.pos
+	if n, err := f.Write(ctx, abi.ByteView{Ptr: []byte("x")}); n != 0 || !errors.Is(err, syscall.ENOSPC) || f.pos != before {
+		t.Fatalf("full write changed offset: n=%d err=%v pos=%d", n, err, f.pos)
+	}
+	if err := i.session.SetReadOnly(ref1, true); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := i.Pwrite(ctx, fd, abi.ByteView{Ptr: []byte("z")}, 0); n != 0 || !errors.Is(err, syscall.EROFS) {
+		t.Fatalf("read-only pwrite: n=%d err=%v", n, err)
+	}
+	if err := i.session.SetReadOnly(ref1, false); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := i.Pwrite(ctx, fd, abi.ByteView{Ptr: []byte("z")}, 0); n != 1 || err != nil {
+		t.Fatalf("writable pwrite: n=%d err=%v", n, err)
+	}
 }
 
 func TestStorageConfigValidationAtomic(t *testing.T) {

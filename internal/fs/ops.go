@@ -50,6 +50,9 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 	if flags&^supported != 0 || flags&3 == 3 {
 		return 0, syscall.EINVAL
 	}
+	if i.machine.readOnly && flags&(openCreate|openTruncate) != 0 {
+		return 0, syscall.EROFS
+	}
 	// TODO(not planned): permissions, O_APPEND, and strict O_DIRECTORY semantics.
 	modelFlags := flags & 3
 	for _, flag := range []struct{ linux, host int }{{openCreate, os.O_CREATE}, {openExclusive, os.O_EXCL}, {openTruncate, os.O_TRUNC}} {
@@ -136,6 +139,9 @@ func (i *Instance) Fallocate(ctx contracts.CallContext, fd int, mode uint32, off
 	if mode != 0 || offset != 0 || length < 0 {
 		return syscall.EINVAL
 	}
+	if !f.write {
+		return syscall.EBADF
+	}
 	stat, err := i.model.Statfd(f.inode)
 	if err != nil {
 		return err
@@ -143,8 +149,13 @@ func (i *Instance) Fallocate(ctx contracts.CallContext, fd int, mode uint32, off
 	if stat.IsDir {
 		return syscall.EISDIR
 	}
+	if i.machine.readOnly {
+		return syscall.EROFS
+	}
 	if length > stat.Size {
-		i.model.Truncate(f.inode, int(length))
+		if err := i.model.Truncate(f.inode, length, i.machine.config.CapacityBytes); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -301,8 +312,10 @@ func (i *Instance) Truncate(ctx contracts.CallContext, fd int, size int64) error
 	if stat.IsDir {
 		return syscall.EISDIR
 	}
-	i.model.Truncate(f.inode, int(size))
-	return nil
+	if i.machine.readOnly {
+		return syscall.EROFS
+	}
+	return i.model.Truncate(f.inode, size, i.machine.config.CapacityBytes)
 }
 
 func (i *Instance) Chdir(ctx contracts.CallContext, path string) error {

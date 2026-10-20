@@ -78,7 +78,7 @@ func write(t *testing.T, fs *model.Filesystem, name, value string) int {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := fs.Write(inode, 0, abi.ByteView{Ptr: []byte(value)}); n != len(value) {
+	if n, err := fs.Write(inode, 0, abi.ByteView{Ptr: []byte(value)}, model.DefaultCapacityBytes); err != nil || n != len(value) {
 		t.Fatal("short write")
 	}
 	if err := fs.CloseFile(inode); err != nil {

@@ -171,11 +171,7 @@ func (fs *Filesystem) UsedBlocks() uint64 {
 		if !ok || file.linkCount == 0 && fs.openCountByInode[inode] == 0 {
 			continue
 		}
-		for _, chunk := range file.file.chunks {
-			if chunk != nil {
-				used++
-			}
-		}
+		used += file.file.AllocatedBlocks()
 	}
 	return used
 }
@@ -576,8 +572,23 @@ func (fs *Filesystem) Read(inode int, pos int64, buffer abi.ByteView) int {
 	return file.read(pos, buffer)
 }
 
-func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView) int {
+func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView, capacityBytes uint64) (int, error) {
+	maxInt := int64(^uint(0) >> 1)
+	if pos < 0 || pos > maxInt-int64(buffer.Len()) {
+		return 0, syscall.EINVAL
+	}
 	file := fs.mem.getFile(inode)
+	if buffer.Len() == 0 {
+		return 0, nil
+	}
+	if capacityBytes == 0 {
+		capacityBytes = DefaultCapacityBytes
+	}
+	limit := capacityBytes / StorageBlockSize
+	needed := file.file.NewBlocksForWrite(int(pos), buffer.Len())
+	if needed > limit || fs.UsedBlocks() > limit-needed {
+		return 0, syscall.ENOSPC
+	}
 
 	if int(pos)+buffer.Len() > file.len() {
 		op := &resizeOp{
@@ -600,19 +611,23 @@ func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView) int {
 	}
 	fs.apply(op)
 
-	return len
+	return len, nil
 }
 
-func (fs *Filesystem) Truncate(inode, pos int) {
+func (fs *Filesystem) Truncate(inode int, pos int64, capacityBytes uint64) error {
+	if pos < 0 || pos > int64(^uint(0)>>1) {
+		return syscall.EINVAL
+	}
 	file := fs.mem.getFile(inode)
 
-	if pos != file.len() {
+	if int(pos) != file.len() {
 		op := &resizeOp{
 			inode: inode,
-			size:  pos,
+			size:  int(pos),
 		}
 		fs.apply(op)
 	}
+	return nil
 }
 
 func (fs *Filesystem) Sync(inode int) {
