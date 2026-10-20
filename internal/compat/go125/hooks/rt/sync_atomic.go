@@ -13,139 +13,139 @@ func maybeAtomicYield() {
 	gosimruntime.AtomicYield()
 }
 
-func SyncAtomic_SwapInt32(addr *int32, new int32) (old int32) {
+func SyncAtomic_SwapInt32(addr *int32, next int32) (old int32) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.SwapInt32(addr, new)
+		return atomic.SwapInt32(addr, next)
 	}
 	old = *addr
-	*addr = new
+	*addr = next
 	return
 }
 
-func SyncAtomic_SwapInt64(addr *int64, new int64) (old int64) {
+func SyncAtomic_SwapInt64(addr *int64, next int64) (old int64) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.SwapInt64(addr, new)
+		return atomic.SwapInt64(addr, next)
 	}
 	old = *addr
-	*addr = new
+	*addr = next
 	return
 }
 
-func SyncAtomic_SwapUint32(addr *uint32, new uint32) (old uint32) {
+func SyncAtomic_SwapUint32(addr *uint32, next uint32) (old uint32) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.SwapUint32(addr, new)
+		return atomic.SwapUint32(addr, next)
 	}
 	old = *addr
-	*addr = new
+	*addr = next
 	return
 }
 
-func SyncAtomic_SwapUint64(addr *uint64, new uint64) (old uint64) {
+func SyncAtomic_SwapUint64(addr *uint64, next uint64) (old uint64) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.SwapUint64(addr, new)
+		return atomic.SwapUint64(addr, next)
 	}
 	old = *addr
-	*addr = new
+	*addr = next
 	return
 }
 
-func SyncAtomic_SwapUintptr(addr *uintptr, new uintptr) (old uintptr) {
+func SyncAtomic_SwapUintptr(addr *uintptr, next uintptr) (old uintptr) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.SwapUintptr(addr, new)
+		return atomic.SwapUintptr(addr, next)
 	}
 	old = *addr
-	*addr = new
+	*addr = next
 	return
 }
 
-func SyncAtomic_SwapPointer(addr *unsafe.Pointer, new unsafe.Pointer) (old unsafe.Pointer) {
+func SyncAtomic_SwapPointer(addr *unsafe.Pointer, next unsafe.Pointer) (old unsafe.Pointer) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.SwapPointer(addr, new)
+		return atomic.SwapPointer(addr, next)
 	}
 	old = *addr
-	*addr = new
+	*addr = next
 	return
 }
 
-func SyncAtomic_CompareAndSwapInt32(addr *int32, old, new int32) (swapped bool) {
+func SyncAtomic_CompareAndSwapInt32(addr *int32, old, next int32) (swapped bool) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.CompareAndSwapInt32(addr, old, new)
+		return atomic.CompareAndSwapInt32(addr, old, next)
 	}
 	if *addr != old {
 		return false
 	}
-	*addr = new
+	*addr = next
 	return true
 }
 
-func SyncAtomic_CompareAndSwapInt64(addr *int64, old, new int64) (swapped bool) {
+func SyncAtomic_CompareAndSwapInt64(addr *int64, old, next int64) (swapped bool) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.CompareAndSwapInt64(addr, old, new)
+		return atomic.CompareAndSwapInt64(addr, old, next)
 	}
 	if *addr != old {
 		return false
 	}
-	*addr = new
+	*addr = next
 	return true
 }
 
-func SyncAtomic_CompareAndSwapUint32(addr *uint32, old, new uint32) (swapped bool) {
+func SyncAtomic_CompareAndSwapUint32(addr *uint32, old, next uint32) (swapped bool) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.CompareAndSwapUint32(addr, old, new)
+		return atomic.CompareAndSwapUint32(addr, old, next)
 	}
 	if *addr != old {
 		return false
 	}
-	*addr = new
+	*addr = next
 	return true
 }
 
-func SyncAtomic_CompareAndSwapUint64(addr *uint64, old, new uint64) (swapped bool) {
+func SyncAtomic_CompareAndSwapUint64(addr *uint64, old, next uint64) (swapped bool) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.CompareAndSwapUint64(addr, old, new)
+		return atomic.CompareAndSwapUint64(addr, old, next)
 	}
 	if *addr != old {
 		return false
 	}
-	*addr = new
+	*addr = next
 	return true
 }
 
-func SyncAtomic_CompareAndSwapUintptr(addr *uintptr, old, new uintptr) (swapped bool) {
+func SyncAtomic_CompareAndSwapUintptr(addr *uintptr, old, next uintptr) (swapped bool) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.CompareAndSwapUintptr(addr, old, new)
+		return atomic.CompareAndSwapUintptr(addr, old, next)
 	}
 	if *addr != old {
 		return false
 	}
-	*addr = new
+	*addr = next
 	return true
 }
 
-func SyncAtomic_CompareAndSwapPointer(addr *unsafe.Pointer, old, new unsafe.Pointer) (swapped bool) {
+func SyncAtomic_CompareAndSwapPointer(addr *unsafe.Pointer, old, next unsafe.Pointer) (swapped bool) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
-		return atomic.CompareAndSwapPointer(addr, old, new)
+		return atomic.CompareAndSwapPointer(addr, old, next)
 	}
 	if *addr != old {
 		return false
 	}
-	*addr = new
+	*addr = next
 	return true
 }
 
-func SyncAtomic_AddInt32(addr *int32, delta int32) (new int32) {
+func SyncAtomic_AddInt32(addr *int32, delta int32) (next int32) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AddInt32(addr, delta)
@@ -154,7 +154,7 @@ func SyncAtomic_AddInt32(addr *int32, delta int32) (new int32) {
 	return *addr
 }
 
-func SyncAtomic_AddUint32(addr *uint32, delta uint32) (new uint32) {
+func SyncAtomic_AddUint32(addr *uint32, delta uint32) (next uint32) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AddUint32(addr, delta)
@@ -163,7 +163,7 @@ func SyncAtomic_AddUint32(addr *uint32, delta uint32) (new uint32) {
 	return *addr
 }
 
-func SyncAtomic_AddInt64(addr *int64, delta int64) (new int64) {
+func SyncAtomic_AddInt64(addr *int64, delta int64) (next int64) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AddInt64(addr, delta)
@@ -172,7 +172,7 @@ func SyncAtomic_AddInt64(addr *int64, delta int64) (new int64) {
 	return *addr
 }
 
-func SyncAtomic_AddUint64(addr *uint64, delta uint64) (new uint64) {
+func SyncAtomic_AddUint64(addr *uint64, delta uint64) (next uint64) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AddUint64(addr, delta)
@@ -181,7 +181,7 @@ func SyncAtomic_AddUint64(addr *uint64, delta uint64) (new uint64) {
 	return *addr
 }
 
-func SyncAtomic_AddUintptr(addr *uintptr, delta uintptr) (new uintptr) {
+func SyncAtomic_AddUintptr(addr *uintptr, delta uintptr) (next uintptr) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AddUintptr(addr, delta)
@@ -190,7 +190,7 @@ func SyncAtomic_AddUintptr(addr *uintptr, delta uintptr) (new uintptr) {
 	return *addr
 }
 
-func SyncAtomic_AndInt32(addr *int32, delta int32) (new int32) {
+func SyncAtomic_AndInt32(addr *int32, delta int32) (next int32) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AndInt32(addr, delta)
@@ -200,7 +200,7 @@ func SyncAtomic_AndInt32(addr *int32, delta int32) (new int32) {
 	return old
 }
 
-func SyncAtomic_AndUint32(addr *uint32, delta uint32) (new uint32) {
+func SyncAtomic_AndUint32(addr *uint32, delta uint32) (next uint32) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AndUint32(addr, delta)
@@ -210,7 +210,7 @@ func SyncAtomic_AndUint32(addr *uint32, delta uint32) (new uint32) {
 	return old
 }
 
-func SyncAtomic_AndInt64(addr *int64, delta int64) (new int64) {
+func SyncAtomic_AndInt64(addr *int64, delta int64) (next int64) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AndInt64(addr, delta)
@@ -220,7 +220,7 @@ func SyncAtomic_AndInt64(addr *int64, delta int64) (new int64) {
 	return old
 }
 
-func SyncAtomic_AndUint64(addr *uint64, delta uint64) (new uint64) {
+func SyncAtomic_AndUint64(addr *uint64, delta uint64) (next uint64) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AndUint64(addr, delta)
@@ -230,7 +230,7 @@ func SyncAtomic_AndUint64(addr *uint64, delta uint64) (new uint64) {
 	return old
 }
 
-func SyncAtomic_AndUintptr(addr *uintptr, delta uintptr) (new uintptr) {
+func SyncAtomic_AndUintptr(addr *uintptr, delta uintptr) (next uintptr) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.AndUintptr(addr, delta)
@@ -240,7 +240,7 @@ func SyncAtomic_AndUintptr(addr *uintptr, delta uintptr) (new uintptr) {
 	return old
 }
 
-func SyncAtomic_OrInt32(addr *int32, delta int32) (new int32) {
+func SyncAtomic_OrInt32(addr *int32, delta int32) (next int32) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.OrInt32(addr, delta)
@@ -250,7 +250,7 @@ func SyncAtomic_OrInt32(addr *int32, delta int32) (new int32) {
 	return old
 }
 
-func SyncAtomic_OrUint32(addr *uint32, delta uint32) (new uint32) {
+func SyncAtomic_OrUint32(addr *uint32, delta uint32) (next uint32) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.OrUint32(addr, delta)
@@ -260,7 +260,7 @@ func SyncAtomic_OrUint32(addr *uint32, delta uint32) (new uint32) {
 	return old
 }
 
-func SyncAtomic_OrInt64(addr *int64, delta int64) (new int64) {
+func SyncAtomic_OrInt64(addr *int64, delta int64) (next int64) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.OrInt64(addr, delta)
@@ -270,7 +270,7 @@ func SyncAtomic_OrInt64(addr *int64, delta int64) (new int64) {
 	return old
 }
 
-func SyncAtomic_OrUint64(addr *uint64, delta uint64) (new uint64) {
+func SyncAtomic_OrUint64(addr *uint64, delta uint64) (next uint64) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.OrUint64(addr, delta)
@@ -280,7 +280,7 @@ func SyncAtomic_OrUint64(addr *uint64, delta uint64) (new uint64) {
 	return old
 }
 
-func SyncAtomic_OrUintptr(addr *uintptr, delta uintptr) (new uintptr) {
+func SyncAtomic_OrUintptr(addr *uintptr, delta uintptr) (next uintptr) {
 	maybeAtomicYield()
 	if gosimruntime.RaceEnabled {
 		return atomic.OrUintptr(addr, delta)

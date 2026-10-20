@@ -56,13 +56,13 @@ func Load(path string, overrides Overrides) (ConfigRequest, error) {
 			return request, fmt.Errorf("unsupported config schema %d", wire.Schema)
 		}
 		if wire.Schema == 2 && wire.Toolchain != nil {
-			return request, fmt.Errorf(
+			return request, errors.New(
 				"schema 2 uses Go tooling for compiler selection; remove toolchain or use explicit -go",
 			)
 		}
 		if wire.Schema == 1 {
 			if wire.Toolchain == nil || *wire.Toolchain == "" {
-				return request, fmt.Errorf(
+				return request, errors.New(
 					"legacy schema 1 requires an exact toolchain; migrate to schema 2 for automatic Go selection",
 				)
 			}

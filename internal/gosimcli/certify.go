@@ -107,7 +107,7 @@ func certifyContext(
 		return report, err
 	}
 	if !suite.large {
-		return report, fmt.Errorf(
+		return report, errors.New(
 			"manual certification requires explicit -large coverage; use verify for ordinary tests",
 		)
 	}

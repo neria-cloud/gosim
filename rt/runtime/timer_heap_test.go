@@ -126,7 +126,7 @@ func checkTimerHeap(t *rapid.T) {
 		}
 		for _, timer := range model {
 			if timer.pos < 0 || timer.pos >= len(heap.timers) || heap.timers[timer.pos] != timer {
-				t.Errorf("wrong pos for timer") // XXX: helpful information somehow?
+				t.Error("wrong pos for timer") // XXX: helpful information somehow?
 			}
 		}
 	}

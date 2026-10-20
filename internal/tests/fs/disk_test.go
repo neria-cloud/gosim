@@ -1230,7 +1230,7 @@ func (f *mmapTester) readAt(t *testing.T, pos, n int) {
 		t.Logf("checking mmap %s", name)
 
 		if pos >= len(mmap) {
-			t.Logf("out of range, skipping")
+			t.Log("out of range, skipping")
 			continue
 		}
 
