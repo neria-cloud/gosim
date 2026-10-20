@@ -73,7 +73,9 @@ go get github.com/neria-cloud/gosim
 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool github.com/neria-cloud/gosim/cmd/gosim
 ```
 
-In this repository, use `./cmd/gosim` as the build package. The launcher
+In this repository, `make build` builds `.gosim/gosimtool`, `.gosim/gosim-worker`,
+and `.gosim/gosim-gen`. It uses Go's normal compiler selection; an optional
+`GOSIM_TOOLCHAIN` override selects an exact compiler for the build. The launcher
 selects the caller's Gosim dependency, including workspace and local
 replacements, and automatically builds/caches a worker with the compiler Go
 selected. Switching supported Go patches does not require rebuilding the

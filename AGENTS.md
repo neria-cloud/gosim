@@ -51,6 +51,11 @@ entry also rejects changes to the working checkout.
 
 ### Lower-level commands
 
+`make build` builds all command binaries under `.gosim/`: `gosimtool` (the
+launcher), `gosim-worker`, and `gosim-gen`. It preserves the required linkname
+flags and uses Go's selected compiler, with an optional `GOSIM_TOOLCHAIN`
+override. Use the launcher for ordinary commands.
+
 ```sh
 # Build the independent launcher; retain linkname flags.
 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim

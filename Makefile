@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help test test-unit test-unit-race test-race test-large test-report-tools
+.PHONY: help build test test-unit test-unit-race test-race test-large test-report-tools
 
 # Independent test cases and package binaries run concurrently on the local host.
 UNIT_PARALLEL ?= 4
@@ -12,6 +12,16 @@ export GOSIM_TOOLCHAIN
 
 help: ## List available targets
 	@awk 'BEGIN { FS = ":.*## "; print "Usage: make <target>\n\nTargets:" } /^[a-zA-Z0-9_-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+
+build: ## Build gosimtool, gosim-worker and gosim-gen in .gosim/
+	@mkdir -p .gosim
+	@set -eu; \
+	gosim_build_dir=$$(mktemp -d .gosim/build.XXXXXX); \
+	trap 'rm -rf "$$gosim_build_dir"' 0; \
+	$(if $(GOSIM_TOOLCHAIN),GOTOOLCHAIN="$(GOSIM_TOOLCHAIN)") go build -ldflags=-checklinkname=0 -tags=linkname -o "$$gosim_build_dir/" ./cmd/...; \
+	mv -f "$$gosim_build_dir/gosim" .gosim/gosimtool; \
+	mv -f "$$gosim_build_dir/gosim-worker" .gosim/gosim-worker; \
+	mv -f "$$gosim_build_dir/gosim-gen" .gosim/gosim-gen
 
 test-unit: ## Run uncached local native and simulation tests with persistent reports
 	@python3 -B scripts/test_report.py unit --reports-dir "$(TEST_REPORTS_DIR)" --parallel=$(UNIT_PARALLEL) --packages=$(UNIT_PACKAGES)
