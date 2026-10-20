@@ -80,7 +80,7 @@ func TestLinuxFileRoutes(t *testing.T) {
 		}
 		var stat syscall.Stat_t
 		must(t, linkedFstat(fd, &stat))
-		if stat.Size != 6 || stat.Mode != 0o100000 || stat.Uid != 0 || stat.Atim.Sec != 0 || stat.Nlink != 0 {
+		if stat.Size != 6 || stat.Mode != 0o100644 || stat.Uid != 0 || stat.Atim.Sec != 0 || stat.Nlink != 1 {
 			t.Fatal(stat)
 		}
 		var xstat unix.Stat_t

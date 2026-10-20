@@ -21,6 +21,7 @@ const (
 	depKeyWriteDir
 	depKeyResizeFile // XXX: combine with alloc?
 	depKeyWriteDirEntry
+	depKeyMetadata
 )
 
 // A depKey is used to find fsOp dependencies.
@@ -240,6 +241,7 @@ func (p *pendingOps) flushInode(inode int, out []*pendingOp) []*pendingOp {
 	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyAlloc, inode: int32(inode)}], out)
 	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyResizeFile, inode: int32(inode)}], out)
 	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteFile, inode: int32(inode)}], out)
+	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyMetadata, inode: int32(inode)}], out)
 	// dir
 	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteDir, inode: int32(inode)}], out)
 

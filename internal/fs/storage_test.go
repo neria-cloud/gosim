@@ -99,6 +99,31 @@ func TestFallocateProviderReservesAndRejectsFullVolume(t *testing.T) {
 	}
 }
 
+func TestStatReportsStoredModeAndOwnership(t *testing.T) {
+	i, ctx, table := ioFixture(t)
+	fd := open(t, i, ctx, "owned", openCreate|2)
+	resource, err := table.Lookup(fd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inode := resource.(*File).inode
+	if err := i.model.Chmod(inode, 0o640, model.Identity{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := i.model.Chown(inode, 101, 202, model.Identity{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, stat := range []func() (contracts.Stat, error){
+		func() (contracts.Stat, error) { return i.Fstat(ctx, fd) },
+		func() (contracts.Stat, error) { return i.Statat(ctx, atFDCWD, "owned", 0) },
+	} {
+		got, err := stat()
+		if err != nil || got.Mode != 0o100640 || got.UID != 101 || got.GID != 202 || got.Nlink != 1 {
+			t.Fatalf("stat metadata: %+v, %v", got, err)
+		}
+	}
+}
+
 func TestStorageConfigValidationAtomic(t *testing.T) {
 	s, _ := newSession(t)
 	good := contracts.FSConfig{WorkingDir: "/app", CapacityBytes: 2 << 10}

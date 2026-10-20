@@ -73,7 +73,7 @@ func TestFileOpsOffsetsDurabilityAndBorrowing(t *testing.T) {
 	must(t, i.Truncate(ctx, fd, 8))
 	stat, err := i.Fstat(ctx, fd)
 	must(t, err)
-	if stat.Size != 8 || stat.Mode != 0o100000 || stat.UID != 0 || stat.Nlink != 0 || stat.AtimeNS != 0 {
+	if stat.Size != 8 || stat.Mode&0o170000 != 0o100000 || stat.Mode&0o777 == 0 || stat.UID != 0 || stat.Nlink != 1 || stat.AtimeNS != 0 {
 		t.Fatal("invented stat metadata", stat)
 	}
 	must(t, i.Sync(ctx, fd, true))

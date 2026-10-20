@@ -235,7 +235,7 @@ func statResult(stat model.StatResp) contracts.Stat {
 	if stat.IsDir {
 		mode = 0o040000
 	}
-	return contracts.Stat{Inode: uint64(stat.Inode), Size: stat.Size, Mode: mode}
+	return contracts.Stat{Inode: uint64(stat.Inode), Size: stat.Size, Mode: mode | stat.Mode, UID: stat.UID, GID: stat.GID, Nlink: stat.Nlink}
 }
 
 func statError(err error) error {

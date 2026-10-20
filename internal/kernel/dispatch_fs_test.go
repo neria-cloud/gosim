@@ -42,7 +42,7 @@ func TestFilesystemApplicationDispatch(t *testing.T) {
 			}
 			fsCall(t, k, SyncRequest{FD: int(fd), DataOnly: true}, DecodeSyncResult)
 			stat := fsCall(t, k, FstatRequest{FD: int(fd)}, DecodeFstatResult).Stat
-			if stat.Size != 4 || stat.Mode != 0o100000 {
+			if stat.Size != 4 || stat.Mode != 0o100644 || stat.Nlink != 1 {
 				t.Fatal(stat)
 			}
 			fsCall(t, k, RenameatRequest{OldDirFD: int(-100), OldPath: "file", NewDirFD: int(-100), NewPath: "renamed"}, DecodeRenameatResult)

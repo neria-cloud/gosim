@@ -48,3 +48,15 @@ Verified
 
 Notes
 - Existing lifecycle rollback tests stayed green; reservation itself consumes no random draw or host I/O.
+
+## Task 4 — Persist mode, UID and GID in inode and crash state
+
+Implemented
+- Stored mode and ownership on file and directory inodes, including the initial Linux tree and newly allocated inodes.
+- Added metadata operations to pending dependency, flush, crash selection and restore paths.
+- Reported mode, UID, GID and link count through model and provider stat; added chmod/chown authorization and no-op handling.
+- Updated existing stat assertions for populated metadata and added model/provider durability tests.
+
+Verified
+- Focused filesystem, kernel, network and Go 1.25 hook tests passed; `./.ci/gofmt check` and `make build` passed.
+- `make test` passed: 1,807 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T135214.086819Z-0n2qpo5l/report.md`).

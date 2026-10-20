@@ -35,6 +35,7 @@ type Mmap struct {
 type backingFile struct {
 	inode int
 	file  *chunkedFile
+	meta  inodeMetadata
 
 	linkCount int
 
@@ -92,6 +93,7 @@ func (f *backingFile) clone() *backingFile {
 	return &backingFile{
 		inode:     f.inode,
 		file:      f.file.Clone(),
+		meta:      f.meta,
 		linkCount: f.linkCount, // XXX: test that link count is maintained
 	}
 }
@@ -101,7 +103,16 @@ type backingDir struct {
 	parent  int
 	name    string // name in parent
 	entries map[string]int
+	meta    inodeMetadata
 }
+
+type inodeMetadata struct {
+	Mode uint32
+	UID  uint32
+	GID  uint32
+}
+
+type Identity struct{ UID, GID uint32 }
 
 const RootInode = 1
 
@@ -122,6 +133,7 @@ func (fss *filesystemState) clone() *filesystemState {
 				parent:  obj.parent,
 				name:    obj.name,
 				entries: maps.Clone(obj.entries),
+				meta:    obj.meta,
 			}
 		}
 	}
@@ -259,6 +271,7 @@ func emptyState() *filesystemState {
 				inode:   RootInode,
 				parent:  RootInode,
 				entries: make(map[string]int),
+				meta:    inodeMetadata{Mode: 0o755},
 			},
 		},
 		next: RootInode + 1,
@@ -272,6 +285,7 @@ func linuxState() *filesystemState {
 			RootInode: &backingDir{
 				inode:  RootInode,
 				parent: RootInode,
+				meta:   inodeMetadata{Mode: 0o755},
 				entries: map[string]int{
 					"etc": 2,
 					"app": 4,
@@ -281,6 +295,7 @@ func linuxState() *filesystemState {
 				inode:  2,
 				parent: RootInode,
 				name:   "etc",
+				meta:   inodeMetadata{Mode: 0o755},
 				entries: map[string]int{
 					"hosts": 3,
 				},
@@ -290,6 +305,7 @@ func linuxState() *filesystemState {
 				file: chunkedFileFromBytes([]byte(`# hosts
 127.0.0.1 localhost
 `)),
+				meta:      inodeMetadata{Mode: 0o644},
 				linkCount: 1,
 			},
 			4: &backingDir{
@@ -297,6 +313,7 @@ func linuxState() *filesystemState {
 				parent:  RootInode,
 				name:    "app",
 				entries: make(map[string]int),
+				meta:    inodeMetadata{Mode: 0o777},
 			},
 		},
 		next: 5,
@@ -367,6 +384,27 @@ type resizeOp struct {
 type reserveOp struct {
 	inode          int
 	offset, length int
+}
+
+type metadataOp struct {
+	inode int
+	value inodeMetadata
+}
+
+func (o *metadataOp) apply(state *filesystemState, _ gcer) {
+	switch obj := state.objects[o.inode].(type) {
+	case *backingFile:
+		obj.meta = o.value
+	case *backingDir:
+		obj.meta = o.value
+	default:
+		panic("metadata operation on missing inode")
+	}
+}
+
+func (o *metadataOp) touchedInodesIter(iter func(inode int) bool) { iter(o.inode) }
+func (o *metadataOp) String() string {
+	return fmt.Sprintf("metadata inode:%d mode:%o uid:%d gid:%d", o.inode, o.value.Mode, o.value.UID, o.value.GID)
 }
 
 func (o *reserveOp) apply(state *filesystemState, _ gcer) {
@@ -455,6 +493,7 @@ type allocOp struct {
 	dir bool
 
 	inode int
+	meta  inodeMetadata
 }
 
 func (o *allocOp) apply(fs *filesystemState, gcer gcer) {
@@ -465,11 +504,13 @@ func (o *allocOp) apply(fs *filesystemState, gcer gcer) {
 		fs.objects[o.inode] = &backingDir{
 			inode:   o.inode,
 			entries: make(map[string]int),
+			meta:    o.meta,
 		}
 	} else {
 		fs.objects[o.inode] = &backingFile{
 			inode: o.inode,
 			file:  &chunkedFile{},
+			meta:  o.meta,
 		}
 	}
 	if o.inode >= fs.next {
@@ -504,6 +545,11 @@ func (o *resizeOp) addDeps(p *pendingOps, op *pendingOp) {
 func (o *reserveOp) addDeps(p *pendingOps, op *pendingOp) {
 	p.addDep(op, depKey{kind: depKeyWriteFile, inode: int32(o.inode)}, depStoreAs)
 	p.addDep(op, depKey{kind: depKeyResizeFile, inode: int32(o.inode)}, depDependsOn)
+}
+
+func (o *metadataOp) addDeps(p *pendingOps, op *pendingOp) {
+	p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(o.inode)}, depDependsOn)
+	p.addDep(op, depKey{kind: depKeyMetadata, inode: int32(o.inode)}, depStoreAsAndDependsOn)
 }
 
 func (o *dirOp) addDeps(p *pendingOps, op *pendingOp) {
@@ -710,6 +756,7 @@ func (fs *Filesystem) Mkdir(dirInode int, path string) error {
 	op := &allocOp{
 		dir:   true,
 		inode: inode,
+		meta:  inodeMetadata{Mode: 0o755},
 	}
 	fs.apply(op)
 
@@ -731,6 +778,10 @@ type StatResp struct {
 	Inode int
 	IsDir bool
 	Size  int64
+	Mode  uint32
+	UID   uint32
+	GID   uint32
+	Nlink uint64
 }
 
 func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
@@ -740,6 +791,10 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 		return StatResp{
 			Inode: inode,
 			IsDir: true,
+			Mode:  obj.meta.Mode,
+			UID:   obj.meta.UID,
+			GID:   obj.meta.GID,
+			Nlink: 1,
 		}, nil
 
 	case *backingFile:
@@ -747,6 +802,10 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 			Inode: inode,
 			IsDir: false,
 			Size:  int64(obj.file.size),
+			Mode:  obj.meta.Mode,
+			UID:   obj.meta.UID,
+			GID:   obj.meta.GID,
+			Nlink: uint64(obj.linkCount),
 		}, nil
 
 	default:
@@ -780,6 +839,59 @@ func (fs *Filesystem) Stat(dirInode int, path string) (StatResp, error) {
 
 func (fs *Filesystem) Statfd(inode int) (StatResp, error) {
 	return fs.statLocked(inode)
+}
+
+func (fs *Filesystem) metadata(inode int) (inodeMetadata, error) {
+	switch obj := fs.mem.objects[inode].(type) {
+	case *backingFile:
+		return obj.meta, nil
+	case *backingDir:
+		return obj.meta, nil
+	default:
+		return inodeMetadata{}, syscall.ENOENT
+	}
+}
+
+func (fs *Filesystem) Chmod(inode int, mode uint32, who Identity) error {
+	meta, err := fs.metadata(inode)
+	if err != nil {
+		return err
+	}
+	if who.UID != 0 && who.UID != meta.UID {
+		return syscall.EPERM
+	}
+	mode &= 0o7777
+	if meta.Mode == mode {
+		return nil
+	}
+	meta.Mode = mode
+	fs.apply(&metadataOp{inode: inode, value: meta})
+	return nil
+}
+
+func (fs *Filesystem) Chown(inode, uid, gid int, who Identity) error {
+	meta, err := fs.metadata(inode)
+	if err != nil {
+		return err
+	}
+	if who.UID != 0 {
+		return syscall.EPERM
+	}
+	if uid < -1 || gid < -1 || uint64(uid) > uint64(^uint32(0)) && uid != -1 || uint64(gid) > uint64(^uint32(0)) && gid != -1 {
+		return syscall.EINVAL
+	}
+	next := meta
+	if uid != -1 {
+		next.UID = uint32(uid)
+	}
+	if gid != -1 {
+		next.GID = uint32(gid)
+	}
+	if next == meta {
+		return nil
+	}
+	fs.apply(&metadataOp{inode: inode, value: next})
+	return nil
 }
 
 // for getcwd
@@ -933,6 +1045,7 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 			op := &allocOp{
 				dir:   false,
 				inode: inode,
+				meta:  inodeMetadata{Mode: 0o644},
 			}
 			fs.apply(op)
 

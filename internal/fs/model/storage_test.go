@@ -166,3 +166,73 @@ func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
 		t.Fatalf("truncate did not free reservation: %v, %d", err, fs.UsedBlocks())
 	}
 }
+
+func TestMetadataOwnershipAndDurability(t *testing.T) {
+	fs := NewLinuxFilesystem()
+	defer fs.Release()
+	inode, err := fs.OpenFile(RootInode, "/app/meta", os.O_CREATE|os.O_RDWR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fs.CloseFile(inode)
+	fs.FlushEverything()
+	initial, err := fs.Statfd(inode)
+	if err != nil || initial.Mode != 0o644 || initial.UID != 0 || initial.GID != 0 || initial.Nlink != 1 {
+		t.Fatalf("initial metadata: %+v, %v", initial, err)
+	}
+	if err := fs.Chmod(inode, 0o600, Identity{UID: 7}); !errors.Is(err, syscall.EPERM) {
+		t.Fatalf("unowned chmod: %v", err)
+	}
+	if err := fs.Chmod(inode, 0o600, Identity{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := fs.Chown(inode, 27, 31, Identity{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := fs.Chown(inode, -1, 32, Identity{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := fs.Chmod(inode, 0o640, Identity{UID: 27}); err != nil {
+		t.Fatal(err)
+	}
+	if err := fs.Chown(inode, 1, 1, Identity{UID: 27}); !errors.Is(err, syscall.EPERM) {
+		t.Fatalf("non-root chown: %v", err)
+	}
+	before := fs.GetInodeInfo(inode).Ops
+	if err := fs.Chmod(inode, 0o640, Identity{UID: 27}); err != nil || fs.GetInodeInfo(inode).Ops != before {
+		t.Fatal("identical chmod created pending op", err)
+	}
+	current, err := fs.Statfd(inode)
+	if err != nil || current.Mode != 0o640 || current.UID != 27 || current.GID != 32 {
+		t.Fatalf("live metadata: %+v, %v", current, err)
+	}
+	image := fs.FreezeCrash()
+	iter := image.IterCrashes()
+	seenOld, seenNew := false, false
+	for {
+		state, ok := iter.Next()
+		if !ok {
+			break
+		}
+		stat, err := state.Statfd(inode)
+		if err != nil {
+			t.Fatal(err)
+		}
+		seenOld = seenOld || stat.Mode == 0o644 && stat.UID == 0
+		seenNew = seenNew || stat.Mode == 0o640 && stat.UID == 27 && stat.GID == 32
+		state.Release()
+	}
+	image.Release()
+	if !seenOld || !seenNew {
+		t.Fatalf("metadata crash outcomes old=%v new=%v", seenOld, seenNew)
+	}
+	fs.Sync(inode)
+	image = fs.FreezeCrash()
+	recovered := image.Clone(false, nil)
+	image.Release()
+	stat, err := recovered.Statfd(inode)
+	if err != nil || stat.Mode != 0o640 || stat.UID != 27 || stat.GID != 32 {
+		t.Fatalf("synced metadata: %+v, %v", stat, err)
+	}
+	recovered.Release()
+}

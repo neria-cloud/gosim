@@ -115,14 +115,14 @@ The public `Config` converts explicitly to `contracts.FSConfig{WorkingDir,Capaci
 **References**: target §Storage schema and invariants (`inodeMetadata`, initial modes, `metadataOp`), §Model/provider methods (`Identity`, `StatResp`, `Chmod`, `Chown`), §Data flows 5 and 8, §Method decision logic (`Chmod`).  
 **Goal**: Make metadata durable and reportable before enforcing access checks.
 
-- [ ] Add `inodeMetadata{Mode,UID,GID}` to file and directory nodes; clone it in `filesystemState.clone`. Set built-in root and `/etc` to `0755`, `/app` to `0777`, and `/etc/hosts` to `0644`, all UID/GID 0. Add initial metadata to `allocOp` for created files/directories.
-- [ ] Add `metadataOp{inode,value}` and `depKeyMetadata`; order it after inode allocation and between successive metadata writes. Extend pending-op snapshots/retention/replay, `FreezeCrash`, `FlushEverything` and `Sync` coverage so metadata follows existing durability semantics.
-- [ ] Expand `StatResp` and `statResult` with permission bits, UID, GID and link count while preserving file type bits. Keep unmodeled timestamps zero and capability descriptions honest.
-- [ ] Implement model `Chmod` and `Chown` with owner/root and root-only authorization, `-1` preservation for chown, and no-op handling that does not create an unnecessary pending op. Add tests for root/non-root ownership, fstat/stat visibility, sync, crash subsets and restored metadata.
+- [x] Add `inodeMetadata{Mode,UID,GID}` to file and directory nodes; clone it in `filesystemState.clone`. Set built-in root and `/etc` to `0755`, `/app` to `0777`, and `/etc/hosts` to `0644`, all UID/GID 0. Add initial metadata to `allocOp` for created files/directories.
+- [x] Add `metadataOp{inode,value}` and `depKeyMetadata`; order it after inode allocation and between successive metadata writes. Extend pending-op snapshots/retention/replay, `FreezeCrash`, `FlushEverything` and `Sync` coverage so metadata follows existing durability semantics.
+- [x] Expand `StatResp` and `statResult` with permission bits, UID, GID and link count while preserving file type bits. Keep unmodeled timestamps zero and capability descriptions honest.
+- [x] Implement model `Chmod` and `Chown` with owner/root and root-only authorization, `-1` preservation for chown, and no-op handling that does not create an unnecessary pending op. Add tests for root/non-root ownership, fstat/stat visibility, sync, crash subsets and restored metadata.
 
 #### Verification
 
-- [ ] Run focused model/recovery/provider tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
+- [x] Run focused model/recovery/provider tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
 
 ---
 

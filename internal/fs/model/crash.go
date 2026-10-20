@@ -137,6 +137,9 @@ func retainOp(op fsOp) fsOp {
 	case *reserveOp:
 		copy := *op
 		return &copy
+	case *metadataOp:
+		copy := *op
+		return &copy
 	case *allocOp:
 		copy := *op
 		return &copy

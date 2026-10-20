@@ -434,7 +434,7 @@ func TestRealNetworkFailureRollsBackFilesystem(t *testing.T) {
 		must(t, err)
 		info, err := files.Statat(contextOf(instance), -100, ".", 0)
 		must(t, err)
-		if info.Mode != 0o040000 {
+		if info.Mode != 0o040777 {
 			t.Fatal("filesystem binding missing")
 		}
 		expected := simrt.NewDomainRandom(42, "fs", ref.ID).Uint64()
