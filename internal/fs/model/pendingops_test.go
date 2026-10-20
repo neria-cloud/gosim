@@ -6,6 +6,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+const (
+	pendingOpThree = 3
+	pendingOpFour  = 4
+	pendingOpFive  = 5
+	pendingOpSix   = 6
+)
+
 func TestPendingOps(t *testing.T) {
 	t.Parallel()
 	type testStep struct {
@@ -35,11 +42,11 @@ func TestPendingOps(t *testing.T) {
 			steps: []testStep{
 				{addOp: 1, addStoreAs: []int{1}},
 				{addOp: 2, addStoreAs: []int{2}, addDependsOn: []int{1}},
-				{addOp: 3, addStoreAs: []int{3}, addDependsOn: []int{2}},
-				{addOp: 4, addStoreAs: []int{4}, addDependsOn: []int{3}},
-				{flushDeps: []int{4}, flushOps: []int{1, 2, 3, 4}},
+				{addOp: pendingOpThree, addStoreAs: []int{pendingOpThree}, addDependsOn: []int{2}},
+				{addOp: pendingOpFour, addStoreAs: []int{pendingOpFour}, addDependsOn: []int{pendingOpThree}},
+				{flushDeps: []int{pendingOpFour}, flushOps: []int{1, 2, pendingOpThree, pendingOpFour}},
 				{flushDeps: []int{2}, flushOps: []int{}},
-				{flushDeps: []int{4}, flushOps: []int{}},
+				{flushDeps: []int{pendingOpFour}, flushOps: []int{}},
 			},
 		},
 		{
@@ -47,12 +54,12 @@ func TestPendingOps(t *testing.T) {
 			steps: []testStep{
 				{addOp: 1, addStoreAs: []int{1}},
 				{addOp: 2, addStoreAs: []int{2}, addDependsOn: []int{1}},
-				{addOp: 3, addStoreAs: []int{3}, addDependsOn: []int{2}},
-				{addOp: 4, addStoreAs: []int{4}, addDependsOn: []int{3}},
+				{addOp: pendingOpThree, addStoreAs: []int{pendingOpThree}, addDependsOn: []int{2}},
+				{addOp: pendingOpFour, addStoreAs: []int{pendingOpFour}, addDependsOn: []int{pendingOpThree}},
 				{flushDeps: []int{2}, flushOps: []int{1, 2}},
-				{flushDeps: []int{4}, flushOps: []int{3, 4}},
+				{flushDeps: []int{pendingOpFour}, flushOps: []int{pendingOpThree, pendingOpFour}},
 				{flushDeps: []int{2}, flushOps: []int{}},
-				{flushDeps: []int{4}, flushOps: []int{}},
+				{flushDeps: []int{pendingOpFour}, flushOps: []int{}},
 			},
 		},
 		{
@@ -60,13 +67,13 @@ func TestPendingOps(t *testing.T) {
 			steps: []testStep{
 				{addOp: 1, addStoreAs: []int{1}},
 				{addOp: 2, addStoreAs: []int{2}, addDependsOn: []int{1}},
-				{addOp: 3, addStoreAs: []int{3}, addDependsOn: []int{2}},
-				{addOp: 4, addStoreAs: []int{4}, addDependsOn: []int{3}},
-				{addOp: 5, addStoreAs: []int{1}},
-				{addOp: 6, addStoreAs: []int{1}},
-				{flushDeps: []int{4}, flushOps: []int{1, 2, 3, 4}},
+				{addOp: pendingOpThree, addStoreAs: []int{pendingOpThree}, addDependsOn: []int{2}},
+				{addOp: pendingOpFour, addStoreAs: []int{pendingOpFour}, addDependsOn: []int{pendingOpThree}},
+				{addOp: pendingOpFive, addStoreAs: []int{1}},
+				{addOp: pendingOpSix, addStoreAs: []int{1}},
+				{flushDeps: []int{pendingOpFour}, flushOps: []int{1, 2, pendingOpThree, pendingOpFour}},
 				{flushDeps: []int{2}, flushOps: []int{}},
-				{flushDeps: []int{1}, flushOps: []int{5, 6}},
+				{flushDeps: []int{1}, flushOps: []int{pendingOpFive, pendingOpSix}},
 			},
 		},
 		{
@@ -74,9 +81,9 @@ func TestPendingOps(t *testing.T) {
 			steps: []testStep{
 				{addOp: 1, addStoreAsAndDependsOn: []int{1, 2}},
 				{addOp: 2, addStoreAsAndDependsOn: []int{1, 2}},
-				{addOp: 3, addStoreAsAndDependsOn: []int{1, 2}},
-				{addOp: 4, addStoreAsAndDependsOn: []int{1, 2}},
-				{flushDeps: []int{2}, flushOps: []int{1, 2, 3, 4}},
+				{addOp: pendingOpThree, addStoreAsAndDependsOn: []int{1, 2}},
+				{addOp: pendingOpFour, addStoreAsAndDependsOn: []int{1, 2}},
+				{flushDeps: []int{2}, flushOps: []int{1, 2, pendingOpThree, pendingOpFour}},
 				{flushDeps: []int{1}, flushOps: []int{}},
 			},
 		},
@@ -85,9 +92,9 @@ func TestPendingOps(t *testing.T) {
 			steps: []testStep{
 				{addOp: 1, addDependsOn: []int{1}},
 				{addOp: 2, addStoreAs: []int{1}},
-				{addOp: 3, addDependsOn: []int{1}},
-				{addOp: 4, addDependsOn: []int{1}, addStoreAs: []int{2}},
-				{flushDeps: []int{2}, flushOps: []int{2, 4}},
+				{addOp: pendingOpThree, addDependsOn: []int{1}},
+				{addOp: pendingOpFour, addDependsOn: []int{1}, addStoreAs: []int{2}},
+				{flushDeps: []int{2}, flushOps: []int{2, pendingOpFour}},
 				{flushDeps: []int{1}, flushOps: []int{}},
 			},
 		},
@@ -96,9 +103,9 @@ func TestPendingOps(t *testing.T) {
 			steps: []testStep{
 				{addOp: 1, addStoreAs: []int{1}, addDependsOn: []int{1}},
 				{addOp: 2, addStoreAs: []int{2}, addDependsOn: []int{1, 1}},
-				{addOp: 3, addStoreAsAndDependsOn: []int{2, 3, 3}},
-				{addOp: 4, addStoreAsAndDependsOn: []int{3, 4}},
-				{flushDeps: []int{4}, flushOps: []int{1, 2, 3, 4}},
+				{addOp: pendingOpThree, addStoreAsAndDependsOn: []int{2, pendingOpThree, pendingOpThree}},
+				{addOp: pendingOpFour, addStoreAsAndDependsOn: []int{pendingOpThree, pendingOpFour}},
+				{flushDeps: []int{pendingOpFour}, flushOps: []int{1, 2, pendingOpThree, pendingOpFour}},
 				{flushDeps: []int{1}, flushOps: []int{}},
 			},
 		},
@@ -107,22 +114,22 @@ func TestPendingOps(t *testing.T) {
 			steps: []testStep{
 				{addOp: 1, addStoreAsAndDependsOn: []int{1}},
 				{addOp: 2, addStoreAsAndDependsOn: []int{1}},
-				{addOp: 3, addStoreAsAndDependsOn: []int{1, 2}},
-				{addOp: 4, addStoreAsAndDependsOn: []int{1}},
-				{addOp: 5, addStoreAsAndDependsOn: []int{1}},
-				{flushDeps: []int{2}, flushOps: []int{1, 2, 3}},
-				{flushDeps: []int{1}, flushOps: []int{4, 5}},
+				{addOp: pendingOpThree, addStoreAsAndDependsOn: []int{1, 2}},
+				{addOp: pendingOpFour, addStoreAsAndDependsOn: []int{1}},
+				{addOp: pendingOpFive, addStoreAsAndDependsOn: []int{1}},
+				{flushDeps: []int{2}, flushOps: []int{1, 2, pendingOpThree}},
+				{flushDeps: []int{1}, flushOps: []int{pendingOpFour, pendingOpFive}},
 			},
 		},
 		{
 			name: "less tricky release",
 			steps: []testStep{
 				{addOp: 1, addStoreAsAndDependsOn: []int{1}},
-				{addOp: 3, addStoreAsAndDependsOn: []int{1, 2}},
-				{addOp: 4, addStoreAsAndDependsOn: []int{1}},
-				{addOp: 5, addStoreAsAndDependsOn: []int{1}},
-				{flushDeps: []int{2}, flushOps: []int{1, 3}},
-				{flushDeps: []int{1}, flushOps: []int{4, 5}},
+				{addOp: pendingOpThree, addStoreAsAndDependsOn: []int{1, 2}},
+				{addOp: pendingOpFour, addStoreAsAndDependsOn: []int{1}},
+				{addOp: pendingOpFive, addStoreAsAndDependsOn: []int{1}},
+				{flushDeps: []int{2}, flushOps: []int{1, pendingOpThree}},
+				{flushDeps: []int{1}, flushOps: []int{pendingOpFour, pendingOpFive}},
 			},
 		},
 	}
