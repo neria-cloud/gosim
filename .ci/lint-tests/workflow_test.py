@@ -1,0 +1,174 @@
+"""Regression tests for staged linting and safe formatting (real Git/Go/linter)."""
+
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parents[2]
+MINIMAL_CONFIG = '''version: "2"
+run:
+  relative-path-mode: gomod
+  build-tags: [linkname]
+linters:
+  default: none
+  enable: [ineffassign, staticcheck]
+'''
+
+
+class WorkflowTest(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="gosim-lint-test-")
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.run_command("git", "init", "-q")
+        self.run_command("git", "config", "user.name", "Lint Test")
+        self.run_command("git", "config", "user.email", "lint@example.invalid")
+        self.write("go.mod", "module fixture\n\ngo 1.25.0\n")
+        self.write(".golangci.yml", MINIMAL_CONFIG)
+
+    def run_command(self, *args, check=True):
+        return subprocess.run(args, cwd=self.root, text=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, check=check)
+
+    def write(self, name, data):
+        path = self.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(data)
+
+    def commit(self):
+        self.run_command("git", "add", ".")
+        self.run_command("git", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture")
+
+    def lint(self):
+        return self.run_command(sys.executable, "-B", str(ROOT / ".ci/lint-files.py"),
+                                "staged", check=False)
+
+    def test_index_content_complete_packages_and_whole_staged_file(self):
+        # The unstaged sibling has its own issue, but supplies a required symbol.
+        self.write("sibling.go", "package fixture\nfunc helper(x int) int { y := 0; y = x; return y }\n")
+        bad = "package fixture\nfunc F() int { x := 1; x = 2; return helper(x) }\n"
+        self.write("source.go", bad)
+        self.commit()
+        # An unchanged issue elsewhere in a staged file must still be reported.
+        self.write("source.go", bad + "// staged comment\n")
+        self.run_command("git", "add", "source.go")
+        good = "package fixture\nfunc F() int { return helper(2) }\n"
+        self.write("source.go", good)
+        index = self.run_command("git", "write-tree").stdout
+        result = self.lint()
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("source.go:", result.stdout)
+        self.assertIn("ineffassign", result.stdout)
+        self.assertNotIn("sibling.go:", result.stdout)
+        self.assertNotIn("typecheck", result.stdout)
+        self.assertEqual((self.root / "source.go").read_text(), good)
+        self.assertEqual(self.run_command("git", "write-tree").stdout, index)
+        # Reverse the partial staging: malformed working content must be ignored.
+        self.run_command("git", "add", "source.go")
+        self.write("source.go", "not valid Go\n")
+        result = self.lint()
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_type_errors_in_unchanged_siblings_are_not_hidden(self):
+        self.write("source.go", "package fixture\nfunc F(x int) int { return x }\n")
+        self.write("sibling.go", "package fixture\nvar value = F(1)\n")
+        self.commit()
+        self.write("source.go", "package fixture\nfunc F(x string) int { return len(x) }\n")
+        self.run_command("git", "add", "source.go")
+        result = self.lint()
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn("sibling.go", result.stdout)
+
+    def test_nested_module_and_linkname_build_tag(self):
+        self.write("example/go.mod", "module nested\n\ngo 1.25.0\n")
+        self.write("example/sibling.go", "//go:build linkname\n\npackage nested\nconst value = 1\n")
+        self.write("example/source.go", "package nested\nfunc F() int { return value }\n")
+        self.commit()
+        self.write("example/source.go", "package nested\nfunc F() int { return value + 1 }\n")
+        self.run_command("git", "add", "example/source.go")
+        result = self.lint()
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_formatter_preserves_generated_and_fingerprinted_sources(self):
+        shutil.copyfile(ROOT / ".golangci.yml", self.root / ".golangci.yml")
+        # Use the actual repository's formatting-tool dependencies.
+        for name in ("go.mod", "go.sum"):
+            shutil.copyfile(ROOT / name, self.root / name)
+        ordinary = "package fixture\nfunc F( ){ }\n"
+        self.write("changed.go", "package fixture\n")
+        self.commit()
+        self.write("changed.go", ordinary)
+        self.run_command("git", "add", "changed.go")
+        self.write("changed.go", ordinary + "var A=1\n")
+        self.write("new.go", "package fixture\nvar B=2\n")
+        protected = {
+            "generated.go": "// Code generated by test. DO NOT EDIT.\n" + ordinary,
+            "internal/compat/go125/hooks/kernel/abi.go": ordinary,
+            "internal/compat/go126/shims/reflect/value.go": ordinary,
+            "internal/compat/spec/profile.go": ordinary,
+            "internal/compat/selected/go125.go": ordinary,
+            "internal/hostabi/coro.go": ordinary,
+            "internal/buildspec/modules.go": ordinary,
+            "rt/runtime/map.go": ordinary,
+        }
+        for name, data in protected.items():
+            self.write(name, data)
+        index = self.run_command("git", "write-tree").stdout
+        result = self.run_command(sys.executable, "-B", str(ROOT / ".ci/gofmt-files.py"))
+        for name, data in protected.items():
+            self.assertEqual((self.root / name).read_text(), data, name)
+        self.assertIn("var A = 1", (self.root / "changed.go").read_text())
+        self.assertIn("var B = 2", (self.root / "new.go").read_text())
+        self.assertEqual(self.run_command("git", "write-tree").stdout, index)
+
+    def test_actual_policy_keeps_bug_checks_in_abi_sources(self):
+        shutil.copyfile(ROOT / ".golangci.yml", self.root / ".golangci.yml")
+        self.write("internal/compat/go125/hooks/kernel/abi.go", '''package kernel
+func Syscall_Example(input []int) []int {
+ var out []int
+ for _, item := range input { out = append(out, item) }
+ x := 1
+ x = 2
+ _ = x
+ return out
+}
+''')
+        self.write("generated.go", "// Code generated by fixture. DO NOT EDIT.\npackage fixture\nfunc Bad_name() {}\n")
+        self.run_command("git", "add", ".")
+        result = self.lint()
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("ineffassign", result.stdout)
+        for suppressed in ("prealloc", "revive", "predeclared", "generated.go:"):
+            self.assertNotIn(suppressed, result.stdout)
+        # Repeat with identical source in a new snapshot. Cached absolute paths
+        # from the first run must not make findings disappear.
+        repeated = self.lint()
+        self.assertEqual(repeated.returncode, 1, repeated.stdout)
+        self.assertIn("ineffassign", repeated.stdout)
+
+    def test_actual_policy_does_not_request_behavior_rewrites(self):
+        shutil.copyfile(ROOT / ".golangci.yml", self.root / ".golangci.yml")
+        self.write("source.go", """package fixture
+func Copy(input []int, flag bool, unused int) []int {
+ var out []int
+ for _, item := range input { out = append(out, item) }
+ for i := 0; i < len(input); i++ { input[i]++ }
+ if len(input) > 0 && flag { return out }
+ return out
+}
+type Receiver struct{}
+func (r Receiver) Value(x int) int { return x }
+""")
+        self.run_command("git", "add", ".")
+        result = self.lint()
+        self.assertIn(result.returncode, (0, 1), result.stdout)
+        for suppressed in ("prealloc", "intrange", "optimize-operands-order",
+                           "unused-parameter", "unused-receiver"):
+            self.assertNotIn(suppressed, result.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()

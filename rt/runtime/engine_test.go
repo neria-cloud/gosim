@@ -250,6 +250,9 @@ func TestEngineCleanupFailurePreservesOriginalFailure(t *testing.T) {
 	var completed atomic.Bool
 	err := e.Run(func() {
 		defer func() {
+			// Translated atomic operations introduce this scheduling point,
+			// including those used by trusted cleanup callbacks.
+			AtomicYield()
 			e.Abort(abi.Diagnostic{Kind: "CleanupFailure", Message: "cleanup error"})
 			completed.Store(true)
 		}()

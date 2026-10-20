@@ -79,7 +79,7 @@ func TestSelectedTranslationWorker(t *testing.T) {
 	if err := gosimtool.MakeGoModForTest(framework, project, nil); err != nil {
 		t.Fatal(err)
 	}
-	source := []byte("package fixture\nvar values=map[int]int{1:2}\nfunc Work()int{ch:=make(chan int,1);go func(){ch<-values[1]}();return <-ch}\n")
+	source := []byte("package fixture\nimport \"math/big\"\nvar values=map[int]int{1:2}\nfunc Work()int{ch:=make(chan int,1);go func(){ch<-int(big.NewInt(int64(values[1])).Int64())}();return <-ch}\n")
 	app := filepath.Join(project, "app.go")
 	if err := os.WriteFile(app, source, 0o644); err != nil {
 		t.Fatal(err)
@@ -130,8 +130,15 @@ func TestWork(t *testing.T) { if Work() != 2 { t.Fatal("work") } }
 	if !bytes.Contains(a["test/gosim_meta_test.go"], []byte("TestMain")) || !bytes.Contains(a["test/gosim_meta_test.go"], []byte(".Driver{}")) {
 		t.Fatal("test metadata did not select generated Driver")
 	}
-	if _, ok := a["math/big/arith_decl_pure.go"]; !ok {
-		t.Fatal("math/big did not select its Go arithmetic")
+	// Reviewed native-pure helpers retain their original import and do not
+	// copy their implementation into the translated package graph.
+	if !bytes.Contains(a["test/app.go"], []byte(`"math/big"`)) {
+		t.Fatal("fixture did not retain its native math/big import")
+	}
+	for name := range a {
+		if strings.HasPrefix(name, "math/big/") {
+			t.Fatalf("native math/big implementation was translated: %s", name)
+		}
 	}
 	if len(a) != len(b) {
 		t.Fatal("cache hit changed output file set")

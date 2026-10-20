@@ -170,7 +170,9 @@ func AtomicYield() {
 	// Trusted provider/lifecycle callbacks run as non-yielding supervisor
 	// transitions. Implicit atomic preemption cannot split their transactions;
 	// explicit yields and waits still fail checkTransition.
-	if gs.get().transitionDepth != 0 {
+	// Supervisor cleanup also runs to completion after scheduling has stopped.
+	s := gs.get()
+	if s.transitionDepth != 0 || s.engine != nil && s.engine.cleaning {
 		return
 	}
 	g := getg()

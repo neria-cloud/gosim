@@ -40,7 +40,7 @@ func checkTranslatedFaults(t *testing.T, cfg buildspec.Config) {
 			return err
 		}
 		if entry.IsDir() {
-			if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" {
+			if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" || rel == "test-reports" {
 				return filepath.SkipDir
 			}
 			return os.MkdirAll(filepath.Join(project, rel), 0o755)

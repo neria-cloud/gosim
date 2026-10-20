@@ -8,6 +8,21 @@ Gosim translates application Go code into a deterministic simulation. A binary e
 
 The root API owns machine lifecycle. `fs`, `net`, and `rt` own their public controls. Their simulation implementations use typed control transport; native implementations return `ErrNotSim`, or the documented zero-value diagnostic result. There are no root network/timeout forwarding APIs or retained monolithic simulation package.
 
+```mermaid
+flowchart TD
+    App[Translated application and public controls] --> Control[Control transport]
+    Hooks[Selected version hooks] --> Kernel[Kernel]
+    Control --> Kernel
+    Compose[Generated composition] --> Kernel
+    Compose --> FS[Filesystem provider]
+    Compose --> Net[Network provider]
+    FS --> Contracts[Contracts and injected ports]
+    Net --> Contracts
+    Kernel --> Contracts
+    Kernel --> Engine[Untranslated runtime engine]
+    Engine --> Host[Selected native host ABI]
+```
+
 ## Package ownership
 
 | Package | Responsibility |
@@ -28,20 +43,6 @@ The root API owns machine lifecycle. `fs`, `net`, and `rt` own their public cont
 | `internal/compat/{go125,go126}` | Family-owned hooks, shims, host ABI and reviewed profile metadata |
 | `internal/compat/selected`, `internal/hostabi` | Compile-time profile selection and native ABI facade |
 
-```mermaid
-flowchart TD
-    App[Translated application and public controls] --> Control[Control transport]
-    Hooks[Selected version hooks] --> Kernel[Kernel]
-    Control --> Kernel
-    Compose[Generated composition] --> Kernel
-    Compose --> FS[Filesystem provider]
-    Compose --> Net[Network provider]
-    FS --> Contracts[Contracts and injected ports]
-    Net --> Contracts
-    Kernel --> Contracts
-    Kernel --> Engine[Untranslated runtime engine]
-    Engine --> Host[Selected native host ABI]
-```
 
 The kernel stores typed interfaces, not concrete filesystems or network stacks. Providers cannot import each other. Contracts import the ABI, not kernel/provider/public control packages. Public feature controls cannot import their concrete providers. Composition supplies exactly one provider per enabled optional feature, in FS/Net order, and none for disabled features.
 

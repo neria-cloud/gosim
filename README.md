@@ -209,6 +209,13 @@ The reviewed [go125](internal/compat/go125/profile/capabilities.json) and [go126
 
 ## Development and test reports
 
+Lint and formatting policy lives in [.golangci.yml](.golangci.yml).
+Use `make lint` (or the pre-commit hook) for staged Go files, `make lint-full`
+for the codebase, and `make fmt` for changed and untracked Go files.
+Generated and compatibility-sensitive source has explicit protections.
+See [linting policy and reproduced regressions](docs/linting.md) before applying
+lint suggestions; check the workflow with `make test-lint-tools`.
+
 Run `make test` for ordinary local native and simulation checks. Go selects the
 compiler normally; `GOSIM_TOOLCHAIN` is an optional explicit override. The runner
 creates an isolated source snapshot and starts no Docker, Colima, VMs or
