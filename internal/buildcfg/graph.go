@@ -19,7 +19,7 @@ func FrameworkModule(modules []buildspec.Module) (buildspec.Module, error) {
 		if m.Path == GosimModule {
 			selected := m.Effective()
 			if selected.Dir == "" {
-				return buildspec.Module{}, errors.New(
+				return buildspec.Module{}, fmt.Errorf(
 					"selected Gosim source is unavailable; download the module with Go tooling",
 				)
 			}

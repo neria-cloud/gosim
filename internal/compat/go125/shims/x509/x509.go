@@ -5,18 +5,18 @@
 package x509
 
 import (
-	"crypto/x509/pkix"
-	"time"
+	pkix "crypto/x509/pkix"
+	time "time"
 
-	"encoding/asn1"
+	asn1 "encoding/asn1"
 
-	"net"
+	net "net"
 
-	"net/url"
+	url "net/url"
 
-	"io"
+	io "io"
 
-	"math/big"
+	big "math/big"
 
 	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"

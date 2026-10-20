@@ -297,7 +297,7 @@ func (r *MetaT) Run(t *testing.T, config *RunConfig) (*RunResult, error) {
 func ForOtherPackage(t *testing.T, pkg string, opts Options) *MetaT {
 	t.Helper()
 	if gosimruntime.IsSim() {
-		t.Fatal("metatest cannot be used from within gosim")
+		t.Fatalf("metatest cannot be used from within gosim")
 	}
 	identity := gosimtool.ResolveTestIdentity(t, opts.ConfigPath)
 	path := gosimtool.GetPathForPrecompiledTestBinary(t, pkg, identity)
@@ -346,7 +346,7 @@ func getCurrentPackageFromWorkingdir() string {
 // correctly.
 func ForPackage(t *testing.T, opts Options) *MetaT {
 	if gosimruntime.IsSim() {
-		t.Fatal("metatest cannot be used from within gosim")
+		t.Fatalf("metatest cannot be used from within gosim")
 	}
 
 	return ForOtherPackage(t, getCurrentPackageFromWorkingdir(), opts)
