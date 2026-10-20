@@ -77,7 +77,10 @@ func (k *Kernel) BeginStart(ref contracts.MachineRef, restart bool) (*StartTxn, 
 			return err
 		}
 		for _, session := range k.providers {
-			staged, err := session.Prepare(contracts.StartSpec{Ref: tx.run.ref, Label: m.label, Restart: restart}, tx.run.descriptors)
+			staged, err := session.Prepare(
+				contracts.StartSpec{Ref: tx.run.ref, Label: m.label, Restart: restart},
+				tx.run.descriptors,
+			)
 			if err != nil {
 				return err
 			}
@@ -171,7 +174,9 @@ func (tx *StartTxn) abort() error {
 		return ErrTxnState
 	}
 	var failures []error
-	failures = append(failures, tx.kernel.protected(func() error { return tx.run.descriptors.Finalize(contracts.CloseAbort) }))
+	failures = append(failures, tx.kernel.protected(func() error {
+		return tx.run.descriptors.Finalize(contracts.CloseAbort)
+	}))
 	for i := len(tx.staged) - 1; i >= 0; i-- {
 		failures = append(failures, tx.kernel.protected(func() error { tx.staged[i].Abort(); return nil }))
 	}

@@ -179,9 +179,10 @@ func collectGlobalsSSA(pkg *packages.Package) ssaGlobalsInfo {
 					// log.Println("checking ref", ref)
 					if call, ok := ref.(*ssa.Call); ok {
 						if fun, ok := call.Call.Value.(*ssa.Function); ok {
-							if obj, ok := fun.Object().(*types.Func); ok && obj.FullName() == "(*sync.Once).Do" { // can this be faster please??
-								// XXX: GREAT only initialized once. now double-check that this once doesn't do any other funny business!!!
-								// ie its global, and if any other calls to Do also exist for this function they must use the same once
+							// Can this lookup be faster?
+							if obj, ok := fun.Object().(*types.Func); ok && obj.FullName() == "(*sync.Once).Do" {
+								// XXX: Initialized once; check that this Once has no other uses.
+								// Other Do calls for this function must use the same Once.
 								// (i mean why not but let's just check...)
 								// log.Println("seems good!!")
 								// log.Println(call)

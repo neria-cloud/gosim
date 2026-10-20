@@ -68,11 +68,12 @@ func (k *Kernel) Create(label string, main func()) (contracts.MachineRef, error)
 		return contracts.MachineRef{}, contracts.ErrInvalidState
 	}
 	ref := contracts.MachineRef{RunID: k.runID, ID: k.nextMachineID}
+	machineLabel := label
 	if label == "" {
-		label = fmt.Sprintf("machine-%d", ref.ID)
+		machineLabel = fmt.Sprintf("machine-%d", ref.ID)
 	}
 	k.nextMachineID++
-	k.machineByID[ref.ID] = &Machine{ref: ref, label: label, main: main, nextEpoch: 1}
+	k.machineByID[ref.ID] = &Machine{ref: ref, label: machineLabel, main: main, nextEpoch: 1}
 	return ref, nil
 }
 
@@ -172,6 +173,7 @@ func closeReason(kind contracts.StopKind) contracts.CloseReason {
 // stop is the trusted non-returning-self/teardown route. Its caller is always
 // the surviving supervisor, never the application being canceled.
 func (k *Kernel) stop(m *Machine, kind contracts.StopKind) error {
+	effectiveKind := kind
 	run := m.current
 	m.state, run.accepting = StateStopping, false
 	k.engine.CancelMachine(token(run))
@@ -181,44 +183,44 @@ func (k *Kernel) stop(m *Machine, kind contracts.StopKind) error {
 	for i := len(run.instances) - 1; i >= 0; i-- {
 		if err := k.protected(func() error { run.instances[i].Quiesce(); return nil }); err != nil {
 			failures = append(failures, err)
-			kind = contracts.StopCrash
+			effectiveKind = contracts.StopCrash
 		}
 	}
 	if err := k.closePolls(run.ref, -1); err != nil {
 		failures = append(failures, err)
-		kind = contracts.StopCrash
+		effectiveKind = contracts.StopCrash
 	}
 	for _, instance := range run.instances {
-		if err := k.protected(func() error { return instance.Settle(kind) }); err != nil {
+		if err := k.protected(func() error { return instance.Settle(effectiveKind) }); err != nil {
 			failures = append(failures, err)
-			kind = contracts.StopCrash
+			effectiveKind = contracts.StopCrash
 		}
 	}
-	if err := k.protected(func() error { return run.descriptors.Finalize(closeReason(kind)) }); err != nil {
+	if err := k.protected(func() error { return run.descriptors.Finalize(closeReason(effectiveKind)) }); err != nil {
 		failures = append(failures, err)
-		kind = contracts.StopCrash
+		effectiveKind = contracts.StopCrash
 	}
 	for i := len(run.unpublished) - 1; i >= 0; i-- {
 		if err := k.protected(func() error { run.unpublished[i].Abort(); return nil }); err != nil {
 			failures = append(failures, err)
-			kind = contracts.StopCrash
+			effectiveKind = contracts.StopCrash
 		}
 	}
 	run.unpublished = nil
 	for i := len(run.instances) - 1; i >= 0; i-- {
 		if err := k.protected(func() error { run.instances[i].Detach(); return nil }); err != nil {
 			failures = append(failures, err)
-			kind = contracts.StopCrash
+			effectiveKind = contracts.StopCrash
 		}
 	}
 	k.dispatcher.releaseEpoch(run.ref)
 	k.engine.DisposeMachine(token(run))
 	m.current = nil
 	m.state = StateStopped
-	if kind == contracts.StopCrash {
+	if effectiveKind == contracts.StopCrash {
 		m.state = StateCrashed
 	}
-	m.lastExit = ExitRecord{Epoch: run.ref.Epoch, Kind: kind, Valid: true}
+	m.lastExit = ExitRecord{Epoch: run.ref.Epoch, Kind: effectiveKind, Valid: true}
 	k.finishWaits(run.ref, m.lastExit)
 	run.instances, run.bindings = nil, contracts.Bindings{}
 	return errors.Join(failures...)

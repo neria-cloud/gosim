@@ -194,7 +194,10 @@ func invokeTestWorker(t *testing.T, patch, command string, args ...string) []byt
 		t.Fatal(err)
 	}
 	var output, diagnostics byteutil.Buffer
-	code, err := workerboot.Run(ctx, worker, r, append([]string{command}, args...), workerboot.Streams{Out: &output, Err: &diagnostics})
+	code, err := workerboot.Run(
+		ctx, worker, r, append([]string{command}, args...),
+		workerboot.Streams{Out: &output, Err: &diagnostics},
+	)
 	if err != nil || code != 0 {
 		t.Fatalf("gosim worker %s: exit status %d: %v\n%s", command, code, err, diagnostics.String())
 	}
@@ -232,7 +235,9 @@ func ResolveTestIdentity(t *testing.T, configPath string) buildspec.Identity {
 		args = append(args, "-race")
 	}
 	var id buildspec.Identity
-	if err := json.Unmarshal(invokeTestWorker(t, resolution.Toolchain.Version, "resolve-build", args...), &id); err != nil {
+	if err := json.Unmarshal(
+		invokeTestWorker(t, resolution.Toolchain.Version, "resolve-build", args...), &id,
+	); err != nil {
 		t.Fatal(err)
 	}
 	return id

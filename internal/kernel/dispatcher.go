@@ -78,7 +78,8 @@ func NewDispatcher(kernel *Kernel) *Dispatcher {
 		kernel: kernel, incoming: simrt.NewChan[*Invocation](0), nextID: 1,
 		live: make(
 			map[uint64]*invocationLease,
-		), envelopes: make(map[*Invocation]uint64), canceled: make(map[uint64]contracts.EpochRef), timers: make(map[uint64]contracts.EventID),
+		), envelopes: make(map[*Invocation]uint64),
+		canceled: make(map[uint64]contracts.EpochRef), timers: make(map[uint64]contracts.EventID),
 	}
 }
 

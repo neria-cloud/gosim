@@ -195,7 +195,10 @@ func translatePackages(
 		if err != nil {
 			return nil, err
 		}
-		if err := cachePut(cached, hashes[id], CacheEntryV2{Format: 2, IdentityDigest: cfg.Digest, PackageDigest: hashHex(hashes[id]), Result: *result}); err != nil {
+		if err := cachePut(cached, hashes[id], CacheEntryV2{
+			Format: 2, IdentityDigest: cfg.Digest,
+			PackageDigest: hashHex(hashes[id]), Result: *result,
+		}); err != nil {
 			return nil, err
 		}
 		results[id] = result

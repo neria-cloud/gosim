@@ -38,6 +38,12 @@ type suiteOptions struct {
 	large       bool
 }
 
+const (
+	defaultSuiteConcurrency = 4
+	fullFeatureCount        = 3
+	certificationDirMode    = 0o755
+)
+
 func runCertificationCommand(
 	ctx context.Context,
 	command string,
@@ -53,7 +59,10 @@ func runCertificationCommand(
 	if command == "verify" {
 		f.BoolVar(&ordinary, "ordinary", false, "run ordinary tests (default); incompatible with -race")
 	}
-	f.IntVar(&suite.concurrency, "concurrency", min(4, runtime.GOMAXPROCS(0)), "maximum concurrent test workers")
+	f.IntVar(
+		&suite.concurrency, "concurrency", min(defaultSuiteConcurrency, runtime.GOMAXPROCS(0)),
+		"maximum concurrent test workers",
+	)
 	f.IntVar(&suite.parallel, "test-parallel", 0, "parallel native tests per package (zero divides the worker budget)")
 	f.IntVar(&suite.packages, "test-packages", 0, "parallel native packages (zero divides the worker budget)")
 	f.BoolVar(&suite.json, "json", false, "stream Go JSON events for persistent test reports")
@@ -123,7 +132,9 @@ func certifyContext(
 	if err != nil {
 		return report, err
 	}
-	if err := buildspec.ValidateExecution(resolved.Identity, runtime.GOARCH, options.ExecutionMode, options.ContainerImageDigest); err != nil {
+	if err := buildspec.ValidateExecution(
+		resolved.Identity, runtime.GOARCH, options.ExecutionMode, options.ContainerImageDigest,
+	); err != nil {
 		return report, err
 	}
 	cfg, err := gosimtool.NewBuildConfig(ctx, resolved.Selection, resolved.Resolution)
@@ -134,7 +145,7 @@ func certifyContext(
 	if err != nil {
 		return report, err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, certificationDirMode); err != nil {
 		return report, err
 	}
 	dir, err = os.MkdirTemp(dir, "run-")
@@ -180,7 +191,7 @@ func verifyStepContext(ctx context.Context, flags BuildFlags, output string, sui
 	if err != nil {
 		return err
 	}
-	if len(resolved.Identity.Features) != 3 {
+	if len(resolved.Identity.Features) != fullFeatureCount {
 		return fmt.Errorf("verify requires rt,fs,net")
 	}
 	cfg, err := gosimtool.NewBuildConfig(ctx, resolved.Selection, resolved.Resolution)
@@ -188,7 +199,7 @@ func verifyStepContext(ctx context.Context, flags BuildFlags, output string, sui
 		return err
 	}
 	dir := filepath.Join(output, cfg.Digest)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, certificationDirMode); err != nil {
 		return err
 	}
 	_, err = runFullSuite(cfg, dir, suite)
@@ -203,7 +214,7 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	if err != nil {
 		return results, err
 	}
-	full := len(cfg.Identity.Features) == 3
+	full := len(cfg.Identity.Features) == fullFeatureCount
 	if full && cfg.Identity.Race {
 		packages = append(packages, "./internal/tests/race/testdata")
 	}

@@ -39,7 +39,10 @@ type Failure struct {
 
 func (failure *Failure) Error() string {
 	d := failure.Diagnostic
-	return fmt.Sprintf("%s: feature=%s operation=%s machine=%d epoch=%d pc=%#x: %s", failure.Code, d.Feature, d.Operation, d.Epoch.Machine.ID, d.Epoch.Epoch, d.PC, d.Message)
+	return fmt.Sprintf(
+		"%s: feature=%s operation=%s machine=%d epoch=%d pc=%#x: %s",
+		failure.Code, d.Feature, d.Operation, d.Epoch.Machine.ID, d.Epoch.Epoch, d.PC, d.Message,
+	)
 }
 
 // CrashRequest is an internal provider outcome consumed by the kernel before

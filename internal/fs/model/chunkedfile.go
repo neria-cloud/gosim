@@ -139,11 +139,12 @@ func requiredCount(chunkPos int, length int) int {
 		return 0
 	}
 	count := 0
+	remaining := length
 	if chunkPos != 0 {
 		count++
-		length -= min(chunkSize-chunkPos, length)
+		remaining -= min(chunkSize-chunkPos, remaining)
 	}
-	count += (length + chunkSize - 1) / chunkSize
+	count += (remaining + chunkSize - 1) / chunkSize
 	return count
 }
 
@@ -154,16 +155,17 @@ func makeChunks(pos int, view abi.ByteView) []*refCountedChunk {
 	chunkPos := pos % chunkSize
 	count := requiredCount(chunkPos, view.Len())
 	out := make([]*refCountedChunk, 0, count)
+	remaining := view
 	if chunkPos != 0 {
 		chunk := allocRefCountedChunk()
-		n := view.Read(chunk.data[:chunkSize-chunkPos])
-		view = view.SliceFrom(n)
+		n := remaining.Read(chunk.data[:chunkSize-chunkPos])
+		remaining = remaining.SliceFrom(n)
 		out = append(out, chunk)
 	}
-	for view.Len() > 0 {
+	for remaining.Len() > 0 {
 		chunk := allocRefCountedChunk()
-		n := view.Read(chunk.data)
-		view = view.SliceFrom(n)
+		n := remaining.Read(chunk.data)
+		remaining = remaining.SliceFrom(n)
 		out = append(out, chunk)
 	}
 	return out
@@ -269,25 +271,26 @@ func (w *chunkedFile) Write(pos int, size int, chunks []*refCountedChunk) {
 
 	// partial chunks on either end
 	chunkIdx := pos / chunkSize
+	remainingChunks, remainingSize := chunks, size
 	if chunkPos := pos % chunkSize; chunkPos != 0 {
 		// TODO: what if this partial on both sides? handle and test.
 		chunk := w.ensureWritableChunk(chunkIdx)
-		n := copy(chunk.data[chunkPos:min(chunkPos+size, chunkSize)], chunks[0].data)
-		chunks = chunks[1:]
-		size -= n
+		n := copy(chunk.data[chunkPos:min(chunkPos+remainingSize, chunkSize)], remainingChunks[0].data)
+		remainingChunks = remainingChunks[1:]
+		remainingSize -= n
 		chunkIdx++
 	}
-	for size >= chunkSize {
+	for remainingSize >= chunkSize {
 		w.releaseChunk(chunkIdx)
-		chunks[0].incRef()
-		w.chunks[chunkIdx] = chunks[0]
-		chunks = chunks[1:]
-		size -= chunkSize
+		remainingChunks[0].incRef()
+		w.chunks[chunkIdx] = remainingChunks[0]
+		remainingChunks = remainingChunks[1:]
+		remainingSize -= chunkSize
 		chunkIdx++
 	}
-	if size > 0 {
+	if remainingSize > 0 {
 		chunk := w.ensureWritableChunk(chunkIdx)
-		copy(chunk.data[:size], chunks[0].data)
+		copy(chunk.data[:remainingSize], remainingChunks[0].data)
 	}
 }
 
@@ -295,17 +298,18 @@ func (w *chunkedFile) Read(pos int, out abi.ByteView) {
 	// TODO: precondition that read fits in file?
 
 	chunkIdx := pos / chunkSize
+	remaining := out
 	if chunkPos := pos % chunkSize; chunkPos != 0 {
 		// TODO: what if this partial on both sides? handle and test.
 		chunk := w.getReadableChunk(chunkIdx)
-		n := out.Write(chunk.data[chunkPos:])
-		out = out.SliceFrom(n)
+		n := remaining.Write(chunk.data[chunkPos:])
+		remaining = remaining.SliceFrom(n)
 		chunkIdx++
 	}
-	for out.Len() > 0 {
+	for remaining.Len() > 0 {
 		chunk := w.getReadableChunk(chunkIdx)
-		n := out.Write(chunk.data)
-		out = out.SliceFrom(n)
+		n := remaining.Write(chunk.data)
+		remaining = remaining.SliceFrom(n)
 		chunkIdx++
 	}
 }

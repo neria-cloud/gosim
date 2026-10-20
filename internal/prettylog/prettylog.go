@@ -107,8 +107,8 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	err = d.Decode(&evt)
 	if err != nil {
 		// XXX: test that this is output
-		w.out.Write(prefix)
-		w.out.Write(p)
+		_, _ = w.out.Write(prefix)
+		_, _ = w.out.Write(p)
 		return n, fmt.Errorf("cannot decode event: %s", err)
 	}
 	// XXX: what happens with stuff after the message? fix and test
@@ -140,20 +140,20 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 		if idx == -1 {
 			break
 		}
-		w.out.Write(prefix)
+		_, _ = w.out.Write(prefix)
 		if !first {
-			w.out.Write([]byte("    "))
+			_, _ = w.out.Write([]byte("    "))
 		}
-		w.out.Write(buffer[:idx+1])
+		_, _ = w.out.Write(buffer[:idx+1])
 		first = false
 		buffer = buffer[idx+1:]
 	}
 	if len(buffer) > 0 {
-		w.out.Write(prefix)
+		_, _ = w.out.Write(prefix)
 		if !first {
-			w.out.Write([]byte("    "))
+			_, _ = w.out.Write([]byte("    "))
 		}
-		w.out.Write(buffer)
+		_, _ = w.out.Write(buffer)
 	}
 
 	return len(p), err
@@ -343,7 +343,7 @@ func (f *formatter) level(i interface{}) string {
 	var l string
 	if ll, ok := i.(string); ok {
 		var level slog.Level
-		level.UnmarshalText([]byte(ll))
+		_ = level.UnmarshalText([]byte(ll))
 		fl, ok := formattedLevels[level]
 		if ok {
 			l = f.colorize(fl, levelColors[level])

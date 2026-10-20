@@ -90,7 +90,8 @@ func loadSelectedPackages(
 	// Reviewed native computational packages retain their normal implementations;
 	// selected source files participate in package content hashes.
 	tags := buildspec.TranslatedSourceTags(cfg.Identity.Race)
-	mode |= packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedModule | packages.NeedImports | packages.NeedEmbedFiles
+	mode |= packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles |
+		packages.NeedModule | packages.NeedImports | packages.NeedEmbedFiles
 	flags := []string{"-mod=readonly"}
 	if application {
 		flags = buildspec.ApplicationFlags(cfg.Resolution)

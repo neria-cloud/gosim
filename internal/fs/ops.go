@@ -27,6 +27,12 @@ const (
 	mapPopulate       = 0x8000
 	protRead          = 1
 	maxMapping        = 16 * 1024 * 1024
+	openAccessMask    = 3
+	direntHeaderSize  = 19
+	direntTypeOffset  = 18
+	direntMaxRecord   = 4096
+	regularFileMode   = 0o100000
+	directoryFileMode = 0o040000
 )
 
 func (i *Instance) dirInode(dirfd int) (int, error) {
@@ -57,8 +63,8 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 		return 0, err
 	}
 	flags &^= openCloseExec
-	const supported = 3 | openCreate | openExclusive | openTruncate | openDirectory
-	if flags&^supported != 0 || flags&3 == 3 {
+	const supported = openAccessMask | openCreate | openExclusive | openTruncate | openDirectory
+	if flags&^supported != 0 || flags&openAccessMask == openAccessMask {
 		return 0, syscall.EINVAL
 	}
 	if flags&(openCreate|openTruncate) != 0 {
@@ -67,8 +73,10 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 		}
 	}
 	// TODO(not planned): O_APPEND and strict O_DIRECTORY semantics.
-	modelFlags := flags & 3
-	for _, flag := range []struct{ linux, host int }{{openCreate, os.O_CREATE}, {openExclusive, os.O_EXCL}, {openTruncate, os.O_TRUNC}} {
+	modelFlags := flags & openAccessMask
+	for _, flag := range []struct{ linux, host int }{
+		{openCreate, os.O_CREATE}, {openExclusive, os.O_EXCL}, {openTruncate, os.O_TRUNC},
+	} {
 		if flags&flag.linux != 0 {
 			modelFlags |= flag.host
 		}
@@ -77,7 +85,7 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 	if err != nil {
 		return 0, err
 	}
-	f := &File{instance: i, inode: inode, read: flags&3 != 1, write: flags&3 != 0}
+	f := &File{instance: i, inode: inode, read: flags&openAccessMask != 1, write: flags&openAccessMask != 0}
 	fd, err := i.fds.Allocate(f)
 	if err != nil {
 		_ = f.Release(contracts.CloseAbort)
@@ -123,8 +131,8 @@ func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteVi
 	// TODO(not planned): resumable directory cursor and real inode/offset fields.
 	n := 0
 	for _, entry := range entries {
-		length := 19 + len(entry.Name) + 1
-		if length > 4096 {
+		length := direntHeaderSize + len(entry.Name) + 1
+		if length > direntMaxRecord {
 			return 0, syscall.EINVAL
 		}
 		if length > data.Len()-n {
@@ -134,11 +142,11 @@ func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteVi
 		binary.LittleEndian.PutUint64(record[0:8], 1)
 		binary.LittleEndian.PutUint64(record[8:16], 1)
 		binary.LittleEndian.PutUint16(record[16:18], uint16(length))
-		record[18] = 8 // DT_REG
+		record[direntTypeOffset] = 8 // DT_REG
 		if entry.IsDir {
-			record[18] = 4
+			record[direntTypeOffset] = 4
 		}
-		copy(record[19:], entry.Name)
+		copy(record[direntHeaderSize:], entry.Name)
 		data.Slice(n, n+length).Write(record)
 		n += length
 	}
@@ -246,9 +254,9 @@ func (i *Instance) Sync(ctx contracts.CallContext, fd int, dataOnly bool) error 
 }
 
 func statResult(stat model.StatResp) contracts.Stat {
-	mode := uint32(0o100000)
+	mode := uint32(regularFileMode)
 	if stat.IsDir {
-		mode = 0o040000
+		mode = directoryFileMode
 	}
 	return contracts.Stat{
 		Inode: uint64(stat.Inode),

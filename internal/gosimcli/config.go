@@ -84,7 +84,9 @@ func resolveBuildForContext(ctx context.Context, command string, flags BuildFlag
 	if err := buildcfg.ValidateWorker(tc); err != nil {
 		return r, err
 	}
-	if err := os.Setenv("PATH", filepath.Dir(tc.Executable)+string(filepath.ListSeparator)+os.Getenv("PATH")); err != nil {
+	if err := os.Setenv(
+		"PATH", filepath.Dir(tc.Executable)+string(filepath.ListSeparator)+os.Getenv("PATH"),
+	); err != nil {
 		return r, err
 	}
 	profile := selected.Profile()

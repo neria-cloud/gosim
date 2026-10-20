@@ -122,6 +122,20 @@ const (
 	AccessRead    Access = 4
 )
 
+const (
+	accessPermissionMask = 7
+	groupPermissionShift = 3
+	ownerPermissionShift = 6
+	openAccessMask       = 3
+	modeBitsMask         = 0o7777
+	defaultDirMode       = 0o755
+	defaultFileMode      = 0o644
+	appDirMode           = 0o777
+	hostsFileInode       = 3
+	appDirInode          = 4
+	nextInitialInode     = 5
+)
+
 func (fs *Filesystem) CheckAccess(inode int, who Identity, need Access) error {
 	// TODO(not planned): supplemental groups, ACLs and sticky-directory rules.
 	meta, err := fs.metadata(inode)
@@ -131,12 +145,12 @@ func (fs *Filesystem) CheckAccess(inode int, who Identity, need Access) error {
 	if who.UID == 0 {
 		return nil
 	}
-	bits := meta.Mode & 7
+	bits := meta.Mode & accessPermissionMask
 	if who.GID == meta.GID {
-		bits = meta.Mode >> 3 & 7
+		bits = meta.Mode >> groupPermissionShift & accessPermissionMask
 	}
 	if who.UID == meta.UID {
-		bits = meta.Mode >> 6 & 7
+		bits = meta.Mode >> ownerPermissionShift & accessPermissionMask
 	}
 	if bits&uint32(need) != uint32(need) {
 		return syscall.EACCES
@@ -301,7 +315,7 @@ func emptyState() *filesystemState {
 				inode:   RootInode,
 				parent:  RootInode,
 				entries: make(map[string]int),
-				meta:    inodeMetadata{Mode: 0o755},
+				meta:    inodeMetadata{Mode: defaultDirMode},
 			},
 		},
 		next: RootInode + 1,
@@ -315,38 +329,38 @@ func linuxState() *filesystemState {
 			RootInode: &backingDir{
 				inode:  RootInode,
 				parent: RootInode,
-				meta:   inodeMetadata{Mode: 0o755},
+				meta:   inodeMetadata{Mode: defaultDirMode},
 				entries: map[string]int{
 					"etc": 2,
-					"app": 4,
+					"app": appDirInode,
 				},
 			},
 			2: &backingDir{
 				inode:  2,
 				parent: RootInode,
 				name:   "etc",
-				meta:   inodeMetadata{Mode: 0o755},
+				meta:   inodeMetadata{Mode: defaultDirMode},
 				entries: map[string]int{
-					"hosts": 3,
+					"hosts": hostsFileInode,
 				},
 			},
-			3: &backingFile{
-				inode: 3,
+			hostsFileInode: &backingFile{
+				inode: hostsFileInode,
 				file: chunkedFileFromBytes([]byte(`# hosts
 127.0.0.1 localhost
 `)),
-				meta:      inodeMetadata{Mode: 0o644},
+				meta:      inodeMetadata{Mode: defaultFileMode},
 				linkCount: 1,
 			},
-			4: &backingDir{
-				inode:   4,
+			appDirInode: &backingDir{
+				inode:   appDirInode,
 				parent:  RootInode,
 				name:    "app",
 				entries: make(map[string]int),
-				meta:    inodeMetadata{Mode: 0o777},
+				meta:    inodeMetadata{Mode: appDirMode},
 			},
 		},
-		next: 5,
+		next: nextInitialInode,
 	}
 }
 
@@ -791,7 +805,7 @@ func (fs *Filesystem) Mkdir(dirInode int, path string, mode uint32, who Identity
 	op := &allocOp{
 		dir:   true,
 		inode: inode,
-		meta:  inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID},
+		meta:  inodeMetadata{Mode: mode & modeBitsMask &^ 0o022, UID: who.UID, GID: who.GID},
 	}
 	fs.apply(op)
 
@@ -898,7 +912,7 @@ func (fs *Filesystem) Chmod(inode int, mode uint32, who Identity) error {
 	if who.UID != 0 && who.UID != meta.UID {
 		return syscall.EPERM
 	}
-	mode &= 0o7777
+	mode &= modeBitsMask
 	if meta.Mode == mode {
 		return nil
 	}
@@ -1097,7 +1111,7 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int, mode uint32,
 			op := &allocOp{
 				dir:   false,
 				inode: inode,
-				meta:  inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID},
+				meta:  inodeMetadata{Mode: mode & modeBitsMask &^ 0o022, UID: who.UID, GID: who.GID},
 			}
 			fs.apply(op)
 
@@ -1128,10 +1142,10 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int, mode uint32,
 	}
 	if _, isDir := fs.mem.getDir(inode); !isDir {
 		var need Access
-		if flag&3 != os.O_WRONLY {
+		if flag&openAccessMask != os.O_WRONLY {
 			need |= AccessRead
 		}
-		if flag&3 != os.O_RDONLY {
+		if flag&openAccessMask != os.O_RDONLY {
 			need |= AccessWrite
 		}
 		if !created {
@@ -1139,7 +1153,7 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int, mode uint32,
 				return 0, err
 			}
 		}
-	} else if flag&3 != os.O_RDONLY {
+	} else if flag&openAccessMask != os.O_RDONLY {
 		return 0, syscall.EISDIR
 	}
 	if ok && flag&os.O_TRUNC != 0 {

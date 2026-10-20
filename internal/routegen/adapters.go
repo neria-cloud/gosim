@@ -14,26 +14,40 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
+const (
+	syscallPackage = "syscall"
+	unixPackage    = "golang.org/x/sys/unix"
+	kernelOwner    = "kernel"
+)
+
 // A declaration is selected explicitly even when several upstream names map to
 // the same service. No absent function can disappear from generated output.
 var adapterOperations = map[string]string{
 	"accept4": "Accept", "bind": "Bind", "Chdir": "Chdir", "Close": "Close", "connect": "Connect",
 	"Fallocate": "Fallocate", "fcntl": "FcntlInt", "FcntlInt": "FcntlInt", "FcntlFlock": "FcntlLock",
-	"Fdatasync": "DataSync", "Flock": "Flock", "Fstat": "Fstat", "Fstatfs": "FstatFS", "Statfs": "StatFS", "fstatat": "Statat", "Fstatat": "Statat", "Fsync": "Sync",
+	"Fdatasync": "DataSync", "Flock": "Flock", "Fstat": "Fstat", "Fstatfs": "FstatFS",
+	"Statfs": "StatFS", "fstatat": "Statat", "Fstatat": "Statat", "Fsync": "Sync",
 	"Fchmod": "Fchmod", "Fchmodat": "Chmodat", "Fchown": "Fchown", "Fchownat": "Chownat",
-	"Ftruncate": "Truncate", "Getcwd": "Getcwd", "Getdents": "Getdents64", "getpeername": "PeerAddress", "Getpid": "Getpid",
-	"Getrandom": "Getrandom", "GetRandom": "Getrandom", "vgetrandom": "VGetrandom", "getsockname": "LocalAddress", "getsockopt": "GetOption",
-	"Listen": "Listen", "Madvise": "Advise", "Mkdirat": "Mkdirat", "mmap": "Map", "munmap": "Unmap", "openat": "Openat", "Openat": "Openat",
-	"pread": "Pread", "pwrite": "Pwrite", "read": "Read", "Renameat": "Renameat", "Seek": "Seek", "setsockopt": "SetOption", "socket": "Socket",
+	"Ftruncate": "Truncate", "Getcwd": "Getcwd", "Getdents": "Getdents64",
+	"getpeername": "PeerAddress", "Getpid": "Getpid",
+	"Getrandom": "Getrandom", "GetRandom": "Getrandom", "vgetrandom": "VGetrandom",
+	"getsockname": "LocalAddress", "getsockopt": "GetOption",
+	"Listen": "Listen", "Madvise": "Advise", "Mkdirat": "Mkdirat", "mmap": "Map",
+	"munmap": "Unmap", "openat": "Openat", "Openat": "Openat",
+	"pread": "Pread", "pwrite": "Pwrite", "read": "Read", "Renameat": "Renameat",
+	"Seek": "Seek", "setsockopt": "SetOption", "socket": "Socket",
 	"Uname": "Uname", "unlinkat": "Unlinkat", "Unlinkat": "Unlinkat", "write": "Write", "Getrlimit": "Getrlimit",
-	"RawSyscall": "Reject", "RawSyscall6": "Reject", "Syscall": "Reject", "Syscall6": "Reject", "rawSyscallNoError": "Reject",
+	"RawSyscall": "Reject", "RawSyscall6": "Reject", "Syscall": "Reject",
+	"Syscall6": "Reject", "rawSyscallNoError": "Reject",
 	"rawVforkSyscall": "Reject", "SyscallNoError": "Reject", "RawSyscallNoError": "Reject",
 }
 
 func adapterOwner(operation string) string {
 	if slices.Contains(
 		strings.Fields(
-			"Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync DataSync Fstat Statat StatFS FstatFS Fchmod Chmodat Fchown Chownat Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise",
+			"Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync DataSync Fstat Statat "+
+				"StatFS FstatFS Fchmod Chmodat Fchown Chownat Unlinkat Truncate Chdir Getcwd "+
+				"Mkdirat Flock FcntlLock Map Unmap Advise",
 		),
 		operation,
 	) {
@@ -45,15 +59,18 @@ func adapterOwner(operation string) string {
 	) {
 		return "net"
 	}
-	return "kernel"
+	return kernelOwner
 }
 
 func adapterSymbols(pkg string) []string {
 	symbols := strings.Fields(
-		"accept4 bind Chdir Close connect Fallocate Fdatasync Flock Fstat Fstatfs Statfs Fsync Ftruncate Getcwd Getdents getpeername Getpid getsockname getsockopt Listen Madvise Mkdirat mmap munmap openat pread pwrite read Renameat Seek setsockopt socket Uname write fcntl FcntlFlock Getrlimit RawSyscall RawSyscall6 Syscall Syscall6",
+		"accept4 bind Chdir Close connect Fallocate Fdatasync Flock Fstat Fstatfs Statfs Fsync " +
+			"Ftruncate Getcwd Getdents getpeername Getpid getsockname getsockopt Listen Madvise " +
+			"Mkdirat mmap munmap openat pread pwrite read Renameat Seek setsockopt socket Uname " +
+			"write fcntl FcntlFlock Getrlimit RawSyscall RawSyscall6 Syscall Syscall6",
 	)
 	switch pkg {
-	case "syscall":
+	case syscallPackage:
 		return append(
 			symbols,
 			"fstatat",
@@ -65,7 +82,7 @@ func adapterSymbols(pkg string) []string {
 			"Fchown",
 			"Fchownat",
 		)
-	case "golang.org/x/sys/unix":
+	case unixPackage:
 		return append(
 			symbols,
 			"Fstatat",
@@ -87,18 +104,22 @@ func adapterSymbols(pkg string) []string {
 }
 
 func adapterPrefix(pkg string) string {
-	return map[string]string{"syscall": "Syscall_", "golang.org/x/sys/unix": "GolangOrgXSysUnix_", "internal/syscall/unix": "InternalSyscallUnix_"}[pkg]
+	return map[string]string{
+		syscallPackage:          "Syscall_",
+		unixPackage:             "GolangOrgXSysUnix_",
+		"internal/syscall/unix": "InternalSyscallUnix_",
+	}[pkg]
 }
 
 func adapterHooks(profileID string, sources map[string]sourcePackage) ([]spec.Hook, error) {
 	var hooks []spec.Hook
-	for _, pkg := range []string{"syscall", "golang.org/x/sys/unix", "internal/syscall/unix"} {
+	for _, pkg := range []string{syscallPackage, unixPackage, "internal/syscall/unix"} {
 		for _, symbol := range adapterSymbols(pkg) {
 			fn := sources[pkg].Functions[symbol]
 			if fn == nil {
 				return nil, fmt.Errorf("missing adapter declaration %s.%s", pkg, symbol)
 			}
-			signature, err := signatureType(fn, false, pkg, "kernel")
+			signature, err := signatureType(fn, false, pkg, kernelOwner)
 			if err != nil {
 				return nil, err
 			}
@@ -109,9 +130,8 @@ func adapterHooks(profileID string, sources map[string]sourcePackage) ([]spec.Ho
 					Package:   pkg,
 					Symbol:    symbol,
 					Signature: signature,
-					Target: "github.com/neria-cloud/gosim/internal/compat/" + profileID + "/hooks/" + owner + "." + adapterPrefix(
-						pkg,
-					) + symbol,
+					Target: "github.com/neria-cloud/gosim/internal/compat/" +
+						profileID + "/hooks/" + owner + "." + adapterPrefix(pkg) + symbol,
 					Owner: owner,
 				},
 			)
@@ -164,7 +184,7 @@ func adapterType(expr ast.Expr, pkg, owner string) ast.Expr {
 		x.X = adapterType(x.X, pkg, owner)
 	case *ast.Ident:
 		if x.Name == "Errno" {
-			return &ast.SelectorExpr{X: ast.NewIdent("syscall"), Sel: ast.NewIdent("Errno")}
+			return &ast.SelectorExpr{X: ast.NewIdent(syscallPackage), Sel: ast.NewIdent("Errno")}
 		}
 		if x.Name == "_Socklen" {
 			return ast.NewIdent("uint32")
@@ -174,10 +194,10 @@ func adapterType(expr ast.Expr, pkg, owner string) ast.Expr {
 		}
 		if slices.Contains(layoutNames, x.Name) {
 			name := x.Name
-			if pkg == "golang.org/x/sys/unix" {
+			if pkg == unixPackage {
 				name = "X" + name
 			}
-			if owner == "kernel" {
+			if owner == kernelOwner {
 				return ast.NewIdent(name)
 			}
 			return &ast.SelectorExpr{X: ast.NewIdent("kh"), Sel: ast.NewIdent(name)}
@@ -213,24 +233,30 @@ func renderAdapters(tc buildspec.Toolchain, profile spec.Profile, arch string, m
 		return nil, err
 	}
 	outputs["internal/compat/"+profile.ID+"/hooks/kernel/layouts_"+arch+".go"] = layouts
-	for _, owner := range []string{"kernel", "fs", "net"} {
+	for _, owner := range []string{kernelOwner, "fs", "net"} {
 		var b bytes.Buffer
 		fmt.Fprintf(
 			&b,
-			"// Code generated by gosim-gen from %s and pinned x/sys. DO NOT EDIT.\n//go:build %s && %s\n\npackage %s\n",
+			"// Code generated by gosim-gen from %s and pinned x/sys. DO NOT EDIT.\n"+
+				"//go:build %s && %s\n\npackage %s\n",
 			tc.Version,
 			familyBounds(profile.ID),
 			arch,
 			owner,
 		)
 		b.WriteString(
-			"import (\"strings\";\"syscall\";\"unsafe\"; k \"github.com/neria-cloud/gosim/internal/kernel\";\"github.com/neria-cloud/gosim/internal/contracts\";\"github.com/neria-cloud/gosim/rt/runtime/abi\";simrt \"github.com/neria-cloud/gosim/rt/runtime\"",
+			"import (\"strings\";\"syscall\";\"unsafe\"; " +
+				"k \"github.com/neria-cloud/gosim/internal/kernel\";" +
+				"\"github.com/neria-cloud/gosim/internal/contracts\";" +
+				"\"github.com/neria-cloud/gosim/rt/runtime/abi\";" +
+				"simrt \"github.com/neria-cloud/gosim/rt/runtime\"",
 		)
-		if owner != "kernel" {
+		if owner != kernelOwner {
 			b.WriteString("; kh \"github.com/neria-cloud/gosim/internal/compat/" + profile.ID + "/hooks/kernel\"")
 		}
 		b.WriteString(
-			")\nvar _=strings.IndexByte;var _=syscall.EINVAL;var _ unsafe.Pointer;var _=abi.ByteView{};var _=simrt.RaceEnabled;var _=contracts.RT\n",
+			")\nvar _=strings.IndexByte;var _=syscall.EINVAL;var _ unsafe.Pointer;" +
+				"var _=abi.ByteView{};var _=simrt.RaceEnabled;var _=contracts.RT\n",
 		)
 		for _, h := range hooks {
 			if h.Owner != owner {

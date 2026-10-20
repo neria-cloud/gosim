@@ -34,7 +34,9 @@ func (s *Session) ConfigureMachine(ref contracts.MachineRef, config contracts.FS
 		disk = model.NewLinuxFilesystem()
 		defer disk.Release()
 	}
-	if _, err := disk.Getdirinode(model.RootInode, config.WorkingDir, model.Identity{UID: config.UID, GID: config.GID}); err != nil {
+	if _, err := disk.Getdirinode(
+		model.RootInode, config.WorkingDir, model.Identity{UID: config.UID, GID: config.GID},
+	); err != nil {
 		return err
 	}
 	s.machine(ref).config = config

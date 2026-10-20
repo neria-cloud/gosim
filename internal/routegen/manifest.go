@@ -92,8 +92,11 @@ func exported(name string) bool { return token.IsIdentifier(name) && token.IsExp
 func allowedType(typ string) bool {
 	return slices.Contains([]string{
 		"int", "int64", "uint8", "uint32", "uint64", "uintptr", "bool", "string", "[]string", "[4]byte", "func()",
-		"abi.ByteView", "abi.ValueView[contracts.Lock]", "contracts.MachineRef", "contracts.StopKind", "contracts.Stat", "contracts.Address",
-		"contracts.FSConfig", "contracts.FSFaultConfig", "contracts.FSStorageStats", "contracts.InodeInfo", "contracts.NetConfig", "contracts.NetLink", "contracts.NetLinkPolicy",
+		"abi.ByteView", "abi.ValueView[contracts.Lock]", "contracts.MachineRef",
+		"contracts.StopKind", "contracts.Stat", "contracts.Address",
+		"contracts.FSConfig", "contracts.FSFaultConfig", "contracts.FSStorageStats",
+		"contracts.InodeInfo", "contracts.NetConfig", "contracts.NetLink",
+		"contracts.NetLinkPolicy",
 		"ProcessInfo", "ExitRecord", "State", "contracts.Feature",
 	}, typ)
 }

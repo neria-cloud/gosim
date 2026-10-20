@@ -45,6 +45,8 @@ const (
 	depDependsOn
 )
 
+const crashSelectionChoices = 3
+
 func (k depKind) isStoreAs() bool {
 	return k != depDependsOn
 }
@@ -167,19 +169,20 @@ func (p *pendingOps) maybeEnqueueOpFromDep(dep *pendingDep, out []*pendingOp) []
 		// dep is already enqueued
 		return out
 	}
-	out = append(out, dep.op)
+	pending := append(out, dep.op)
 	// mark parent as nil in nodes so we know op is enqueued. nodes will be
 	// removed in flushOp
 	for cur := dep.op.first; cur != nil; cur = cur.sibling {
 		cur.op = flagOpEnqueued
 	}
-	return out
+	return pending
 }
 
 func (p *pendingOps) enqueuePrevDeps(dep *pendingDep, out []*pendingOp) []*pendingOp {
+	pending := out
 	for cur := dep; cur != nil && cur.op != flagOpWalked; cur = cur.prev {
 		if cur.kind.isStoreAs() {
-			out = p.maybeEnqueueOpFromDep(cur, out)
+			pending = p.maybeEnqueueOpFromDep(cur, pending)
 		}
 		// XXX: how do we unhook this guy???????????????????????????????????
 		// do we just leave it??? but then its prev and next are wrong!!!!!
@@ -187,15 +190,16 @@ func (p *pendingOps) enqueuePrevDeps(dep *pendingDep, out []*pendingOp) []*pendi
 		// the start of the chain)
 		cur.op = flagOpWalked
 	}
-	return out
+	return pending
 }
 
 func (p *pendingOps) processOp(op *pendingOp, out []*pendingOp) []*pendingOp {
+	pending := out
 	cur := op.first
 	op.first = nil
 	for cur != nil {
 		if cur.kind.isDependsOn() {
-			out = p.enqueuePrevDeps(cur, out)
+			pending = p.enqueuePrevDeps(cur, pending)
 		}
 
 		// unhook and free node
@@ -217,16 +221,17 @@ func (p *pendingOps) processOp(op *pendingOp, out []*pendingOp) []*pendingOp {
 		cur.prev, cur.next, cur.sibling, cur.op = nil, nil, nil, nil
 		cur = sibling
 	}
-	return out
+	return pending
 }
 
 func (p *pendingOps) processQueue(out []*pendingOp) []*pendingOp {
-	for idx := 0; idx < len(out); idx++ {
-		cur := out[idx]
-		out = p.processOp(cur, out)
+	pending := out
+	for idx := 0; idx < len(pending); idx++ {
+		cur := pending[idx]
+		pending = p.processOp(cur, pending)
 	}
-	slices.SortFunc(out, byOpPos)
-	return out
+	slices.SortFunc(pending, byOpPos)
+	return pending
 }
 
 func (p *pendingOps) addOp(fsOp fsOp) {
@@ -236,17 +241,18 @@ func (p *pendingOps) addOp(fsOp fsOp) {
 }
 
 func (p *pendingOps) flushInode(inode int, out []*pendingOp) []*pendingOp {
+	pending := out
 	// file
-	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyAlloc, inode: int32(inode)}], out)
-	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyResizeFile, inode: int32(inode)}], out)
-	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteFile, inode: int32(inode)}], out)
-	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyMetadata, inode: int32(inode)}], out)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyAlloc, inode: int32(inode)}], pending)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyResizeFile, inode: int32(inode)}], pending)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteFile, inode: int32(inode)}], pending)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyMetadata, inode: int32(inode)}], pending)
 	// dir
-	out = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteDir, inode: int32(inode)}], out)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteDir, inode: int32(inode)}], pending)
 
-	out = p.processQueue(out)
+	pending = p.processQueue(pending)
 
-	return out
+	return pending
 }
 
 func (p *pendingOps) releaseBuffer(ops []*pendingOp) {
@@ -363,7 +369,7 @@ func (p *crashPlan) randomCrashSubset(random contracts.Random) []fsOp {
 	unavailable := make(map[depKey]uint32)
 	var picked []fsOp
 	for _, op := range p.ops {
-		if dependenciesAvailable(op.depends, unavailable) && random.Uint64N(3) >= 1 {
+		if dependenciesAvailable(op.depends, unavailable) && random.Uint64N(crashSelectionChoices) >= 1 {
 			picked = append(picked, op.op)
 		} else {
 			incrementUnavailable(op.stores, unavailable)

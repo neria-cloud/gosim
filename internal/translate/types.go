@@ -142,7 +142,10 @@ func (t *packageTranslator) makeTypeExpr(typ types.Type) dst.Expr {
 			return &dst.ChanType{Dir: dir, Value: t.makeType(typ.Elem())}
 		*/
 	case *types.Array:
-		return &dst.ArrayType{Len: &dst.BasicLit{Kind: token.INT, Value: fmt.Sprint(typ.Len())}, Elt: t.makeTypeExpr(typ.Elem())}
+		return &dst.ArrayType{
+			Len: &dst.BasicLit{Kind: token.INT, Value: fmt.Sprint(typ.Len())},
+			Elt: t.makeTypeExpr(typ.Elem()),
+		}
 	case *types.Interface:
 		if typ.Empty() {
 			return &dst.InterfaceType{Methods: &dst.FieldList{

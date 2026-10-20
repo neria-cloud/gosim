@@ -17,6 +17,24 @@ const (
 	socketNonblock  = 0x800
 	socketCloseExec = 0x80000
 	socketFlags     = socketStream | socketNonblock | socketCloseExec
+	ipv4AddressSize = 4
+	tcpProtocol     = 6
+	socketLevel     = 1
+	tcpLevel        = 6
+	soReuseAddr     = 2
+	soError         = 4
+	soSendBuffer    = 7
+	soReceiveBuffer = 8
+	soKeepAlive     = 9
+	soLinger        = 13
+	tcpNoDelay      = 1
+	tcpKeepIdle     = 4
+	tcpKeepInterval = 5
+	tcpKeepCount    = 6
+	optionIntSize   = 4
+	lingerSize      = 8
+	linuxTimedOut   = 110
+	linuxInProgress = 115
 )
 
 func (i *Instance) socket(ctx contracts.CallContext, fd int) (*Socket, error) {
@@ -62,7 +80,7 @@ func (i *Instance) Socket(ctx contracts.CallContext, family, flags, protocol int
 		return 0, syscall.EINVAL
 	}
 	// Linux net capability discovery explicitly passes IPPROTO_TCP.
-	if protocol != 0 && protocol != 6 {
+	if protocol != 0 && protocol != tcpProtocol {
 		return 0, syscall.EPROTONOSUPPORT
 	}
 	return i.allocate(&Socket{instance: i})
@@ -89,7 +107,7 @@ func (i *Instance) Bind(ctx contracts.CallContext, fd int, addr contracts.Addres
 	if s.bound || s.stream != nil || s.listener != nil {
 		return syscall.EINVAL
 	}
-	if addr.IPv4 != ([4]byte{}) && addr.IPv4 != i.machine.address {
+	if addr.IPv4 != ([ipv4AddressSize]byte{}) && addr.IPv4 != i.machine.address {
 		return syscall.EADDRNOTAVAIL
 	}
 	// TODO(not planned): ephemeral listening ports and explicit client binds.
@@ -166,7 +184,7 @@ func (i *Instance) Connect(ctx contracts.CallContext, fd int, addr contracts.Add
 		}
 		return syscall.EALREADY
 	}
-	if addr.Port == 0 || addr.IPv4 == ([4]byte{}) {
+	if addr.Port == 0 || addr.IPv4 == ([ipv4AddressSize]byte{}) {
 		return syscall.EINVAL
 	}
 	stream, err := i.stack.OpenStream(netip.AddrPortFrom(netip.AddrFrom4(addr.IPv4), addr.Port))
@@ -210,18 +228,18 @@ func (i *Instance) SetOption(ctx contracts.CallContext, fd, level, name int, val
 	// Explicitly bounded stubs used by Go TCP setup. No real option semantics
 	// are claimed; all other options fail instead of blanket success.
 	size := 0
-	if level == 1 {
+	if level == socketLevel {
 		switch name {
-		case 2, 7, 8, 9:
-			size = 4
-		case 13:
-			size = 8
+		case soReuseAddr, soSendBuffer, soReceiveBuffer, soKeepAlive:
+			size = optionIntSize
+		case soLinger:
+			size = lingerSize
 		}
 	}
-	if level == 6 {
+	if level == tcpLevel {
 		switch name {
-		case 1, 4, 5, 6:
-			size = 4
+		case tcpNoDelay, tcpKeepIdle, tcpKeepInterval, tcpKeepCount:
+			size = optionIntSize
 		}
 	}
 	if size == 0 {
@@ -238,10 +256,10 @@ func (i *Instance) GetOption(ctx contracts.CallContext, fd, level, name int, val
 	if err != nil {
 		return 0, err
 	}
-	if level != 1 || name != 4 {
+	if level != socketLevel || name != soError {
 		return 0, syscall.ENOPROTOOPT
 	}
-	if value.Len() != 4 {
+	if value.Len() != optionIntSize {
 		return 0, syscall.EINVAL
 	}
 	if s.stream == nil {
@@ -251,15 +269,15 @@ func (i *Instance) GetOption(ctx contracts.CallContext, fd, level, name int, val
 	var errno uint32
 	if !status.Open {
 		if status.Closed {
-			errno = 110
+			errno = linuxTimedOut
 		} else {
-			errno = 115
+			errno = linuxInProgress
 		}
 	}
-	var bytes [4]byte
+	var bytes [optionIntSize]byte
 	binary.LittleEndian.PutUint32(bytes[:], errno)
 	value.Write(bytes[:])
-	return 4, nil
+	return optionIntSize, nil
 }
 
 func (i *Instance) FcntlInt(ctx contracts.CallContext, fd, command, argument int) (int, error) {

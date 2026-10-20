@@ -145,16 +145,17 @@ import (
 
 // Run is the direct worker entry. It never bootstraps another worker.
 func Run(ctx context.Context, args []string, streams workerboot.Streams) int {
+	runCtx, runArgs := ctx, args
 	if len(args) >= 2 && args[0] == "--resolution" {
 		r, err := workerboot.ValidateInvocation(ctx, args[1])
 		if err != nil {
 			fmt.Fprintln(streams.Err, err)
 			return 1
 		}
-		ctx = context.WithValue(ctx, resolutionKey{}, r)
-		args = args[2:]
+		runCtx = context.WithValue(ctx, resolutionKey{}, r)
+		runArgs = args[2:]
 	}
-	code, err := run(ctx, args, streams)
+	code, err := run(runCtx, runArgs, streams)
 	if err != nil {
 		fmt.Fprintln(streams.Err, "gosim:", err)
 		if code == 0 {
@@ -301,7 +302,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 	}
 	for _, artifact := range result.Artifacts {
 		binary := filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path)
-		args := []string{
+		testArgs := []string{
 			"-test.run=" + *run,
 			"-test.skip=" + *skip,
 			"-test.v=" + fmt.Sprint(*verbose),
@@ -314,7 +315,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 			if err != nil {
 				return 1, err
 			}
-			args = append(args, "-jsonlogout="+absolute)
+			testArgs = append(testArgs, "-jsonlogout="+absolute)
 		}
 		var child *exec.Cmd
 		if command == "debug" {
@@ -335,7 +336,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 			)
 			child = exec.Command("dlv", dlv...)
 		} else {
-			child = exec.Command(binary, args...)
+			child = exec.Command(binary, testArgs...)
 		}
 		child.Env = append(os.Environ(), "GODEBUG=")
 		// Preserve the CLI test-output contract: simulation diagnostics and logs

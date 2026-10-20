@@ -12,6 +12,11 @@ import (
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
+const (
+	selftestExecutableMode = 0o755
+	selftestSourceMode     = 0o644
+)
+
 // prepareSelftest prepares for running tests in the gosim module.
 func prepareSelftest(cfg gosimtool.BuildConfig) error {
 	modDir, err := gosimtool.FindGoModDir()
@@ -30,11 +35,11 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 		// Prepare the racetest binary
 		raceBuildPath := filepath.Join(buildDir, "testdata.test")
 		raceFinalPath := filepath.Join(modDir, gosimtool.OutputDirectory, "racetest", "testdata.test")
-		if err := os.MkdirAll(filepath.Dir(raceFinalPath), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(raceFinalPath), selftestExecutableMode); err != nil {
 			return err
 		}
 		// try to reuse the old binary
-		if err := copyFile(raceFinalPath, raceBuildPath, 0o755); err != nil {
+		if err := copyFile(raceFinalPath, raceBuildPath, selftestExecutableMode); err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				return fmt.Errorf("copy source: %w", err)
 			}
@@ -53,7 +58,7 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 			return err
 		}
 		// place the binary
-		if err := copyFileIfChanged(raceBuildPath, raceFinalPath, 0o755); err != nil {
+		if err := copyFileIfChanged(raceBuildPath, raceFinalPath, selftestExecutableMode); err != nil {
 			return fmt.Errorf("copy final: %w", err)
 		}
 
@@ -85,10 +90,10 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 		return err
 	}
 	gosimFinalPath := filepath.Join(modDir, gosimtool.OutputDirectory, "scripttest", "bin", "gosim-user")
-	if err := os.MkdirAll(filepath.Dir(gosimFinalPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(gosimFinalPath), selftestExecutableMode); err != nil {
 		return err
 	}
-	if err := copyFileIfChanged(gosimBuildPath, gosimFinalPath, 0o755); err != nil {
+	if err := copyFileIfChanged(gosimBuildPath, gosimFinalPath, selftestExecutableMode); err != nil {
 		return fmt.Errorf("copy final: %w", err)
 	}
 
@@ -99,7 +104,9 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 			"'\\''",
 		) + "'" + " internal-candidate \"$@\"\n",
 	)
-	if err := os.WriteFile(filepath.Join(filepath.Dir(gosimFinalPath), "gosim"), wrapper, 0o755); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(filepath.Dir(gosimFinalPath), "gosim"), wrapper, selftestExecutableMode,
+	); err != nil {
 		return err
 	}
 
@@ -144,10 +151,10 @@ func copyModuleForScriptTest(modDir string) error {
 
 	for _, file := range files {
 		newP := filepath.Join(extractedModDir, strings.TrimPrefix(file, modDir))
-		if err := os.MkdirAll(filepath.Dir(newP), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(newP), selftestExecutableMode); err != nil {
 			return err
 		}
-		if err := copyFileIfChanged(file, newP, 0o644); err != nil {
+		if err := copyFileIfChanged(file, newP, selftestSourceMode); err != nil {
 			return err
 		}
 		wanted[newP] = true

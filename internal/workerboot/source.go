@@ -71,10 +71,21 @@ func workerGraphDigest(ctx context.Context, r buildspec.Resolution) (string, err
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	for {
 		var p struct {
-			ImportPath, Dir                                                                                                     string
-			Standard                                                                                                            bool
-			GoFiles, CgoFiles, CFiles, CXXFiles, MFiles, HFiles, FFiles, SFiles, SwigFiles, SwigCXXFiles, SysoFiles, EmbedFiles []string
-			Module                                                                                                              *buildspec.Module
+			ImportPath, Dir string
+			Standard        bool
+			GoFiles         []string
+			CgoFiles        []string
+			CFiles          []string
+			CXXFiles        []string
+			MFiles          []string
+			HFiles          []string
+			FFiles          []string
+			SFiles          []string
+			SwigFiles       []string
+			SwigCXXFiles    []string
+			SysoFiles       []string
+			EmbedFiles      []string
+			Module          *buildspec.Module
 		}
 		if err := decoder.Decode(&p); err == io.EOF {
 			break
@@ -96,7 +107,10 @@ func workerGraphDigest(ctx context.Context, r buildspec.Resolution) (string, err
 			}
 		}
 		names := []string{}
-		for _, list := range [][]string{p.GoFiles, p.CgoFiles, p.CFiles, p.CXXFiles, p.MFiles, p.HFiles, p.FFiles, p.SFiles, p.SwigFiles, p.SwigCXXFiles, p.SysoFiles, p.EmbedFiles} {
+		for _, list := range [][]string{
+			p.GoFiles, p.CgoFiles, p.CFiles, p.CXXFiles, p.MFiles, p.HFiles, p.FFiles,
+			p.SFiles, p.SwigFiles, p.SwigCXXFiles, p.SysoFiles, p.EmbedFiles,
+		} {
 			names = append(names, list...)
 		}
 		slices.Sort(names)

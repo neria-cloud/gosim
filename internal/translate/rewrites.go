@@ -17,6 +17,13 @@ import (
 
 var rewriteSelectorRegexp = regexp.MustCompile(`[/.]`)
 
+const (
+	linknameFieldCount     = 3
+	linknameFieldSeparator = " "
+	selectorSeparator      = "."
+	logPackageKey          = "pkg"
+)
+
 // RewriteSelector rewrites internal/bytealg.Equal to InternalBytealg_Equal
 func RewriteSelector(pkg, selector string) string {
 	pkgParts := rewriteSelectorRegexp.Split(pkg, -1)
@@ -143,7 +150,7 @@ func attachNamedLinknames(file *dst.File) {
 		}
 		for i, line := range fn.Decs.Start {
 			parts := strings.Fields(line)
-			if len(parts) != 3 || parts[0] != "//go:linkname" {
+			if len(parts) != linknameFieldCount || parts[0] != "//go:linkname" {
 				continue
 			}
 			if target := functions[parts[1]]; target != nil && target != fn {
@@ -180,7 +187,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 				continue
 			}
 
-			parts := strings.Split(val, " ")
+			parts := strings.Split(val, linknameFieldSeparator)
 
 			if len(parts) == 2 && decl.Body == nil {
 				if t.profile != nil {
@@ -191,22 +198,22 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 					// pushed by another package; no native symbol is admitted.
 					t.needsUnsafe = true
 				} else {
-					slog.Error("unknown linkname with no body", "pkg", t.pkgPath, "name", decl.Name.Name)
+					slog.Error("unknown linkname with no body", logPackageKey, t.pkgPath, "name", decl.Name.Name)
 				}
 			}
 
-			if len(parts) == 3 {
+			if len(parts) == linknameFieldCount {
 				dest := parts[2]
 				idx1 := strings.LastIndex(dest, "/") + 1
-				idx2 := strings.Index(dest[idx1:], ".")
+				idx2 := strings.Index(dest[idx1:], selectorSeparator)
 				if idx2 != -1 {
 					idx := idx1 + idx2
 					pkg, name := dest[:idx], dest[idx+1:]
 					target := PackageSelector{Pkg: pkg, Selector: name}
 					if (runtimeRandomLink(target) || runtimeAuxvLink(target)) && t.profile != nil {
 						replacement := t.profile.replacements[target]
-						parts[2] = t.replacedPkgs[replacement.Pkg] + "." + replacement.Selector
-						decl.Decs.Start[i] = strings.Join(parts, " ")
+						parts[2] = t.replacedPkgs[replacement.Pkg] + selectorSeparator + replacement.Selector
+						decl.Decs.Start[i] = strings.Join(parts, linknameFieldSeparator)
 						t.needsUnsafe = true
 						continue
 					}
@@ -215,27 +222,32 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 					// feature graph never imports (os defines net.newUnixFile).
 					// It defines a translated symbol, not a native escape/import.
 					if t.profile != nil && decl.Body != nil && t.replacedPkgs[pkg] == "" {
-						policy, err := t.profile.packagePolicy(pkg, !strings.Contains(strings.Split(pkg, "/")[0], "."))
+						policy, err := t.profile.packagePolicy(
+							pkg, !strings.Contains(strings.Split(pkg, "/")[0], selectorSeparator),
+						)
 						if err == nil && policy.Mode == "translate" {
-							parts[2] = "translated/" + gosimtool.ReplaceSpecialPackages(pkg) + "." + name
-							decl.Decs.Start[i] = strings.Join(parts, " ")
+							parts[2] = "translated/" + gosimtool.ReplaceSpecialPackages(pkg) + selectorSeparator + name
+							decl.Decs.Start[i] = strings.Join(parts, linknameFieldSeparator)
 							continue
 						}
 					}
 					if newPkg, ok := t.replacedPkgs[pkg]; ok {
-						slog.Debug("rewriting linkname", "pkg", t.pkgPath, "name", decl.Name.Name)
+						slog.Debug("rewriting linkname", logPackageKey, t.pkgPath, "name", decl.Name.Name)
 
 						parts[2] = fmt.Sprintf("%s.%s", newPkg, name)
-						decl.Decs.Start[i] = strings.Join(parts, " ")
+						decl.Decs.Start[i] = strings.Join(parts, linknameFieldSeparator)
 					} else if strings.HasPrefix(pkg, "gosimnotranslate/") {
 						parts[2] = fmt.Sprintf("%s.%s", strings.TrimPrefix(pkg, "gosimnotranslate/"), name)
-						decl.Decs.Start[i] = strings.Join(parts, " ")
+						decl.Decs.Start[i] = strings.Join(parts, linknameFieldSeparator)
 					} else {
 						// TODO: make this fail the build?
 						if t.profile != nil {
 							panic(fmt.Errorf("unknown linkname %s.%s -> %s.%s", t.pkgPath, decl.Name.Name, pkg, name))
 						}
-						slog.Error("unknown linkname", "pkg", t.pkgPath, "name", decl.Name.Name, "targetPkg", pkg, "targetName", name)
+						slog.Error(
+							"unknown linkname", logPackageKey, t.pkgPath, "name", decl.Name.Name,
+							"targetPkg", pkg, "targetName", name,
+						)
 					}
 				}
 			}
@@ -278,7 +290,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 				decl.Name.Name))
 			t.needsUnsafe = true
 		} else {
-			slog.Error("missing function body", "pkg", t.pkgPath, "name", decl.Name.Name)
+			slog.Error("missing function body", logPackageKey, t.pkgPath, "name", decl.Name.Name)
 			panic(fmt.Errorf("missing function body %s.%s", t.pkgPath, decl.Name.Name))
 		}
 	}

@@ -41,8 +41,9 @@ func Policies(selection buildspec.Selection) (PackagePolicies, error) {
 		return PackagePolicies{}, err
 	}
 	result := PackagePolicies{
-		profile: p, manifest: m, features: slices.Clone(selection.Identity.Features), compositionPackage: gosimtool.Module + "/.gosim/v2/" + digest + "/input/gosimcomposition",
-		hooks: make(map[PackageSelector]PackageSelector), replacements: make(map[PackageSelector]PackageSelector),
+		profile: p, manifest: m, features: slices.Clone(selection.Identity.Features),
+		compositionPackage: gosimtool.Module + "/.gosim/v2/" + digest + "/input/gosimcomposition",
+		hooks:              make(map[PackageSelector]PackageSelector), replacements: make(map[PackageSelector]PackageSelector),
 		packages: make(map[string]string), native: make(map[string]bool), shared: make(map[PackageSelector]bool),
 	}
 	for _, h := range p.Hooks {

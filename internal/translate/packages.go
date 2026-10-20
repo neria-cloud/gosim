@@ -13,7 +13,9 @@ const (
 	gosimModPath        = gosimtool.Module
 	gosimruntimePackage = gosimModPath + "/rt/runtime"
 	runtimeABIPackage   = gosimruntimePackage + "/abi"
-	loadSyntaxAndTypes  = packages.NeedSyntax | packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedFiles | packages.NeedImports
+	loadSyntaxAndTypes  = packages.NeedSyntax |
+		packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo |
+		packages.NeedFiles | packages.NeedImports
 )
 
 type packageKind string

@@ -177,12 +177,17 @@ func NewNetwork(
 		panic("missing network ports")
 	}
 	n := &Network{
-		endpoints: make(
-			map[netip.Addr]*Endpoint,
-		), config: DefaultConfig(), links: make(map[linkKey]*linkState), rng: random, clock: clock, events: events, trace: trace,
-		reservations: make(
-			map[uint64]Reservation,
-		), reserved: make(map[netip.Addr]uint64), assigned: make(map[contracts.MachineRef]netip.Addr), owners: make(map[netip.Addr]contracts.MachineRef),
+		endpoints:    make(map[netip.Addr]*Endpoint),
+		config:       DefaultConfig(),
+		links:        make(map[linkKey]*linkState),
+		rng:          random,
+		clock:        clock,
+		events:       events,
+		trace:        trace,
+		reservations: make(map[uint64]Reservation),
+		reserved:     make(map[netip.Addr]uint64),
+		assigned:     make(map[contracts.MachineRef]netip.Addr),
+		owners:       make(map[netip.Addr]contracts.MachineRef),
 	}
 	n.queue = newDelayQueue(clock, events, func(p *Packet) {
 		if stack := n.getStack(p); stack != nil {

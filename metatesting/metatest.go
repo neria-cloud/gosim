@@ -87,10 +87,10 @@ func (w prefixer) Write(b []byte) (n int, err error) {
 			end++
 		}
 		line := b[:end]
-		w.out.WriteString(w.prefix)
-		w.out.Write(line)
+		_, _ = w.out.WriteString(w.prefix)
+		_, _ = w.out.Write(line)
 		if line[len(line)-1] != '\n' {
-			w.out.WriteString("\n")
+			_, _ = w.out.WriteString("\n")
 		}
 		b = b[end:]
 	}
@@ -275,7 +275,7 @@ func (r *MetaT) Run(t *testing.T, config *RunConfig) (*RunResult, error) {
 		}
 		line := out[:idx+1]
 		out = out[idx+1:]
-		w.Write([]byte(line))
+		_, _ = w.Write([]byte(line))
 	}
 	t.Log(b.String())
 

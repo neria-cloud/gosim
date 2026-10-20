@@ -49,44 +49,49 @@ func BuildResolved(cfg gosimtool.BuildConfig, patterns []string) (result BuildRe
 			return result, err
 		}
 		inputs := []gosimtool.PackageDigest{input}
-		artifact, err := gosimtool.BuildArtifact(cfg.Context, project, result.Config.Identity, inputs, func(stage string) (gosimtool.Manifest, error) {
-			manifest := gosimtool.Manifest{Schema: 2, Identity: result.Config.Identity, PackageDigests: inputs}
-			source := filepath.Join(stage, "source")
-			if err := os.Mkdir(source, 0o755); err != nil {
-				return manifest, err
-			}
-			if err := gosimtool.MaterializeFiles(source, files); err != nil {
-				return manifest, err
-			}
-			if err := validateOutputGraph(result.Config, source, pkg); err != nil {
-				return manifest, err
-			}
-			args := []string{"test", "-c", "-trimpath", "-mod=readonly", "-ldflags=-checklinkname=0", "-tags=linkname,sim", "-o", filepath.Join(stage, "testbin")}
-			if cfg.Identity.Race {
-				args = append(args, "-race")
-			}
-			args = append(args, pkg)
-			cmd := buildspec.OutputCommand(cfg.Context, result.Config.Toolchain, source, args...)
-			cmd.Env = replaceEnv(cmd.Env, "CGO_ENABLED", "1")
-			var output bytes.Buffer
-			cmd.Stdout, cmd.Stderr = &output, &output
-			if err := buildspec.RunProcess(cfg.Context, cmd); err != nil {
-				return manifest, fmt.Errorf("compile candidate %s: %w\n%s", pkg, err, output.Bytes())
-			}
-			built, err := readFiles(stage)
-			if err != nil {
-				return manifest, err
-			}
-			for name, data := range built {
-				file := gosimtool.ArtifactFile{Path: name, SHA256: buildspec.Hash(data)}
-				if name == "testbin" {
-					manifest.Binary = file
-				} else {
-					manifest.GeneratedFiles = append(manifest.GeneratedFiles, file)
+		artifact, err := gosimtool.BuildArtifact(
+			cfg.Context, project, result.Config.Identity, inputs,
+			func(stage string) (gosimtool.Manifest, error) {
+				manifest := gosimtool.Manifest{Schema: 2, Identity: result.Config.Identity, PackageDigests: inputs}
+				source := filepath.Join(stage, "source")
+				if err := os.Mkdir(source, 0o755); err != nil {
+					return manifest, err
 				}
-			}
-			return manifest, nil
-		})
+				if err := gosimtool.MaterializeFiles(source, files); err != nil {
+					return manifest, err
+				}
+				if err := validateOutputGraph(result.Config, source, pkg); err != nil {
+					return manifest, err
+				}
+				args := []string{
+					"test", "-c", "-trimpath", "-mod=readonly", "-ldflags=-checklinkname=0",
+					"-tags=linkname,sim", "-o", filepath.Join(stage, "testbin"),
+				}
+				if cfg.Identity.Race {
+					args = append(args, "-race")
+				}
+				args = append(args, pkg)
+				cmd := buildspec.OutputCommand(cfg.Context, result.Config.Toolchain, source, args...)
+				cmd.Env = replaceEnv(cmd.Env, "CGO_ENABLED", "1")
+				var output bytes.Buffer
+				cmd.Stdout, cmd.Stderr = &output, &output
+				if err := buildspec.RunProcess(cfg.Context, cmd); err != nil {
+					return manifest, fmt.Errorf("compile candidate %s: %w\n%s", pkg, err, output.Bytes())
+				}
+				built, err := readFiles(stage)
+				if err != nil {
+					return manifest, err
+				}
+				for name, data := range built {
+					file := gosimtool.ArtifactFile{Path: name, SHA256: buildspec.Hash(data)}
+					if name == "testbin" {
+						manifest.Binary = file
+					} else {
+						manifest.GeneratedFiles = append(manifest.GeneratedFiles, file)
+					}
+				}
+				return manifest, nil
+			})
 		if err != nil {
 			return result, err
 		}
@@ -154,7 +159,10 @@ func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
 				}
 				// Domain models may import their own provider subtree; composition owns
 				// construction. No other production package gains a concrete dependency.
-				forbidden := path == translatedRoot || path == translatedRoot+"/fs" || path == translatedRoot+"/net" || path == translatedRoot+"/rt"
+				forbidden := path == translatedRoot ||
+					path == translatedRoot+"/fs" ||
+					path == translatedRoot+"/net" ||
+					path == translatedRoot+"/rt"
 				for _, consumer := range []string{"contracts", "control", "kernel"} {
 					prefix := translatedRoot + "/internal_/" + consumer
 					forbidden = forbidden || path == prefix || strings.HasPrefix(path, prefix+"/")

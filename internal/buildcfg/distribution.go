@@ -32,7 +32,8 @@ func fingerprintInstalled(root string) (buildspec.Fingerprints, error) {
 				strings.HasPrefix(
 					name,
 					"src/",
-				) || strings.HasPrefix(name, "bin/") || strings.HasPrefix(name, "lib/") || strings.HasPrefix(name, "pkg/tool/") {
+				) || strings.HasPrefix(name, "bin/") ||
+				strings.HasPrefix(name, "lib/") || strings.HasPrefix(name, "pkg/tool/") {
 				return nil
 			}
 			return filepath.SkipDir

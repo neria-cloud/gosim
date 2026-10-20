@@ -35,7 +35,8 @@ type Artifact struct {
 }
 
 func ValidateArtifactPath(name string) error {
-	if name == "" || name == "." || path.IsAbs(name) || path.Clean(name) != name || strings.ContainsAny(name, "\\:\x00") || name == ".." || strings.HasPrefix(name, "../") {
+	if name == "" || name == "." || path.IsAbs(name) || path.Clean(name) != name ||
+		strings.ContainsAny(name, "\\:\x00") || name == ".." || strings.HasPrefix(name, "../") {
 		return fmt.Errorf("invalid relative artifact path %q", name)
 	}
 	return nil
@@ -70,7 +71,8 @@ func normalizePackages(packages []PackageDigest) ([]PackageDigest, error) {
 		return nil, fmt.Errorf("empty artifact package set")
 	}
 	for i, p := range result {
-		if p.Path == "" || strings.ContainsAny(p.Path, "\x00\r\n") || !buildspec.ValidDigest(p.Digest) || i > 0 && result[i-1].Path == p.Path {
+		if p.Path == "" || strings.ContainsAny(p.Path, "\x00\r\n") ||
+			!buildspec.ValidDigest(p.Digest) || i > 0 && result[i-1].Path == p.Path {
 			return nil, fmt.Errorf("invalid/duplicate package digest %q", p.Path)
 		}
 	}

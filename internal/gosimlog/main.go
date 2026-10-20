@@ -86,7 +86,9 @@ func unmarshalWithExtraFields(data []byte, value any, extra *[]UnknownField, kno
 			// binary data, other stuff) and format them nicely
 			const base64Prefix = `"base64:`
 			if len(value) > 0 && bytes.HasPrefix(value, []byte(base64Prefix)) {
-				if maybeBytes, err := base64.StdEncoding.AppendDecode(nil, value[len(base64Prefix):len(value)-1]); err == nil {
+				if maybeBytes, err := base64.StdEncoding.AppendDecode(
+					nil, value[len(base64Prefix):len(value)-1],
+				); err == nil {
 					*extra = append(*extra, UnknownField{Key: key, Value: strconv.QuoteToASCII(string(maybeBytes))})
 					continue
 				}

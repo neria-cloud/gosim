@@ -19,7 +19,9 @@ func NewDB(path string) (*DB, error) {
 		return nil, err
 	}
 
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY NOT NULL, timestamp INT, contents BLOB) STRICT"); err != nil {
+	if _, err := db.Exec(
+		"CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY NOT NULL, timestamp INT, contents BLOB) STRICT",
+	); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -53,14 +55,20 @@ func (d *DB) Get(key string) ([]byte, error) {
 }
 
 func (d *DB) Put(key string, timestamp time.Time, blob []byte) error {
-	if _, err := d.db.Exec("INSERT OR IGNORE INTO cache (key, timestamp, contents) VALUES (?, ?, ?)", key, timestamp.Unix(), blob); err != nil {
+	if _, err := d.db.Exec(
+		"INSERT OR IGNORE INTO cache (key, timestamp, contents) VALUES (?, ?, ?)",
+		key, timestamp.Unix(), blob,
+	); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (d *DB) Touch(key string, timestamp time.Time) error {
-	if _, err := d.db.Exec("UPDATE cache SET timestamp = ? WHERE key = ? AND timestamp < ?", timestamp.Unix(), key, timestamp.Unix()); err != nil {
+	if _, err := d.db.Exec(
+		"UPDATE cache SET timestamp = ? WHERE key = ? AND timestamp < ?",
+		timestamp.Unix(), key, timestamp.Unix(),
+	); err != nil {
 		return err
 	}
 	return nil

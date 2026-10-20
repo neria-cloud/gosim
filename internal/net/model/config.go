@@ -80,12 +80,19 @@ type linkState struct {
 	Generation uint64
 }
 
+const (
+	defaultMaxLatencyMS = 100
+	defaultTCPBuffer    = 1024
+	traceLatencyKey     = "latency"
+	traceLossKey        = "loss"
+)
+
 func DefaultConfig() Config {
 	return Config{
-		Latency:           LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5},
+		Latency:           LatencyConfig{Max: defaultMaxLatencyMS * time.Millisecond, Lambda: 5},
 		Loss:              LossConfig{RepairProbability: 1},
 		ConnectionTimeout: time.Second,
-		TCPBufferSize:     1024,
+		TCPBufferSize:     defaultTCPBuffer,
 	}
 }
 
@@ -228,9 +235,9 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 			"configure_global",
 			"operation",
 			r.Kind,
-			"latency",
+			traceLatencyKey,
 			c.Latency,
-			"loss",
+			traceLossKey,
 			c.Loss,
 			"connectionTimeout",
 			c.ConnectionTimeout,
@@ -272,9 +279,9 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 			key.B,
 			"operation",
 			r.Kind,
-			"latency",
+			traceLatencyKey,
 			c.Latency,
-			"loss",
+			traceLossKey,
 			c.Loss,
 			"latencyLocal",
 			state.Latency != nil,
@@ -364,9 +371,9 @@ func (n *Network) SetLinkPolicy(
 			key.A,
 			"b",
 			key.B,
-			"latency",
+			traceLatencyKey,
 			config.Latency,
-			"loss",
+			traceLossKey,
 			config.Loss,
 			"latencyLocal",
 			s.Latency != nil,
@@ -393,9 +400,9 @@ func (n *Network) ResetLinkPolicy(p HostPair, direction ConnectivityDirection) e
 				key.A,
 				"b",
 				key.B,
-				"latency",
+				traceLatencyKey,
 				config.Latency,
-				"loss",
+				traceLossKey,
 				config.Loss,
 				"latencyLocal",
 				false,

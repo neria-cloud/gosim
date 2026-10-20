@@ -62,7 +62,9 @@ func Submit(route kernel.RouteID, inv *kernel.Invocation) error {
 
 // Call submits a copied, generated request for a public control method. Capture
 // that method's caller rather than the generic transport frame in diagnostics.
-func Call[T any](request interface{ Invocation() kernel.Invocation }, decode func(kernel.Result) (T, error)) (T, error) {
+func Call[T any](
+	request interface{ Invocation() kernel.Invocation }, decode func(kernel.Result) (T, error),
+) (T, error) {
 	inv := request.Invocation()
 	if err := submit(inv.Route, &inv, 4); err != nil {
 		var zero T

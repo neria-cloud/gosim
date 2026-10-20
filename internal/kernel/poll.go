@@ -64,12 +64,18 @@ func (k *Kernel) PollOpen(ctx contracts.CallContext, fd int) (uint64, error) {
 	}
 	id := k.nextPollID
 	k.nextPollID++
-	p := &pollRegistration{id: id, epoch: ctx.Epoch, fd: fd, resource: pollable, sink: &registrationSink{kernel: k, id: id}}
+	p := &pollRegistration{
+		id: id, epoch: ctx.Epoch, fd: fd, resource: pollable,
+		sink: &registrationSink{kernel: k, id: id},
+	}
 	p.read.waiters, p.write.waiters = make(map[uint64]struct{}), make(map[uint64]struct{})
 	k.polls[id] = p
 	if err := pollable.Subscribe(ctx, p.sink); err != nil {
 		delete(k.polls, id)
-		if cleanupErr := k.protected(func() error { pollable.Unsubscribe(ctx, p.sink); return nil }); cleanupErr != nil {
+		if cleanupErr := k.protected(func() error {
+			pollable.Unsubscribe(ctx, p.sink)
+			return nil
+		}); cleanupErr != nil {
 			k.cleanupFailure("poll subscription rollback", errors.Join(err, cleanupErr))
 			return 0, errors.Join(err, cleanupErr)
 		}
@@ -243,7 +249,10 @@ func (k *Kernel) closePoll(p *pollRegistration) error {
 		}
 		k.completePollWaiters(p, d, ErrPollClosing)
 	}
-	return k.protected(func() error { p.resource.Unsubscribe(contracts.CallContext{Epoch: p.epoch}, p.sink); return nil })
+	return k.protected(func() error {
+		p.resource.Unsubscribe(contracts.CallContext{Epoch: p.epoch}, p.sink)
+		return nil
+	})
 }
 
 func (k *Kernel) closePolls(epoch contracts.EpochRef, fd int) error {

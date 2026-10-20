@@ -119,10 +119,10 @@ func collectEmbeddedGlobals(pkg *packages.Package, files []*ast.File) ([]embedde
 
 func embedPatterns(text string) ([]string, error) {
 	var result []string
-	for text = strings.TrimSpace(text); text != ""; text = strings.TrimSpace(text) {
-		if text[0] == '"' || text[0] == '`' {
+	for remaining := strings.TrimSpace(text); remaining != ""; remaining = strings.TrimSpace(remaining) {
+		if remaining[0] == '"' || remaining[0] == '`' {
 			var scan scanner.Scanner
-			scan.Init(strings.NewReader(text))
+			scan.Init(strings.NewReader(remaining))
 			scan.Mode = scanner.ScanStrings | scanner.ScanRawStrings
 			var failed bool
 			scan.Error = func(*scanner.Scanner, string) { failed = true }
@@ -130,32 +130,32 @@ func embedPatterns(text string) ([]string, error) {
 			quoted := scan.TokenText()
 			value, err := strconv.Unquote(quoted)
 			if err != nil || failed {
-				return nil, fmt.Errorf("invalid embed pattern %q", text)
+				return nil, fmt.Errorf("invalid embed pattern %q", remaining)
 			}
-			text = text[len(quoted):]
-			if text != "" && !unicode.IsSpace([]rune(text)[0]) {
+			remaining = remaining[len(quoted):]
+			if remaining != "" && !unicode.IsSpace([]rune(remaining)[0]) {
 				return nil, fmt.Errorf("invalid embed pattern separator")
 			}
 			result = append(result, value)
 		} else {
-			end := strings.IndexFunc(text, unicode.IsSpace)
+			end := strings.IndexFunc(remaining, unicode.IsSpace)
 			if end < 0 {
-				end = len(text)
+				end = len(remaining)
 			}
-			result = append(result, text[:end])
-			text = text[end:]
+			result = append(result, remaining[:end])
+			remaining = remaining[end:]
 		}
 	}
 	return result, nil
 }
 
 func embedMatches(pattern, rel string) (bool, error) {
-	pattern, all := strings.CutPrefix(pattern, "all:")
-	if !fs.ValidPath(pattern) || pattern == "." {
-		return false, fmt.Errorf("invalid embed pattern %q", pattern)
+	matchedPattern, all := strings.CutPrefix(pattern, "all:")
+	if !fs.ValidPath(matchedPattern) || matchedPattern == "." {
+		return false, fmt.Errorf("invalid embed pattern %q", matchedPattern)
 	}
 	for current := rel; current != "."; current = path.Dir(current) {
-		matched, err := path.Match(pattern, current)
+		matched, err := path.Match(matchedPattern, current)
 		if err != nil {
 			return false, err
 		}

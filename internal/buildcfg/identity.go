@@ -88,7 +88,8 @@ func identityForSource(
 		return buildspec.Identity{}, err
 	}
 	id := buildspec.Identity{
-		Schema: 2, ContractDigest: contract, Toolchain: tc.Version, Profile: profile.ID, AdapterRevision: profile.Revision,
+		Schema: 2, ContractDigest: contract, Toolchain: tc.Version,
+		Profile: profile.ID, AdapterRevision: profile.Revision,
 		ToolchainDigest: dist.ToolchainDigest, StdlibDigest: dist.StdlibDigest,
 		HostOS: tc.HostOS, HostArch: tc.HostArch, SimulationOS: cfg.SimulationOS, SimulationArch: tc.HostArch,
 		Features: cfg.Features, Race: opts.Race, Experiments: opts.Experiments,

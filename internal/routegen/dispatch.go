@@ -108,7 +108,8 @@ return syscallRouteResult(out,err)
 			b.WriteString("_ = out\nreturn d.decodeMachineWait(ctx,p.Machine)\n")
 		case "self":
 			b.WriteString(
-				"_ = out\nif err:=k.exitSelf(ctx,p.Kind); err!=nil {return controlRouteResult(out,err)}\nreturn Result{},true,nil\n",
+				"_ = out\nif err:=k.exitSelf(ctx,p.Kind); err!=nil " +
+					"{return controlRouteResult(out,err)}\nreturn Result{},true,nil\n",
 			)
 		case "control":
 			receiver, method := "k", r.Name
@@ -128,7 +129,8 @@ return syscallRouteResult(out,err)
 				}
 				fmt.Fprintf(
 					&b,
-					"service,serviceErr:=k.%s(ctx,%s)\nif serviceErr!=nil {return controlRouteResult(out,serviceErr)}\n",
+					"service,serviceErr:=k.%s(ctx,%s)\n"+
+						"if serviceErr!=nil {return controlRouteResult(out,serviceErr)}\n",
 					service,
 					run,
 				)
@@ -147,7 +149,9 @@ return syscallRouteResult(out,err)
 			}
 			if r.Name == "Require" {
 				b.WriteString(
-					"if p.Feature!=contracts.RT && p.Feature!=contracts.FS && p.Feature!=contracts.Net {return Result{},false,invalidPayload(ctx,\"invalid feature\")}\nk.Require(ctx,p.Feature,p.Operation)\nreturn controlRouteResult(out,nil)\n",
+					"if p.Feature!=contracts.RT && p.Feature!=contracts.FS && p.Feature!=contracts.Net " +
+						"{return Result{},false,invalidPayload(ctx,\"invalid feature\")}\n" +
+						"k.Require(ctx,p.Feature,p.Operation)\nreturn controlRouteResult(out,nil)\n",
 				)
 			} else if r.Name == "Info" {
 				b.WriteString("out=k.runInfo()\nreturn controlRouteResult(out,nil)\n")

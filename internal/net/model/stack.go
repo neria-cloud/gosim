@@ -87,7 +87,7 @@ func (s *Stack) Shutdown(kind contracts.StopKind) {
 	}
 	sort.Slice(streams, func(i, j int) bool { return streams[i].generation < streams[j].generation })
 	for _, stream := range streams {
-		s.closeStream(stream, kind == contracts.StopGraceful)
+		_ = s.closeStream(stream, kind == contracts.StopGraceful)
 		stream.inBuffer = nil
 		stream.outBuffer = nil
 	}
@@ -166,7 +166,7 @@ func (s *Stack) ProcessIncoming(packet *Packet) {
 		}
 		s.seen[id] = packet.ConnectionGeneration
 		if old := s.streams[id]; old != nil {
-			s.closeStream(old, false)
+			_ = s.closeStream(old, false)
 		}
 		listener := s.listeners[packet.ConnId.Ports.DestPort]
 		if listener == nil || listener.closed || listener.incomingCount == len(listener.incoming) {
@@ -203,7 +203,7 @@ func (s *Stack) ProcessIncoming(packet *Packet) {
 	case PacketKindOpenedStream, PacketKindStreamAck, PacketKindStreamData, PacketKindStreamWindow:
 		stream.processIncomingPacket(s, packet)
 	case PacketKindStreamClose:
-		s.closeStream(stream, false)
+		_ = s.closeStream(stream, false)
 	default:
 		panic("unknown network packet kind")
 	}
@@ -442,7 +442,7 @@ func (s *Stack) startAckFailedTimer(stream *Stream) {
 			}
 
 			// A keepalive also requires an ACK, even when ackPos == sendPos.
-			s.closeStream(stream, false)
+			_ = s.closeStream(stream, false)
 		})
 	} else if stream.ackFailedTimer.event == 0 {
 		stream.ackFailedTimer.Reset(5 * time.Second)
@@ -502,7 +502,7 @@ func (s *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
 		}
 		// stream.failureReason?
 		// stream.openFailed?
-		s.closeStream(stream, false)
+		_ = s.closeStream(stream, false)
 	})
 
 	return stream, nil
@@ -574,7 +574,10 @@ func (s *Stack) updateStreamPollers(stream *Stream) {
 	if s.quiesced {
 		return
 	}
-	stream.pollers.set(s.ref, stream.closed || stream.incomingAvailable > 0, stream.closed || stream.outgoingWindow > 0, stream.closed)
+	stream.pollers.set(
+		s.ref, stream.closed || stream.incomingAvailable > 0,
+		stream.closed || stream.outgoingWindow > 0, stream.closed,
+	)
 }
 
 func (s *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
@@ -701,7 +704,7 @@ func (s *Stack) ReleaseListener(listener *Listener, reason contracts.CloseReason
 	for listener.incomingCount > 0 {
 		stream := listener.incoming[listener.incomingPos]
 		if !stream.closed {
-			s.closeStream(stream, reason == contracts.CloseExplicit || reason == contracts.CloseGraceful)
+			_ = s.closeStream(stream, reason == contracts.CloseExplicit || reason == contracts.CloseGraceful)
 		}
 		listener.incoming[listener.incomingPos] = nil
 		listener.incomingPos = (listener.incomingPos + 1) % len(listener.incoming)
