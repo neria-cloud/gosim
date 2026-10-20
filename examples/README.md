@@ -5,7 +5,7 @@ the supported examples:
 
 ```sh
 make build
-./.gosim/gosimtool test -features rt,fs,net ./examples ./examples/bolt
+./.gosim/gosimtool test -features rt,fs,net ./examples/simple ./examples/bolt ./examples/network/...
 ```
 
 Go tooling selects the compiler from the caller's module/workspace and
@@ -19,11 +19,36 @@ required. See [Go versions and configuration](../README.md#go-versions-and-confi
 If an existing `.gosim/gosimtool` reports `unsupported config schema 2`, run
 `make build` to replace the old CLI. Keep the current `gosim.json`.
 
-The root examples exercise deterministic tests and explicit machine startup. The Bolt example exercises the existing file/persistence model. The root examples are included in the full-feature positive suite; the command above also runs the separate Bolt example. Machine creation returns an unstarted handle: configure services, call `Start`, and observe termination through `Wait`.
+## Cases and packages
+
+Each case has its own package, so it can be translated and run independently.
+The three latency ranges share the latency case's echo helper.
+
+| Package | Case | Required features |
+| --- | --- | --- |
+| [simple](simple/simple_test.go) | Deterministic execution and randomness | `rt` |
+| [bolt](bolt/bolt_test.go) | Write, read, and reopen a Bolt database | `rt,fs` |
+| [network/machines](network/machines/machines_test.go) | TCP requests, machine crash/restart, and link latency | `rt,net` |
+| [network/latency](network/latency/latency_test.go) | Three latency ranges without connection drops | `rt,net` |
+| [etcd](etcd/README.md) | Retained etcd cluster, snapshot, and WAL fixtures | Unsupported HTTP/gRPC integration |
+
+Run the supported cases individually:
+
+```sh
+./.gosim/gosimtool test -features rt ./examples/simple
+./.gosim/gosimtool test -features rt,fs ./examples/bolt
+./.gosim/gosimtool test -features rt,net ./examples/network/machines
+./.gosim/gosimtool test -features rt,net ./examples/network/latency
+```
+
+Supported cases are included in the feature suites according to the table above.
+The `examples/` directory itself contains documentation only.
+Machine creation returns an unstarted handle: configure services, call `Start`,
+and observe termination through `Wait`.
 
 ## Network latency
 
-[latency_test.go](latency_test.go) uses one persistent TCP connection to an echo
+[network/latency](network/latency/latency_test.go) uses one persistent TCP connection to an echo
 server, with connection drops disabled (`FailProbability: 0`).
 
 | Test | One-way latency | Simulated observation time |
@@ -36,7 +61,7 @@ Run only these examples:
 
 ```sh
 make build
-./.gosim/gosimtool test -features rt,net -v -run '^TestLatency' ./examples
+./.gosim/gosimtool test -features rt,net -v ./examples/network/latency
 ```
 
 Each test connects with zero latency, then applies the latency range in both

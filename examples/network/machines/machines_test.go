@@ -1,6 +1,6 @@
 //go:build sim
 
-package examples_test
+package machines_test
 
 import (
 	"bufio"

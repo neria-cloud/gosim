@@ -1,6 +1,6 @@
 //go:build sim
 
-package examples_test
+package latency_test
 
 import (
 	"io"

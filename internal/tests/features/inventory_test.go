@@ -17,10 +17,10 @@ import (
 func TestFeatureApplicabilityAndPreservedInventory(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct{ features, packages []string }{
-		{[]string{"rt"}, []string{"./internal/tests/rt"}},
-		{[]string{"rt", "fs"}, []string{"./internal/tests/rt", "./internal/tests/fs"}},
-		{[]string{"rt", "net"}, []string{"./internal/tests/rt", "./internal/tests/net"}},
-		{[]string{"rt", "fs", "net"}, []string{"./internal/tests/rt", "./internal/tests/fs", "./internal/tests/net", "./internal/tests/integration", "./nemesis", "./examples"}},
+		{[]string{"rt"}, []string{"./internal/tests/rt", "./examples/simple"}},
+		{[]string{"rt", "fs"}, []string{"./internal/tests/rt", "./internal/tests/fs", "./examples/simple", "./examples/bolt"}},
+		{[]string{"rt", "net"}, []string{"./internal/tests/rt", "./internal/tests/net", "./examples/simple", "./examples/network/machines", "./examples/network/latency"}},
+		{[]string{"rt", "fs", "net"}, []string{"./internal/tests/rt", "./internal/tests/fs", "./internal/tests/net", "./internal/tests/integration", "./nemesis", "./examples/simple", "./examples/bolt", "./examples/network/machines", "./examples/network/latency"}},
 	} {
 		got, err := Packages(test.features)
 		if err != nil || !slices.Equal(got, test.packages) {

@@ -4,10 +4,13 @@
 
 | Tuple | Positive packages |
 | --- | --- |
-| rt | internal/tests/rt |
-| rt,fs | internal/tests/rt, internal/tests/fs |
-| rt,net | internal/tests/rt, internal/tests/net |
-| rt,fs,net | all four feature packages, nemesis, examples |
+| rt | internal/tests/rt, examples/simple |
+| rt,fs | internal/tests/rt, internal/tests/fs, examples/simple, examples/bolt |
+| rt,net | internal/tests/rt, internal/tests/net, examples/simple, examples/network/machines, examples/network/latency |
+| rt,fs,net | all four feature packages, nemesis, examples/simple, examples/bolt, examples/network/machines, examples/network/latency |
+
+Example cases are separate packages, selected by their required features.
+The unsupported `examples/etcd` integration remains separate rejection coverage.
 
 Each positive package retains native metatests for deterministic replay, seeds and execution. Expected application failures have separate native assertions. The race oracle runs only for full-feature race tuples, with its native harness checking intentional race reports. HTTP/gRPC are explicit translation rejections; the retained ignored source examples do not count as simulated coverage. The old commented nemesis behavior files remain preserved in integration; the active nemesis package runs on full-feature tuples.
 

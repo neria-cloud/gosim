@@ -1,4 +1,4 @@
-package examples_test
+package simple_test
 
 import (
 	"math/rand"

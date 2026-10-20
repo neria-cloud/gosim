@@ -21,7 +21,10 @@ func Registry() []Suite {
 		{"./internal/tests/net", []string{"rt", "net"}},
 		{"./internal/tests/integration", []string{"rt", "fs", "net"}},
 		{"./nemesis", []string{"rt", "fs", "net"}},
-		{"./examples", []string{"rt", "fs", "net"}},
+		{"./examples/simple", []string{"rt"}},
+		{"./examples/bolt", []string{"rt", "fs"}},
+		{"./examples/network/machines", []string{"rt", "net"}},
+		{"./examples/network/latency", []string{"rt", "net"}},
 	}
 }
 
