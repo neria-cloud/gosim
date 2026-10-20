@@ -644,7 +644,7 @@ func TestMapGrowingIterAdd(t *testing.T) {
 		{3, 8},
 	}
 
-	var seen []pair
+	seen := make([]pair, 0, len(m))
 	for k, v := range m {
 		if k >= 4 && k <= 7 {
 			expected = append(expected, pair{k, k + 6})
