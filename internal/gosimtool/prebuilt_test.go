@@ -80,7 +80,13 @@ func TestLookupArtifactRejectsLinkedNamespace(t *testing.T) {
 		t.Fatal(err)
 	}
 	inputs := []PackageDigest{input}
-	built, err := BuildArtifact(t.Context(), root, id, inputs, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, inputs) })
+	built, err := BuildArtifact(
+		t.Context(),
+		root,
+		id,
+		inputs,
+		func(dir string) (Manifest, error) { return fixtureBuild(dir, id, inputs) },
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

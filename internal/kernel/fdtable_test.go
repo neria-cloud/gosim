@@ -45,7 +45,8 @@ func TestSharedDescriptorCapabilitiesAndFcntlOwnership(t *testing.T) {
 			}
 			input[0] = 'x'
 			output := make([]byte, 7)
-			if n, err := k.Read(ctx, fd, abi.ByteView{Ptr: output}); n != 7 || err != nil || string(output) != "payload" {
+			if n, err := k.Read(ctx, fd, abi.ByteView{Ptr: output}); n != 7 || err != nil ||
+				string(output) != "payload" {
 				t.Fatal(n, err, string(output))
 			}
 		}
@@ -105,7 +106,8 @@ func TestDescriptorFinalizeContinuesInOrder(t *testing.T) {
 	}
 	resources[0].closeErr, resources[1].closeErr = errors.New("first release"), errors.New("second release")
 	err := table.Finalize(contracts.CloseCrash)
-	if err == nil || !strings.Contains(err.Error(), "first release") || !strings.Contains(err.Error(), "second release") {
+	if err == nil || !strings.Contains(err.Error(), "first release") ||
+		!strings.Contains(err.Error(), "second release") {
 		t.Fatal(err)
 	}
 	if !slices.Equal(order, []int{3, 4, 5}) || len(table.entries) != 0 {
@@ -150,7 +152,8 @@ func TestRuntimeOnlyDiagnosticsAndProcessServices(t *testing.T) {
 			}
 			message[0] = 'x'
 		}
-		if len(k.traces) != 2 || k.traces[0].event != "stdout" || k.traces[1].event != "stderr" || k.traces[0].fields[0].Value != "diagnostic\n" {
+		if len(k.traces) != 2 || k.traces[0].event != "stdout" || k.traces[1].event != "stderr" ||
+			k.traces[0].fields[0].Value != "diagnostic\n" {
 			t.Fatal("diagnostics were not copied into logs")
 		}
 		if n, err := k.Write(ctx, 0, abi.ByteView{}); n != 0 || !errors.Is(err, syscall.EBADF) {
@@ -174,7 +177,8 @@ func TestRuntimeOnlyDiagnosticsAndProcessServices(t *testing.T) {
 		binary.LittleEndian.PutUint64(want[:8], wantRandom.Uint64())
 		binary.LittleEndian.PutUint64(want[8:], wantRandom.Uint64())
 		got := make([]byte, 10)
-		if n, err := k.Getrandom(ctx, abi.ByteView{Ptr: got}, 0); n != 10 || err != nil || !bytes.Equal(got, want[:10]) {
+		if n, err := k.Getrandom(ctx, abi.ByteView{Ptr: got}, 0); n != 10 || err != nil ||
+			!bytes.Equal(got, want[:10]) {
 			t.Fatal("getrandom stream mismatch", got, err)
 		}
 		if _, err := k.Getrandom(ctx, abi.ByteView{Ptr: got}, 1); !errors.Is(err, syscall.EINVAL) {

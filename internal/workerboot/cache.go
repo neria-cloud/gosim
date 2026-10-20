@@ -48,7 +48,18 @@ func manifestFor(r buildspec.Resolution, s Source, f buildspec.Fingerprints) (Wo
 	if err := buildspec.ValidateVersion(r.Toolchain.Version); err != nil {
 		return WorkerManifest{}, err
 	}
-	m := WorkerManifest{Schema: 1, Protocol: Protocol, Toolchain: r.Toolchain.Version, ToolchainDigest: f.ToolchainDigest, StdlibDigest: f.StdlibDigest, HostOS: r.Toolchain.HostOS, HostArch: r.Toolchain.HostArch, SourceDigest: s.SourceDigest, GraphDigest: s.GraphDigest, ModuleVersion: s.ModuleVersion}
+	m := WorkerManifest{
+		Schema:          1,
+		Protocol:        Protocol,
+		Toolchain:       r.Toolchain.Version,
+		ToolchainDigest: f.ToolchainDigest,
+		StdlibDigest:    f.StdlibDigest,
+		HostOS:          r.Toolchain.HostOS,
+		HostArch:        r.Toolchain.HostArch,
+		SourceDigest:    s.SourceDigest,
+		GraphDigest:     s.GraphDigest,
+		ModuleVersion:   s.ModuleVersion,
+	}
 	data, err := json.Marshal(struct {
 		Manifest WorkerManifest
 		Flags    []string
@@ -118,7 +129,13 @@ func readWorkerFile(path string, want WorkerManifest) (Worker, error) {
 // OpenOverride validates an explicitly supplied worker against the same source
 // and compiler inputs as automatic startup. A bare binary cannot prove which
 // source it was built from: keep its generated manifest alongside it.
-func OpenOverride(ctx context.Context, path string, r buildspec.Resolution, source Source, inputs buildspec.Fingerprints) (Worker, error) {
+func OpenOverride(
+	ctx context.Context,
+	path string,
+	r buildspec.Resolution,
+	source Source,
+	inputs buildspec.Fingerprints,
+) (Worker, error) {
 	path, err := exec.LookPath(path)
 	if err != nil {
 		return Worker{}, err
@@ -133,7 +150,10 @@ func OpenOverride(ctx context.Context, path string, r buildspec.Resolution, sour
 	}
 	w, err := readWorkerFile(path, want)
 	if err != nil {
-		return Worker{}, fmt.Errorf("invalid GOSIMTOOL worker or missing matching manifest; unset GOSIMTOOL for automatic startup: %w", err)
+		return Worker{}, fmt.Errorf(
+			"invalid GOSIMTOOL worker or missing matching manifest; unset GOSIMTOOL for automatic startup: %w",
+			err,
+		)
 	}
 	if err := Verify(ctx, w, r); err != nil {
 		return Worker{}, err
@@ -141,7 +161,13 @@ func OpenOverride(ctx context.Context, path string, r buildspec.Resolution, sour
 	return w, nil
 }
 
-func Ensure(ctx context.Context, r buildspec.Resolution, source Source, inputs buildspec.Fingerprints, cacheRoot string) (worker Worker, result error) {
+func Ensure(
+	ctx context.Context,
+	r buildspec.Resolution,
+	source Source,
+	inputs buildspec.Fingerprints,
+	cacheRoot string,
+) (worker Worker, result error) {
 	if err := ctx.Err(); err != nil {
 		return Worker{}, err
 	}
@@ -183,13 +209,26 @@ func Ensure(ctx context.Context, r buildspec.Resolution, source Source, inputs b
 	}
 	defer os.RemoveAll(stage)
 	args := append([]string{"build"}, buildspec.ApplicationFlags(r)...)
-	args = append(args, "-ldflags=-checklinkname=0", "-tags=linkname", "-trimpath", "-o", filepath.Join(stage, "worker"), WorkerPackage)
+	args = append(
+		args,
+		"-ldflags=-checklinkname=0",
+		"-tags=linkname",
+		"-trimpath",
+		"-o",
+		filepath.Join(stage, "worker"),
+		WorkerPackage,
+	)
 	cmd := buildspec.ApplicationCommand(ctx, r, args...)
 	var output bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &output, &output
 	err = buildspec.RunProcess(ctx, cmd)
 	if err != nil {
-		return Worker{}, fmt.Errorf("build Gosim worker with %s (set up dependencies with Go tooling): %w\n%s", r.Toolchain.Version, err, output.Bytes())
+		return Worker{}, fmt.Errorf(
+			"build Gosim worker with %s (set up dependencies with Go tooling): %w\n%s",
+			r.Toolchain.Version,
+			err,
+			output.Bytes(),
+		)
 	}
 	want.BinaryDigest, err = buildcfg.HashFile(filepath.Join(stage, "worker"))
 	if err != nil {

@@ -82,7 +82,14 @@ func checkTranslatedFaults(t *testing.T, cfg buildspec.Config) {
 	if bytes.Count(data, []byte(needle)) != 1 {
 		t.Fatal("fault injection point changed")
 	}
-	data = bytes.Replace(data, []byte(needle), []byte(`if inv.Route == RouteID(0xfffffff0) { d.kernel.translatedFault(inv.Args[0].(string)); _ = d.Complete(inv.Context.InvocationID, Result{}); return }; `+needle), 1)
+	data = bytes.Replace(
+		data,
+		[]byte(needle),
+		[]byte(
+			`if inv.Route == RouteID(0xfffffff0) { d.kernel.translatedFault(inv.Args[0].(string)); _ = d.Complete(inv.Context.InvocationID, Result{}); return }; `+needle,
+		),
+		1,
+	)
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +104,11 @@ func checkTranslatedFaults(t *testing.T, cfg buildspec.Config) {
 		t.Fatal(err)
 	}
 	defer os.Chdir(root)
-	built, err := Build(cfg, buildspec.BuildOptions{Race: hostabi.RaceEnabled}, []string{"./internal/tests/faultfixture"})
+	built, err := Build(
+		cfg,
+		buildspec.BuildOptions{Race: hostabi.RaceEnabled},
+		[]string{"./internal/tests/faultfixture"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,11 +150,17 @@ func checkTranslatedFaults(t *testing.T, cfg buildspec.Config) {
 		t.Run("translated-"+test.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
-			result, err := Run(ctx, built.Artifacts[0], simrt.RunConfig{Test: "TestFault", Seed: 42, ExtraEnv: []string{"FAULT_CASE=" + test.name}})
+			result, err := Run(
+				ctx,
+				built.Artifacts[0],
+				simrt.RunConfig{Test: "TestFault", Seed: 42, ExtraEnv: []string{"FAULT_CASE=" + test.name}},
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if result.Failed != (test.want != "") || !strings.Contains(result.Err, test.want) || strings.Contains(result.Err, "fault assertion") || strings.Contains(result.Err, "unwound") {
+			if result.Failed != (test.want != "") || !strings.Contains(result.Err, test.want) ||
+				strings.Contains(result.Err, "fault assertion") ||
+				strings.Contains(result.Err, "unwound") {
 				t.Fatalf("fault %s: %+v\n%s", test.name, result, result.LogOutput)
 			}
 			if test.name == "cleanup-all" {
@@ -172,7 +189,8 @@ func checkTranslatedFaults(t *testing.T, cfg buildspec.Config) {
 					t.Fatalf("fault leaked ownership: %+v", record)
 				}
 				if !strings.HasPrefix(test.name, "open-") && !strings.HasPrefix(test.name, "controls-") {
-					if len(record.Operations) < 2 || !slices.Equal(record.Operations[len(record.Operations)-2:], []string{"net:close", "fs:close"}) {
+					if len(record.Operations) < 2 ||
+						!slices.Equal(record.Operations[len(record.Operations)-2:], []string{"net:close", "fs:close"}) {
 						t.Fatalf("session cleanup lost reverse ordering: %v", record.Operations)
 					}
 				}
@@ -186,12 +204,17 @@ func checkTranslatedFaults(t *testing.T, cfg buildspec.Config) {
 	var previous simrt.RunResult
 	for _, name := range []string{"random-baseline", "random-net"} {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		result, err := Run(ctx, built.Artifacts[0], simrt.RunConfig{Test: "TestFault", Seed: 42, ExtraEnv: []string{"FAULT_CASE=" + name}})
+		result, err := Run(
+			ctx,
+			built.Artifacts[0],
+			simrt.RunConfig{Test: "TestFault", Seed: 42, ExtraEnv: []string{"FAULT_CASE=" + name}},
+		)
 		cancel()
 		if err != nil || result.Failed {
 			t.Fatalf("random isolation: %v %+v", err, result)
 		}
-		if name == "random-net" && (!bytes.Equal(previous.LogOutput, result.LogOutput) || !bytes.Equal(previous.Checksum, result.Checksum)) {
+		if name == "random-net" &&
+			(!bytes.Equal(previous.LogOutput, result.LogOutput) || !bytes.Equal(previous.Checksum, result.Checksum)) {
 			t.Fatal("network draws advanced fs/scheduler replay")
 		}
 		previous = result

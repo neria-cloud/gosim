@@ -64,7 +64,9 @@ func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 			t.Fatalf("generation changed %s: %v", name, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(output, "internal/compat/"+profile.ID+"/hooks/fs/syscalls_arm64.go")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(output, "internal/compat/"+profile.ID+"/hooks/fs/syscalls_arm64.go")); !os.IsNotExist(
+		err,
+	) {
 		t.Fatal("unselected architecture emitted")
 	}
 	manifest, err := Load()
@@ -77,7 +79,8 @@ func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 			profile.Hooks[i].Signature = "func(int) error"
 		}
 	}
-	if _, err := renderAdapters(tc, profile, "amd64", manifest); err == nil || !strings.Contains(err.Error(), "unreviewed adapter ABI") {
+	if _, err := renderAdapters(tc, profile, "amd64", manifest); err == nil ||
+		!strings.Contains(err.Error(), "unreviewed adapter ABI") {
 		t.Fatalf("signature mutation: %v", err)
 	}
 	// Optional-domain gates precede all argument marshalling, even invalid pointers.

@@ -63,7 +63,11 @@ func (d *Dispatcher) decode(inv *Invocation) (Result,bool,error) {
 				if r.Owner == "net" {
 					service = "Network"
 				}
-				fmt.Fprintf(&b, "service,serviceErr:=k.%s(ctx)\nif serviceErr!=nil {return Result{},false,serviceErr}\n", service)
+				fmt.Fprintf(
+					&b,
+					"service,serviceErr:=k.%s(ctx)\nif serviceErr!=nil {return Result{},false,serviceErr}\n",
+					service,
+				)
 				receiver = "service"
 			}
 			switch r.Name {
@@ -71,12 +75,14 @@ func (d *Dispatcher) decode(inv *Invocation) (Result,bool,error) {
 				call(receiver, r.Name, []string{"ctx"}, false)
 				b.WriteString("return syscallRouteResult(out,nil)\n")
 			case "FcntlLock":
-				b.WriteString(`if p.Lock.UnsafePointer()==nil {return Result{},false,invalidPayload(ctx,"nil file-lock view")}
+				b.WriteString(
+					`if p.Lock.UnsafePointer()==nil {return Result{},false,invalidPayload(ctx,"nil file-lock view")}
 value:=p.Lock.Get()
 err:=service.FcntlLock(ctx,p.FD,p.Command,&value)
 if err==nil {p.Lock.Set(value)}
 return syscallRouteResult(out,err)
-`)
+`,
+				)
 			default:
 				method := r.Name
 				if method == "Close" {
@@ -101,7 +107,9 @@ return syscallRouteResult(out,err)
 		case "wait":
 			b.WriteString("_ = out\nreturn d.decodeMachineWait(ctx,p.Machine)\n")
 		case "self":
-			b.WriteString("_ = out\nif err:=k.exitSelf(ctx,p.Kind); err!=nil {return controlRouteResult(out,err)}\nreturn Result{},true,nil\n")
+			b.WriteString(
+				"_ = out\nif err:=k.exitSelf(ctx,p.Kind); err!=nil {return controlRouteResult(out,err)}\nreturn Result{},true,nil\n",
+			)
 		case "control":
 			receiver, method := "k", r.Name
 			if strings.HasPrefix(r.Name, "FS") || strings.HasPrefix(r.Name, "Net") {
@@ -118,7 +126,12 @@ return syscallRouteResult(out,err)
 						run = "p.RunID"
 					}
 				}
-				fmt.Fprintf(&b, "service,serviceErr:=k.%s(ctx,%s)\nif serviceErr!=nil {return controlRouteResult(out,serviceErr)}\n", service, run)
+				fmt.Fprintf(
+					&b,
+					"service,serviceErr:=k.%s(ctx,%s)\nif serviceErr!=nil {return controlRouteResult(out,serviceErr)}\n",
+					service,
+					run,
+				)
 				receiver, method = "service", strings.TrimPrefix(r.Name, prefix)
 				args = nil
 				for _, f := range r.Inputs {
@@ -127,11 +140,15 @@ return syscallRouteResult(out,err)
 					}
 				}
 				if r.Name == "FSRestore" {
-					b.WriteString("if p.SnapshotRunID!=p.Machine.RunID {return controlRouteResult(out,contracts.ErrWrongRun)}\n")
+					b.WriteString(
+						"if p.SnapshotRunID!=p.Machine.RunID {return controlRouteResult(out,contracts.ErrWrongRun)}\n",
+					)
 				}
 			}
 			if r.Name == "Require" {
-				b.WriteString("if p.Feature!=contracts.RT && p.Feature!=contracts.FS && p.Feature!=contracts.Net {return Result{},false,invalidPayload(ctx,\"invalid feature\")}\nk.Require(ctx,p.Feature,p.Operation)\nreturn controlRouteResult(out,nil)\n")
+				b.WriteString(
+					"if p.Feature!=contracts.RT && p.Feature!=contracts.FS && p.Feature!=contracts.Net {return Result{},false,invalidPayload(ctx,\"invalid feature\")}\nk.Require(ctx,p.Feature,p.Operation)\nreturn controlRouteResult(out,nil)\n",
+				)
 			} else if r.Name == "Info" {
 				b.WriteString("out=k.runInfo()\nreturn controlRouteResult(out,nil)\n")
 			} else {

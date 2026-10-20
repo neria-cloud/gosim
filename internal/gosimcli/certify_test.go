@@ -49,7 +49,12 @@ func TestSuiteCommandsOverlapWithinBudgetAndKeepAllResults(t *testing.T) {
 	var commands []*exec.Cmd
 	for i := range 3 {
 		cmd := exec.Command(executable, "-test.run=^TestSuiteWorkerProcess$")
-		cmd.Env = append(os.Environ(), "GOSIM_SUITE_TEST_CHILD=1", "GOSIM_SUITE_TEST_DIR="+dir, "GOSIM_SUITE_TEST_NAME="+strconv.Itoa(i))
+		cmd.Env = append(
+			os.Environ(),
+			"GOSIM_SUITE_TEST_CHILD=1",
+			"GOSIM_SUITE_TEST_DIR="+dir,
+			"GOSIM_SUITE_TEST_NAME="+strconv.Itoa(i),
+		)
 		commands = append(commands, cmd)
 	}
 	type result struct {

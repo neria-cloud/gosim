@@ -48,7 +48,13 @@ func sourceEnvironment(cfg gosimtool.BuildConfig, application bool) ([]string, e
 	if cmd.Err != nil {
 		return nil, cmd.Err
 	}
-	overrides := map[string]string{"GOOS": cfg.Identity.SimulationOS, "GOARCH": cfg.Identity.SimulationArch, "CGO_ENABLED": "0", "GOPACKAGESDRIVER": "off", "GOTOOLCHAIN": "local"}
+	overrides := map[string]string{
+		"GOOS":             cfg.Identity.SimulationOS,
+		"GOARCH":           cfg.Identity.SimulationArch,
+		"CGO_ENABLED":      "0",
+		"GOPACKAGESDRIVER": "off",
+		"GOTOOLCHAIN":      "local",
+	}
 	var env []string
 	for _, entry := range cmd.Env {
 		key, _, _ := strings.Cut(entry, "=")
@@ -62,7 +68,13 @@ func sourceEnvironment(cfg gosimtool.BuildConfig, application bool) ([]string, e
 	return env, nil
 }
 
-func loadSelectedPackages(dir string, patterns []string, cfg gosimtool.BuildConfig, mode packages.LoadMode, tests bool) ([]*packages.Package, error) {
+func loadSelectedPackages(
+	dir string,
+	patterns []string,
+	cfg gosimtool.BuildConfig,
+	mode packages.LoadMode,
+	tests bool,
+) ([]*packages.Package, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -84,7 +96,17 @@ func loadSelectedPackages(dir string, patterns []string, cfg gosimtool.BuildConf
 		flags = buildspec.ApplicationFlags(cfg.Resolution)
 	}
 	flags = append(flags, "-tags="+tags)
-	roots, err := packages.Load(&packages.Config{Context: cfg.Context, Dir: dir, Mode: mode, Tests: tests, Fset: token.NewFileSet(), Env: env, BuildFlags: flags}, patterns...)
+	roots, err := packages.Load(
+		&packages.Config{
+			Context:    cfg.Context,
+			Dir:        dir,
+			Mode:       mode,
+			Tests:      tests,
+			Fset:       token.NewFileSet(),
+			Env:        env,
+			BuildFlags: flags,
+		},
+		patterns...)
 	if err != nil {
 		return nil, fmt.Errorf("load selected sources: %w", err)
 	}

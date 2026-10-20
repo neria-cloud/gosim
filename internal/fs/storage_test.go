@@ -37,7 +37,9 @@ const (
 func TestStorageStatsAndReadOnlyLifecycle(t *testing.T) {
 	s, _ := newSession(t)
 	pre, err := s.Stats(ref1)
-	if err != nil || pre.TotalBytes != model.DefaultCapacityBytes || pre.UsedBytes != model.StorageBlockSize || pre.FreeBytes != pre.TotalBytes-pre.UsedBytes || pre.ReadOnly {
+	if err != nil || pre.TotalBytes != model.DefaultCapacityBytes || pre.UsedBytes != model.StorageBlockSize ||
+		pre.FreeBytes != pre.TotalBytes-pre.UsedBytes ||
+		pre.ReadOnly {
 		t.Fatalf("initial stats: %+v, %v", pre, err)
 	}
 	if s.machines[ref1.ID].disk != nil {
@@ -52,7 +54,9 @@ func TestStorageStatsAndReadOnlyLifecycle(t *testing.T) {
 	i := start(t, s, ref1, 1, false)
 	write(t, i.model, storageHome+"/file", "data")
 	live, err := s.Stats(ref1)
-	if err != nil || live.TotalBytes != storageCapacityBlocks<<storageKiBShift || live.UsedBytes != 2*model.StorageBlockSize || !live.ReadOnly {
+	if err != nil || live.TotalBytes != storageCapacityBlocks<<storageKiBShift ||
+		live.UsedBytes != 2*model.StorageBlockSize ||
+		!live.ReadOnly {
 		t.Fatalf("live stats: %+v, %v", live, err)
 	}
 	stop(t, i, contracts.StopGraceful)
@@ -84,7 +88,8 @@ func TestFileCapacityAndReadOnlyWithOpenDescriptor(t *testing.T) {
 		t.Fatalf("fill: n=%d err=%v", n, err)
 	}
 	before := f.pos
-	if n, err := f.Write(ctx, abi.ByteView{Ptr: []byte("x")}); n != 0 || !errors.Is(err, syscall.ENOSPC) || f.pos != before {
+	if n, err := f.Write(ctx, abi.ByteView{Ptr: []byte("x")}); n != 0 || !errors.Is(err, syscall.ENOSPC) ||
+		f.pos != before {
 		t.Fatalf("full write changed offset: n=%d err=%v pos=%d", n, err, f.pos)
 	}
 	if err := i.session.SetReadOnly(ref1, true); err != nil {
@@ -142,7 +147,8 @@ func TestStatReportsStoredModeAndOwnership(t *testing.T) {
 		func() (contracts.Stat, error) { return i.Statat(ctx, atFDCWD, "owned", 0) },
 	} {
 		got, err := stat()
-		if err != nil || got.Mode != storageOwnedFileMode || got.UID != storageOwnerUID || got.GID != storageOwnerGID || got.Nlink != 1 {
+		if err != nil || got.Mode != storageOwnedFileMode || got.UID != storageOwnerUID || got.GID != storageOwnerGID ||
+			got.Nlink != 1 {
 			t.Fatalf("stat metadata: %+v, %v", got, err)
 		}
 	}
@@ -182,7 +188,8 @@ func TestIdentityAndReadOnlyMutations(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir, err := i.Statat(ctx, atFDCWD, "sub", 0)
-	if err != nil || dir.Mode != storageCreatedDirectoryMode || dir.UID != storageOwnerUID || dir.GID != storageOwnerGID {
+	if err != nil || dir.Mode != storageCreatedDirectoryMode || dir.UID != storageOwnerUID ||
+		dir.GID != storageOwnerGID {
 		t.Fatalf("created directory: %+v, %v", dir, err)
 	}
 	if err := i.session.SetReadOnly(ref1, true); err != nil {
@@ -219,7 +226,8 @@ func TestStatFSPathsDescriptorsAndReadOnly(t *testing.T) {
 	fd := open(t, i, ctx, "stats", openCreate|2)
 	for _, path := range []string{"/", storageHome, "stats"} {
 		got, err := i.StatFS(ctx, path)
-		if err != nil || got.TotalBytes != 4*model.StorageBlockSize || got.UsedBytes != model.StorageBlockSize || got.BlockSize != model.StorageBlockSize {
+		if err != nil || got.TotalBytes != 4*model.StorageBlockSize || got.UsedBytes != model.StorageBlockSize ||
+			got.BlockSize != model.StorageBlockSize {
 			t.Fatalf("statfs %q: %+v, %v", path, got, err)
 		}
 	}
@@ -236,7 +244,8 @@ func TestStatFSPathsDescriptorsAndReadOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := i.FstatFS(ctx, fd)
-	if err != nil || !got.ReadOnly || got.UsedBytes != 2*model.StorageBlockSize || got.FreeBytes != 2*model.StorageBlockSize {
+	if err != nil || !got.ReadOnly || got.UsedBytes != 2*model.StorageBlockSize ||
+		got.FreeBytes != 2*model.StorageBlockSize {
 		t.Fatalf("fstatfs after allocation: %+v, %v", got, err)
 	}
 }
@@ -276,7 +285,10 @@ func TestMetadataRoutesIdentityAndReadOnly(t *testing.T) {
 			t.Fatalf("read-only metadata mutation: %v", err)
 		}
 	}
-	if err := i.Chmodat(ctx, storageInvalidDirectoryFD, "metadata-route", storageRejectedMode, 0); !errors.Is(err, syscall.EINVAL) {
+	if err := i.Chmodat(ctx, storageInvalidDirectoryFD, "metadata-route", storageRejectedMode, 0); !errors.Is(
+		err,
+		syscall.EINVAL,
+	) {
 		t.Fatalf("unsupported directory descriptor: %v", err)
 	}
 	if err := i.Chownat(ctx, atFDCWD, "metadata-route", -1, -1, 2); !errors.Is(err, syscall.EINVAL) {

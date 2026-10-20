@@ -29,13 +29,18 @@ func fingerprintInstalled(root string) (buildspec.Fingerprints, error) {
 		name := filepath.ToSlash(rel)
 		if entry.IsDir() {
 			if name == "." || name == "src" || name == "bin" || name == "lib" || name == "pkg" || name == "pkg/tool" ||
-				strings.HasPrefix(name, "src/") || strings.HasPrefix(name, "bin/") || strings.HasPrefix(name, "lib/") || strings.HasPrefix(name, "pkg/tool/") {
+				strings.HasPrefix(
+					name,
+					"src/",
+				) || strings.HasPrefix(name, "bin/") || strings.HasPrefix(name, "lib/") || strings.HasPrefix(name, "pkg/tool/") {
 				return nil
 			}
 			return filepath.SkipDir
 		}
 		source := strings.HasPrefix(name, "src/")
-		tool := name == "VERSION" || name == "go.env" || strings.HasPrefix(name, "bin/") || strings.HasPrefix(name, "lib/") || strings.HasPrefix(name, "pkg/tool/")
+		tool := name == "VERSION" || name == "go.env" || strings.HasPrefix(name, "bin/") ||
+			strings.HasPrefix(name, "lib/") ||
+			strings.HasPrefix(name, "pkg/tool/")
 		if !source && !tool {
 			return nil
 		}
@@ -72,7 +77,10 @@ func fingerprintInstalled(root string) (buildspec.Fingerprints, error) {
 	if err != nil {
 		return buildspec.Fingerprints{}, err
 	}
-	return buildspec.Fingerprints{ToolchainDigest: buildspec.Hash(toolData), StdlibDigest: buildspec.Hash(sourceData)}, nil
+	return buildspec.Fingerprints{
+		ToolchainDigest: buildspec.Hash(toolData),
+		StdlibDigest:    buildspec.Hash(sourceData),
+	}, nil
 }
 
 func hashFile(path string) (string, error) {
@@ -97,7 +105,8 @@ func hashFile(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if n != before.Size() || !os.SameFile(before, after) || before.Size() != after.Size() || !before.ModTime().Equal(after.ModTime()) {
+	if n != before.Size() || !os.SameFile(before, after) || before.Size() != after.Size() ||
+		!before.ModTime().Equal(after.ModTime()) {
 		return "", fmt.Errorf("input changed while hashing: %s", path)
 	}
 	return fmt.Sprintf("%x", h.Sum(nil)), nil

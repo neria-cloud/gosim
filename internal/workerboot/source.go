@@ -54,7 +54,11 @@ func workerGraphDigest(ctx context.Context, r buildspec.Resolution) (string, err
 	cmd.Stderr = &diagnostics
 	data, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("load selected Gosim worker dependencies (set up dependencies with Go tooling): %w\n%s", err, diagnostics.Bytes())
+		return "", fmt.Errorf(
+			"load selected Gosim worker dependencies (set up dependencies with Go tooling): %w\n%s",
+			err,
+			diagnostics.Bytes(),
+		)
 	}
 	type entry struct {
 		ImportPath  string

@@ -24,7 +24,11 @@ func checkDisabledFixtures(t *testing.T, cfg buildspec.Config) {
 		if slices.Contains(cfg.Features, feature) {
 			continue
 		}
-		built, err := Build(cfg, buildspec.BuildOptions{Race: hostabi.RaceEnabled}, []string{"./internal/tests/features/testdata/disabled" + feature})
+		built, err := Build(
+			cfg,
+			buildspec.BuildOptions{Race: hostabi.RaceEnabled},
+			[]string{"./internal/tests/features/testdata/disabled" + feature},
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -46,7 +50,16 @@ func checkDisabledFixtures(t *testing.T, cfg buildspec.Config) {
 				}
 				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 				defer cancel()
-				result, err := Run(ctx, built.Artifacts[0], simrt.RunConfig{Test: "TestDisabled", Seed: 42, Simtrace: "syscall", ExtraEnv: []string{"DISABLED_PHASE=" + phase, "HOST_PROBE=" + probe}})
+				result, err := Run(
+					ctx,
+					built.Artifacts[0],
+					simrt.RunConfig{
+						Test:     "TestDisabled",
+						Seed:     42,
+						Simtrace: "syscall",
+						ExtraEnv: []string{"DISABLED_PHASE=" + phase, "HOST_PROBE=" + probe},
+					},
+				)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -55,7 +68,8 @@ func checkDisabledFixtures(t *testing.T, cfg buildspec.Config) {
 						t.Fatalf("missing %q in failure: %+v", want, result)
 					}
 				}
-				if strings.Contains(result.Err, "returned") || strings.Contains(result.Err, "unwound") || strings.Contains(result.Err, "operation= ") {
+				if strings.Contains(result.Err, "returned") || strings.Contains(result.Err, "unwound") ||
+					strings.Contains(result.Err, "operation= ") {
 					t.Fatalf("application recovered disabled call: %+v", result)
 				}
 				pc := regexp.MustCompile(`pc=(0x[0-9a-f]+)`).FindStringSubmatch(result.Err)
@@ -71,7 +85,10 @@ func checkDisabledFixtures(t *testing.T, cfg buildspec.Config) {
 							Line           int
 						} `json:"source"`
 					}
-					if json.Unmarshal(line, &record) == nil && record.Message == "call Require" && record.Source.Function != "" && record.Source.File != "" && record.Source.Line > 0 {
+					if json.Unmarshal(line, &record) == nil && record.Message == "call Require" &&
+						record.Source.Function != "" &&
+						record.Source.File != "" &&
+						record.Source.Line > 0 {
 						callerFound = true
 					}
 				}

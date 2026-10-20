@@ -44,7 +44,19 @@ func discoverWith(ctx context.Context, launcher, directory string, env []string)
 	if err != nil {
 		return result, err
 	}
-	cmd := exec.CommandContext(ctx, launcher, "env", "-json", "GOVERSION", "GOROOT", "GOHOSTOS", "GOHOSTARCH", "GOMOD", "GOWORK", "GOMODCACHE")
+	cmd := exec.CommandContext(
+		ctx,
+		launcher,
+		"env",
+		"-json",
+		"GOVERSION",
+		"GOROOT",
+		"GOHOSTOS",
+		"GOHOSTARCH",
+		"GOMOD",
+		"GOWORK",
+		"GOMODCACHE",
+	)
 	cmd.Dir, cmd.Env = directory, env
 	var diagnostics bytes.Buffer
 	cmd.Stderr = &diagnostics
@@ -60,7 +72,13 @@ func discoverWith(ctx context.Context, launcher, directory string, env []string)
 		return result, err
 	}
 	if info.GOHOSTOS != runtime.GOOS || info.GOHOSTARCH != runtime.GOARCH {
-		return result, fmt.Errorf("resolved Go host %s/%s differs from local %s/%s", info.GOHOSTOS, info.GOHOSTARCH, runtime.GOOS, runtime.GOARCH)
+		return result, fmt.Errorf(
+			"resolved Go host %s/%s differs from local %s/%s",
+			info.GOHOSTOS,
+			info.GOHOSTARCH,
+			runtime.GOOS,
+			runtime.GOARCH,
+		)
 	}
 	if err := buildspec.ValidatePlatform(info.GOHOSTOS, info.GOHOSTARCH, "linux", info.GOHOSTARCH); err != nil {
 		return result, err
@@ -73,19 +91,35 @@ func discoverWith(ctx context.Context, launcher, directory string, env []string)
 	if err != nil {
 		return result, err
 	}
-	tc := buildspec.Toolchain{Executable: filepath.Join(root, "bin", "go"), Version: info.GOVERSION, GOROOT: root, HostOS: info.GOHOSTOS, HostArch: info.GOHOSTARCH, ModuleCache: info.GOMODCACHE}
+	tc := buildspec.Toolchain{
+		Executable:  filepath.Join(root, "bin", "go"),
+		Version:     info.GOVERSION,
+		GOROOT:      root,
+		HostOS:      info.GOHOSTOS,
+		HostArch:    info.GOHOSTARCH,
+		ModuleCache: info.GOMODCACHE,
+	}
 	// Check the resolved executable directly. Do not re-enter the launcher's module.
 	version := exec.CommandContext(ctx, tc.Executable, "version")
 	version.Env = append(withoutEnv(withoutEnv(env, "GOTOOLCHAIN"), "GOROOT"), "GOTOOLCHAIN=local", "GOROOT="+root)
 	actual, err := version.Output()
 	want := "go version " + tc.Version + " " + tc.HostOS + "/" + tc.HostArch
 	if err != nil || strings.TrimSpace(string(actual)) != want {
-		return result, fmt.Errorf("selected Go executable identity mismatch: got %q, expected %q: %v", actual, want, err)
+		return result, fmt.Errorf(
+			"selected Go executable identity mismatch: got %q, expected %q: %v",
+			actual,
+			want,
+			err,
+		)
 	}
 	if info.GOWORK == "" {
 		info.GOWORK = "off"
 	}
-	result = buildspec.Resolution{Schema: 1, Toolchain: tc, Context: buildspec.ModuleContext{Directory: directory, GoMod: info.GOMOD, GoWork: info.GOWORK}}
+	result = buildspec.Resolution{
+		Schema:    1,
+		Toolchain: tc,
+		Context:   buildspec.ModuleContext{Directory: directory, GoMod: info.GOMOD, GoWork: info.GOWORK},
+	}
 	return result, nil
 }
 
@@ -103,7 +137,11 @@ func ResolveRunningProcess(ctx context.Context, directory string) (buildspec.Res
 		return r, fmt.Errorf("resolve running Go test context; re-run go test if module requirements changed: %w", err)
 	}
 	if r.Toolchain.Version != runtime.Version() {
-		return r, fmt.Errorf("running test compiler %s differs from installed %s; re-run go test", runtime.Version(), r.Toolchain.Version)
+		return r, fmt.Errorf(
+			"running test compiler %s differs from installed %s; re-run go test",
+			runtime.Version(),
+			r.Toolchain.Version,
+		)
 	}
 	return r, nil
 }
@@ -128,14 +166,27 @@ func validateExecutable(tc buildspec.Toolchain) error {
 	}
 	want := "go version " + tc.Version + " " + tc.HostOS + "/" + tc.HostArch
 	if strings.TrimSpace(string(output)) != want {
-		return fmt.Errorf("selected executable identity mismatch: got %q, want %q", strings.TrimSpace(string(output)), want)
+		return fmt.Errorf(
+			"selected executable identity mismatch: got %q, want %q",
+			strings.TrimSpace(string(output)),
+			want,
+		)
 	}
 	return nil
 }
 
 func ValidateWorker(tc buildspec.Toolchain) error {
-	if runtime.Compiler != "gc" || runtime.Version() != tc.Version || runtime.GOOS != tc.HostOS || runtime.GOARCH != tc.HostArch {
-		return fmt.Errorf("worker is %s %s/%s, resolved compiler is %s %s/%s; use the gosim launcher to select a matching worker", runtime.Version(), runtime.GOOS, runtime.GOARCH, tc.Version, tc.HostOS, tc.HostArch)
+	if runtime.Compiler != "gc" || runtime.Version() != tc.Version || runtime.GOOS != tc.HostOS ||
+		runtime.GOARCH != tc.HostArch {
+		return fmt.Errorf(
+			"worker is %s %s/%s, resolved compiler is %s %s/%s; use the gosim launcher to select a matching worker",
+			runtime.Version(),
+			runtime.GOOS,
+			runtime.GOARCH,
+			tc.Version,
+			tc.HostOS,
+			tc.HostArch,
+		)
 	}
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {

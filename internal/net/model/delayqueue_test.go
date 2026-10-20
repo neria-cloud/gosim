@@ -10,7 +10,11 @@ func TestQueuePurgeKeepsTotalOrderAndClearsReferences(t *testing.T) {
 	t.Parallel()
 	events := newTestEvents()
 	var delivered []uint64
-	q := newDelayQueue(events, events, func(p *Packet) { delivered = append(delivered, p.ArrivalTime.index); freePacket(p) })
+	q := newDelayQueue(
+		events,
+		events,
+		func(p *Packet) { delivered = append(delivered, p.ArrivalTime.index); freePacket(p) },
+	)
 	other := HostPair{testPair.SourceHost, netip.MustParseAddr("10.0.0.3")}
 	for i := 1; i <= 6; i++ {
 		pair := other

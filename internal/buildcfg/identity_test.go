@@ -36,7 +36,8 @@ func TestCanonicalIdentityOwnsOrderedInputs(t *testing.T) {
 	if err != nil || got != want {
 		t.Fatalf("order affected identity: %s %s %v", got, want, err)
 	}
-	if !reflect.DeepEqual(id.Features, beforeFeatures) || id.ProviderRevisions[0].Name != featureNet || id.Tags[0] != tagSim {
+	if !reflect.DeepEqual(id.Features, beforeFeatures) || id.ProviderRevisions[0].Name != featureNet ||
+		id.Tags[0] != tagSim {
 		t.Fatal("canonicalization mutated caller")
 	}
 }
@@ -117,8 +118,15 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 		id, err := identityForSource(
 			buildspec.Config{Schema: 2, Features: base.Features, SimulationOS: "linux"},
 			buildspec.Toolchain{Version: base.Toolchain, HostOS: base.HostOS, HostArch: base.HostArch},
-			spec.Profile{ID: base.Profile, Revision: base.AdapterRevision}, buildspec.BuildOptions{},
-			buildspec.Fingerprints{ToolchainDigest: base.ToolchainDigest, StdlibDigest: base.StdlibDigest}, root, base.ModuleGraphDigest)
+			spec.Profile{ID: base.Profile, Revision: base.AdapterRevision},
+			buildspec.BuildOptions{},
+			buildspec.Fingerprints{
+				ToolchainDigest: base.ToolchainDigest,
+				StdlibDigest:    base.StdlibDigest,
+			},
+			root,
+			base.ModuleGraphDigest,
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -133,7 +141,8 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 		t.Fatal("promotion, worktree location, docs or output changed executable fingerprint")
 	}
 	write("internal/fs/source.go", "package changed\n")
-	if after := build(); after.ProviderRevisions[0].Digest == before.ProviderRevisions[0].Digest || after.TranslatorDigest == before.TranslatorDigest {
+	if after := build(); after.ProviderRevisions[0].Digest == before.ProviderRevisions[0].Digest ||
+		after.TranslatorDigest == before.TranslatorDigest {
 		t.Fatal("provider/source change failed to invalidate evidence")
 	}
 	write("internal/compat/go126/profile/hooks.json", `[{"symbol":"changed"}]`)

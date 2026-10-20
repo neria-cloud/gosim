@@ -65,7 +65,12 @@ func Translate(input *TranslateInput) (output *gosimtool.TranslateOutput, err er
 	return translatePackages(cached, slices.Clone(input.Packages), stage, cfg)
 }
 
-func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir string, cfg gosimtool.BuildConfig) (*gosimtool.TranslateOutput, error) {
+func translatePackages(
+	cached *cache.Cache,
+	patterns []string,
+	rootOutputDir string,
+	cfg gosimtool.BuildConfig,
+) (*gosimtool.TranslateOutput, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -85,7 +90,13 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 	if err != nil {
 		return nil, err
 	}
-	appRoots, runtimeRoots, graph, err := loadSourceGraph(cfg.Resolution.Context.Directory, inputDir, patterns, cfg, policies)
+	appRoots, runtimeRoots, graph, err := loadSourceGraph(
+		cfg.Resolution.Context.Directory,
+		inputDir,
+		patterns,
+		cfg,
+		policies,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +178,20 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 			}
 		}
 		gather(id)
-		result, err := translatePackage(&translatePackageArgs{cfg: cfg, Selection: cfg.Selection, infrastructure: infrastructure[id], definitions: definitions, pkg: graph.nodes[id], hooksPackage: compositionPath, packageNames: names, pkgWithTypesAndAst: typed[id], replacedPkgs: replaced, importResults: imports})
+		result, err := translatePackage(
+			&translatePackageArgs{
+				cfg:                cfg,
+				Selection:          cfg.Selection,
+				infrastructure:     infrastructure[id],
+				definitions:        definitions,
+				pkg:                graph.nodes[id],
+				hooksPackage:       compositionPath,
+				packageNames:       names,
+				pkgWithTypesAndAst: typed[id],
+				replacedPkgs:       replaced,
+				importResults:      imports,
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +238,13 @@ func translatePackages(cached *cache.Cache, patterns []string, rootOutputDir str
 
 func hashHex(hash Hash) string { return hex.EncodeToString(hash[:]) }
 
-func reloadSelectedPackages(project, inputDir string, appRoots []*packages.Package, graph *selectedGraph, misses map[string]bool, cfg gosimtool.BuildConfig) (map[string]*packages.Package, error) {
+func reloadSelectedPackages(
+	project, inputDir string,
+	appRoots []*packages.Package,
+	graph *selectedGraph,
+	misses map[string]bool,
+	cfg gosimtool.BuildConfig,
+) (map[string]*packages.Package, error) {
 	app := make(map[string]bool)
 	for _, pkg := range appRoots {
 		kind, path := classifyPackage(pkg)

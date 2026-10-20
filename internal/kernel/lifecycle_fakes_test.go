@@ -53,7 +53,10 @@ func (s *recordingSession) Controls() contracts.ControlBindings {
 	return contracts.ControlBindings{NetControl: &fakeNetControl{}}
 }
 
-func (s *recordingSession) Prepare(spec contracts.StartSpec, fds contracts.DescriptorTable) (contracts.PreparedMachine, error) {
+func (s *recordingSession) Prepare(
+	spec contracts.StartSpec,
+	fds contracts.DescriptorTable,
+) (contracts.PreparedMachine, error) {
 	s.p.record(fmt.Sprintf("prepare:%d:%d", spec.Ref.Machine.ID, spec.Ref.Epoch))
 	if s.p.prepareErr != nil {
 		return nil, s.p.prepareErr

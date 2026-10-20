@@ -70,7 +70,16 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 	}
 	defer os.RemoveAll(buildDir)
 	gosimBuildPath := filepath.Join(buildDir, "gosim")
-	cmd := buildspec.ApplicationCommand(cfg.Context, cfg.Resolution, "build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", gosimBuildPath, gosimtool.Module+"/cmd/gosim")
+	cmd := buildspec.ApplicationCommand(
+		cfg.Context,
+		cfg.Resolution,
+		"build",
+		"-ldflags=-checklinkname=0",
+		"-tags=linkname",
+		"-o",
+		gosimBuildPath,
+		gosimtool.Module+"/cmd/gosim",
+	)
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 	if err := buildspec.RunProcess(cfg.Context, cmd); err != nil {
 		return err
@@ -83,7 +92,13 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 		return fmt.Errorf("copy final: %w", err)
 	}
 
-	wrapper := []byte("#!/bin/sh\nexec " + "'" + strings.ReplaceAll(gosimFinalPath, "'", "'\\''") + "'" + " internal-candidate \"$@\"\n")
+	wrapper := []byte(
+		"#!/bin/sh\nexec " + "'" + strings.ReplaceAll(
+			gosimFinalPath,
+			"'",
+			"'\\''",
+		) + "'" + " internal-candidate \"$@\"\n",
+	)
 	if err := os.WriteFile(filepath.Join(filepath.Dir(gosimFinalPath), "gosim"), wrapper, 0o755); err != nil {
 		return err
 	}

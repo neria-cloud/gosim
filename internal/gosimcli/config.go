@@ -34,7 +34,11 @@ func addBuildFlags(f *flag.FlagSet) *BuildFlags {
 	b := new(BuildFlags)
 	f.StringVar(&b.ConfigPath, "config", os.Getenv("GOSIM_CONFIG"), "build configuration path")
 	f.Func("go", "exact Go toolchain", func(s string) error { b.Overrides.Toolchain = &s; return nil })
-	f.Func("features", "complete comma-separated feature set", func(s string) error { v := strings.Split(s, ","); b.Overrides.Features = &v; return nil })
+	f.Func(
+		"features",
+		"complete comma-separated feature set",
+		func(s string) error { v := strings.Split(s, ","); b.Overrides.Features = &v; return nil },
+	)
 	f.BoolVar(&b.Options.Race, "race", false, "enable race instrumentation")
 	return b
 }
@@ -59,7 +63,10 @@ func resolveBuildForContext(ctx context.Context, command string, flags BuildFlag
 	}
 	// packages.Load resolves go from the worker PATH before applying Config.Env.
 	if request.Legacy {
-		fmt.Fprintln(os.Stderr, "gosim: legacy schema-1 toolchain override; migrate gosim.json to schema 2 for automatic Go selection")
+		fmt.Fprintln(
+			os.Stderr,
+			"gosim: legacy schema-1 toolchain override; migrate gosim.json to schema 2 for automatic Go selection",
+		)
 	}
 	invocation, handed := ctx.Value(resolutionKey{}).(workerboot.Invocation)
 	resolution := invocation.Resolution
