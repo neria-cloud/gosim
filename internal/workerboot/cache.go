@@ -42,7 +42,7 @@ type Worker struct {
 func manifestFor(r buildspec.Resolution, s Source, f buildspec.Fingerprints) (WorkerManifest, error) {
 	for _, digest := range []string{s.SourceDigest, s.GraphDigest, f.ToolchainDigest, f.StdlibDigest} {
 		if !buildspec.ValidDigest(digest) {
-			return WorkerManifest{}, errors.New("invalid worker input digest")
+			return WorkerManifest{}, fmt.Errorf("invalid worker input digest")
 		}
 	}
 	if err := buildspec.ValidateVersion(r.Toolchain.Version); err != nil {
@@ -97,28 +97,28 @@ func readWorkerFile(path string, want WorkerManifest) (Worker, error) {
 		return Worker{}, err
 	}
 	if err := dec.Decode(new(any)); err != io.EOF {
-		return Worker{}, errors.New("trailing worker manifest data")
+		return Worker{}, fmt.Errorf("trailing worker manifest data")
 	}
 	if !buildspec.ValidDigest(got.BinaryDigest) {
-		return Worker{}, errors.New("invalid worker binary digest")
+		return Worker{}, fmt.Errorf("invalid worker binary digest")
 	}
 	want.BinaryDigest = got.BinaryDigest
 	if !reflect.DeepEqual(want, got) {
-		return Worker{}, errors.New("worker manifest differs from resolved inputs")
+		return Worker{}, fmt.Errorf("worker manifest differs from resolved inputs")
 	}
 	digest, err := buildcfg.HashFile(path)
 	if err != nil {
 		return Worker{}, err
 	}
 	if digest != got.BinaryDigest {
-		return Worker{}, errors.New("worker binary content mismatch")
+		return Worker{}, fmt.Errorf("worker binary content mismatch")
 	}
 	info, err := buildinfo.ReadFile(path)
 	if err != nil {
 		return Worker{}, fmt.Errorf("read worker build information: %w", err)
 	}
 	if info.GoVersion != got.Toolchain || info.Path != WorkerPackage || info.Main.Path != buildcfg.GosimModule {
-		return Worker{}, errors.New("worker binary compiler/module mismatch")
+		return Worker{}, fmt.Errorf("worker binary compiler/module mismatch")
 	}
 	if err := validateSettings(info.Settings, got.HostOS, got.HostArch, true); err != nil {
 		return Worker{}, err
@@ -254,14 +254,14 @@ func Ensure(
 		return Worker{}, err
 	}
 	if current != source {
-		return Worker{}, errors.New("Gosim source or worker dependency graph changed during build; retry")
+		return Worker{}, fmt.Errorf("Gosim source or worker dependency graph changed during build; retry")
 	}
 	currentInputs, err := buildcfg.Fingerprint(r.Toolchain)
 	if err != nil {
 		return Worker{}, err
 	}
 	if currentInputs != inputs {
-		return Worker{}, errors.New("Go distribution changed during worker build; retry")
+		return Worker{}, fmt.Errorf("Go distribution changed during worker build; retry")
 	}
 	if err := ctx.Err(); err != nil {
 		return Worker{}, err

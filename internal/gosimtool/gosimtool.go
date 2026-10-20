@@ -310,7 +310,7 @@ func ManifestForBinary(binary string, identity buildspec.Identity) (Manifest, er
 		return Manifest{}, err
 	}
 	if filepath.Join(dir, m.Binary.Path) != binary {
-		return Manifest{}, errors.New("manifest binary path mismatch")
+		return Manifest{}, fmt.Errorf("manifest binary path mismatch")
 	}
 	return m, nil
 }

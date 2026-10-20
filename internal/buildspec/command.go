@@ -2,7 +2,6 @@ package buildspec
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -49,7 +48,7 @@ func OutputCommand(ctx context.Context, tc Toolchain, dir string, args ...string
 	cmd := exec.CommandContext(ctx, tc.Executable, args...)
 	cmd.Dir = dir
 	if !filepath.IsAbs(tc.Executable) || !filepath.IsAbs(tc.GOROOT) {
-		cmd.Err = errors.New("toolchain executable and GOROOT must be absolute")
+		cmd.Err = fmt.Errorf("toolchain executable and GOROOT must be absolute")
 	} else if err := ValidateVersion(tc.Version); err != nil {
 		cmd.Err = err
 	} else if err := CheckEnvironment(tc); err != nil {

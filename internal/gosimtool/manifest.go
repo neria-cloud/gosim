@@ -3,7 +3,6 @@ package gosimtool
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -71,7 +70,7 @@ func normalizePackages(packages []PackageDigest) ([]PackageDigest, error) {
 	result := slices.Clone(packages)
 	slices.SortFunc(result, func(a, b PackageDigest) int { return strings.Compare(a.Path, b.Path) })
 	if len(result) == 0 {
-		return nil, errors.New("empty artifact package set")
+		return nil, fmt.Errorf("empty artifact package set")
 	}
 	for i, p := range result {
 		if p.Path == "" || strings.ContainsAny(p.Path, "\x00\r\n") || !buildspec.ValidDigest(p.Digest) ||
@@ -148,14 +147,14 @@ func decodeManifest(data []byte) (Manifest, error) {
 		return m, err
 	}
 	if err := decoder.Decode(new(any)); err != io.EOF {
-		return Manifest{}, errors.New("trailing manifest data")
+		return Manifest{}, fmt.Errorf("trailing manifest data")
 	}
 	return normalizeManifest(m)
 }
 
 func ArtifactDirectory(project string, identity buildspec.Identity, packages []PackageDigest) (string, error) {
 	if project == "" {
-		return "", errors.New("explicit project directory is required")
+		return "", fmt.Errorf("explicit project directory is required")
 	}
 	build, err := buildspec.Digest(identity)
 	if err != nil {
@@ -179,7 +178,7 @@ func regularArtifactFile(directory, name string) (string, error) {
 		return "", err
 	}
 	if !root.IsDir() {
-		return "", errors.New("artifact root is not a directory")
+		return "", fmt.Errorf("artifact root is not a directory")
 	}
 	current := directory
 	parts := strings.Split(name, "/")
@@ -210,7 +209,7 @@ func verifyManifestInputs(m Manifest, identity buildspec.Identity, packages []Pa
 		return err
 	}
 	if got != want {
-		return errors.New("artifact build identity mismatch")
+		return fmt.Errorf("artifact build identity mismatch")
 	}
 	want, err = PackageBuildDigest(packages)
 	if err != nil {
@@ -221,7 +220,7 @@ func verifyManifestInputs(m Manifest, identity buildspec.Identity, packages []Pa
 		return err
 	}
 	if got != want {
-		return errors.New("artifact package content digest mismatch")
+		return fmt.Errorf("artifact package content digest mismatch")
 	}
 	return nil
 }

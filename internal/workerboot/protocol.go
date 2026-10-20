@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -40,7 +39,7 @@ func CurrentInfo() (Info, error) {
 	}
 	build, ok := debug.ReadBuildInfo()
 	if !ok {
-		return info, errors.New("worker has no Go build information")
+		return info, fmt.Errorf("worker has no Go build information")
 	}
 	info.BuildPath, info.Module, info.Settings = build.Path, build.Main, build.Settings
 	return info, nil
@@ -57,7 +56,7 @@ func validateSettings(settings []debug.BuildSetting, hostOS, hostArch string, tr
 		}
 	}
 	if trimpath && values["-trimpath"] != "true" {
-		return errors.New("cached worker must use -trimpath")
+		return fmt.Errorf("cached worker must use -trimpath")
 	}
 	// cmd/go omits all -ldflags from build info with -trimpath (Go issue
 	// 52372). The cache key binds our build command and the manifest binds its
@@ -80,7 +79,7 @@ type boundedOutput struct {
 
 func (b *boundedOutput) Write(p []byte) (int, error) {
 	if b.buffer.Len()+len(p) > b.max {
-		return 0, errors.New("worker handshake exceeded output limit")
+		return 0, fmt.Errorf("worker handshake exceeded output limit")
 	}
 	return b.buffer.Write(p)
 }
@@ -109,7 +108,7 @@ func Probe(ctx context.Context, path string, r buildspec.Resolution) (Info, erro
 		return info, fmt.Errorf("invalid worker handshake: %w", err)
 	}
 	if err := dec.Decode(new(any)); err != io.EOF {
-		return info, errors.New("trailing worker handshake data")
+		return info, fmt.Errorf("trailing worker handshake data")
 	}
 	tc := r.Toolchain
 	root, err := filepath.EvalSymlinks(info.GOROOT)
@@ -121,7 +120,7 @@ func Probe(ctx context.Context, path string, r buildspec.Resolution) (Info, erro
 		root != tc.GOROOT ||
 		info.BuildPath != WorkerPackage ||
 		info.Module.Path != buildcfg.GosimModule {
-		return info, errors.New("worker protocol/compiler/platform differs from resolved Go")
+		return info, fmt.Errorf("worker protocol/compiler/platform differs from resolved Go")
 	}
 	return info, nil
 }
@@ -133,7 +132,7 @@ func Verify(ctx context.Context, w Worker, r buildspec.Resolution) error {
 	}
 	if info.Toolchain != w.Manifest.Toolchain || info.HostOS != w.Manifest.HostOS ||
 		info.HostArch != w.Manifest.HostArch {
-		return errors.New("worker handshake differs from cache manifest")
+		return fmt.Errorf("worker handshake differs from cache manifest")
 	}
 	if !matchesSelectedModuleVersion(w.Manifest.ModuleVersion, info.Module.Version) {
 		return fmt.Errorf(

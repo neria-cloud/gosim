@@ -6,7 +6,6 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"go/token"
 	"io"
@@ -46,7 +45,7 @@ func Parse(data []byte) (Manifest, error) {
 		return m, err
 	}
 	if err := d.Decode(new(any)); err != io.EOF {
-		return m, errors.New("trailing route manifest data")
+		return m, fmt.Errorf("trailing route manifest data")
 	}
 	return m, m.Validate()
 }

@@ -7,7 +7,6 @@ package race_test
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -238,7 +237,7 @@ func runTests(cmd *exec.Cmd) ([]byte, error) {
 	log.Println(string(out))
 	if bytes.Contains(out, []byte("fatal error:")) {
 		// But don't expect runtime to crash.
-		return out, errors.New("runtime fatal error")
+		return out, fmt.Errorf("runtime fatal error")
 	}
 	return out, nil
 }

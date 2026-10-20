@@ -109,7 +109,7 @@ type sudog struct {
 
 	// TODO: make this a pointer to a selector instead? and then we can maybe skip a copy?
 	// TODO: set to nil when done
-	item any
+	item interface{}
 
 	// used instead of item in NotifyList because storing ints in interfaces allocates
 	index int
@@ -243,7 +243,7 @@ func (c Chan[V]) completeSend(ok bool) {
 	}
 }
 
-func ChanCast[V any](v any) V {
+func ChanCast[V any](v interface{}) V {
 	return chanCast[V](v)
 }
 
@@ -472,15 +472,15 @@ func (c Chan[V]) RecvSelector() ChanSelector {
 
 type nilChanSelector struct{}
 
-func (nilChanSelector) enqueue(g *sudog)  {}
-func (nilChanSelector) ready() bool       { return false }
-func (nilChanSelector) exec() (any, bool) { panic("help") }
-func (nilChanSelector) complete(bool)     { panic("help") }
+func (nilChanSelector) enqueue(g *sudog)          {}
+func (nilChanSelector) ready() bool               { return false }
+func (nilChanSelector) exec() (interface{}, bool) { panic("help") }
+func (nilChanSelector) complete(bool)             { panic("help") }
 
 type ChanSelector interface {
 	enqueue(g *sudog)
 	ready() bool
-	exec() (any, bool)
+	exec() (interface{}, bool)
 	complete(bool)
 }
 

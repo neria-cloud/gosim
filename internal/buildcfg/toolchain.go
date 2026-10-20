@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -159,7 +158,7 @@ func withoutEnv(env []string, key string) []string {
 
 func validateExecutable(tc buildspec.Toolchain) error {
 	if tc.Executable != filepath.Join(tc.GOROOT, "bin", "go") {
-		return errors.New("selected executable must be GOROOT/bin/go")
+		return fmt.Errorf("selected executable must be GOROOT/bin/go")
 	}
 	output, err := Command(tc, "", "version").Output()
 	if err != nil {
@@ -217,7 +216,7 @@ func Fingerprint(tc buildspec.Toolchain) (buildspec.Fingerprints, error) {
 		return buildspec.Fingerprints{}, err
 	}
 	if tc.Executable != filepath.Join(tc.GOROOT, "bin", "go") {
-		return buildspec.Fingerprints{}, errors.New("executable is outside selected distribution")
+		return buildspec.Fingerprints{}, fmt.Errorf("executable is outside selected distribution")
 	}
 	return fingerprintInstalled(tc.GOROOT)
 }

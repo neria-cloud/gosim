@@ -2,7 +2,6 @@ package gosimruntime
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -37,12 +36,12 @@ func TestMain(driver Driver) {
 		input, output := json.NewDecoder(os.Stdin), json.NewEncoder(os.Stdout)
 		identified, ok := driver.(interface{ BuildIdentity() (string, string) })
 		if !ok {
-			fatal(errors.New("metatest Driver has no build identity"))
+			fatal(fmt.Errorf("metatest Driver has no build identity"))
 			return
 		}
 		digest, toolchain := identified.BuildIdentity()
 		if digest == "" || toolchain != runtime.Version() {
-			fatal(errors.New("metatest binary runtime identity mismatch"))
+			fatal(fmt.Errorf("metatest binary runtime identity mismatch"))
 			return
 		}
 		hello := MetatestHandshake{Protocol: 3, IdentityDigest: digest, Toolchain: runtime.Version()}

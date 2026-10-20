@@ -5,6 +5,7 @@ package metatesting
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -243,7 +244,7 @@ func TestProtocolFailureAndEarlyClose(t *testing.T) {
 			}
 			assertReaped(t, pid)
 			if err := runner.Close(); mode == "crash" && err == nil {
-				t.Fatal(errors.New("lost crash status"))
+				t.Fatal(fmt.Errorf("lost crash status"))
 			}
 		})
 	}

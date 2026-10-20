@@ -2,7 +2,7 @@ package gosimtool
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -62,30 +62,30 @@ func NewBuildConfig(
 
 func (b BuildConfig) Validate() error {
 	if b.Context == nil || b.Resolution.Toolchain != b.Toolchain {
-		return errors.New("missing build context or inconsistent compiler resolution")
+		return fmt.Errorf("missing build context or inconsistent compiler resolution")
 	}
 	if !slices.Equal(b.Identity.Tags, []string{"linkname", "sim"}) {
-		return errors.New("translation requires the linkname and sim build-policy tags")
+		return fmt.Errorf("translation requires the linkname and sim build-policy tags")
 	}
 	if _, _, err := selected.Resolve(b.Selection); err != nil {
 		return err
 	}
 	if !reflect.DeepEqual(b.Identity, b.Selection.Identity) {
-		return errors.New("build identity differs from immutable selection")
+		return fmt.Errorf("build identity differs from immutable selection")
 	}
 	digest, err := buildspec.Digest(b.Identity)
 	if err != nil {
 		return err
 	}
 	if b.Digest != digest {
-		return errors.New("build digest differs from identity")
+		return fmt.Errorf("build digest differs from identity")
 	}
 	tc := b.Toolchain
 	identityMismatch := tc.Version != b.Identity.Toolchain || tc.HostOS != b.Identity.HostOS ||
 		tc.HostArch != b.Identity.HostArch
 	pathsMismatch := !filepath.IsAbs(tc.GOROOT) || tc.Executable != filepath.Join(tc.GOROOT, "bin", "go")
 	if identityMismatch || pathsMismatch {
-		return errors.New("selected toolchain differs from build identity/distribution")
+		return fmt.Errorf("selected toolchain differs from build identity/distribution")
 	}
 	return nil
 }
@@ -94,7 +94,7 @@ func (b BuildConfig) AsDirname() string { return b.Digest }
 
 func (b BuildConfig) ModuleGraph() ([]buildspec.Module, error) {
 	if b.Resolution.Schema != 1 || !filepath.IsAbs(b.Resolution.Context.Directory) {
-		return nil, errors.New("build requires resolved application module/workspace context")
+		return nil, fmt.Errorf("build requires resolved application module/workspace context")
 	}
 	modules, err := buildspec.ResolveModuleGraph(b.Context, b.Resolution)
 	if err != nil {
@@ -105,7 +105,7 @@ func (b BuildConfig) ModuleGraph() ([]buildspec.Module, error) {
 		return nil, err
 	}
 	if digest != b.Identity.ModuleGraphDigest {
-		return nil, errors.New("application module/workspace inputs changed after resolution; rerun gosim")
+		return nil, fmt.Errorf("application module/workspace inputs changed after resolution; rerun gosim")
 	}
 	return modules, nil
 }
@@ -118,7 +118,7 @@ func (b BuildConfig) ContextFile() (string, error) {
 			return path, nil
 		}
 	}
-	return "", errors.New("no application go.mod or go.work in resolved context")
+	return "", fmt.Errorf("no application go.mod or go.work in resolved context")
 }
 
 func (b BuildConfig) ProjectRoot() (string, error) {

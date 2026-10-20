@@ -3,7 +3,6 @@ package spec
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -127,7 +126,7 @@ func (p Profile) Select(build buildspec.Identity) (buildspec.Selection, error) {
 		return buildspec.Selection{}, err
 	}
 	if id.Profile != p.ID || id.AdapterRevision != p.Revision {
-		return buildspec.Selection{}, errors.New("build profile/revision differs from selected adapter")
+		return buildspec.Selection{}, fmt.Errorf("build profile/revision differs from selected adapter")
 	}
 	manifest, err := p.Contracts(id.SimulationArch)
 	if err != nil {
@@ -141,7 +140,7 @@ func (p Profile) Select(build buildspec.Identity) (buildspec.Selection, error) {
 		return buildspec.Selection{}, err
 	}
 	if id.ContractDigest != contract {
-		return buildspec.Selection{}, errors.New("build contract digest differs from selected profile")
+		return buildspec.Selection{}, fmt.Errorf("build contract digest differs from selected profile")
 	}
 	hooks := slices.Clone(p.Hooks)
 	slices.SortFunc(hooks, func(a, b Hook) int {

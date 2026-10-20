@@ -3,7 +3,6 @@ package buildcfg
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -41,7 +40,7 @@ func Identity(
 		return buildspec.Identity{}, err
 	}
 	if opts.Experiments != "" {
-		return buildspec.Identity{}, errors.New("nondefault experiments are unsupported")
+		return buildspec.Identity{}, fmt.Errorf("nondefault experiments are unsupported")
 	}
 	for _, tag := range opts.Tags {
 		if tag != "sim" && tag != "linkname" {
@@ -51,7 +50,7 @@ func Identity(
 	tags := slices.Clone(opts.Tags)
 	slices.Sort(tags)
 	if len(slices.Compact(tags)) != len(opts.Tags) {
-		return buildspec.Identity{}, errors.New("duplicate build tags")
+		return buildspec.Identity{}, fmt.Errorf("duplicate build tags")
 	}
 	expected, err := profile.ContractDigest()
 	if err != nil {
@@ -59,7 +58,7 @@ func Identity(
 	}
 	if contractDigest != expected || !buildspec.ValidDigest(inputs.ToolchainDigest) ||
 		!buildspec.ValidDigest(inputs.StdlibDigest) {
-		return buildspec.Identity{}, errors.New("missing or mismatched checked compatibility inputs")
+		return buildspec.Identity{}, fmt.Errorf("missing or mismatched checked compatibility inputs")
 	}
 	modules, err := buildspec.ResolveModuleGraph(ctx, resolution)
 	if err != nil {
@@ -144,7 +143,7 @@ func evidenceMetadata(name string) bool {
 
 func hashSources(root string, paths []string) (string, error) {
 	if root == "" {
-		return "", errors.New("missing source root")
+		return "", fmt.Errorf("missing source root")
 	}
 	var files []buildspec.Revision
 	for _, sub := range paths {

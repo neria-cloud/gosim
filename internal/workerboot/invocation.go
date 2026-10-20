@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -27,7 +27,7 @@ func ValidateInvocation(ctx context.Context, path string) (Invocation, error) {
 		return in, err
 	}
 	if !stat.Mode().IsRegular() || stat.Size() > 1024*1024 {
-		return in, errors.New("invalid worker invocation file")
+		return in, fmt.Errorf("invalid worker invocation file")
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -39,10 +39,10 @@ func ValidateInvocation(ctx context.Context, path string) (Invocation, error) {
 		return in, err
 	}
 	if err := dec.Decode(new(any)); err != io.EOF {
-		return in, errors.New("trailing worker invocation data")
+		return in, fmt.Errorf("trailing worker invocation data")
 	}
 	if in.Schema != 1 || in.Resolution.Schema != 1 {
-		return in, errors.New("unsupported worker invocation schema")
+		return in, fmt.Errorf("unsupported worker invocation schema")
 	}
 	if err := buildcfg.ValidateWorker(in.Resolution.Toolchain); err != nil {
 		return in, err
@@ -58,7 +58,7 @@ func ValidateInvocation(ctx context.Context, path string) (Invocation, error) {
 	// A graph digest may be attached by application resolution, not by go env.
 	expected.Context.GraphDigest = ""
 	if !reflect.DeepEqual(expected, observed) {
-		return in, errors.New("worker invocation differs from current compiler/module/workspace context")
+		return in, fmt.Errorf("worker invocation differs from current compiler/module/workspace context")
 	}
 	source, err := ResolveSource(ctx, observed)
 	if err != nil {
@@ -81,7 +81,7 @@ func ValidateInvocation(ctx context.Context, path string) (Invocation, error) {
 		return in, err
 	}
 	if !reflect.DeepEqual(want, in.Manifest) {
-		return in, errors.New("worker/source inputs changed or invocation manifest is mismatched; rerun gosim")
+		return in, fmt.Errorf("worker/source inputs changed or invocation manifest is mismatched; rerun gosim")
 	}
 	return in, nil
 }

@@ -2,7 +2,6 @@ package buildspec
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -66,18 +65,18 @@ func ReportDigest(report CertificationReport) (string, error) {
 
 func ValidateReport(report CertificationReport) error {
 	if report.Schema != 2 {
-		return errors.New("unsupported certification report schema")
+		return fmt.Errorf("unsupported certification report schema")
 	}
 	id, err := NormalizeIdentity(report.Identity)
 	if err != nil {
 		return err
 	}
 	if !SameTuple(report.Tuple, TupleFor(id)) {
-		return errors.New("report tuple does not match executed identity")
+		return fmt.Errorf("report tuple does not match executed identity")
 	}
 	source, err := SourceDigest(id)
 	if err != nil || source != report.FrameworkDigest {
-		return errors.New("report framework identity mismatch")
+		return fmt.Errorf("report framework identity mismatch")
 	}
 
 	if err := ValidateExecution(report.Identity, report.WorkerArch, report.ExecutionMode, report.ContainerImageDigest); err != nil {
@@ -96,7 +95,7 @@ func ValidateReport(report CertificationReport) error {
 		}
 	}
 	if !seen["large"] {
-		return errors.New("missing required large suite; ordinary validation cannot certify a tuple")
+		return fmt.Errorf("missing required large suite; ordinary validation cannot certify a tuple")
 	}
 	if len(id.Features) < 3 {
 		for _, name := range []string{"native-units"} {
@@ -107,24 +106,24 @@ func ValidateReport(report CertificationReport) error {
 	}
 	digest, err := ReportDigest(report)
 	if err != nil || digest != report.ResultDigest {
-		return errors.New("certification result digest mismatch")
+		return fmt.Errorf("certification result digest mismatch")
 	}
 	return nil
 }
 
 func ValidateExecution(id Identity, workerArch, mode, image string) error {
 	if workerArch != id.HostArch {
-		return errors.New("report worker architecture mismatch")
+		return fmt.Errorf("report worker architecture mismatch")
 	}
 	switch mode {
 	case "native":
 		if image != "" {
-			return errors.New("native report claims a container image")
+			return fmt.Errorf("native report claims a container image")
 		}
 	case "container-native", "container-emulated":
 		if id.HostOS != "linux" || !strings.HasPrefix(image, "sha256:") ||
 			!ValidDigest(strings.TrimPrefix(image, "sha256:")) {
-			return errors.New("container report requires Linux and an image digest")
+			return fmt.Errorf("container report requires Linux and an image digest")
 		}
 	default:
 		return fmt.Errorf("unknown execution mode %q", mode)

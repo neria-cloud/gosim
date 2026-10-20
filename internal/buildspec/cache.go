@@ -3,6 +3,7 @@ package buildspec
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -44,7 +45,7 @@ func LockCache(ctx context.Context, path string) (unlock func() error, err error
 		return nil, err
 	}
 	if !info.Mode().IsRegular() {
-		return nil, errors.New("cache lock is not a regular file")
+		return nil, fmt.Errorf("cache lock is not a regular file")
 	}
 	for {
 		if err := ctx.Err(); err != nil {

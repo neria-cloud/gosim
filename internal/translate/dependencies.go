@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -17,7 +16,7 @@ import (
 // Keys are translated package paths, exactly as in TranslateOutput.Deps.
 func InspectDependencies(input *TranslateInput) (map[string]map[string]string, error) {
 	if input == nil || len(input.Packages) == 0 {
-		return nil, errors.New("dependency inspection requires explicit packages and build selection")
+		return nil, fmt.Errorf("dependency inspection requires explicit packages and build selection")
 	}
 	if err := input.Cfg.Validate(); err != nil {
 		return nil, err

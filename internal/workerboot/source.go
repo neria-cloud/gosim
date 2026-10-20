@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -130,7 +129,7 @@ func workerGraphDigest(ctx context.Context, r buildspec.Resolution) (string, err
 		entries = append(entries, e)
 	}
 	if len(entries) == 0 {
-		return "", errors.New("empty selected worker dependency graph")
+		return "", fmt.Errorf("empty selected worker dependency graph")
 	}
 	slices.SortFunc(entries, func(a, b entry) int { return strings.Compare(a.ImportPath, b.ImportPath) })
 	encoded, err := json.Marshal(entries)

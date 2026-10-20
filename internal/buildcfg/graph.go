@@ -2,7 +2,6 @@ package buildcfg
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,7 +23,7 @@ func FrameworkModule(modules []buildspec.Module) (buildspec.Module, error) {
 				)
 			}
 			if !filepath.IsAbs(selected.Dir) {
-				return buildspec.Module{}, errors.New("selected Gosim source must be absolute")
+				return buildspec.Module{}, fmt.Errorf("selected Gosim source must be absolute")
 			}
 			if _, err := os.Stat(filepath.Join(selected.Dir, "go.mod")); err != nil {
 				return buildspec.Module{}, fmt.Errorf("selected Gosim source: %w", err)

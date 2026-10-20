@@ -39,7 +39,7 @@ type (
 // input module. The loader materializes it before loading any application source.
 func PackagePath(identityDigest string) (string, error) {
 	if !buildspec.ValidDigest(identityDigest) {
-		return "", errors.New("invalid composition identity digest")
+		return "", fmt.Errorf("invalid composition identity digest")
 	}
 	return gosimtool.Module + "/.gosim/v2/" + identityDigest + "/input/gosimcomposition", nil
 }
@@ -113,14 +113,14 @@ func Generate(selection buildspec.Selection, dir string) (GeneratedComposition, 
 		return GeneratedComposition{}, err
 	}
 	if dir == "" || !filepath.IsAbs(dir) || filepath.Clean(dir) != dir {
-		return GeneratedComposition{}, errors.New("composition requires an absolute clean staging directory")
+		return GeneratedComposition{}, fmt.Errorf("composition requires an absolute clean staging directory")
 	}
 	info, err := os.Lstat(dir)
 	if err != nil {
 		return GeneratedComposition{}, err
 	}
 	if !info.IsDir() {
-		return GeneratedComposition{}, errors.New("composition staging root is not a real directory")
+		return GeneratedComposition{}, fmt.Errorf("composition staging root is not a real directory")
 	}
 	digest, _ := buildspec.Digest(selection.Identity)
 	output := GeneratedComposition{SourceDir: dir, IdentityDigest: digest, Files: []string{"composition.go"}}
@@ -163,14 +163,14 @@ func ValidateImports(output GeneratedComposition, selection buildspec.Selection)
 	if output.IdentityDigest != digest || !slices.Equal(output.Files, []string{"composition.go"}) ||
 		!filepath.IsAbs(output.SourceDir) ||
 		filepath.Clean(output.SourceDir) != output.SourceDir {
-		return errors.New("invalid generated composition record")
+		return fmt.Errorf("invalid generated composition record")
 	}
 	info, err := os.Lstat(output.SourceDir)
 	if err != nil {
 		return err
 	}
 	if !info.IsDir() {
-		return errors.New("composition root is not a real directory")
+		return fmt.Errorf("composition root is not a real directory")
 	}
 	entries, err := os.ReadDir(output.SourceDir)
 	if err != nil {
@@ -187,7 +187,7 @@ func ValidateImports(output GeneratedComposition, selection buildspec.Selection)
 		return err
 	}
 	if !info.Mode().IsRegular() {
-		return errors.New("composition source is not a regular file")
+		return fmt.Errorf("composition source is not a regular file")
 	}
 	actual, err := os.ReadFile(path)
 	if err != nil {
@@ -207,10 +207,10 @@ func ValidateImports(output GeneratedComposition, selection buildspec.Selection)
 	}
 	slices.Sort(imports)
 	if !slices.Equal(imports, expectedImports) {
-		return errors.New("generated composition import set differs from selection")
+		return fmt.Errorf("generated composition import set differs from selection")
 	}
 	if !bytes.Equal(actual, source) {
-		return errors.New("generated composition source differs from selected driver")
+		return fmt.Errorf("generated composition source differs from selected driver")
 	}
 	return nil
 }

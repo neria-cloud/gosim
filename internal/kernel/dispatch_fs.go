@@ -1,7 +1,7 @@
 package kernel
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
 )
@@ -13,7 +13,7 @@ func (k *Kernel) Filesystem(ctx contracts.CallContext) (contracts.FileOps, error
 		return nil, err
 	}
 	if run.bindings.Files == nil {
-		return nil, errors.New("filesystem service missing")
+		return nil, fmt.Errorf("filesystem service missing")
 	}
 	return run.bindings.Files, nil
 }

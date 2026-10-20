@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -65,7 +64,7 @@ func GenerateProfile(
 	}
 	origin, policies := entry.Origin(), entry.Policy()
 	if output == "" || len(arches) == 0 {
-		return errors.New("explicit output and architectures are required")
+		return fmt.Errorf("explicit output and architectures are required")
 	}
 	seen := map[string]bool{}
 	for _, arch := range arches {
@@ -80,7 +79,7 @@ func GenerateProfile(
 	}
 	moduleFile := strings.TrimSpace(string(modPath))
 	if moduleFile == "" || moduleFile == os.DevNull {
-		return errors.New("generation requires a module context")
+		return fmt.Errorf("generation requires a module context")
 	}
 	root := filepath.Dir(moduleFile)
 	if err := profile.Validate(); err != nil {

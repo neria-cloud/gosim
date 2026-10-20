@@ -2,7 +2,6 @@ package routegen
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +13,7 @@ import (
 // the requested outputs. It never repairs stale files or changes their mtimes.
 func CheckProfile(tc buildspec.Toolchain, profileID string, arches []string, output string) error {
 	if output == "" {
-		return errors.New("explicit output is required")
+		return fmt.Errorf("explicit output is required")
 	}
 	staging, err := os.MkdirTemp("", "gosim-gen-check-")
 	if err != nil {

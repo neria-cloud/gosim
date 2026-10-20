@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/types"
@@ -98,7 +97,7 @@ func standardPackage(pkg *packages.Package) bool {
 
 func (p PackagePolicies) packagePolicy(path string, standard bool) (spec.PackagePolicy, error) {
 	if p.profile.ID == "" {
-		return spec.PackagePolicy{}, errors.New("package policies are unresolved")
+		return spec.PackagePolicy{}, fmt.Errorf("package policies are unresolved")
 	}
 	prefix := gosimtool.Module + "/internal/"
 	for _, retired := range []string{"simulation", "hooks", "reflect", "testing", "maps_shim", "synctest"} {
@@ -163,7 +162,7 @@ func nativeDirective(imp *ast.ImportSpec) bool {
 // engine/ABI islands and reviewed pure/bridge symbols can cross this boundary.
 func ValidateBoundary(pkg *packages.Package, policies PackagePolicies) error {
 	if pkg == nil {
-		return errors.New("nil package at translation boundary")
+		return fmt.Errorf("nil package at translation boundary")
 	}
 	policy, err := policies.packagePolicy(pkg.PkgPath, standardPackage(pkg))
 	if err != nil {
@@ -315,7 +314,7 @@ func (p PackagePolicies) validateDeclarations(pkg *packages.Package, file *ast.F
 					return fmt.Errorf("invalid runtime link signature: %s", fields[1])
 				}
 				if _, ok := p.replacements[target]; !ok {
-					return errors.New("missing modeled runtime link adapter")
+					return fmt.Errorf("missing modeled runtime link adapter")
 				}
 				linked[fields[1]] = true
 				continue

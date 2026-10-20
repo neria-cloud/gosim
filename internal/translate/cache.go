@@ -62,7 +62,7 @@ func computeTranslateToolHash(identity buildspec.Identity) (Hash, error) {
 
 func computePackageHash(tool Hash, pkg *packages.Package, importHashes map[string]Hash) (Hash, error) {
 	if pkg == nil || pkg.ID == "" {
-		return Hash{}, errors.New("missing package hash input")
+		return Hash{}, fmt.Errorf("missing package hash input")
 	}
 	h := newCacheHasher()
 	h.text(translationNamespace)
@@ -131,7 +131,7 @@ func validateCacheEntry(entry CacheEntryV2, identity, packageDigest string) erro
 	if entry.Format != 2 || !buildspec.ValidDigest(identity) || !buildspec.ValidDigest(packageDigest) ||
 		entry.IdentityDigest != identity ||
 		entry.PackageDigest != packageDigest {
-		return errors.New("cache format or identity/package digest mismatch")
+		return fmt.Errorf("cache format or identity/package digest mismatch")
 	}
 	if err := gosimtool.ValidateGeneratedFiles(entry.Result.TranslatedFiles); err != nil {
 		return fmt.Errorf("unsafe cached output: %w", err)
@@ -207,7 +207,7 @@ func cacheGet(c *cache.Cache, key Hash, identity buildspec.Identity) (*Translate
 func cachePut(c *cache.Cache, key Hash, entry CacheEntryV2) error {
 	keyString := hex.EncodeToString(key[:])
 	if entry.PackageDigest != keyString {
-		return errors.New("cache key differs from envelope package digest")
+		return fmt.Errorf("cache key differs from envelope package digest")
 	}
 	data, err := encode(entry)
 	if err != nil {

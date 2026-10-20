@@ -33,7 +33,7 @@ type SourceFile struct {
 func VerifyBaselineOrigin(tc buildspec.Toolchain, origin Origin) error {
 	version, err := buildspec.ParseGoVersion(origin.BaselineToolchain)
 	if err != nil || origin.Schema != 2 || version.Family() != origin.Family {
-		return errors.New("invalid baseline origin metadata")
+		return fmt.Errorf("invalid baseline origin metadata")
 	}
 	if tc.Version != origin.BaselineToolchain || len(origin.Files) == 0 {
 		return fmt.Errorf("native ABI origin requires %s, got %s", origin.BaselineToolchain, tc.Version)
@@ -93,10 +93,10 @@ func RefreshOrigin(
 	tc := r.Toolchain
 	v, err := buildspec.ParseGoVersion(tc.Version)
 	if err != nil || v.Family() != previous.Family {
-		return Origin{}, errors.New("origin refresh requires the same Go family")
+		return Origin{}, fmt.Errorf("origin refresh requires the same Go family")
 	}
 	if len(manifests) == 0 {
-		return Origin{}, errors.New("origin refresh requires reviewed contracts")
+		return Origin{}, fmt.Errorf("origin refresh requires reviewed contracts")
 	}
 	dir, cleanup, err := hookInspectionContext(ctx, r)
 	if err != nil {
@@ -124,7 +124,7 @@ func RefreshOrigin(
 			return Origin{}, err
 		}
 		if manifest.Family != previous.Family {
-			return Origin{}, errors.New("origin contract family mismatch")
+			return Origin{}, fmt.Errorf("origin contract family mismatch")
 		}
 		for _, race := range []bool{false, true} {
 			if err := VerifyContracts(ctx, tc, dir, manifest, buildspec.BuildOptions{Race: race}); err != nil {

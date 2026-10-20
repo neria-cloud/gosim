@@ -27,7 +27,7 @@ func mkdirArtifactParents(root, relative string) error {
 		return err
 	}
 	if !info.IsDir() {
-		return errors.New("project root is not a directory")
+		return fmt.Errorf("project root is not a directory")
 	}
 	for _, part := range strings.Split(filepath.ToSlash(relative), "/") {
 		current = filepath.Join(current, part)
@@ -56,7 +56,7 @@ func MaterializeFiles(directory string, files map[string][]byte) error {
 		return err
 	}
 	if !info.IsDir() {
-		return errors.New("materialization root is not a real directory")
+		return fmt.Errorf("materialization root is not a real directory")
 	}
 
 	names := make([]string, 0, len(files))

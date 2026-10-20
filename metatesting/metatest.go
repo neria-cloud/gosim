@@ -111,7 +111,7 @@ func startRunner(path string, expected Manifest, startupTimeout time.Duration) (
 		return nil, err
 	}
 	if buildspec.Hash(data) != expected.Binary.SHA256 {
-		return nil, errors.New("metatest binary content mismatch")
+		return nil, fmt.Errorf("metatest binary content mismatch")
 	}
 	cmd := exec.Command(path, "-metatest")
 	stdin, err := cmd.StdinPipe()
@@ -161,7 +161,7 @@ func startRunner(path string, expected Manifest, startupTimeout time.Duration) (
 	case err = <-ready:
 	case <-timer.C:
 		timedOut = true
-		err = errors.New("metatest handshake timeout")
+		err = fmt.Errorf("metatest handshake timeout")
 	}
 	if err != nil {
 		cleanup := runner.Close()
@@ -205,7 +205,7 @@ func (r *MetaT) ListTests() ([]string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.closed.Load() {
-		return nil, errors.New("metatest runner is closed")
+		return nil, fmt.Errorf("metatest runner is closed")
 	}
 	if err := r.w.Encode(&RunConfig{
 		Test: "listtests",
@@ -251,7 +251,7 @@ func (r *MetaT) Run(t *testing.T, config *RunConfig) (*RunResult, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.closed.Load() {
-		return nil, errors.New("metatest runner is closed")
+		return nil, fmt.Errorf("metatest runner is closed")
 	}
 	// A broken stream closes and reaps the child before returning.
 
@@ -271,7 +271,7 @@ func (r *MetaT) Run(t *testing.T, config *RunConfig) (*RunResult, error) {
 	}
 
 	if result.BuildDigest != r.expected.IdentityDigest || result.ReplayRevision != gosimruntime.ReplayRevision {
-		return nil, r.protocolFailure(errors.New("metatest result identity mismatch"))
+		return nil, r.protocolFailure(fmt.Errorf("metatest result identity mismatch"))
 	}
 	if result.Failed {
 		r.failedRun.Store(true)

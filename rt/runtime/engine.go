@@ -73,7 +73,7 @@ type Engine struct {
 
 func NewEngine(config EngineConfig) (*Engine, error) {
 	if config.TimeoutNS <= 0 || config.ReplayRevision != ReplayRevision {
-		return nil, errors.New("invalid engine timeout or replay revision")
+		return nil, fmt.Errorf("invalid engine timeout or replay revision")
 	}
 	e := &Engine{
 		config: config, machines: make(map[uint64]*engineMachine), lastEpoch: make(map[uint64]uint64), supervisorToken: MakeRaceToken(),
@@ -424,7 +424,7 @@ func (e *Engine) Run(supervise func()) (result error) {
 	now := e.scheduler.clock.now
 	if e.config.TimeoutNS > math.MaxInt64-now {
 		e.scheduler.cleanup()
-		return errors.New("simulation timeout overflows virtual time")
+		return fmt.Errorf("simulation timeout overflows virtual time")
 	}
 	e.timeoutTimer = NewTimer(func(*Timer) {
 		e.scheduler.logger.slog.Error("test timeout", "step", Step())
@@ -438,7 +438,7 @@ func (e *Engine) Close() error {
 		return e.result
 	}
 	if e.running {
-		return errors.New("close engine after supervisor cleanup and Run return")
+		return fmt.Errorf("close engine after supervisor cleanup and Run return")
 	}
 	// Run has canceled coroutines and leases can no longer be used. Do not run
 	// application code or re-enter a scheduler while releasing remaining state.
@@ -473,13 +473,13 @@ func (e *Engine) Close() error {
 //go:norace
 func (e *Engine) SetTimeout(ns int64) error {
 	if ns <= 0 {
-		return errors.New("simulation timeout must be positive")
+		return fmt.Errorf("simulation timeout must be positive")
 	}
 	var result error
 	err := e.onSupervisor(func() {
 		now := e.scheduler.clock.now
 		if e.timeoutTimer == nil || ns > math.MaxInt64-now {
-			result = errors.New("simulation timeout overflows virtual time")
+			result = fmt.Errorf("simulation timeout overflows virtual time")
 			return
 		}
 		e.timeoutTimer.Reset(now + ns)
