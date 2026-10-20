@@ -35,8 +35,8 @@ func TestAtomicInt32(t *testing.T) {
 		if !SyncAtomic_CompareAndSwapInt32(&value, 42, 7) || SyncAtomic_CompareAndSwapInt32(&value, 42, 8) {
 			t.Fatal("CAS state")
 		}
-		if updated := SyncAtomic_AddInt32(&value, 3); updated != 10 {
-			t.Fatalf("Add result=%d", updated)
+		if new := SyncAtomic_AddInt32(&value, 3); new != 10 {
+			t.Fatalf("Add result=%d", new)
 		}
 		SyncAtomic_StoreInt32(&value, 9)
 		if got := SyncAtomic_LoadInt32(&value); got != 9 {
@@ -60,8 +60,8 @@ func TestAtomicInt64(t *testing.T) {
 		if !SyncAtomic_CompareAndSwapInt64(&value, 42, 7) || SyncAtomic_CompareAndSwapInt64(&value, 42, 8) {
 			t.Fatal("CAS state")
 		}
-		if updated := SyncAtomic_AddInt64(&value, 3); updated != 10 {
-			t.Fatalf("Add result=%d", updated)
+		if new := SyncAtomic_AddInt64(&value, 3); new != 10 {
+			t.Fatalf("Add result=%d", new)
 		}
 		SyncAtomic_StoreInt64(&value, 9)
 		if got := SyncAtomic_LoadInt64(&value); got != 9 {
@@ -85,8 +85,8 @@ func TestAtomicUint32(t *testing.T) {
 		if !SyncAtomic_CompareAndSwapUint32(&value, 42, 7) || SyncAtomic_CompareAndSwapUint32(&value, 42, 8) {
 			t.Fatal("CAS state")
 		}
-		if updated := SyncAtomic_AddUint32(&value, 3); updated != 10 {
-			t.Fatalf("Add result=%d", updated)
+		if new := SyncAtomic_AddUint32(&value, 3); new != 10 {
+			t.Fatalf("Add result=%d", new)
 		}
 		SyncAtomic_StoreUint32(&value, 9)
 		if got := SyncAtomic_LoadUint32(&value); got != 9 {
