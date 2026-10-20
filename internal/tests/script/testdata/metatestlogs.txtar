@@ -1,13 +1,13 @@
 # metatest forwards logs
 
 # normally we do not see prefixed forwarded logs
-exec go test -run=Ok -race -count=1 -v .
+exec go test -ldflags=-checklinkname=0 -tags=linkname -run=Ok -count=1 -v .
 stdout hello
 ! stdout 'metatest binary'
 
 # races do show up
-! exec go test -run=Bad -race -count=1 -v .
-stdout 'metatest binary: WARNING: DATA RACE'
+[gosimrace] ! exec go test -ldflags=-checklinkname=0 -tags=linkname -run=Bad -race -count=1 -v .
+[gosimrace] stdout 'metatest binary: WARNING: DATA RACE'
 
 -- race_meta_test.go --
 //go:build !sim
@@ -20,7 +20,7 @@ import (
 )
 
 func TestOk(t *testing.T) {
-    mt := metatesting.ForCurrentPackage(t)
+    mt := metatesting.ForPackage(t, metatesting.Options{})
 	_, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestOk",
 		Seed:     1,
@@ -31,7 +31,7 @@ func TestOk(t *testing.T) {
 }
 
 func TestBad(t *testing.T) {
-    mt := metatesting.ForCurrentPackage(t)
+    mt := metatesting.ForPackage(t, metatesting.Options{})
 	res, err := mt.Run(t, &metatesting.RunConfig{
 		Test:     "TestBad",
 		Seed:     1,

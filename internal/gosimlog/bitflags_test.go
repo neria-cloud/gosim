@@ -8,6 +8,7 @@ import (
 )
 
 func TestBitflags(t *testing.T) {
+	t.Parallel()
 	f := &gosimlog.BitflagFormatter{
 		Choices: []gosimlog.BitflagChoice{
 			{

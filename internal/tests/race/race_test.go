@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/gosimtool"
-	"github.com/neria-cloud/gosim/internal/race"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 // copied and modified from go:
@@ -41,17 +41,17 @@ const (
 
 // TODO: this test really ought to run things under a couple of seeds
 func TestRaceSim(t *testing.T) {
-	if !race.Enabled {
-		t.Skip("race.Enabled is false")
+	if !hostabi.RaceEnabled {
+		t.Skip("hostabi.RaceEnabled is false")
 	}
 
-	path := gosimtool.GetPathForPrecompiledTestBinary(t, gosimtool.Module+"/internal/tests/race/testdata")
+	path := gosimtool.GetPathForPrecompiledTestBinary(t, gosimtool.Module+"/internal/tests/race/testdata", gosimtool.ResolveTestIdentity(t, ""))
 	checkTests(t, exec.Command(path, "-test.v"))
 }
 
 func TestRaceOriginal(t *testing.T) {
-	if !race.Enabled {
-		t.Skip("race.Enabled is false")
+	if !hostabi.RaceEnabled {
+		t.Skip("hostabi.RaceEnabled is false")
 	}
 
 	modDir, err := gosimtool.FindGoModDir()
@@ -61,6 +61,9 @@ func TestRaceOriginal(t *testing.T) {
 
 	// TODO: get this from some shared package instead
 	path := filepath.Join(modDir, gosimtool.OutputDirectory, "racetest", "testdata.test")
+	if err := gosimtool.VerifyNativeArtifact(path, gosimtool.ResolveTestIdentity(t, "")); err != nil {
+		t.Fatal(err)
+	}
 
 	checkTests(t, exec.Command(path, "-test.v"))
 }

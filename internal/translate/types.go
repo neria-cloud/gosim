@@ -50,10 +50,10 @@ func (t *packageTranslator) makeTypeExpr(typ types.Type) dst.Expr {
 
 		if id.Path != "" && id.Path != t.pkgPath && !token.IsExported(id.Name) {
 			// bad news bears here...
-			if slices.Index(PublicExportHacks[path], id.Name) == -1 {
-				log.Fatalf("need public export hack for %s.%s", path, id.Name)
+			if slices.Index(typeAliases[path], id.Name) == -1 {
+				panic(fmt.Errorf("need public export hack for %s.%s", path, id.Name))
 			}
-			id.Name = "GosimPublicExportHack" + id.Name
+			id.Name = "GosimTypeAlias" + id.Name
 		}
 
 		res := dst.Expr(id)
@@ -85,10 +85,10 @@ func (t *packageTranslator) makeTypeExpr(typ types.Type) dst.Expr {
 
 		if id.Path != "" && id.Path != t.pkgPath && !token.IsExported(id.Name) {
 			// bad news bears here...
-			if slices.Index(PublicExportHacks[path], id.Name) == -1 {
-				log.Fatalf("need public export hack for %s.%s", path, id.Name)
+			if slices.Index(typeAliases[path], id.Name) == -1 {
+				panic(fmt.Errorf("need public export hack for %s.%s", path, id.Name))
 			}
-			id.Name = "GosimPublicExportHack" + id.Name
+			id.Name = "GosimTypeAlias" + id.Name
 		}
 
 		res := dst.Expr(id)
@@ -502,4 +502,11 @@ func (b *implicitConversionsBuilder) after(c *astutil.Cursor) bool {
 		b.cursig = b.sigstack[len(b.sigstack)-1]
 	}
 	return true
+}
+
+// Generated aliases let translated code name inferred private Go types. These
+// aliases stay in the translated universe and grant no native ABI access.
+var typeAliases = map[string][]string{
+	"encoding/binary": {"littleEndian", "bigEndian"},
+	"internal/poll":   {"errNetClosing"},
 }

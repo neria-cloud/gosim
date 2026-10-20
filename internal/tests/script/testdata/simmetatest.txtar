@@ -1,9 +1,9 @@
 # running gosim
 ! exec gosim test -run=Other -v .
-stdout 'metatest cannot be used from within gosim'
+stderr 'metatesting.*unsupported application package os/exec'
 
 ! exec gosim test -run=Self -v .
-stdout 'metatest cannot be used from within gosim'
+stderr 'metatesting.*unsupported application package os/exec'
 
 -- machinecrash_test.go --
 package behavior_test
@@ -15,11 +15,11 @@ import (
 )
 
 func TestSelf(t *testing.T) {
-    mt := metatesting.ForCurrentPackage(t)
+    mt := metatesting.ForPackage(t, metatesting.Options{})
     metatesting.CheckDeterministic(t, mt)
 }
 
 func TestOther(t *testing.T) {
-    mt := metatesting.ForOtherPackage(t, "foo")
+    mt := metatesting.ForOtherPackage(t, "foo", metatesting.Options{})
     metatesting.CheckDeterministic(t, mt)
 }

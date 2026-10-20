@@ -10,6 +10,7 @@ import (
 )
 
 func TestUnmarshalLog(t *testing.T) {
+	t.Parallel()
 	testcases := []struct {
 		json     string
 		expected *gosimlog.Log

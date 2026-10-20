@@ -121,8 +121,20 @@ func (t *packageTranslator) isGlobalUse(node dst.Node) (dst.Expr, bool) {
 		return nil, false
 	}
 
-	if pkgInfo, ok := t.globalInfo.ByPackage[pkg.Path()]; ok {
-		if container, ok := pkgInfo.Container[var_.Name()]; ok {
+	path := pkg.Path()
+	if t.nativeImports[path] {
+		return nil, false
+	}
+	name := var_.Name()
+	if t.profile != nil {
+		if replacement, ok := t.profile.replacements[PackageSelector{Pkg: path, Selector: name}]; ok {
+			path, name = replacement.Pkg, replacement.Selector
+		} else if replacement := t.profile.packages[path]; replacement != "" {
+			path = replacement
+		}
+	}
+	if pkgInfo, ok := t.globalInfo.ByPackage[path]; ok {
+		if container, ok := pkgInfo.Container[name]; ok {
 			return &dst.SelectorExpr{
 				X: &dst.CallExpr{
 					Fun: &dst.Ident{Name: container, Path: ident.Path},
@@ -235,6 +247,10 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 		field = "ForTest"
 	}
 
+	for _, embedded := range t.embedded {
+		inits = append(inits, embedded.initializer(t, funcName))
+	}
+
 	var lastIfSmt *dst.BlockStmt
 
 	for _, initializer := range t.typesInfo.InitOrder {
@@ -315,26 +331,6 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 		inits = append(inits, &dst.ExprStmt{
 			X: &dst.CallExpr{
 				Fun: dst.NewIdent(name),
-			},
-		})
-	}
-	var onceInits []dst.Stmt
-	for _, info := range t.collect.maps {
-		if info.onceName != "" && info.onceFn != "" {
-			// help how oculd one  be non-empty?
-			onceInits = append(onceInits, &dst.ExprStmt{
-				X: &dst.CallExpr{
-					Fun:  &dst.SelectorExpr{X: dst.NewIdent(info.onceName), Sel: dst.NewIdent("Do")},
-					Args: []dst.Expr{dst.NewIdent(info.onceFn)},
-				},
-			})
-		}
-	}
-	if len(onceInits) > 0 {
-		inits = append(inits, &dst.IfStmt{
-			Cond: dst.NewIdent("initializeShared"),
-			Body: &dst.BlockStmt{
-				List: onceInits,
 			},
 		})
 	}
@@ -428,6 +424,9 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 			},
 		},
 	}
+	if t.infrastructure && !forTest {
+		globals.Elts = append(globals.Elts, &dst.KeyValueExpr{Key: dst.NewIdent("Infrastructure"), Value: dst.NewIdent("true")})
+	}
 
 	dstFile.Decls = append(dstFile.Decls, &dst.FuncDecl{
 		Name: dst.NewIdent("init"),
@@ -464,4 +463,34 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 	dstFile.Decls = append(dstFile.Decls, makeBindFuncs(t.collect.bindspecs)...)
 
 	return dstFile, nil
+}
+
+// len/cap of an array can be constant even when the array is a mutable global.
+// Replacing that global with G().field introduces a call, which would destroy
+// constant-expression semantics. Preserve the type checker's constant value.
+func (t *packageTranslator) rewriteConstantArrayLen(c *dstutil.Cursor) bool {
+	call, ok := c.Node().(*dst.CallExpr)
+	if !ok {
+		return false
+	}
+	original, ok := t.astMap.Nodes[call].(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := original.Fun.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	builtin, ok := t.typesInfo.Uses[ident].(*types.Builtin)
+	if !ok || (builtin.Name() != "len" && builtin.Name() != "cap") {
+		return false
+	}
+	value := t.typesInfo.Types[original].Value
+	if value == nil {
+		return false
+	}
+	literal := &dst.BasicLit{Kind: token.INT, Value: value.ExactString()}
+	literal.Decs.NodeDecs = call.Decs.NodeDecs
+	c.Replace(literal)
+	return true
 }

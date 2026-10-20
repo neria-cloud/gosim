@@ -7,18 +7,10 @@ package gosim
 // _inside_ the user's module. By importing the gosim package their go.mod will
 // get all the required dependencies.
 
-// TODO: allow fixing these at a different, independent version? what if there
-// are multiple go.mod because we run on multiple versions?
-
 import (
-	// Allow running the CLI.
+	// Both entry points use the versions selected by the caller's module graph.
 	_ "github.com/neria-cloud/gosim/cmd/gosim"
-
-	// Packages listed in internal/translate.TranslatedRuntimePackages.
-	_ "github.com/neria-cloud/gosim/internal/hooks/go123"
-	_ "github.com/neria-cloud/gosim/internal/reflect"
-	_ "github.com/neria-cloud/gosim/internal/simulation"
-	_ "github.com/neria-cloud/gosim/internal/testing"
+	_ "github.com/neria-cloud/gosim/cmd/gosim-worker"
 
 	// Tools used by gosim. For this repository.
 	_ "github.com/go-task/task/v3/cmd/task"

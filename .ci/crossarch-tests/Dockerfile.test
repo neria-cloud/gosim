@@ -1,13 +1,12 @@
-# XXX: parametrize somehow?
-FROM golang:1.23
-
-ENV GOCACHE=/cache/GOCACHE GOMODCACHE=/cache/GOMODCACHE GOSIMCACHE=/cache/GOSIMCACHE
-
-WORKDIR /go/src/
-COPY . /go/src/
-
-# clean up .gosim/ if copied
-RUN rm -rf .gosim/
-
-# run with limited concurrency to limit memory usage
-CMD ./test.sh --concurrency 1
+ARG GO_IMAGE
+FROM ${GO_IMAGE}
+ARG GO_PATCH
+ENV GOTOOLCHAIN=local GOENV=off PYTHONDONTWRITEBYTECODE=1
+ENV GOCACHE=/cache/build GOMODCACHE=/cache/mod
+RUN test "$(go env GOVERSION)" = "$GO_PATCH" \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends build-essential libsqlite3-dev python3 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
+COPY . /workspace/
+ENTRYPOINT ["python3", "-B", ".ci/crossarch-tests/worker.py"]

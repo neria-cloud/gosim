@@ -9,16 +9,19 @@ import (
 )
 
 func TestMetaDeterministic(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	t.Parallel()
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	metatesting.CheckDeterministic(t, mt)
 }
 
 func TestMetaSeeds(t *testing.T) {
-	mt := metatesting.ForCurrentPackage(t)
+	t.Parallel()
+	mt := metatesting.ForPackage(t, metatesting.Options{})
 	metatesting.CheckSeeds(t, mt, 5)
 }
 
 func TestGosim(t *testing.T) {
-	runner := metatesting.ForCurrentPackage(t)
+	t.Parallel()
+	runner := metatesting.ForPackage(t, metatesting.Options{})
 	runner.RunAllTests(t)
 }

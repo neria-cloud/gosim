@@ -43,7 +43,7 @@ func TestPrettyLog(t *testing.T) {
 	}
 
 	if *rewriteInput {
-		mt := metatesting.ForOtherPackage(t, gosimtool.Module+"/internal/tests/behavior")
+		mt := metatesting.ForOtherPackage(t, gosimtool.Module+"/internal/tests/rt", metatesting.Options{})
 		out, err := mt.Run(t, &metatesting.RunConfig{
 			Test:     "TestLogForPrettyTest",
 			ExtraEnv: []string{"TESTINGFAIL=1"},
@@ -66,6 +66,9 @@ func TestPrettyLog(t *testing.T) {
 		}
 
 		t.Run(name, func(t *testing.T) {
+			if !*rewrite && !*rewriteInput {
+				t.Parallel()
+			}
 			input, err := os.ReadFile(path.Join("testdata", name))
 			if err != nil {
 				t.Fatal(err)

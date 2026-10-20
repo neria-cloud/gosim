@@ -1,0 +1,3 @@
+[
+{"package":"github.com/neria-cloud/gosim/internal/control","symbol":"binding","reason":"Single-active-run translated kernel transport, installed and released by the supervisor harness. It never enters native engine storage or application-owned globals."}
+]

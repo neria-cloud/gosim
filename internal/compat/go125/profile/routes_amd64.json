@@ -1,0 +1,28 @@
+{
+  "adapter_digest": "321231746bb22bc2cebeef74708888c841fc1329614b0c0e862d8f9f64b980f2",
+  "transport_digest": "11e69f939c0521b3b203b9b3682ed3d3f370bee8fe17e80032d16c8707ea01fb",
+  "schema": 2,
+  "generated_with": "go1.25.14",
+  "family": "1.25",
+  "profile": "go125",
+  "architecture": "amd64",
+  "route_digest": "662687a24ea0d974d6f0c995a7e4bd66e92180110933d9395368fccb60c791a7",
+  "origin_digest": "5c6765b708e2888bb7850919614cc089ea3c9f251cb3c8dd928d3a2b52eeec1a",
+  "modules": [
+    {
+      "path": "golang.org/x/sys",
+      "version": "v0.27.0",
+      "sum": "h1:wBqf8DvsY9Y/2P8gAfPDEYNuS30J4lPHJxXSb/nJZ+s=",
+      "go_mod_sum": "h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=",
+      "reason": "Syscall and architecture declarations are ABI inputs."
+    },
+    {
+      "path": "github.com/modern-go/reflect2",
+      "version": "v1.0.1",
+      "sum": "h1:9f412s+6RmYXLWZSEzVVgPGK7C2PphHj5RJrvfx9AWI=",
+      "go_mod_sum": "h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=",
+      "reason": "Private reflect ABI is inventoried and rejected, with its dependency version explicit."
+    }
+  ],
+  "stage": "typed-adapters"
+}

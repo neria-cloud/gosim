@@ -1,449 +1,267 @@
-# Gosim: Simulation testing for Go
+# Gosim: simulation testing for Go
 
-Gosim is a simulation testing framework that aims to make it easier to write
-reliable distributed systems code in go. Gosim takes standard go programs and
-tests and runs them with a simulated network, filesystem, multiple machines, and
-more.
+Gosim is a simulation testing framework that aims to make it easier to write reliable distributed systems code in go. Gosim takes standard go programs and tests and runs them with a simulated network, filesystem, multiple machines, and more.
 
-In Gosim's simulated environment you can run an entire distributed system in a
-single go process, without having to set up any real servers. The simulation can
-also introduce all kinds of problems, such as flaky networks, restarting
-machines, or lost writes on a filesystem, to test that the program survive those
-problems before they happen in real life.
+In Gosim's simulated environment you can run an entire distributed system in a single go process, without having to set up any real servers. The simulation can also introduce all kinds of problems, such as flaky networks, restarting machines, or lost writes on a filesystem, to test that the program survive those problems before they happen in real life.
 
-An interesting and entertaining introduction to simulation testing is the talk
-[Testing Distributed Systems w/ Deterministic Simulation from Strangeloop
-2014](https://www.youtube.com/watch?v=4fFDFbi3toc).
+Features are fixed for the whole test binary before application initialization. Importing a control package does not enable its feature. Attempting a disabled operation aborts the simulation with a feature, operation, machine/epoch and caller diagnostic, even if application code ignores errors or recovers panics. There is no host filesystem or network fallback.
 
-Gosim is an experimental project. Feedback, suggestions, and ideas are all very
-welcome. The underlying design feels quite solid, but the implemented and
-simulated APIs are still limited: files and directories work, but no permissions
-or links; TCP works, but not UDP; IP addresses work, but not hostnames. The API
-can and will change. Now that those warnings are out of the way, please take a
-look at what gosim can do.
+![Architecture](./docs/diagrams/architecture.svg)
 
-## Using Gosim
+![Test workflows](./docs/diagrams/test-workflows.svg)
 
-### From go test to gosim test
+See [Features](docs/features.md) for supported, partially supported, and unsupported capabilities. PRs welcome.
 
-Gosim tests standard go code and is used just like another go package. To get
-started with `gosim`, you need to import it in your module:
+## Go versions and configuration
+
+Gosim supports stable **Go 1.25.* and Go 1.26.*** releases on Linux AMD64,
+Linux ARM64 and Darwin ARM64. The caller uses ordinary Go tooling: `go.mod`,
+`go.work`, and `GOTOOLCHAIN` determine the compiler. Application code does not
+select a Go version, and a new patch within a supported family needs no Gosim
+allowlist entry. Gosim checks the private runtime contracts it uses against the
+selected compiler; an incompatible contract produces an actionable error.
+
+Add Gosim to your module, then build the launcher in that module's context:
+
+```sh
+go get github.com/neria-cloud/gosim
+go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool github.com/neria-cloud/gosim/cmd/gosim
 ```
-> mkdir example && cd example
-> go mod init example
-> go get github.com/neria-cloud/gosim
+
+In this repository, `make build` builds `.gosim/gosimtool`, `.gosim/gosim-worker`,
+and `.gosim/gosim-gen`. It uses Go's normal compiler selection; an optional
+`GOSIM_TOOLCHAIN` override selects an exact compiler for the build. The launcher
+selects the caller's Gosim dependency, including workspace and local
+replacements, and automatically builds/caches a worker with the compiler Go
+selected. Switching supported Go patches does not require rebuilding the
+launcher. Help and version commands work without worker bootstrap.
+
+Use `-C directory` before the command to select another working directory,
+including its module, Go toolchain, and configuration. Relative package and
+configuration paths are resolved there; your shell stays in its current directory:
+
+```sh
+./.gosim/gosimtool -C examples/network/nats test -features rt,fs,net -v .
 ```
-To test code with Gosim, write a small a test in a file `simple_test.go` and then run
-it using `go test`:
+
+An optional `gosim.json` selects features, without a compiler pin:
+
+```json
+{"schema":2,"features":["rt"],"simulation_os":"linux"}
+```
+
+Without a config file, all three features are enabled and simulation uses the
+Linux source ABI. `-config PATH` or `GOSIM_CONFIG` selects another file;
+`-features` replaces the feature list. `-go` is an optional explicit compiler
+override. Legacy schema-1 files remain explicit overrides with a migration
+warning; remove their `toolchain` field and set `schema` to `2` for automatic
+selection. Unknown fields, unsupported families/platforms and `fs`/`net`
+without `rt` are errors. Prerelease and development compilers are unsupported.
+
+Certification is an optional manual operation. It is neither a CI step nor a
+requirement for normal commands or library use. Missing or stale certification
+never blocks a compatible build. Exact compiler/source identities still isolate
+artifacts and deterministic replay; a family policy does not promise replay
+across different patches.
+
+## A deterministic test
+
 ```go
-package examples_test
+package demo_test
 
 import (
-	"math/rand"
-	"testing"
+    "math/rand"
+    "testing"
+    "time"
 
-	"github.com/neria-cloud/gosim"
+    "github.com/neria-cloud/gosim"
 )
 
-func TestGosim(t *testing.T) {
-	t.Logf("Are we in the Matrix? %v", gosim.IsSim())
-	t.Logf("Random: %d", rand.Int())
+func TestClock(t *testing.T) {
+    if !gosim.IsSim() {
+        t.Skip("run with gosim test")
+    }
+    start := time.Now()
+    time.Sleep(time.Second)
+    t.Log(time.Since(start), rand.Int())
 }
 ```
-```
-> go test -v -count=1 -run TestGosim
-=== RUN   TestGosim
-    simple_test.go:11: Are we in the Matrix? false
-    simple_test.go:12: Random: 1225418128470362734
---- PASS: TestGosim (0.00s)
-PASS
-ok  	example	0.216s
-```
-The test prints that Gosim is not enabled, and each time the test runs the random number is different.
 
-To run this test with `gosim` instead, replace `go test` with
-`go run github.com/neria-cloud/gosim/cmd/gosim test`:
-```
-> go run github.com/neria-cloud/gosim/cmd/gosim test -v -run TestGosim
-=== RUN   TestGosim (seed 1)
-    1 main/4     14:10:03.000 INF examples/simple_test.go:12 > Are we in the Matrix? true method=t.Logf
-    2 main/4     14:10:03.000 INF examples/simple_test.go:13 > Random: 811966193383742320 method=t.Logf
---- PASS: TestGosim (0.00s simulated)
-ok  	translated/example	0.204s
-```
-The `gosim test` command has flags similar to `go test`. The test output is
-more involved than a normal `go test`. Every log line includes the simulated
-machine and the goroutine that invoked the log to help debug tests running on
-multiple machines.
+Run it with:
 
-The `=== RUN` line includes the test's seed. Each time this test runs with the
-same seed it will output the same random number. To test with different seeds,
-you can pass ranges of seeds to `gosim test`:
-```
-go run github.com/neria-cloud/gosim/cmd/gosim test -v -seeds=1-3 -run=TestGosim .
-=== RUN   TestGosim (seed 1)
-    1 main/4     14:10:03.000 INF examples/simple_test.go:12 > Are we in the Matrix? true method=t.Logf
-    2 main/4     14:10:03.000 INF examples/simple_test.go:13 > Random: 811966193383742320 method=t.Logf
---- PASS: TestGosim (0.00s simulated)
-=== RUN   TestGosim (seed 2)
-    1 main/4     14:10:03.000 INF examples/simple_test.go:12 > Are we in the Matrix? true method=t.Logf
-    2 main/4     14:10:03.000 INF examples/simple_test.go:13 > Random: 5374891573232646577 method=t.Logf
---- PASS: TestGosim (0.00s simulated)
-=== RUN   TestGosim (seed 3)
-    1 main/4     14:10:03.000 INF examples/simple_test.go:12 > Are we in the Matrix? true method=t.Logf
-    2 main/4     14:10:03.000 INF examples/simple_test.go:13 > Random: 3226404213937589817 method=t.Logf
---- PASS: TestGosim (0.00s simulated)
-ok  	translated/github.com/neria-cloud/gosim/examples	0.254s
+```sh
+./.gosim/gosimtool test -features rt -v -seeds 1-3 -run TestClock .
 ```
 
-If running `gosim` fails with errors about missing `go.sum` entries, run
-`go mod tidy` to update your `go.sum` file.
+Repeating a seed with the same complete build identity and replay revision reproduces the execution. Toolchain, architecture, source, feature, race or approved build-policy changes define another identity. Run IDs protect handles from stale runs and are excluded from deterministic seed/trace derivation. Scheduler, application, filesystem and network randomness use separate owned streams.
 
-### Network latency and faults
+## Machines and optional controls
 
-Every simulation starts with 0–100 ms of capped exponential network latency
-(lambda 5), failure probability 0, and repair probability 1. Configure the
-network from the test body. Addresses are IPv4 strings; machine labels and
-hostnames are not accepted by these controls.
+`NewMachine` returns an **unstarted** machine. Configure its optional services, then call `Start`. Returning from its main function gracefully stops that epoch and its other goroutines.
 
 ```go
-config := gosim.DefaultNetworkConfig()
-config.Latency.Max = 50 * time.Millisecond
-if err := gosim.ConfigureNetwork(config); err != nil {
+package demo_test
+
+import (
+    "fmt"
+    "net/netip"
+    "testing"
+
+    "github.com/neria-cloud/gosim"
+    simfs "github.com/neria-cloud/gosim/fs"
+    simnet "github.com/neria-cloud/gosim/net"
+)
+
+func TestMachine(t *testing.T) {
+    m, err := gosim.NewMachine(gosim.MachineConfig{
+        Label: "node-a",
+        Main: func() { fmt.Println("node-a started") },
+    })
+    if err != nil { t.Fatal(err) }
+    if err := simfs.ConfigureMachine(m, simfs.DefaultConfig()); err != nil { t.Fatal(err) }
+    if err := simnet.ConfigureMachine(m, simnet.MachineConfig{
+        Addr: netip.MustParseAddr("10.0.0.1"),
+    }); err != nil { t.Fatal(err) }
+    if err := m.Start(); err != nil { t.Fatal(err) }
+    exit, err := m.Wait()
+    if err != nil { t.Fatal(err) }
+    if exit.Kind != gosim.Graceful { t.Fatalf("unexpected exit: %+v", exit) }
+    if err := m.Destroy(); err != nil { t.Fatal(err) }
+}
+```
+
+Run this example with `-features rt,fs,net`. `Stop` is graceful; `Crash` retains the provider's crash outcome. `Restart` accepts a previously started, stopped/crashed machine and initializes fresh globals. `SetMain` changes its next boot program. `Wait` observes the epoch active when called, even if the machine restarts later. Destroy invalidates the handle. Machine termination cancels its goroutines without running their pending defers. The controller/test root cannot be explicitly stopped or destroyed.
+
+Returning self-targeted `Stop`, `Crash` and `Wait` calls report `ErrSelfTransition`; `gosim.ExitSelf()` and `gosim.CrashSelf()` are the non-returning alternatives. Native error-returning controls return `gosim.ErrNotSim`; native `IsSim`, `CurrentMachine` and `rt.Info` return false/zero values. Pure defaults and handle ID accessors remain usable.
+
+## Filesystem recovery
+
+The filesystem starts at `/app`. Configure it before startup with `fs.ConfigureMachine`. `fs.SetCrashMode` selects `DurableOnly` or `SamplePending`; `fs.SetSyncFault` configures bounded sync-failure probabilities.
+
+After a crash, `fs.CrashStates(machine, fs.EnumerateOptions{MaxStates: n})` owns a synchronous iterator over immutable crash outcomes. A positive budget is required. `Next` returns a snapshot and availability flag; exceeding the budget while more outcomes exist returns `fs.ErrEnumerationLimit`. Close the iterator when finished, and close each returned snapshot separately. Closing the iterator does not invalidate snapshots already returned. `fs.Restore` accepts a retained snapshot from the same simulation for an unstarted or stopped/crashed target; configure its next main function and start/restart it explicitly. Destroying a machine does not invalidate separately owned snapshots.
+
+Graceful stop flushes modeled writes. Crash behavior preserves the existing persistence model, including uncertainty in non-fsynced operations; it does not add missing POSIX locking or permission semantics.
+
+## Network policy
+
+Use `net.DefaultConfig` and `net.Configure` for global latency/loss defaults. `net.ConfigureMachine` assigns an IPv4 address before the first start; a zero address requests deterministic allocation. `net.Address` returns `ErrNotStarted` before allocation, and restart retains the assigned address.
+
+`net.Config.ConnectionTimeout` sets the connection-opening timeout for new
+attempts. It defaults to one second; zero also selects that default, and negative
+values are invalid. Reconfiguration leaves pending attempts and established
+connections unchanged. A shorter `net.DialTimeout` or dialer context deadline
+still takes precedence. For high-latency links, configure a timeout longer than
+the expected handshake round trip:
+
+```go
+config := simnet.DefaultConfig()
+config.ConnectionTimeout = 10 * time.Second
+if err := simnet.Configure(config); err != nil {
     t.Fatal(err)
 }
-
-// In a five-host cluster, impair only h2 ↔ h5. Other pairs retain global policy.
-for _, err := range []error{
-    gosim.SetLinkLatency("10.0.0.2", "10.0.0.5", 200*time.Millisecond),
-    gosim.SetLinkMaxMessageLatency("10.0.0.2", "10.0.0.5", time.Second),
-    gosim.SetLinkFailRate("10.0.0.2", "10.0.0.5", 0.15),
-    gosim.SetLinkRepairRate("10.0.0.2", "10.0.0.5", 0.5),
-} {
-    if err != nil {
-        t.Fatal(err)
-    }
-}
 ```
 
-A link's first latency override snapshots the complete global latency group
-(minimum, maximum, and curve). Its first loss override independently snapshots
-both failure and repair probabilities. Later global updates leave those local
-groups intact. `ResetLinkLatency` and `ResetLinkLoss` restore inheritance from
-the current global groups. Updates affect future sends, including packets on
-existing connections. Synchronize senders when applying several controls.
+A `net.Link` selects `From`, `To`, and `Forward` or `Both` directions. `SetLinkPolicy` copies each non-nil latency/loss group; nil leaves that override unchanged. `ResetLinkPolicy` restores global defaults. For fixed latency, set `LatencyConfig{Min: delay, Max: delay, Lambda: 1}`. Values are validated atomically; lambda must be positive and probabilities must lie in `[0,1]`.
 
-Failure and repair are **traffic-triggered**. A send can randomly partition a
-pair; subsequent sends can repair it. Idle time alone does neither. Probabilities
-apply to every stream packet kind, including opens and acknowledgements, rather
-than just application writes. A partition discards queued packets in both
-directions. Gosim has no TCP retransmission, so applications may need to reconnect
-after repair.
+`Partition`/`Repair` control explicit connectivity separately from sampled loss state. Fault transitions are traffic-driven; packets retain deterministic delivery order, destination epochs and connection generations. Old packets cannot reach a restarted endpoint or a reused connection. Graceful close may deliver a final immutable packet to a still-live peer; crash does not send a close notification.
 
-`Partition(a, b)` and `Repair(a, b)` explicitly control both directions, as do
-`SetConnected(a, b, false/true)`. Explicit partitions require manual repair.
-Policy resets do not repair a link, and repair never resurrects dropped packets.
-`PartitionOneWay` and `RepairOneWay` reserve directional APIs for future support;
-valid calls currently return `syscall.EOPNOTSUPP` without changing either direction.
+## CLI, metatesting and diagnostics
 
-`SetDelay(a, b, 0)` sets an explicit zero delay; use `ResetLinkLatency` to restore
-global latency. Delivery remains ordered in each direction. A backlog can delay
-packets beyond a newly lowered maximum until earlier packets drain. Use
-`-simtrace=network` for configuration, transition, and packet metadata without
-application payloads. Mutating controls return errors matching `syscall.EINVAL`
-for invalid inputs and `syscall.ENOSYS` outside simulation.
+All build commands share configuration and identity validation:
 
-### Simulation
-
-Tests running in Gosim run inside Gosim's simulation environment. In the
-simulation, tests can create simulated machines that can talk to each other
-over a simulated network, crash and restart machine, introduce latency,
-and more. The following longer example shows some of those features:
-```go
-package example_test
-
-import (
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"net/netip"
-	"testing"
-	"time"
-
-	"github.com/neria-cloud/gosim"
-)
-
-var count = 0
-
-func server() {
-	log.Printf("starting server")
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		count++
-		log.Printf("got a request from %s", r.RemoteAddr)
-		fmt.Fprintf(w, "hello from the server! request: %d", count)
-	})
-	http.ListenAndServe("10.0.0.1:80", nil)
-}
-
-func request() {
-	log.Println("making a request")
-	resp, err := http.Get("http://10.0.0.1/")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	log.Println(string(body))
-}
-
-func TestMachines(t *testing.T) {
-	// run the server
-	serverMachine := gosim.NewMachine(gosim.MachineConfig{
-		Label:    "server",
-		Addr:     netip.MustParseAddr("10.0.0.1"),
-		MainFunc: server,
-	})
-
-	// let the server start
-	time.Sleep(time.Second)
-
-	// make some requests to see them work
-	request()
-	request()
-
-	// restart the server
-	log.Println("restarting the server")
-	serverMachine.Crash()
-	serverMachine.Restart()
-	time.Sleep(time.Second)
-
-	// make a new request to see a reset count
-	request()
-
-	// add some latency
-	log.Println("adding latency")
-	gosim.SetDelay("10.0.0.1", "11.0.0.1", time.Second)
-
-	// make another request to see the latency
-	request()
-}
-```
-This example contains a HTTP server running on its own gosim machine, and a
-client that makes several requests to the server. Then the client
-messes with the server, restarting it and adding latency. Let's see
-what happens this test is run:
-<!-- TODO: two machines and a bug? -->
-```
-> go run github.com/neria-cloud/gosim/cmd/gosim test -v -run TestMachines
-=== RUN   TestMachines (seed 1)
-    1 server/5   14:10:03.000 INF example/machines_test.go:17 > starting server
-    2 main/4     14:10:04.000 INF example/machines_test.go:27 > making a request
-    3 server/8   14:10:04.000 INF example/machines_test.go:20 > got a request from 11.0.0.1:10000
-    4 main/4     14:10:04.000 INF example/machines_test.go:41 > hello from the server! request: 1
-    5 main/4     14:10:04.000 INF example/machines_test.go:27 > making a request
-    6 server/8   14:10:04.000 INF example/machines_test.go:20 > got a request from 11.0.0.1:10000
-    7 main/4     14:10:04.000 INF example/machines_test.go:41 > hello from the server! request: 2
-    8 main/4     14:10:04.000 INF example/machines_test.go:60 > restarting the server
-    9 server/13  14:10:04.000 INF example/machines_test.go:17 > starting server
-   10 main/4     14:10:05.000 INF example/machines_test.go:27 > making a request
-   11 server/16  14:10:05.000 INF example/machines_test.go:20 > got a request from 11.0.0.1:10001
-   12 main/4     14:10:05.000 INF example/machines_test.go:41 > hello from the server! request: 1
-   13 main/4     14:10:05.000 INF example/machines_test.go:69 > adding latency
-   14 main/4     14:10:05.000 INF example/machines_test.go:27 > making a request
-   15 server/16  14:10:06.000 INF example/machines_test.go:20 > got a request from 11.0.0.1:10001
-   16 main/4     14:10:07.000 INF example/machines_test.go:41 > hello from the server! request: 2
---- PASS: TestMachines (4.00s simulated)
-ok  	translated/example	0.237s
-```
-In the log, each line is annotated with the machine and goroutine that wrote
-the log. When debugging code running on multiple machines, it is helpful to
-know where logs are coming from.
-
-The first thing that happens is the server starting at step 1. Then the client
-makes a request at step 2, the server receives it, responds, and the client
-prints the response. When the client makes another request the server this
-time responds with a higher count at steps 6 and 7.
-
-Afterwards, the client restarts the server at step 8 and the server prints that
-is starting again at step 9. When the client makes a request after the restart
-the server responds once again with a count of 1 at steps 11 and 12.  How did
-that happen? After the server is restarted, the counter resets to zero. Each
-machine has its own copy of global variables which get re-initialized when a
-machine crashes.
-
-Notice that the client address (after "got a request from:" in the logs) also
-changes after the restart, and the goroutine handling the requests on the server
-changes. The simulated TCP connection breaks when the machine crashes and the
-`net/http` client makes a new connection afterwards.
-
-After the restart, the client calls a Gosim API to add latency to the simulated network
-at step 13. The earlier requests all got sent and received at the same timestamp,
-such as on steps 10, 11, and 12 all at 14:10:05. The request after adding
-latency is sent at 14:10:05 on step 14 and received a second later at 14:10:06
-on step 15. This is the added latency in action.
-
-Even though the test takes over 4 simulated seconds, running the tests takes
-less than a second. Simulated time can be sped up when Gosim knows that all
-goroutines are waiting for time advance. With simulated time, tests can use
-realistic latency and timeouts without development time becoming slow.
-
-### Debugging
-
-Gosim's simulation is deterministic, which means that running a test twice
-will result in the exact same behavior, from randomly generated numbers
-to goroutine concurrency interleavings. That is useful because it means that
-if we see an interesting log after running the program but do not fully
-understand why that log printed a certain value, we can re-run the program
-and see exactly what happened at the moment of printing.
-
-The numbers at the start of each log are Gosim's step numbers. Take step 11 from
-the log above, from the line "got a request ...". We can debug the state of the
-program at the time the log was printed with `gosim debug`:
-```
-> go run github.com/neria-cloud/gosim/cmd/gosim debug -package=. -test=TestMachines -step=11
-...
-    26:	func (w gosimSlogHandler) Handle(ctx context.Context, r slog.Record) error {
-    27:		r.AddAttrs(slog.Int("goroutine", gosimruntime.GetGoroutine()))
-=>  28:		r.AddAttrs(slog.Int("step", gosimruntime.Step()))
-    29:		return w.inner.Handle(ctx, r)
-    30:	}
-...
-```
-The `gosim debug` command runs the requested test inside of the Delve go
-debugger and stops the test at the requested step. The debugger here puts us in
-Gosim's `log/slog` handler which calls `gosimruntime.Step()` and includes the
-step number.
-
-Now we can debug the program as a standard Go program. To see what was happening
-in the HTTP handler that called print, we run backtrace
-```
-(dlv) bt
- 0  0x000000010129e7ac in translated/github.com/neria-cloud/gosim/internal_/simulation.gosimSlogHandler.Handle
-    at ./github.com/neria-cloud/gosim/internal_/simulation/userspace.go:28
- 1  0x00000001012a5e24 in translated/github.com/neria-cloud/gosim/internal_/simulation.(*gosimSlogHandler).Handle
-    at <autogenerated>:1
- 2  0x0000000101283d68 in translated/log/slog.(*handlerWriter).Write
-    at ./log/slog/logger.go:99
- 3  0x000000010124a600 in translated/log.(*Logger).output
-    at ./log/log.go:242
- 4  0x000000010124ae38 in translated/log.Printf
-    at ./log/log.go:394
- 5  0x000000010160e03c in translated/example_test.server.func1
-    at ./example/machines_test.go:20
-...
-```
-and then select the HTTP handler's stack frame that called `log.Printf`
-```
-(dlv) frame 5
-> translated/github.com/neria-cloud/gosim/internal_/simulation.gosimSlogHandler.Handle() ./github.com/neria-cloud/gosim/internal_/simulation/userspace.go:28 (PC: 0x1029ce45c)
-Frame 5: ./example/machines_test.go:19 (PC: 102d3decc)
-    14:	)
-    15:
-    16:	func server() {
-    17:		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-    18:			G().count++
-=>  19:			log.Printf("got a request from %s", r.RemoteAddr)
-    20:			fmt.Fprintf(w, "hello from the server! request: %d", G().count)
-    21:		})
-    22:		http.ListenAndServe("10.0.0.1:80", nil)
-    23:	}
-    24:
-```
-Now we can inspect the state of memory to see details that the log line might have missed
-```
-(dlv) print r.RemoteAddr
-"11.0.0.1:10001"
+```sh
+./.gosim/gosimtool translate -features rt ./package
+./.gosim/gosimtool build-tests -features rt ./package
+./.gosim/gosimtool test -features rt -race -seeds 1-20 ./package
+./.gosim/gosimtool debug -features rt -package ./package -test TestName -seed 1 -step 11
 ```
 
-### Tracing system calls
+Debug requires Delve and supports `-headless`. Logging includes machine, goroutine and step information. `rt.SetTimeout` sets the simulation timeout; `rt.Info` reports the actual build identity. Its deprecated `Certified` field is false; manual reports remain separate. `-simtrace syscall` enables syscall tracing.
 
-Gosim's simulation is at the system call level. To see why a program behaved
-the way it did, Gosim can output detailed logs of all system calls with the
-`-simtrace=syscall` flag:
+[Metatesting](metatesting/) runs prebuilt simulation workers from native Go tests. Prepare application workers with `build-tests` using the matching patch, features and race mode. `prepare-selftest` additionally prepares this repository’s own native test infrastructure and is run from the Gosim checkout. The runner checks the manifest, contents and versioned handshake before executing. A mismatch reports a rebuild command; it cannot reuse another feature set or stale source inputs. Native metatests automatically select a matching CLI worker from the Go test process’s compiler. An explicit `GOSIMTOOL` override requires that worker’s matching manifest; unset stale overrides to restore automatic selection.
+
+Artifacts are stored per identity **and package content** at `.gosim/v2/<identity>/packages/<package-digest>/`. Manifests hash the binary and generated files. The separate CLI worker cache uses `workers/v1/<key>/` under the selected cache root, keyed by exact compiler, Gosim source and worker dependency content. The SQLite translation cache uses the v2 namespace and treats corrupt entries as observable misses; old cache formats are not decoded.
+
+## Current scope
+
+| Area | Current boundary |
+| --- | --- |
+| Files and persistence | Existing file/directory, sync and crash semantics; limits remain in mappings and syscall options |
+| Locks and permissions | `flock`/record-lock stubs do not establish ownership or contention; chmod/permission completeness is not claimed |
+| Networking | Simulated IPv4/TCP; UDP, IPv6 and hostname resolution are outside the supported model |
+| HTTP/gRPC/TLS | HTTP dependencies can be translated; full HTTP support is not established. gRPC remains rejected, and optional TLS/certificate operations abort. The [NATS example](examples/network/nats/) exercises plain TCP only. |
+| Linux process services | Deterministic getrandom, historical fixed PID and limited uname; full signals/procfs/process behavior is absent |
+| Runtime modes | One active run per process; no native-scheduler virtual-I/O mode, mutable feature sets or runtime provider loading |
+| Additional platforms | Go families other than 1.25/1.26, Darwin AMD64, Windows and non-Linux simulated ABIs are unsupported |
+
+The reviewed [go125](internal/compat/go125/profile/capabilities.json) and [go126](internal/compat/go126/profile/capabilities.json) capability records distinguish implemented, limited, stub and rejected behavior. The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records remaining application requirements; modularization does not claim to implement them.
+
+## Development and test reports
+
+Run `make test` for ordinary local native and simulation checks. Go selects the
+compiler normally; `GOSIM_TOOLCHAIN` is an optional explicit override. The runner
+creates an isolated source snapshot and starts no Docker, Colima, VMs or
+cross-architecture jobs. Package and test concurrency default to 2 and 4:
+
+```sh
+make test
+make test UNIT_PACKAGES=2 UNIT_PARALLEL=4
+make test GOSIM_TOOLCHAIN=go1.26.9
 ```
-> go run github.com/neria-cloud/gosim/cmd/gosim test -v -simtrace=syscall -run TestMachines
-=== RUN   TestMachines (seed 1)
-    1 server/5   14:10:03.000 INF examples/machines_test.go:19 > starting server
-    2 server/5   14:10:03.000 INF simulation/os_linux_.go:88 > call SysSocket flags=SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC net=AF_INET proto=IPPROTO_IP traceKind=syscall
-    3 server/5   14:10:03.000 INF simulation/os_linux_.go:93 > ret  SysSocket err=null fd=5 relatedStep=2 traceKind=syscall
-    4 server/5   14:10:03.000 INF simulation/os_linux_.go:88 > call SysOpenat dirfd=AT_FDCWD flags=O_RDONLY|O_CLOEXEC mode=0o0 path=/proc/sys/net/core/somaxconn traceKind=syscall
-    5 server/5   14:10:03.000 INF simulation/os_linux_.go:93 > ret  SysOpenat err="no such file or directory" fd=0 relatedStep=4 traceKind=syscall
-    6 server/5   14:10:03.000 INF simulation/os_linux_.go:88 > call SysSetsockopt traceKind=syscall
-    7 server/5   14:10:03.000 INF simulation/os_linux_.go:93 > ret  SysSetsockopt relatedStep=6 traceKind=syscall
-    8 server/5   14:10:03.000 INF simulation/os_linux_.go:88 > call SysBind addr=10.0.0.1:80 fd=5 traceKind=syscall
-    9 server/5   14:10:03.000 INF simulation/os_linux_.go:93 > ret  SysBind err=null relatedStep=8 traceKind=syscall
-...
-   60 main/10    14:10:04.000 INF simulation/os_linux_.go:88 > call SysWrite fd=5 p="GET / HTTP/1.1\r\nHost: 10.0.0.1\r\nUser-Agent: Go-http-client/1.1\r\nAccept-Encoding: gzip\r\n\r\n" traceKind=syscall
-   61 main/9     14:10:04.000 INF simulation/os_linux_.go:93 > ret  SysRead err="resource temporarily unavailable" n=0 p= relatedStep=59 traceKind=syscall
-   62 main/10    14:10:04.000 INF simulation/os_linux_.go:93 > ret  SysWrite err=null n=89 relatedStep=60 traceKind=syscall
-   63 server/8   14:10:04.000 INF simulation/os_linux_.go:88 > call SysRead fd=6 len(p)=4096 traceKind=syscall
-   64 server/8   14:10:04.000 INF simulation/os_linux_.go:93 > ret  SysRead err=null n=89 p="GET / HTTP/1.1\r\nHost: 10.0.0.1\r\nUser-Agent: Go-http-client/1.1\r\nAccept-Encoding: gzip\r\n\r\n" relatedStep=63 traceKind=syscall
-   65 server/8   14:10:04.000 INF examples/machines_test.go:22 > got a request from 11.0.0.1:10000
-   66 server/8   14:10:04.000 INF simulation/os_linux_.go:88 > call SysWrite fd=6 p="HTTP/1.1 200 OK\r\nDate: Wed, 15 Jan 2020 14:10:04 GMT\r\nContent-Length: 33\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhello from the server! request: 1" traceKind=syscall
-   67 server/11  14:10:04.000 INF simulation/os_linux_.go:88 > call SysRead fd=6 len(p)=1 traceKind=syscall
-   68 server/8   14:10:04.000 INF simulation/os_linux_.go:93 > ret  SysWrite err=null n=150 relatedStep=66 traceKind=syscall
-   69 server/11  14:10:04.000 INF simulation/os_linux_.go:93 > ret  SysRead err="resource temporarily unavailable" n=0 p= relatedStep=67 traceKind=syscall
-   70 main/9     14:10:04.000 INF simulation/os_linux_.go:88 > call SysRead fd=5 len(p)=4096 traceKind=syscall
-   71 main/9     14:10:04.000 INF simulation/os_linux_.go:93 > ret  SysRead err=null n=150 p="HTTP/1.1 200 OK\r\nDate: Wed, 15 Jan 2020 14:10:04 GMT\r\nContent-Length: 33\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhello from the server! request: 1" relatedStep=70 traceKind=syscall
-   72 server/8   14:10:04.000 INF simulation/os_linux_.go:88 > call SysRead fd=6 len(p)=4096 traceKind=syscall
-   73 main/4     14:10:04.000 INF examples/machines_test.go:43 > hello from the server! request: 1
-```
-Here you can see on step 60 the HTTP GET request being written by the client, and then on step 64 being read by the server.
 
-### Examples
+Run `make test-race` and `make test-large` only when explicitly instructed to run
+and check those suites. They are separate opt-in commands. `make test-large`
+runs the candidate feature cases, selected-compiler translation checks and CLI
+script fixtures; it does not repeat other toolchains or silently enable race
+instrumentation. `make test-report-tools` checks reporting/orchestration without
+running the library suites.
 
-Gosim can run some sizeable real-world code. In this repository
-there are examples for:
+| Command | Latest report directory |
+| --- | --- |
+| `make test` | `test-reports/unit/latest/` |
+| `make test-race` | `test-reports/unit-race/latest/` |
+| `make test-large` | `test-reports/large/latest/` |
 
-- [examples/bolt](./examples/bolt/): reading and writing a [Bolt](https://github.com/etcd-io/bbolt) database
+Each run is retained under `test-reports/<suite>/<run>/`. Read `report.md` for
+pass/fail/error/skip totals, `timeline.md` or `timeline.json` for duration and
+parallel execution, and per-package `.log` files for failure details. Reports
+also retain raw events, JSON, JUnit XML and command logs. `TEST_REPORTS_DIR`
+changes the report root. Skips are reported separately from passes.
 
-- [examples/etcd](./examples/etcd/): running a 3-node [Etcd](https://github.com/etcd-io/etcd) cluster and partitioning the
-  nodes
+Results describe the startup source snapshot. Working-checkout edits during a
+reported run are recorded without invalidating that snapshot; mutations inside
+the tested copy fail verification. Snapshot details live under
+`.gosim/verification/<patch>/gate-*/verification.json`. The standalone
+`./.ci/verify-step.sh --ordinary` also rejects checkout changes. `./test.sh`
+defaults to ordinary verification; `./test.sh --race` explicitly selects race.
+Neither path invokes certification or rewrites profile evidence.
 
-## API and documentation
+CI runs ordinary native tests and reporting checks on ARM64 Linux/Darwin with
+Go family selectors, and uploads `test-reports`. It has no certification step.
 
-A description of Gosim's architecture and design decisions is in
-[docs/design.md](docs/design.md).
+## Generation and manual certification
 
-Gosim's public packages are:
+Generation baselines are reproducible provenance, not caller compiler pins.
+`cmd/gosim-gen` uses explicit toolchain/profile/architecture flags; `-check`
+reproduces the recorded baseline without modifying files. An intentional
+`-refresh-origin` validates contracts before recording a different baseline.
+`task go-generate` generates adapters and filesystem-model stringer output.
 
-- [github.com/neria-cloud/gosim](./): the core API for creating machines
-  and manipulating the simulation environment
+Manual certification is independent of tests and CI. Its matrix defaults to
+Go 1.25.14 and Go 1.26.9 on Linux/Darwin ARM64, with four feature sets and no race
+instrumentation (16 tuples). `--toolchains` can select other stable supported
+patches; these defaults are not an admission list. AMD64 and race certification
+remain disabled at scheduler, worker and command boundaries.
 
-- [github.com/neria-cloud/gosim/cmd/gosim](./cmd/gosim): the CLI for
-  running Gosim tests
+An explicitly requested manual run uses `run-matrix.sh --native --platform
+OS/arm64`, or `--context colima --platform linux/arm64` from Darwin ARM64. It
+requires complete selected-tuple large coverage and records exact source,
+compiler, observed architecture, image metadata and logs. Such a report never
+changes library usability or promotes a pending tuple. No normal command
+invokes this matrix.
 
-- [github.com/neria-cloud/gosim/metatesting](./metatesting/): a package
-  for running Gosim tests inside of normal go test.
-
-- [github.com/neria-cloud/gosim/nemesis](./nemesis/): a package, still
-  sparse, to introduce chaos into simulations
-
-## Development
-
-Gosim and its tools are tested using the `./test.sh` script, which invokes the
-tests defined in `./Taskfile.yml`. These test the Gosim tooling as well as the
-behavior of simulated code. Ideally tests verify that the simulation behaves
-like reality: The tests for the filesystem in
-[github.com/neria-cloud/gosim/internal/tests/behavior/disk_test.go](./internal/tests/behavior/disk_test.go)
-are run in both simulated and non-simulated builds.
-
-Gosim simulates Linux, but should work on macOS, Linux, and Windows (not tested
-on Windows) running on either arm64 or amd64. To test that code works on Linux
-amd64 and arm64, there are scripts `.ci/crossarch-tests/test-amd64.sh` and
-`.ci/crossarch-tests/test-arm64.sh` that run the tests using Docker. A Github
-Action runs the tests on Linux amd64.
+See [the architecture](docs/design.md), [examples](examples/), and [nemesis](nemesis/) for implementation details and supported scenarios.
 
 ## License
 
-MIT
-
-neria-cloud/gosim is fork of [jellevandenhooff/gosim](https://github.com/jellevandenhooff/gosim).
+[MIT](LICENSE). neria-cloud/gosim is a fork of [jellevandenhooff/gosim](https://github.com/jellevandenhooff/gosim).

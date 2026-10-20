@@ -20,15 +20,15 @@ package basicgosim_test
 import (
 	testing_original "testing"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
-	"translated/github.com/neria-cloud/gosim/internal_/hooks/go123"
+	"github.com/neria-cloud/gosim/rt/runtime"
+	"translated/github.com/neria-cloud/gosim/.gosim/v2/IDENTITY/input/gosimcomposition"
 )
 
 func init() {
 	gosimruntime.SetAllTests([]gosimruntime.Test{})
 }
 func TestMain(m *testing_original.M) {
-	gosimruntime.TestMain(go123.Runtime())
+	gosimruntime.TestMain(gosimcomposition.Driver{})
 }
 -- hello_linux.go --
 package basicgosim

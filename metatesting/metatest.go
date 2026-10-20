@@ -3,7 +3,9 @@ package metatesting
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"os"
@@ -11,13 +13,16 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/prettylog"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 // The structs below are copied from gosimruntime.runConfig and
@@ -35,22 +40,36 @@ type RunConfig struct {
 
 // A RunResult contains the result fo a test run.
 type RunResult struct {
-	Seed      int64
-	Checksum  []byte
-	Failed    bool
-	LogOutput []byte
-	Err       string // TODO: reconsider this type?
+	Seed           int64
+	Checksum       []byte
+	Failed         bool
+	LogOutput      []byte
+	Err            string // TODO: reconsider this type?
+	BuildDigest    string
+	ReplayRevision string
 }
 
 // A MetaT runs gosim tests for a given package. It can run tests with various
 // flags and returns their results.
 //
 // Behind the scenes a MetaT executes and controls a gosim test binary.
-type MetaT struct {
-	cmd *exec.Cmd
+type (
+	Options  struct{ ConfigPath string }
+	Manifest = gosimtool.Manifest
+)
 
-	w *json.Encoder
-	r *json.Decoder
+type MetaT struct {
+	cmd       *exec.Cmd
+	mu        sync.Mutex
+	stdin     io.Closer
+	stdout    io.Closer
+	failedRun atomic.Bool
+	closed    atomic.Bool
+	closeOnce sync.Once
+	closeErr  error
+	expected  gosimruntime.MetatestHandshake
+	w         *json.Encoder
+	r         *json.Decoder
 }
 
 type prefixer struct {
@@ -78,7 +97,22 @@ func (w prefixer) Write(b []byte) (n int, err error) {
 	return
 }
 
-func newRunner(path string) (*MetaT, error) {
+func newRunner(path string, expected Manifest) (*MetaT, error) {
+	return startRunner(path, expected, 5*time.Second)
+}
+
+func startRunner(path string, expected Manifest, startupTimeout time.Duration) (*MetaT, error) {
+	digest, err := buildspec.Digest(expected.Identity)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	if buildspec.Hash(data) != expected.Binary.SHA256 {
+		return nil, fmt.Errorf("metatest binary content mismatch")
+	}
 	cmd := exec.Command(path, "-metatest")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -86,50 +120,95 @@ func newRunner(path string) (*MetaT, error) {
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
+		stdin.Close()
 		return nil, err
 	}
-
-	// TODO: Do not discard, and disable the formatted output print in gosimruntime instead
-	// TODO: Prefix output to help identify stray logging?
 	cmd.Stderr = &prefixer{out: os.Stderr, prefix: "metatest binary: "}
-
 	if err := cmd.Start(); err != nil {
+		stdin.Close()
+		stdout.Close()
 		return nil, err
 	}
+	runner := &MetaT{cmd: cmd, stdin: stdin, stdout: stdout, w: json.NewEncoder(stdin), r: json.NewDecoder(stdout), expected: gosimruntime.MetatestHandshake{Protocol: 3, IdentityDigest: digest, Toolchain: expected.Identity.Toolchain}}
+	ready := make(chan error, 1)
+	go func() {
+		var hello gosimruntime.MetatestHandshake
+		if err := runner.r.Decode(&hello); err != nil {
+			ready <- err
+			return
+		}
+		if hello != runner.expected {
+			ready <- fmt.Errorf("metatest protocol/identity mismatch: got %+v, expected %+v", hello, runner.expected)
+			return
+		}
+		ready <- runner.w.Encode(runner.expected)
+	}()
+	timer := time.NewTimer(startupTimeout)
+	defer timer.Stop()
+	timedOut := false
+	select {
+	case err = <-ready:
+	case <-timer.C:
+		timedOut = true
+		err = fmt.Errorf("metatest handshake timeout")
+	}
+	if err != nil {
+		cleanup := runner.Close()
+		if timedOut {
+			<-ready // closing the pipes joins the owned handshake goroutine
+		}
+		return nil, errors.Join(err, cleanup)
+	}
+	return runner, nil
+}
 
-	w := json.NewEncoder(stdin)
-	r := json.NewDecoder(stdout)
+// Close ends this runner's request stream and joins its process and stderr
+// copier. It also interrupts a blocked request; it never waits for the request
+// mutex before closing pipes. Concurrent and repeated calls return one result.
+func (r *MetaT) Close() error {
+	r.closeOnce.Do(func() {
+		r.closed.Store(true)
+		closeErr := r.stdin.Close()
+		if errors.Is(closeErr, os.ErrClosed) {
+			closeErr = nil
+		}
+		_ = r.stdout.Close()
+		timer := time.AfterFunc(5*time.Second, func() { _ = r.cmd.Process.Kill() })
+		waitErr := r.cmd.Wait()
+		timer.Stop()
+		var exitErr *exec.ExitError
+		if r.failedRun.Load() && errors.As(waitErr, &exitErr) && exitErr.ExitCode() == 66 {
+			waitErr = nil
+		}
+		r.closeErr = errors.Join(closeErr, waitErr)
+	})
+	return r.closeErr
+}
 
-	return &MetaT{
-		cmd: cmd,
-
-		w: w,
-		r: r,
-	}, nil
+func (r *MetaT) protocolFailure(err error) error {
+	return errors.Join(err, r.Close())
 }
 
 // TODO: Support match expressions?
 func (r *MetaT) ListTests() ([]string, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed.Load() {
+		return nil, fmt.Errorf("metatest runner is closed")
+	}
 	if err := r.w.Encode(&RunConfig{
 		Test: "listtests",
 	}); err != nil {
-		return nil, err
+		return nil, r.protocolFailure(err)
 	}
 
 	var tests []string
 	if err := r.r.Decode(&tests); err != nil {
-		return nil, err
+		return nil, r.protocolFailure(err)
 	}
 
 	return tests, nil
 }
-
-/*
-func (r *Runner) Close() {
-	r.cmd.Process.Kill()
-	r.cmd.Wait()
-}
-*/
 
 func (r *MetaT) RunAllTests(t *testing.T) {
 	// TODO: Parallel tests for multiple seeds/tests?
@@ -158,8 +237,12 @@ func (r *MetaT) RunAllTests(t *testing.T) {
 func (r *MetaT) Run(t *testing.T, config *RunConfig) (*RunResult, error) {
 	t.Helper()
 
-	// TODO: Handle concurrent runs (lock?)
-	// TODO: Stop or restart process on error?
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed.Load() {
+		return nil, fmt.Errorf("metatest runner is closed")
+	}
+	// A broken stream closes and reaps the child before returning.
 
 	b := new(bytes.Buffer)
 
@@ -167,15 +250,21 @@ func (r *MetaT) Run(t *testing.T, config *RunConfig) (*RunResult, error) {
 	fmt.Fprintf(b, "\n> running %s [seed=%d]\n", config.Test, config.Seed)
 
 	if err := r.w.Encode(config); err != nil {
-		return nil, err
+		return nil, r.protocolFailure(err)
 	}
 
 	var result RunResult
 	if err := r.r.Decode(&result); err != nil {
 		// TODO: Print results that fail to decode
-		return nil, err
+		return nil, r.protocolFailure(err)
 	}
 
+	if result.BuildDigest != r.expected.IdentityDigest || result.ReplayRevision != gosimruntime.ReplayRevision {
+		return nil, r.protocolFailure(fmt.Errorf("metatest result identity mismatch"))
+	}
+	if result.Failed {
+		r.failedRun.Store(true)
+	}
 	w := prettylog.NewWriter(b)
 
 	out := result.LogOutput
@@ -193,31 +282,27 @@ func (r *MetaT) Run(t *testing.T, config *RunConfig) (*RunResult, error) {
 	return &result, nil
 }
 
-var (
-	runnerMapMu sync.Mutex
-	runnerMap   = make(map[string]*MetaT)
-)
-
-// ForOtherPackage retursn a *MetaT for the specified package.
-func ForOtherPackage(t *testing.T, pkg string) *MetaT {
+// ForOtherPackage owns a fresh worker and registers its cleanup with t.
+func ForOtherPackage(t *testing.T, pkg string, opts Options) *MetaT {
+	t.Helper()
 	if gosimruntime.IsSim() {
 		t.Fatalf("metatest cannot be used from within gosim")
 	}
-
-	runnerMapMu.Lock()
-	defer runnerMapMu.Unlock()
-
-	runner, ok := runnerMap[pkg]
-	if ok {
-		return runner
+	identity := gosimtool.ResolveTestIdentity(t, opts.ConfigPath)
+	path := gosimtool.GetPathForPrecompiledTestBinary(t, pkg, identity)
+	manifest, err := gosimtool.ManifestForBinary(path, identity)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	path := gosimtool.GetPathForPrecompiledTestBinary(t, pkg)
-	runner, err := newRunner(path)
+	runner, err := newRunner(path, manifest)
 	if err != nil {
 		t.Fatalf("failed to run test binary: %s", err)
 	}
-	runnerMap[pkg] = runner
+	t.Cleanup(func() {
+		if err := runner.Close(); err != nil {
+			t.Errorf("metatest worker cleanup: %v", err)
+		}
+	})
 	return runner
 }
 
@@ -242,18 +327,18 @@ func getCurrentPackageFromWorkingdir() string {
 	return finalPkg
 }
 
-// ForCurrentPackage returns a *MetaT for the package currently
+// ForPackage returns a *MetaT for the package currently
 // being tested by `go test`.
 //
-// ForCurrentPackage relies on the working directory to identify the current
-// package, so if a test changes directories ForCurrentPackage will not work
+// ForPackage relies on the working directory to identify the current
+// package, so if a test changes directories ForPackage will not work
 // correctly.
-func ForCurrentPackage(t *testing.T) *MetaT {
+func ForPackage(t *testing.T, opts Options) *MetaT {
 	if gosimruntime.IsSim() {
 		t.Fatalf("metatest cannot be used from within gosim")
 	}
 
-	return ForOtherPackage(t, getCurrentPackageFromWorkingdir())
+	return ForOtherPackage(t, getCurrentPackageFromWorkingdir(), opts)
 }
 
 func CheckDeterministic(t *testing.T, mt *MetaT) {
@@ -300,7 +385,7 @@ func CheckSeeds(t *testing.T, mt *MetaT, numSeeds int) {
 
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
-			for seed := int64(0); seed < 5; seed++ {
+			for seed := int64(0); seed < int64(numSeeds); seed++ {
 				run, err := mt.Run(t, &RunConfig{
 					Test: test,
 					Seed: seed,

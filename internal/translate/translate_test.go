@@ -5,11 +5,11 @@ import (
 	"flag"
 	"go/format"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -18,6 +18,7 @@ import (
 	gocmp "github.com/google/go-cmp/cmp"
 	"golang.org/x/tools/txtar"
 
+	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
@@ -34,10 +35,10 @@ var (
 //
 // The expected output of the translation is stored with the testdata/ (next to
 // each input file) and checked or rewritten depending on the -rewrite flag.
-//
-// TODO: this test relies on a compiled and up-to-date gosim binary from the
-// script test... this is brittle and will be a pain at some point...
 func TestTranslate(t *testing.T) {
+	if !*rewrite && !*useworkdir {
+		t.Parallel()
+	}
 	entries, err := os.ReadDir("./testdata")
 	if err != nil {
 		t.Fatal(err)
@@ -67,17 +68,8 @@ func TestTranslate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	extractedModDir := filepath.Join(curModDir, gosimtool.OutputDirectory, "scripttest", "mod")
-
-	// add test dependencies to the copied gosim module
-	if err := filepath.Walk(extractedModDir, func(path string, info fs.FileInfo, err error) error {
-		return nil
-	}); err != nil {
-		log.Fatal(err)
-	}
-
 	// put a fake go.mod in the work directory
-	if err := gosimtool.MakeGoModForTest(extractedModDir, workDir, []string{
+	if err := gosimtool.MakeGoModForTest(curModDir, workDir, []string{
 		"github.com/dave/dst",
 		"github.com/google/go-cmp",
 		"github.com/mattn/go-isatty",
@@ -91,9 +83,16 @@ func TestTranslate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO: dedup this code with scripttest, somehow
-	binPath := filepath.Join(curModDir, gosimtool.OutputDirectory, "scripttest", "bin", "gosim")
-	envVars := append(os.Environ(), "GOSIMCACHE="+filepath.Join(curModDir, gosimtool.OutputDirectory))
+	// Build a worker with this test's exact compiler. Shared prepare-selftest
+	// artifacts may belong to another patch/family and omit its native packages.
+	binPath := filepath.Join(t.TempDir(), "gosim")
+	build := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, curModDir, "build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", binPath, "./cmd/gosim")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build matching translator worker: %v\n%s", err, out)
+	}
+	envVars := append(os.Environ(), "GOTOOLCHAIN=local",
+		"PATH="+filepath.Join(runtime.GOROOT(), "bin")+string(filepath.ListSeparator)+os.Getenv("PATH"),
+		"GOSIMCACHE="+filepath.Join(curModDir, gosimtool.OutputDirectory))
 
 	// parse all inputs and write them to work directory
 	archiveByPackage := make(map[string]*txtar.Archive)
@@ -140,26 +139,16 @@ func TestTranslate(t *testing.T) {
 
 	// run the tool in the work directory
 	// TODO: use a race version, optionally
-	cmd := exec.Command(binPath, "translate", "./...")
+	cmd := exec.Command(binPath, "internal-candidate", "translate", "-go="+runtime.Version(), "-features=rt,fs,net", "./...")
 	cmd.Dir = workDir
 	cmd.Env = envVars
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			os.Exit(exitErr.ExitCode())
-		}
-		log.Fatal(err)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("selected translation: %v", err)
 	}
-
-	cfg := gosimtool.BuildConfig{
-		GOOS: "linux",
-		// TODO: varying the architecture for snapshots is fine as long as we don't translate arch-specific stuff; cross-arch tests should catch problems...
-		GOARCH: runtime.GOARCH,
-		Race:   false,
-	}
-	outputPath := filepath.Join(workDir, gosimtool.OutputDirectory, "translated", cfg.AsDirname(), "test")
+	outputPath := filepath.Join(strings.TrimSpace(string(out)), "test")
 
 	// read all output files
 	if err := filepath.WalkDir(outputPath, func(path string, d fs.DirEntry, _ error) error {
@@ -173,6 +162,11 @@ func TestTranslate(t *testing.T) {
 		if err != nil {
 			return err
 		}
+
+		// Identity and selected-family names vary; normalize only those import
+		// components, leaving the generated behavior subject to the golden.
+		outBytes = regexp.MustCompile(`/\.gosim/v2/[0-9a-f]{64}/input/`).ReplaceAll(outBytes, []byte("/.gosim/v2/IDENTITY/input/"))
+		outBytes = regexp.MustCompile(`/compat/go12[56]/`).ReplaceAll(outBytes, []byte("/compat/SELECTED/"))
 
 		pkgName := trimmedPath[:strings.Index(trimmedPath, "/")]
 		if _, ok := desiredFilesByPackage[pkgName]; !ok {
@@ -221,10 +215,8 @@ func TestTranslate(t *testing.T) {
 }
 
 func TestRenameFile(t *testing.T) {
-	cfg := gosimtool.BuildConfig{
-		GOOS:   "linux",
-		GOARCH: "amd64",
-	}
+	t.Parallel()
+	cfg := gosimtool.BuildConfig{Identity: buildspec.Identity{SimulationOS: "linux", SimulationArch: "amd64"}}
 
 	testcases := []struct {
 		in, out string

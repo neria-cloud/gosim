@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/token"
 	"log/slog"
-	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -12,6 +11,8 @@ import (
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
+
+	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
 var rewriteSelectorRegexp = regexp.MustCompile(`[/.]`)
@@ -52,6 +53,9 @@ func (t *packageTranslator) rewriteImport(c *dstutil.Cursor) {
 }
 
 func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
+	if t.nativeImports[ident.Path] {
+		return
+	}
 	lookupPath := ident.Path
 	if lookupPath == "" {
 		lookupPath = t.pkgPath
@@ -76,8 +80,9 @@ func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
 	*/
 
 	// rewrite specific selectors
-	selector := packageSelector{Pkg: ident.Path, Selector: ident.Name}
-	replacement, ok := replacements[selector]
+	selector := PackageSelector{Pkg: ident.Path, Selector: ident.Name}
+	selectedReplacements := t.profile.replacements
+	replacement, ok := selectedReplacements[selector]
 	if !ok {
 		// rewrite entire packages
 		if replaced, ok := t.replacedPkgs[ident.Path]; ok {
@@ -96,6 +101,11 @@ func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
 	}
 
 	pkg := replacement.Pkg
+	if t.profile != nil {
+		if replaced, ok := t.replacedPkgs[pkg]; ok {
+			pkg = replaced
+		}
+	}
 	if pkg == "" {
 		panic(replacement.Pkg + " " + replacement.Selector)
 	}
@@ -113,6 +123,34 @@ func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
 func (t *packageTranslator) rewriteIdent(c *dstutil.Cursor) {
 	if ident, ok := c.Node().(*dst.Ident); ok {
 		t.rewriteIdentImpl(ident)
+	}
+}
+
+// A directive can document a method while naming a separate bodyless alias
+// (net/url.badSetPath). Move it to the named declaration before function-level
+// rewriting; adjacency in the original source does not establish ownership.
+func attachNamedLinknames(file *dst.File) {
+	functions := make(map[string]*dst.FuncDecl)
+	for _, decl := range file.Decls {
+		if fn, ok := decl.(*dst.FuncDecl); ok && fn.Recv == nil {
+			functions[fn.Name.Name] = fn
+		}
+	}
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*dst.FuncDecl)
+		if !ok {
+			continue
+		}
+		for i, line := range fn.Decs.Start {
+			parts := strings.Fields(line)
+			if len(parts) != 3 || parts[0] != "//go:linkname" {
+				continue
+			}
+			if target := functions[parts[1]]; target != nil && target != fn {
+				target.Decs.Start.Append(line)
+				fn.Decs.Start[i] = "// gosim: linkname belongs to " + parts[1]
+			}
+		}
 	}
 }
 
@@ -136,7 +174,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 		if strings.HasPrefix(val, "//go:linkname") {
 			hasLinkname = true
 
-			if _, ok := t.hooks[packageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
+			if _, ok := t.hooks[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
 				decl.Decs.Start[i] = "//"
 				hasLinkname = false
 				continue
@@ -145,8 +183,16 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 			parts := strings.Split(val, " ")
 
 			if len(parts) == 2 && decl.Body == nil {
-				// TODO: make this fail the build?
-				slog.Error("unknown linkname with no body", "pkg", t.pkgPath, "name", decl.Name.Name)
+				if t.profile != nil {
+					if !t.profile.definitions[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] {
+						panic(fmt.Errorf("unknown bodyless linkname %s.%s", t.pkgPath, decl.Name.Name))
+					}
+					// The selected translated graph contains the implementation
+					// pushed by another package; no native symbol is admitted.
+					t.needsUnsafe = true
+				} else {
+					slog.Error("unknown linkname with no body", "pkg", t.pkgPath, "name", decl.Name.Name)
+				}
 			}
 
 			if len(parts) == 3 {
@@ -156,18 +202,39 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 				if idx2 != -1 {
 					idx := idx1 + idx2
 					pkg, name := dest[:idx], dest[idx+1:]
+					target := PackageSelector{Pkg: pkg, Selector: name}
+					if runtimeRandomLink(target) && t.profile != nil {
+						replacement := t.profile.replacements[target]
+						parts[2] = t.replacedPkgs[replacement.Pkg] + "." + replacement.Selector
+						decl.Decs.Start[i] = strings.Join(parts, " ")
+						t.needsUnsafe = true
+						continue
+					}
+
+					// A pushed definition can name a translated package that this
+					// feature graph never imports (os defines net.newUnixFile).
+					// It defines a translated symbol, not a native escape/import.
+					if t.profile != nil && decl.Body != nil && t.replacedPkgs[pkg] == "" {
+						policy, err := t.profile.packagePolicy(pkg, !strings.Contains(strings.Split(pkg, "/")[0], "."))
+						if err == nil && policy.Mode == "translate" {
+							parts[2] = "translated/" + gosimtool.ReplaceSpecialPackages(pkg) + "." + name
+							decl.Decs.Start[i] = strings.Join(parts, " ")
+							continue
+						}
+					}
 					if newPkg, ok := t.replacedPkgs[pkg]; ok {
 						slog.Debug("rewriting linkname", "pkg", t.pkgPath, "name", decl.Name.Name)
 
 						parts[2] = fmt.Sprintf("%s.%s", newPkg, name)
 						decl.Decs.Start[i] = strings.Join(parts, " ")
-					} else if t.acceptedLinknames[packageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] == (packageSelector{Pkg: pkg, Selector: name}) {
-						slog.Debug("keeping linkname", "pkg", t.pkgPath, "name", decl.Name.Name, "targetPkg", pkg, "targetName", name)
 					} else if strings.HasPrefix(pkg, "gosimnotranslate/") {
 						parts[2] = fmt.Sprintf("%s.%s", strings.TrimPrefix(pkg, "gosimnotranslate/"), name)
 						decl.Decs.Start[i] = strings.Join(parts, " ")
 					} else {
 						// TODO: make this fail the build?
+						if t.profile != nil {
+							panic(fmt.Errorf("unknown linkname %s.%s -> %s.%s", t.pkgPath, decl.Name.Name, pkg, name))
+						}
 						slog.Error("unknown linkname", "pkg", t.pkgPath, "name", decl.Name.Name, "targetPkg", pkg, "targetName", name)
 					}
 				}
@@ -176,7 +243,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 	}
 
 	if decl.Body != nil {
-		if _, ok := t.hooks[packageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
+		if _, ok := t.hooks[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
 			// take over!
 			decl.Body = nil
 		}
@@ -193,8 +260,8 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 		// XXX: detect all these not implemented ones? output them?
 		// XXX: something similar for... other "bad" calls?
 
-		if linkTo, ok := t.hooks[packageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
-			selector := RewriteSelector(t.pkgPath, decl.Name.Name)
+		if linkTo, ok := t.hooks[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}]; ok {
+			selector := linkTo.Selector
 
 			pkg := linkTo.Pkg
 			if replaced, ok := t.replacedPkgs[pkg]; ok {
@@ -206,17 +273,15 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 				decl.Name.Name, pkg, selector))
 			t.needsUnsafe = true
 
-		} else if decl.Name.Name == "newUnixFile" {
+		} else if t.profile != nil && t.profile.definitions[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] {
 			// need a go:linkname that is not required in the standard library...
 			decl.Decs.Start = append(decl.Decs.Start, fmt.Sprintf("//go:linkname %s",
 				decl.Name.Name))
 			t.needsUnsafe = true
 
-		} else if t.keepAsmPkgs[t.pkgPath] {
-			slog.Debug("keeping asm header", "pkg", t.pkgPath, "name", decl.Name.Name)
 		} else {
 			slog.Error("missing function body", "pkg", t.pkgPath, "name", decl.Name.Name)
-			os.Exit(1)
+			panic(fmt.Errorf("missing function body %s.%s", t.pkgPath, decl.Name.Name))
 		}
 	}
 

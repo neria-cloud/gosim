@@ -1,0 +1,138 @@
+[
+  {
+    "source": "chan_test.go",
+    "destination": "rt/chan_test.go"
+  },
+  {
+    "source": "context_test.go",
+    "destination": "rt/context_test.go"
+  },
+  {
+    "source": "crash_meta_test.go",
+    "destination": "fs/crash_meta_test.go"
+  },
+  {
+    "source": "crash_test.go",
+    "destination": "rt/crash_test.go"
+  },
+  {
+    "source": "disk_crash_test.go",
+    "destination": "fs/disk_crash_test.go"
+  },
+  {
+    "source": "disk_linux_test.go",
+    "destination": "fs/disk_linux_test.go"
+  },
+  {
+    "source": "disk_sim_test.go",
+    "destination": "fs/disk_sim_test.go"
+  },
+  {
+    "source": "disk_test.go",
+    "destination": "fs/disk_test.go"
+  },
+  {
+    "source": "globals.go",
+    "destination": "rt/globals.go"
+  },
+  {
+    "source": "globals_for_test.go",
+    "destination": "rt/globals_for_test.go"
+  },
+  {
+    "source": "globals_test.go",
+    "destination": "rt/globals_test.go"
+  },
+  {
+    "source": "log_meta_test.go",
+    "destination": "rt/log_meta_test.go"
+  },
+  {
+    "source": "log_test.go",
+    "destination": "rt/log_test.go"
+  },
+  {
+    "source": "machine_meta_test.go",
+    "destination": "rt/machine_meta_test.go"
+  },
+  {
+    "source": "machine_test.go",
+    "destination": "rt/machine_test.go"
+  },
+  {
+    "source": "map_test.go",
+    "destination": "rt/map_test.go"
+  },
+  {
+    "source": "meta_test.go",
+    "destination": "rt/meta_test.go"
+  },
+  {
+    "source": "nemesis_meta_test.go",
+    "destination": "integration/nemesis_meta_test.go"
+  },
+  {
+    "source": "nemesis_test.go",
+    "destination": "integration/nemesis_test.go"
+  },
+  {
+    "source": "net_grpc_http_test.go",
+    "destination": "net/net_grpc_http_test.go"
+  },
+  {
+    "source": "net_test.go",
+    "destination": "net/net_test.go"
+  },
+  {
+    "source": "network_config_test.go",
+    "destination": "net/network_config_test.go"
+  },
+  {
+    "source": "network_direction_test.go",
+    "destination": "net/network_direction_test.go"
+  },
+  {
+    "source": "network_trace_test.go",
+    "destination": "net/network_trace_test.go"
+  },
+  {
+    "source": "os_sim_test.go",
+    "destination": "rt/os_sim_test.go"
+  },
+  {
+    "source": "os_test.go",
+    "destination": "rt/os_test.go"
+  },
+  {
+    "source": "rand_meta_test.go",
+    "destination": "rt/rand_meta_test.go"
+  },
+  {
+    "source": "rand_test.go",
+    "destination": "rt/rand_test.go"
+  },
+  {
+    "source": "rand_v2_test.go",
+    "destination": "rt/rand_v2_test.go"
+  },
+  {
+    "source": "reflect_test.go",
+    "destination": "rt/reflect_test.go"
+  },
+  {
+    "source": "sync_test.go",
+    "destination": "rt/sync_test.go"
+  },
+  {
+    "source": "testing_meta_test.go",
+    "destination": "rt/testing_meta_test.go"
+  },
+  {
+    "source": "testing_test.go",
+    "destination": "rt/testing_test.go"
+  },
+  {
+    "source": "time_test.go",
+    "destination": "rt/time_test.go"
+  }
+]

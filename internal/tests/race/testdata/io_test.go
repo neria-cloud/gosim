@@ -4,6 +4,15 @@
 
 package race_test
 
+import (
+	"io"
+	"net"
+	"testing"
+
+	"github.com/neria-cloud/gosim"
+	simnet "github.com/neria-cloud/gosim/net"
+)
+
 // from go/src/runtime/race/testdata/io_test.go
 
 // XXX: broken
@@ -39,37 +48,66 @@ func TestNoRaceIOFile(t *testing.T) {
 }
 */
 
-// XXX: not implemented
-/*
-var (
-	regHandler  sync.Once
-	handlerData int
-)
-
-func TestNoRaceIOHttp(t *testing.T) {
-	regHandler.Do(func() {
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			handlerData++
-			fmt.Fprintf(w, "test")
-			handlerData++
-		})
-	})
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("net.Listen: %v", err)
+// TCP request/response work uses an explicit completion edge before the
+// controller reads shared state, under both the native and simulated race oracle.
+func TestNoRaceIOTCP(t *testing.T) {
+	address := "127.0.0.1:0"
+	if gosim.IsSim() {
+		ip, err := simnet.Address(gosim.CurrentMachine())
+		if err != nil {
+			t.Fatal(err)
+		}
+		address = net.JoinHostPort(ip.String(), "18080")
 	}
-	defer ln.Close()
-	go http.Serve(ln, nil)
-	handlerData++
-	_, err = http.Get("http://" + ln.Addr().String())
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		t.Fatalf("http.Get: %v", err)
+		t.Fatal(err)
 	}
-	handlerData++
-	_, err = http.Get("http://" + ln.Addr().String())
+	defer listener.Close()
+	completed := make(chan error, 1)
+	handled := 0
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			completed <- err
+			return
+		}
+		defer conn.Close()
+		for range 2 {
+			var request [1]byte
+			if _, err := io.ReadFull(conn, request[:]); err != nil {
+				completed <- err
+				return
+			}
+			handled++
+			if _, err := conn.Write(request[:]); err != nil {
+				completed <- err
+				return
+			}
+		}
+		completed <- nil
+	}()
+	conn, err := net.Dial("tcp", listener.Addr().String())
 	if err != nil {
-		t.Fatalf("http.Get: %v", err)
+		t.Fatal(err)
 	}
-	handlerData++
+	defer conn.Close()
+	for range 2 {
+		if _, err := conn.Write([]byte{42}); err != nil {
+			t.Fatal(err)
+		}
+		var response [1]byte
+		if _, err := io.ReadFull(conn, response[:]); err != nil {
+			t.Fatal(err)
+		}
+		if response[0] != 42 {
+			t.Fatal(response)
+		}
+	}
+	if err := <-completed; err != nil {
+		t.Fatal(err)
+	}
+	if handled != 2 {
+		t.Fatal(handled)
+	}
 }
-*/

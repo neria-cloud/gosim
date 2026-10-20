@@ -1,23 +1,53 @@
 package script_test
 
 import (
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/rogpeppe/go-internal/gotooltest"
 	"github.com/rogpeppe/go-internal/testscript"
 
 	"github.com/neria-cloud/gosim/internal/gosimtool"
+	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
 func TestScript(t *testing.T) {
+	if os.Getenv("GOSIM_TEST_LARGE") != "1" {
+		t.Skip("run with make test-large")
+	}
+
 	p := testscript.Params{
 		Dir: "testdata",
 	}
-	gotooltest.Setup(&p)
+	if err := gotooltest.Setup(&p); err != nil {
+		t.Fatal(err)
+	}
+	moduleCache, err := exec.Command("go", "env", "GOMODCACHE").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Immutable downloaded dependencies use Go's shared, concurrency-safe cache.
+	// Each fixture still owns its module, workspace and output directories.
+	moduleCachePath := strings.TrimSpace(string(moduleCache))
+	if !filepath.IsAbs(moduleCachePath) {
+		t.Fatal("Go returned a nonabsolute module cache", moduleCachePath)
+	}
+	originalCondition := p.Condition
+	p.Condition = func(cond string) (bool, error) {
+		if cond == "gosimrace" {
+			return hostabi.RaceEnabled, nil
+		}
+		if originalCondition != nil {
+			return originalCondition(cond)
+		}
+		return false, fmt.Errorf("unknown condition %q", cond)
+	}
 
 	curModDir, err := gosimtool.FindGoModDir()
 	if err != nil {
@@ -46,10 +76,16 @@ func TestScript(t *testing.T) {
 			"golang.org/x/sys",
 			"golang.org/x/tools",
 			"mvdan.cc/gofumpt",
+			"google.golang.org/grpc",
 		}); err != nil {
 			return err
 		}
 
+		config := `{"schema":2,"features":["rt","fs","net"],"simulation_os":"linux"}`
+		if err := os.WriteFile(filepath.Join(e.WorkDir, "gosim.json"), []byte(config), 0o644); err != nil {
+			return err
+		}
+		e.Setenv("GOSIM_CONFIG", filepath.Join(e.WorkDir, "gosim.json"))
 		// add /bin to PATH in tests
 		binDir := filepath.Join(curModDir, gosimtool.OutputDirectory, "scripttest", "bin")
 		// add dependencies on /bin
@@ -59,14 +95,26 @@ func TestScript(t *testing.T) {
 			log.Fatal(err)
 		}
 		e.Setenv("PATH", binDir+string(filepath.ListSeparator)+e.Getenv("PATH"))
-		e.Setenv("GOSIMTOOL", filepath.Join(binDir, "gosim"))
+		e.Setenv("GOSIMTOOL", "")
 
 		// allow the module to access our shared cache
 		e.Vars = append(e.Vars, "GOSIMCACHE="+filepath.Join(curModDir, gosimtool.OutputDirectory))
 
 		if origSetup != nil {
-			return origSetup(e)
+			if err := origSetup(e); err != nil {
+				return err
+			}
 		}
+		// Tool scratch files are outputs, not caller
+		// source inputs. Keep them in the excluded artifact directory.
+		for key, name := range map[string]string{"TMPDIR": "tmp", "GOPATH": "gopath"} {
+			path := filepath.Join(e.WorkDir, ".gosim", name)
+			if err := os.MkdirAll(path, 0o755); err != nil {
+				return err
+			}
+			e.Setenv(key, path)
+		}
+		e.Setenv("GOMODCACHE", moduleCachePath)
 		return nil
 	}
 	testscript.Run(t, p)

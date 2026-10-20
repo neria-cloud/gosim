@@ -9,7 +9,8 @@ import (
 )
 
 func TestMetatest(t *testing.T) {
-	runner := metatesting.ForOtherPackage(t, "github.com/neria-cloud/gosim/internal/tests/behavior")
+	t.Parallel()
+	runner := metatesting.ForOtherPackage(t, "github.com/neria-cloud/gosim/internal/tests/rt", metatesting.Options{})
 	tests, err := runner.ListTests()
 	if err != nil {
 		t.Fatal(err)

@@ -1,66 +1,49 @@
 /*
-Package gosim contains the main API for interacting with Gosim simulations.
-Gosim is a simulation testing framework that aims to make it easier to write
-reliable distributed systems code in go. See the README.md file for an
-introduction to Gosim.
+Package gosim provides machine lifecycle controls for deterministic Go simulations.
+The fs, net and rt subpackages own filesystem, network and runtime controls.
 
-# Introduction
+# Running tests
 
-Distributed systems can fail in many surprising ways. Exhaustively thinking of
-all things that can go wrong and writing tests for them is infeasible. Gosim
-simulates the external components that a program might interact with, such as
-the disk, network, clocks, and more. Gosim has an API to introduce failures in
-these systems (like chaos testing) to test that a program can handle otherwise
-difficult-to-reproduce failures.
+Gosim translates application Go code with Linux source definitions and builds a
+native executable using an exact selected Go patch. Configure one immutable
+feature set: rt, rt+fs, rt+net, or rt+fs+net. Filesystem and network require rt.
+Normal CLI commands require reviewed certification for the exact tuple and source.
 
-# Writing and running gosim tests
+	GOTOOLCHAIN=go1.25.14 go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
+	./.gosim/gosimtool test -go go1.25.14 -features rt -run TestName -seeds 1-20 ./package
 
-Gosim tests are normal Go tests that are run in a Gosim simulation. To run Gosim
-tests, use the 'gosim test' command with similar arguments as the standard 'go
-test' command:
+See README.md for configuration, the candidate development workflow and current
+compatibility evidence. Metatesting runs matching prebuilt simulation workers from
+native Go tests; it validates their identities and contents before execution.
 
-	# run an normal test
-	go test -run TestName -v ./path/to/pkg
-	# run a gosim test
-	go run github.com/neria-cloud/gosim/cmd/gosim test -run TestName -v ./path/to/pkg
+# Machines and features
 
-For more information on the 'gosim' command see its documentation at
-[github.com/neria-cloud/gosim/cmd/gosim].  To run Gosim tests from within a
-Go test, use the
-[github.com/neria-cloud/gosim/metatesting] package.
+NewMachine returns an unstarted machine. Configure optional services before Start.
+Returning from Main gracefully ends that epoch. Stop is graceful, Crash retains
+the filesystem crash outcome, and Restart creates a new epoch with fresh globals.
+Wait observes the epoch active at entry. Destroy invalidates the control handle.
+Machine termination cancels its goroutines without executing their pending defers.
 
-# Gosim simulation
+Use the fs package for persistence configuration and owned crash snapshots, the
+net package for IPv4/TCP addressing and directed network policy, and rt for timeout
+and build/run information. Importing a control package does not enable its feature.
+Disabled feature use aborts the simulation even when errors are ignored or panics
+are recovered; it never falls back to host I/O.
 
-When tests run inside Gosim they run in a simulation and they do not interact
-with the normal operating system. Gosim simulates:
+Outside simulation, error-returning controls return ErrNotSim, IsSim returns false,
+and CurrentMachine returns a zero handle. ExitSelf and CrashSelf terminate the
+current simulated machine without returning; native calls panic with ErrNotSim.
 
-  - Real time. The time is simulated by Gosim (like on the Go playground) so that
-    it advances automatically when all goroutines are paused. This means tests run
-    quickly even if they sleep for a long time.
+# Determinism and scope
 
-  - The filesystem. Gosim implements its own filesystem that can simulate data
-    loss when writes are not fsync-ed properly.
+An identical complete build identity, replay revision and seed reproduces execution.
+Scheduler, application, filesystem and network randomness use independent streams.
+Only one simulation runs at a time in a host process.
 
-  - The network. Gosim implements its own network that can introduce extra latency
-    and partition machines.
-
-  - Machines. Inside of Gosim a single Go test can create multiple machines which
-    are new instantiations of a Go program with their own global variables, their
-    own disk, and their own network address.
-
-Gosim implements its simulation at the Go runtime and system call level,
-emulating Linux system calls. Gosim compiles all code with GOOS set to linux. To
-interact with the simulation, programs can use the standard library with
-functions like [time.Sleep], [os.OpenFile], [net.Dial], and all others working
-as you would expect.
-
-To control the simulation, this package has functions like [NewMachine] and
-[Machine.Crash] to create and manipulate machines and [SetConnected] to
-manipulate the network.
-
-# Gosim internals
-
-For a description of how Gosim works, see the design in
-https://github.com/neria-cloud/gosim/blob/main/docs/design.md
+The syscall model retains documented limitations in locking, permissions, mappings
+and process services. UDP, IPv6 and unmodified HTTP/gRPC application stacks are not
+claimed supported. Capability manifests distinguish implemented, limited, stub and
+rejected behavior. See docs/design.md for package ownership and native/translated
+boundaries, and docs/reports/syscall-support-for-gquorum.md for historical gaps.
 */
 package gosim

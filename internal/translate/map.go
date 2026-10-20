@@ -1,10 +1,10 @@
 package translate
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
-	"log"
 
 	"github.com/dave/dst"
 	"github.com/dave/dst/dstutil"
@@ -193,7 +193,7 @@ func (t *packageTranslator) rewriteMapLiteral(c *dstutil.Cursor) {
 	for _, elt := range compositeLit.Elts {
 		kv, ok := elt.(*dst.KeyValueExpr)
 		if !ok {
-			log.Fatal("map composite lit elt is not keyvalueexpr")
+			panic(fmt.Sprint("map composite lit elt is not keyvalueexpr"))
 		}
 		nodeDecs := kv.Decs.NodeDecs
 		kv.Decs.NodeDecs = dst.NodeDecs{
@@ -296,7 +296,7 @@ func (t *packageTranslator) rewriteMapType(c *dstutil.Cursor) {
 		c.Replace(&dst.IndexListExpr{
 			X: t.newRuntimeSelector("Map"),
 			Indices: []dst.Expr{
-				mapType.Key,
+				t.apply(mapType.Key).(dst.Expr),
 				t.apply(mapType.Value).(dst.Expr),
 			},
 		})
@@ -312,7 +312,7 @@ func (t *packageTranslator) rewriteMapType(c *dstutil.Cursor) {
 			c.Replace(&dst.IndexListExpr{
 				X: t.newRuntimeSelector("AnyMap"),
 				Indices: []dst.Expr{
-					mapType.Key,
+					t.apply(mapType.Key).(dst.Expr),
 					t.apply(mapType.Value).(dst.Expr),
 				},
 			})

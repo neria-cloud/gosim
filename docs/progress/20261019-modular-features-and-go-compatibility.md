@@ -1,0 +1,1261 @@
+# Modular features and Go compatibility execution record
+
+Plan: `docs/plans/20261019-modular-features-and-go-compatibility.md`
+Target: `docs/brainstorms/20261018-modular-features-and-go-compatibility-target.md`
+Branch: `feat/refactorin-modularization`
+Started: 2026-10-19; baseline commit: `06cc296`.
+
+## Initial evidence
+
+- Read the full brainstorm and target before implementation; the target is the design authority.
+- The initial worktree was clean; all 33 plan tasks were unchecked.
+- Baseline: `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed (ordinary and race suites, including simulation and race-oracle harnesses). Full log: `.gosim/baseline-go1.26.0.log`.
+- Active development worker: go1.26.0, darwin/arm64, GOROOT `/Users/speckzzz/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.0.darwin-arm64`; default experiments/GOFLAGS; CGO_ENABLED=1 for native SQLite/race tooling. This is development evidence, not target certification.
+- Exact target distributions were obtained/resolved and their compiler and source contents verified against pinned official archives. Probe log: `.gosim/fingerprint-probe.log`; no tuple promoted.
+- Planning notice correction: the plan is tracked in this checkout; only the brainstorm directory is ignored. Plan/progress edits can be committed normally.
+
+## Declaration ownership ledger
+
+Baseline inventory SHA-256: `84e3efb31d1c9fcf58accc984cc9f7002266b0d799f87da707e98d8f02d31cf3`.
+Every declaration in each referenced inventory section is assigned below, including private types/helpers and generated wrappers. “All N” is the complete ordered declaration set in that section, not only exported methods. This accounts for 110 files and 1,604 declarations without duplicating their signatures. Target overrides replace corresponding baseline signatures; they do not excuse dropping unrelated declarations. Task 33 must reconcile each row against actual final destinations.
+
+| Inventory source section | Declarations assigned | Destination / responsibility | Owning task(s) |
+| --- | --- | --- | --- |
+| `gosimruntime/chan.go` | all 56 | `rt/runtime/chan.go` | 2 |
+| `gosimruntime/checksum.go` | all 8 | `rt/runtime/checksum.go` | 2 |
+| `gosimruntime/checksumkey_string.go` | all 2 | `rt/runtime/checksumkey_string.go` | 2 |
+| `gosimruntime/doc.go` | all 0 | `rt/runtime/doc.go` | 2 |
+| `gosimruntime/fnv64.go` | all 5 | `rt/runtime/fnv64.go` | 2 |
+| `gosimruntime/globals.go` | all 14 | `rt/runtime/globals.go` | 2 |
+| `gosimruntime/log.go` | all 12 | `rt/runtime/log.go` | 2 |
+| `gosimruntime/map.go` | all 43 | `rt/runtime/map.go` | 2 |
+| `gosimruntime/raceutil.go` | all 0 | `rt/runtime/raceutil.go` | 2 |
+| `gosimruntime/raceutil_norace.go` | all 8 | `rt/runtime/raceutil_norace.go` | 2 |
+| `gosimruntime/raceutil_race.go` | all 8 | `rt/runtime/raceutil_race.go` | 2 |
+| `gosimruntime/rand.go` | all 8 | `rt/runtime/rand.go` | 2 (move); 3 (engine/random overrides) |
+| `gosimruntime/runtime.go` | all 75 | `rt/runtime/runtime.go` | 2 (move); 3 (engine/random overrides) |
+| `gosimruntime/sema.go` | all 17 | `rt/runtime/sema.go` | 2 |
+| `gosimruntime/testmain.go` | all 8 | `rt/runtime/testmain.go` | 2; 21/23 (Driver/protocol) |
+| `gosimruntime/time.go` | all 13 | `rt/runtime/time.go` | 2 (move); 3 (engine/random overrides) |
+| `gosimruntime/timer_heap.go` | all 15 | `rt/runtime/timer_heap.go` | 2 |
+| `gosimruntime/traceflag.go` | all 6 | `rt/runtime/traceflag.go` | 2 |
+| `internal/coro/coro_linkname.go` | all 9 | `internal/hostabi; internal/compat/go125 and go126 host` | 12/16; 29 (retirement) |
+| `internal/coro/coro_nolinkname.go` | all 5 | `internal/hostabi; internal/compat/go125 and go126 host` | 12/16; 29 (retirement) |
+| `internal/coro/upcallcoro_norace.go` | all 6 | `internal/hostabi; internal/compat/go125 and go126 host` | 12/16; 29 (retirement) |
+| `internal/coro/upcallcoro_race.go` | all 6 | `internal/hostabi; internal/compat/go125 and go126 host` | 12/16; 29 (retirement) |
+| `internal/cryptorand/rand.go` | all 3 | `internal/compat/go125 and go126 shims/cryptorand` | 13/17; 29 (retirement) |
+| `internal/hooks/go123/doc.go` | all 0 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/entrypoint.go` | all 5 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/golangorg_x_sys_unix.go` | all 7 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go123/golangorg_x_sys_unix_gen_amd64.go` | all 35 | `internal/compat/go125 and go126 hooks` | 14/18; 27 (retirement) |
+| `internal/hooks/go123/golangorg_x_sys_unix_gen_arm64.go` | all 35 | `internal/compat/go125 and go126 hooks` | 15/19; 27 (retirement) |
+| `internal/hooks/go123/hash_maphash.go` | all 1 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/internal_abi.go` | all 2 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/internal_bytealg.go` | all 12 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/internal_chacha8.go` | all 2 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/internal_cpu.go` | all 6 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/internal_godebug.go` | all 4 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/internal_poll.go` | all 12 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go123/internal_syscall_unix.go` | all 4 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go123/maps.go` | all 1 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/math_rand.go` | all 1 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/math_rand_v2.go` | all 1 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/net.go` | all 1 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go123/os.go` | all 7 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go123/os_signal.go` | all 6 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go123/runtime_debug.go` | all 10 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/runtime_trace.go` | all 4 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/sync.go` | all 31 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/sync_atomic.go` | all 42 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/syscall.go` | all 21 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go123/syscall_gen_amd64.go` | all 35 | `internal/compat/go125 and go126 hooks` | 14/18; 27 (retirement) |
+| `internal/hooks/go123/syscall_gen_arm64.go` | all 35 | `internal/compat/go125 and go126 hooks` | 15/19; 27 (retirement) |
+| `internal/hooks/go123/time.go` | all 11 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go123/weak.go` | all 2 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/doc.go` | all 0 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/entrypoint.go` | all 5 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/golangorg_x_sys_unix.go` | all 7 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go125/golangorg_x_sys_unix_gen_amd64.go` | all 35 | `internal/compat/go125 and go126 hooks` | 14/18; 27 (retirement) |
+| `internal/hooks/go125/golangorg_x_sys_unix_gen_arm64.go` | all 35 | `internal/compat/go125 and go126 hooks` | 15/19; 27 (retirement) |
+| `internal/hooks/go125/hash_maphash.go` | all 1 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/internal_abi.go` | all 2 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/internal_bytealg.go` | all 12 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/internal_chacha8.go` | all 2 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/internal_cpu.go` | all 6 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/internal_godebug.go` | all 4 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/internal_poll.go` | all 12 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go125/internal_syscall_unix.go` | all 4 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go125/maps.go` | all 1 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/math_rand.go` | all 1 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/math_rand_v2.go` | all 1 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/net.go` | all 1 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go125/os.go` | all 7 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go125/os_signal.go` | all 6 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go125/runtime_debug.go` | all 10 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/runtime_trace.go` | all 4 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/sync.go` | all 31 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/sync_atomic.go` | all 42 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/syscall.go` | all 21 | `internal/compat/go125 and go126 hooks` | 14–19 (routes/policies); 27 (retirement) |
+| `internal/hooks/go125/syscall_gen_amd64.go` | all 35 | `internal/compat/go125 and go126 hooks` | 14/18; 27 (retirement) |
+| `internal/hooks/go125/syscall_gen_arm64.go` | all 35 | `internal/compat/go125 and go126 hooks` | 15/19; 27 (retirement) |
+| `internal/hooks/go125/time.go` | all 11 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/hooks/go125/weak.go` | all 2 | `internal/compat/go125 and go126 hooks` | 12/16 (runtime); 13/17 (policies); 27 (retirement) |
+| `internal/maps_shim/shim.go` | all 0 | `internal/compat/go125 and go126 shims/maps_shim` | 13/17; 29 (retirement) |
+| `internal/race/doc.go` | all 0 | `internal/hostabi; internal/compat/go125 and go126 host` | 12/16; 29 (retirement) |
+| `internal/race/norace.go` | all 14 | `internal/hostabi; internal/compat/go125 and go126 host` | 12/16; 29 (retirement) |
+| `internal/race/race.go` | all 14 | `internal/hostabi; internal/compat/go125 and go126 host` | 12/16; 29 (retirement) |
+| `internal/reflect/deepequal.go` | all 3 | `internal/compat/go125 and go126 shims/reflect` | 13/17; 29 (retirement) |
+| `internal/reflect/doc.go` | all 0 | `internal/compat/go125 and go126 shims/reflect` | 13/17; 29 (retirement) |
+| `internal/reflect/makefunc.go` | all 1 | `internal/compat/go125 and go126 shims/reflect` | 13/17; 29 (retirement) |
+| `internal/reflect/no.go` | all 12 | `internal/compat/go125 and go126 shims/reflect` | 13/17; 29 (retirement) |
+| `internal/reflect/swapper.go` | all 1 | `internal/compat/go125 and go126 shims/reflect` | 13/17; 29 (retirement) |
+| `internal/reflect/type.go` | all 62 | `internal/compat/go125 and go126 shims/reflect` | 13/17; 29 (retirement) |
+| `internal/reflect/value.go` | all 111 | `internal/compat/go125 and go126 shims/reflect` | 13/17; 29 (retirement) |
+| `internal/reflect/visiblefields.go` | all 1 | `internal/compat/go125 and go126 shims/reflect` | 13/17; 29 (retirement) |
+| `internal/simulation/fs/chunkedfile.go` | all 16 | `internal/fs/model/chunkedfile.go` | 7 (including owned crash-model overrides) |
+| `internal/simulation/fs/depkind_string.go` | all 4 | `internal/fs/model/depkind_string.go` | 7 (including owned crash-model overrides) |
+| `internal/simulation/fs/filesystem.go` | all 80 | `internal/fs/model/filesystem.go` | 7 (including owned crash-model overrides) |
+| `internal/simulation/fs/pendingops.go` | all 23 | `internal/fs/model/pendingops.go` | 7 (including owned crash-model overrides) |
+| `internal/simulation/network/config.go` | all 19 | `internal/net/model/config.go` | 10 (ports/directed edges/generations) |
+| `internal/simulation/network/delayqueue.go` | all 14 | `internal/net/model/delayqueue.go` | 10 (ports/directed edges/generations) |
+| `internal/simulation/network/faults.go` | all 11 | `internal/net/model/faults.go` | 10 (ports/directed edges/generations) |
+| `internal/simulation/network/net.go` | all 22 | `internal/net/model/net.go` | 10 (ports/directed edges/generations) |
+| `internal/simulation/network/stack.go` | all 39 | `internal/net/model/stack.go` | 10 (ports/directed edges/generations) |
+| `internal/simulation/network/trace.go` | all 1 | `internal/net/model/trace.go` | 10 (ports/directed edges/generations) |
+| `internal/simulation/syscallabi/errno.go` | all 2 | `rt/runtime/abi; internal/contracts; internal/kernel` | 2 (views); 4/6 (transport/poll); 28 (retirement) |
+| `internal/simulation/syscallabi/poll.go` | all 14 | `rt/runtime/abi; internal/contracts; internal/kernel` | 2 (views); 4/6 (transport/poll); 28 (retirement) |
+| `internal/simulation/syscallabi/syscall.go` | all 26 | `rt/runtime/abi; internal/contracts; internal/kernel` | 2 (views); 4/6 (transport/poll); 28 (retirement) |
+| `internal/synctest/synctest.go` | all 11 | `internal/compat/go125 and go126 shims/synctest` | 13/17; 29 (retirement) |
+| `internal/testing/match.go` | all 17 | `internal/compat/go125 and go126 shims/testing` | 13/17; 29 (retirement) |
+| `internal/testing/missing.go` | all 19 | `internal/compat/go125 and go126 shims/testing` | 13/17; 29 (retirement) |
+| `internal/testing/testing.go` | all 57 | `internal/compat/go125 and go126 shims/testing` | 13/17; 29 (retirement) |
+| `metatesting/doc.go` | all 0 | `metatesting/doc.go` | 23 |
+| `metatesting/metatest.go` | all 17 | `metatesting/metatest.go` | 23 |
+
+### New and overridden target declarations (T§4–9)
+
+Each row assigns the entire named target declaration block, including all listed fields, constructors, methods, sim/native variants, errors, and private helpers. Signatures remain sourced from the target; this ledger assigns implementation responsibility, not alternative contracts.
+
+| Target declaration block | Owner/task | Wiring and verification owner |
+| --- | --- | --- |
+| §4 machine.go: Machine/MachineState/ExitKind/Exit/MachineConfig and all 19 machine/root entry points | Public root; 22 | 22, 25, 33 |
+| §4 errors.go: seven sentinel errors, FeatureDisabledError/Error | Public root; 22 | 22, 25 |
+| §4 fs config/control/recovery: Config/CrashMode/SyncFault/InodeInfo/Snapshot/CrashIterator/EnumerateOptions/ErrEnumerationLimit and every listed function/method | fs; 22, backed by 8/9 | 22, 25 |
+| §4 net config/control: LatencyConfig/LossConfig/Config/MachineConfig/Direction/Link/LinkPolicy and all 9 functions | net; 22, backed by 10/11 | 22, 25 |
+| §4 rt control/info: SetTimeout, Info, RunInfo | rt; 22 | 22, 25 |
+| §5 identity/errors: Feature/FeatureSet/Has/ParseFeatures/Names, MachineRef/EpochRef/CallContext, StopKind/CloseReason/EventID/WaitID/Readiness/Diagnostic | contracts; 4 | 5/6/22 |
+| §5 ports: Clock/Random/Events/ReadinessSink/Trace/Field/Ports and every interface method | contracts; 4; adapters in 5 | 5, 7–11 |
+| §5 lifecycle: StartSpec/Provider/ProviderSession/PreparedMachine/MachineInstance/Bindings/ControlBindings and every interface method | contracts; 4; implementations 8/11 | 5, 8/11 |
+| §5 machine/transaction: State/Machine/Run/StartTxn/TxnState/ErrTxnState/RuntimePrepared/ExitRecord; Create/BeginStart/Commit/Abort/Start/Restart/Stop/Destroy/SetMain/Wait/Lookup/Accepts | kernel; 5 | 5/6/25 |
+| §5 kernel/services: Config/Kernel/New/Run/Close/Require/AbortRun/Ports/mergeBindings | kernel; 5 | 6/21/25 |
+| §5 dispatcher: Invocation/RouteID/Result/Dispatcher/NewDispatcher/Submit/DispatchOne/Complete/CancelEpoch/Drain | kernel; 6 | 14/21/25 |
+| §5 descriptors: Resource/Readable/Writable/Pollable/DescriptorTable and every interface method | contracts; 4; providers 9/11 | 6/9/11 |
+| §5 fdtable/poll: NewFDTable/Allocate/Lookup/Remove/Finalize, Read/Write/CloseFD, PollOpen/PollClose/PollWait/PollReset/PollDeadline/PollUnblock/Notify | kernel; 6 | 6/14/25 |
+| §7 FileOps/Stat/Lock: Openat/Renameat/Getdents64/Fallocate/Seek/Pwrite/Pread/Sync/Fstat/Statat/Unlinkat/Truncate/Chdir/Getcwd/Mkdirat/Flock/FcntlInt/FcntlLock/Map/Unmap/Advise | contracts 4; fs Instance 9 | 14/15/18/19 |
+| §7 SocketOps/Address: Socket/Bind/Listen/Accept/Connect/LocalAddress/PeerAddress/SetOption/GetOption/FcntlInt | contracts 4; net Instance 11 | 14/15/18/19 |
+| §7 FSConfig/FSFaultConfig/InodeInfo/FSControl: ConfigureMachine/SetCrashMode/SetSyncFault/InspectInode/Enumerate/NextSnapshot/CloseIterator/Restore/CloseSnapshot | contracts 4; fs Session 8 | 14/22/25 |
+| §7 NetConfig/NetLink/NetLinkPolicy/NetControl: Configure/ConfigureMachine/Address/SetLinkPolicy/ResetLinkPolicy/SetConnectivity | contracts 4; net Session 11 | 14/22/25 |
+| §7 fs provider/session/lifecycle/control table: NewProvider/Feature/Open/Controls/Prepare/Destroy/Close/Bindings/Publish/Abort/Quiesce/Settle/Detach/validateConfig/validateFault | fs; 8 | 8/21/25 |
+| §7 fs File: Owner/Release/Read/Write | fs; 9 | 6/9/25 |
+| §7 net provider/session/lifecycle/control table: all named Provider/Session/Prepared/Instance methods and validators | net; 11 | 11/21/25 |
+| §7 net Socket: Owner/Release/Read/Write/Subscribe/Unsubscribe | net; 11 | 6/11/25 |
+| §7 network model overrides: NewNetwork/ReserveAddress/AbortReservation/Attach/Detach/Reservation, NewStack/ProcessIncoming/Shutdown, packet epoch/generation | net/model; 10 | 11/25 |
+| §7 fs model overrides: FreezeCrash/CrashImage/Clone/IterCrashes/Release, CrashIterator.Next/Close; plannedOp/crashPlan/crashFrame/crashPlanIterator/snapshot/randomCrashSubset/iterator/next/close | fs/model; 7 | 8/25 |
+| §7 process: Getrandom/Getpid/Uname/ProcessInfo | kernel; 6 | 14–19/25 |
+| §7 control: CurrentRef/Submit/Bind and generated route payloads | control; 14 | 21/22/25 |
+| §8 Engine/EngineConfig/MachineToken: NewEngine/PrepareMachine/PublishMachine/AbortMachine/CancelMachine/DisposeMachine/Schedule/CancelEvent/Abort/Run/Close | rt/runtime; 3 | 5/21/25 |
+| §8 Random: NewDomainRandom/Uint64/Uint64N/Float64/ExpFloat64 | rt/runtime; 3 | 5/7/10/25 |
+| §8 ABI views and primitive IDs/Diagnostic/HostIdentity | rt/runtime/abi; 2 | 3/6/12/25 |
+| §8 hostabi: Coro.Start/Next/Yield/Finish, RaceAcquire/Release/Read/Write/Disable/Enable, Identity and retained inventory calls | hostabi + family host; 12/16 | 12/16/29 |
+| §8 family Descriptor/profile/tuples/hooks manifest/policies and all native/translated family declarations | compat/go125 12–15; compat/go126 16–19 | 19/24/32 |
+| §8 Profile/Hook/PackagePolicy/Validate/Select, selected.Profile | spec 1; selected 12 | 21/24 |
+| §9 Config/Identity/Revision/Tuple/Selection/Toolchain/BuildOptions, Overrides/Distribution | buildspec/buildcfg; 1 | 20/21/24 |
+| §9 Load/Normalize/Resolve/ValidateWorker/Fingerprint/Command/Identity/Canonical/Digest/ValidateTuple/VerifyHooks | buildcfg/spec; 1 | 21/24 |
+| §9 Generate/ValidateImports/GeneratedComposition | compose; 21 | 21/25 |
+| §9 Translate/translatePackages/translatePackage/renameFile/Policies/ValidateBoundary, TranslateInput/translatePackageArgs | translate; 21 | 24/25 |
+| §9 BuildConfig/TranslateOutput/AsDirname/GetPathForPrecompiledTestBinary | gosimtool; 20/21/23 | 23/24 |
+| §9 BuildFlags/ResolvedBuild/resolveBuild, shared CLI building flags/commands, selftest | cmd/gosim; 21/24 | 24/32 |
+| §9 certify/MatrixOptions/CertificationReport/SuiteResult | cmd/gosim; 24 | 30/32 |
+| §9 GenerateProfile | cmd/gosim-gen; 14 | 15/18/19 |
+| §9 metatesting Options/ForPackage/ForOtherPackage/newRunner/Close and retained ListTests/RunAllTests/Run | metatesting; 23 | 23/25 |
+| §9 Driver.Run/TestEntrypoint/TestMain, copied RunConfig/RunResult and protocol metadata | runtime/compose; 21/23 | 23/25 |
+| §9 computeTranslateToolHash/computePackageHash/CacheEntryV2/TranslatePackageResult/PackageGlobalInfo, encode/decode/cacheGet/cachePut | translate; 20/21 | 20/25 |
+| §9 DB/cache NewDB/Get/Put/Touch/Clean/Close plus Delete; unchanged SQLite table/TTL | translate/cache; 20 | 20/33 |
+| §9 package manifests, staging/locking/content verification and run metadata | gosimtool; 20/21/23 | 23/25/32 |
+
+### Route ownership ledger
+
+Every route in T§7 is assigned; generated declarations in both architecture inventories are covered by the file ledger above. The route generator tasks must expand this into checked per-symbol family/architecture manifests, preserving limited/stub/rejected capability classifications.
+
+| Routes / controls | Target handler | Implementation / adapter tasks |
+| --- | --- | --- |
+| openat, renameat, getdents64, fallocate, lseek, pread64, pwrite64 | FileOps | 9; 14/15/18/19 |
+| fsync, fdatasync | FileOps.Sync(dataOnly) | 9; 14/15/18/19 |
+| fstat, fstatat/newfstatat, unlinkat, ftruncate, chdir, getcwd, mkdirat | FileOps | 9; 14/15/18/19 |
+| flock, fcntl pointer locks, mmap, munmap, madvise | FileOps | 9; 14/15/18/19 |
+| socket, bind, listen, accept4, connect, getsockname, getpeername, setsockopt, getsockopt | SocketOps | 11; 14/15/18/19 |
+| fcntl integer form | kernel owner dispatch to FileOps/SocketOps | 6/9/11; 14/15/18/19 |
+| read, write, close | kernel descriptor capabilities | 6; 14/15/18/19 |
+| internal/poll operations | kernel poll generations/deadlines | 6; 14/15/18/19 |
+| getrandom, getpid, uname | kernel process services | 6; 14/15/18/19 |
+| machine controls, self exits, waits | kernel lifecycle/control | 5/14/22 |
+| fs diagnostics, configuration, snapshots/recovery | FSControl guarded by FS | 8/14/22 |
+| network configuration, addressing, link policy, partition/repair | NetControl guarded by Net | 10/11/14/22 |
+| runtime timeout/info and primitive hooks | engine/control | 3/12/16/22 |
+| unknown syscall/private symbol and named init probes | explicit profile policy/rejection | 13/14/17/18/25 |
+
+## Task 1 — Build specification, toolchain and profile contracts
+Date: 2026-10-19. Commit: the Task 1 implementation commit containing this entry.
+
+Implemented
+- Exact persisted Config/Identity/Revision/Tuple and transient Selection/Toolchain/BuildOptions/Overrides/Distribution records, strict configuration/feature validation and owned canonical identities.
+- Exact executable resolution, bounded child environments/flags, worker mismatch diagnostics, and pinned official archive verification of executable/compiler/stdlib contents. Both direct SDK and Go toolchain-module installations were verified; byte-identical `_go.mod` copies are the only accepted source-layout transformation.
+- Profile validation/selection, deterministic hook manifest digests, feature-specific provider imports, source/evidence-bound tuple acceptance, and declaration/signature checks against the selected toolchain's compiled Linux files.
+- Source/module/debug-policy fingerprints exclude evidence/status metadata to prevent circular promotion. Build and evidence identities remain distinct. No executable adapter or compatibility status was fabricated.
+- Ownership ledger covers all 110 baseline files / 1,604 declarations plus T§4–9 declarations and route families. Correction to the descriptive ledger counts above: the machine block has 16 listed functions/methods and the net public block has 8; both rows assign the entire block regardless of those counts.
+
+Verified
+- `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1`: passed before changes and after implementation, including formatting, CLI build, translated artifacts, all ordinary tests and all race tests. Logs: `.gosim/baseline-go1.26.0.log`, `.gosim/task1-full-suite.log`.
+- Focused buildcfg/spec tests: missing/invalid/duplicate features, config replacement/unknown fields, canonical identity dimensions and ownership, source/promotion separation, wrong worker/environment/flags, modified compiler/source/archive, profile isolation and pending/certified evidence, actual hook ABI drift/missing symbol detection.
+- Real exact-patch resolution/fingerprinting: go1.25.14 and go1.26.9 on darwin/arm64 both passed; archive hashes match pinned official metadata. The probe downloaded no unpinned executable and did not certify compatibility.
+- Source digests: go1.25.14 `08f07471a153a1300478b22176240df8396932c299d756f5d4b6a843829b9e08`; go1.26.9 `2503d7ed10c3ddb78010692d8e835762232379121f3fdd3a8b6bf3b38168b9fa`.
+
+Notes
+- Go's own child environment includes GOROOT, and macOS temporary paths have `/var` and `/private/var` aliases. Resolution handles the inherited worker root while pinning the selected child root; tests compare the canonical working directory.
+- Repeated init declarations are valid and not addressable hook symbols; the ABI scanner excludes them and anonymous `_` declarations.
+- Additional helper files remain within the planned three packages; no legacy execution behavior changed. Build identities intentionally cannot select unfinished adapters. All later tasks remain required.
+- Final rename-aware Task 1 size: 2,244 changed lines (2,233 additions + 11 deletions), below the 5,000-line cap; `git diff --check` clean.
+
+## Task 2 — Native runtime relocation and memory ABI
+Date: 2026-10-19. Previous task commit: `5757fc9`. Commit: the Task 2 implementation commit containing this entry.
+
+Implemented
+- Moved all runtime production/tests from `gosimruntime/` to `rt/runtime/` as renames. A content comparison against the parent commit proved no computational changes in moved files; only one moved test import changed.
+- Extracted SliceView, ValueView, Bool helpers and ByteView into native `rt/runtime/abi`, preserving bounds and go:norace methods. Added primitive IDs, Diagnostic and HostIdentity. Removed old view declarations instead of forwarding them.
+- Updated all consumers, translation exclusions/imports/goldens, generated wrappers and their generator. Both engine and ABI remain native in generated external modules; no legacy engine import survives in source.
+- Added external-module execution under ordinary and race builds, plus focused bounds/borrowing/boolean tests.
+
+Verified
+- `GOTOOLCHAIN=go1.26.0 go test -ldflags=-checklinkname=0 -tags=linkname ./rt/runtime/... ./internal/simulation/...`: passed.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1`: passed, including new external-module ordinary/race fixture, translation goldens, existing behavior/metatesting/race-oracle suites. Final log `.gosim/task2-gate.log`.
+- Regenerated all current syscall outputs with `GOTOOLCHAIN=go1.26.0 go run ./internal/simulation/gensyscall`. No syscall/signature changes; output import grouping is reproducible after removing an empty optional-import line from the generator.
+- Source audit found no old engine imports or syscallabi memory-view references. Historical documentation paths remain assigned to Task 31; package identifiers retain their existing names.
+
+Notes
+- First full run caught the shortened runtime source path in the pretty-log golden. Updated the fixture and verified it before rerunning the full gate; no test was removed.
+- Initial isolated generation probe needed the generator's `internal/translate` output directory; after creating it, the only differences were import grouping. The real generator was then run against the checkout and all suites rerun.
+- Core Task 2 implementation size before checklist/log: 796 changed lines with rename detection; unchanged runtime moves were reviewed by content comparison. Final size is recorded below.
+- Final Task 2 size: 834 changed lines (495 additions + 339 deletions), including checklist/log, with 22 runtime renames; staged whitespace check passed.
+
+## Task 3 — Engine lifecycle and owned deterministic random streams
+Date: 2026-10-19. Previous task commit: `3d1bf1d`. Commit: the Task 3 implementation commit containing this entry.
+
+Implemented
+- Engine/EngineConfig/MachineToken and every target lifecycle/event method, using the existing coroutine scheduler with a single-active-run guard. Preparation allocates globals without running boot; publication queues boot; cancellation removes waits/timers without application defers; disposal releases retained coroutine/global state after borrowing ends.
+- Native run abort records primitive diagnostics before parking application execution. The trusted supervisor survives long enough to run harness cleanup inside the active scheduler. Cleanup failures preserve original diagnostics and cannot prevent later cleanup. Provider events run with supervisor globals and verify their original machine epoch.
+- Versioned SHA-256 length-delimited random derivation (`gosim-rng-v2`), existing 64-bit update algorithm, unbiased rejection sampling, Float64/ExpFloat64, fixed domain/machine ownership, and stable streams across restart. New engine scheduler and application streams are separate; legacy integration retains its existing sequence until cutover.
+- Exported RunConfig/RunResult (including build/replay metadata) and the Driver contract. Actual generated Driver and TestMain cutover remain assigned to Tasks 21–22.
+- Scheduler cleanup now runs on deadlock/error returns as well as normal completion; previously the deadlock branch could retain parked coroutines.
+
+Verified
+- Native engine and ABI tests passed with the race detector. Coverage includes failed/aborted preparation, consumed epochs, no boot inside publication, blocked-call cancellation, retained globals/coroutines until disposal, stale events after restart, canceled timers, event/epoch exhaustion, application and provider panic, timeout/deadlock, repeated/invalid lifecycle operations, and single-active-run rejection.
+- Application recovery/defer cannot hide abort; supervisor defers still clean up and original plus cleanup diagnostics survive.
+- Independent known RNG vector computed with Python SHA-256 and integer multiplication matches Go; bounded/float draws, independent domain streams, restart ownership, logical-machine application randomness, and repeated-seed runs pass.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed after final executable changes, including format/build/ordinary/race suites. Final log `.gosim/task3-final-gate.log`; focused race log `.gosim/task3-runtime-race.log`.
+
+Notes / migration ledger
+- New-engine replay revision is `gosim-replay-v2`; existing integration replay goldens did not change.
+- Remove old Runtime/Setup/TestMain wiring, globalRuntime/initializeRuntime/run integration, and exported random-hook legacy fallbacks in Task 22. Their source carries TODO(migration) markers. They remain solely to keep the authorized intermediate full-suite path runnable; no profile selects the unfinished new composition.
+- Initial race tests caught missing release edges at run entry and publication; each boundary now explicitly publishes captured state. A later lifecycle audit caught premature coroutine pooling and supervisor cancellation; regression tests now enforce both ownership requirements.
+- All changes are within Task 3 runtime scope; no tests were waived or compatibility tuples promoted.
+- Final Task 3 size: 1,049 changed lines (1,016 additions + 33 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 4 — Translated provider and control contracts
+Date: 2026-10-19. Previous task commit: `b0bc40c`. Commit: the Task 4 implementation commit containing this entry.
+
+Implemented
+- Exact feature/identity/epoch/call records, lifecycle and memory-view service interfaces, session controls, ports and descriptor capabilities from T§5/7. Contracts depend only on native ABI among Gosim packages.
+- Canonical feature parsing and validation, exact provider set/order/ownership checks, duplicate-binding rejection, and finite/valid filesystem and network configuration validation.
+- Test-only recording lifecycle/port/descriptor fakes and complete service fakes that explicitly reject unexercised calls; no product implementation or fallback is selected.
+
+Verified
+- Focused contracts tests passed: all target interfaces compile against fakes; canonical sets, dependency graph, provider ordering/ownership, no partial duplicate-binding result, lifecycle ordering/failure injection, copied trace fields, descriptor memory views/readiness and invalid value records.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including ordinary and race suites. Log `.gosim/task4-gate.log`.
+- Initial gate found three formatting differences after the first formatting pass; a second formatter pass and standalone check resolved them before the full rerun.
+- No migration stubs or production wiring were introduced. All remaining tasks and exact-patch certification remain required.
+- Final Task 4 size: 1,027 changed lines including checklist/log; staged whitespace check passed.
+
+## Task 5 — Kernel registry and lifecycle transactions
+Date: 2026-10-19. Previous task commit: `47e80c6`. Commit: the Task 5 implementation commit containing this entry.
+
+Implemented
+- Kernel/Machine/Run/StartTxn/RuntimePrepared/ExitRecord structures and lifecycle methods, immutable feature selection, process-wide run IDs, non-reused machine/epoch/wait IDs, state validation and overflow failure.
+- Ordered provider opening/control installation, preparation and ownership validation, atomic publication, reverse rollback after descriptor finalization, retained terminal records, epoch-capturing waits, protected root and returning-self rejection.
+- Irreversible stop/crash cleanup, once-only settling, joined cleanup failures, root-last teardown, and primitive internal self-exit messages. Main return requests graceful termination; the trusted crash route skips application defers. Kernel.Run executes in Engine.Run's supervisor and leaves Engine.Close to its runner.
+- Owned clock/events/trace/random ports with epoch admission, canceled/fired event removal, copied trace fields, independent random streams and restart continuity. Disabled features abort through the native engine and cannot be recovered by application code.
+- Native process identity allocator, current-machine token and non-yielding lifecycle guard. Supervisor/event race synchronization applies only to supervisor state; an isolated deliberate application-race subprocess proves the race oracle remains effective.
+
+Verified
+- Real-engine ordinary/race lifecycle fixtures cover provider open/control failures, each provider preparation/binding boundary, runtime preparation failure, aborted/repeated commits, publication panic/nil instance/yield, rollback cleanup failures, consumed failed epochs, restart preservation, stale/wrong-run/destroyed handles, waits across restart, root protection, self crash, application panic, disabled feature abort, and ID exhaustion.
+- Cleanup tests verify reverse quiesce/detach, filesystem-first settling, remove-before-release descriptors, graceful failure switching remaining cleanup to crash, all joined error messages, and provider/session cleanup despite failures.
+- Ports tests verify no staging events, stale callback rejection after restart, live events, event bookkeeping, trace ownership and random independence. Import test permits only contracts/native runtime/ABI among Gosim kernel dependencies.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including formatting, CLI/build artifacts, ordinary suites and race suites. Final log `.gosim/task5-final-gate.log`; final focused race log `.gosim/task5-final-focused.log`.
+
+Findings and migration ledger
+- Controlled nondeterminism is not a publication barrier: it suppresses the initial coroutine park and can execute boot synchronously. A dedicated guard now rejects yields without changing startup parking or random draws; Sleep rejects before inserting a timer.
+- Provider events run on the scheduler stack while lifecycle code runs on the supervisor coroutine. An explicit supervisor-only synchronization token describes that serialized ownership without hiding application races.
+- State constants use StateNew/StateStarting/etc because Go cannot declare both constructor New and a package-level constant New. The required lifecycle states and method names are unchanged.
+- Config carries native HostIdentity, the canonical full build digest, features and timeout. Importing the host buildspec package would pull os/exec into the translated kernel; that dependency was removed before commit and a boundary regression check added.
+- Task 6 completes FDTable capabilities/polling and dispatcher invocation transport/wait completion. The minimal lifecycle descriptor table performs real ownership cleanup; the lifecycle-only dispatcher cancels observer records and validates drain, with no syscall fallback. Both carry Task 6 migration markers. No normal CLI composition selects the unfinished kernel yet.
+- Final Task 5 size: 2,095 changed lines (2,072 additions + 23 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 6 — Invocation, descriptor, polling and process services
+Date: 2026-10-19. Previous task commit: `9c8ef5d`. Commit: the Task 6 implementation commit containing this entry.
+
+Implemented
+- Exact Invocation/RouteID/Result transport and dispatcher admission/completion/cancellation/drain, non-reused IDs, bounded cancellation metadata, and supervisor processing through Kernel.Run. Envelopes accept explicit typed payloads, never callbacks or provider pointers; result extraction clears reusable envelopes.
+- Shared monotonically allocated descriptor table, capability-based read/write/close, owner-based fcntl dispatch, sorted remove-before-release finalization, deterministic stdin EOF, and copied stdout/stderr output through the native log sink without filesystem support.
+- Poll subscriptions, readiness/reset/unblock, relative deadlines, per-registration and deadline generations, failed-subscription rollback, and cancellation tied to invocation/epoch lifetime. Stale sinks/deadlines cannot target a reopened fd or restarted machine.
+- Getrandom uses the logical machine's application stream; flags retain existing validation. Getpid remains the historical fixed 42 and uname models only the bounded nodename. Explicit process capability records label the stub/missing fields instead of inventing process semantics.
+- Non-yielding native semaphore wake/retirement and diagnostic output adapters. Cancellation and scheduler teardown prune empty semaphore records so native tables do not retain disposed invocation/application addresses.
+
+Verified
+- Ordinary/race tests cover shared fs/socket descriptor ownership, fcntl selection, EBADF and missing capabilities, sorted teardown with multiple errors, fd/poll/invocation exhaustion, readiness/reset/unblock, stale registration/epoch/deadline delivery, failed subscription cleanup, and bounded cancellation metadata.
+- Real application calls traverse Submit → supervisor dispatch → native completion, including timer-driven poll wake and machine Wait completion. A machine crashed while blocked in a real poll does not resume or execute defers; borrowed arguments/results are cleared before disposal and late completion does not touch the envelope.
+- Unknown routes, callable payloads, overflowing mode values, duplicate completion and non-modeled/combined errors abort rather than becoming successful syscalls or errno fallbacks.
+- Native log-sink test verifies output attribution; semaphore test proves no canceled waiter address remains. Deliberate-race subprocesses prove both engine and syscall transport still report unrelated application races.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed after the final native wait-table fix. Final log `.gosim/task6-final-gate.log`; focused race log `.gosim/task6-final-focused.log`. No ordinary or race suite was waived.
+
+Notes / migration ledger
+- Task 5 descriptor/dispatcher migration markers are removed. Task 14 still generates the complete manifest and remaining route decoders; the current explicit core-route decoder carries that marker and rejects every unlisted route. Normal CLI selection still uses the authorized intermediate path.
+- Domain results remain in the translated envelope; ABI views and primitive semaphore cells cross native helper boundaries. Native generic channels preserve the translated envelope type rather than mixing original and translated contract types.
+- Final Task 6 size: 1,940 changed lines (1,913 additions + 27 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 7 — Filesystem model and owned crash snapshots
+Date: 2026-10-19. Previous task commit: `aba18c3`. Commit: the Task 7 implementation commit containing this entry.
+
+Implemented
+- Moved filesystem algorithms/tests to internal/fs/model, changed package name to model, updated temporary simulation/public imports and regenerated syscall wrappers from the updated generator.
+- Immutable CrashImage with separately retained durable chunks, pending write chunks, copied operations and dependency metadata. Clone/IterCrashes/Release and Next/Close have explicit ownership; releasing the source, image or iterator cannot invalidate another retained owner.
+- Exact plannedOp/crashPlan/crashFrame/crashPlanIterator representation and iterative inclusion-first DFS, checked unavailable-count overflow, stable operation order, copied results, empty-plan image and idempotent early/exhaustion cleanup. Removed the parked iterator goroutine and old CrashClone/closure API.
+- Filesystem.Release now frees model state, pending payloads and mapping references. FlushEverything releases superseded durable/pending storage. Copy-on-write now drops the old shared chunk reference when installing a writable copy; reference counts reject overflow.
+- Removed all model mutexes and global allocation pools. Fresh allocations belong to model/snapshot owners and do not carry mutable storage across runs. Random crash selection uses injected contracts.Random.Uint64N(3), preserving dependency-valid two-thirds selection.
+
+Verified
+- Existing pending-operation examples compare every intermediate graph against an independent copy of the former recursive order oracle. Tests cover 100,000 dependent operations, copied yields, empty plans, overflow, early/repeated Close and release, immutable pending payloads/directory metadata, snapshot survival after source flush/write/release, and zero chunk references after final owners release.
+- Mapping updates on writes/truncation remain intact; snapshots/clones do not retain source mappings. Independent application/network draws do not change filesystem selection; selected operations respect prerequisites and the expected two-thirds rate.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed with ordinary/race behavior, script, translation, runtime and model suites: `.gosim/task7-gate.log`. Final additional mapping/directory tests passed in focused race execution: `.gosim/task7-focused.log`. Regeneration: `GOTOOLCHAIN=go1.26.0 go generate ./internal/simulation`.
+
+Notes / migration ledger
+- Temporary legacy callers freeze immutable images, close iterators on explicit release/machine shutdown, release superseded filesystems on restart, and retain a per-logical-machine native fs random stream across restarts. Marked adapters are removed in Task 22. The current dispatcher already serializes these model calls; the new provider will own them through the supervisor.
+- Existing unsupported filesystem semantics, including unreachable inode retention in crash images, remain unchanged. No new compatibility tuple is certified by this development-toolchain gate.
+- Final Task 7 size: 1,044 changed lines (708 additions + 336 deletions) with rename detection, including checklist/log; staged whitespace check passed.
+
+## Task 8 — Filesystem session lifecycle and recovery controls
+Date: 2026-10-19. Previous task commit: `ea7b5f8`. Commit: the Task 8 implementation commit containing this entry.
+
+Implemented
+- Filesystem Provider/Session/Prepared/Instance lifecycle with stable session controls, tentative Linux fixture/cwd creation, independent staged restart state, no publication/flush/random draws during preparation or abort, and persistent disk/configuration owned solely by the session.
+- Once-only graceful flush or crash-time outcome selection, retained immutable pre-crash image, independent fs stream, and idempotent quiesce/detach/destroy/close. Prior disks survive failed restart preparation; successful publication drops the machine's obsolete crash image without invalidating existing iterators.
+- All FSControl methods with atomic config/fault validation, before-first-start cwd configuration, live crash/sync-fault settings, inode inspection, positive enumeration budget, one retained lookahead, independently owned snapshots/restores, monotonic typed handles, checked exhaustion, closed-handle tombstones, and deterministic cleanup.
+- Kernel FilesystemControl boundary validates feature/run/caller epoch and target state before invoking the contract under the non-yielding supervisor guard. Public recovery run identity is checked separately from session-local numeric IDs, preventing reuse of an earlier run's handle. Kernel has no filesystem model/provider dependency.
+
+Verified
+- Focused ordinary/race lifecycle and recovery tests cover default /app and Linux fixture, invalid/NaN/infinite configs leaving state unchanged, aborted first/restart preparation, failed restored-cwd resolution, graceful/crash differences, repeated settlement, random selection at crash rather than restart, and stale epoch bindings.
+- Recovery tests cover empty/exact budget exhaustion versus ErrEnumerationLimit, bounded lookahead, allocation overflow without consuming a state, early/repeated close, wrong-kind/unknown handles, snapshots surviving iterator close/source destruction/restart, independent restores, restored ownership after snapshot close, and deterministic session cleanup of staged/active/retained resources.
+- Real kernel/engine integration covers before-start and after-crash controls, state/run/stale-caller guards, destroyed targets, source-destroy snapshot restore, and second-provider preparation failure rolling back FS without publishing a disk.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including formatting, build artifacts, all ordinary suites and all race suites: `.gosim/task8-gate.log`. Final focused race log: `.gosim/task8-focused.log`.
+
+Notes / migration ledger
+- Added internal/kernel/control_fs.go to implement this task's required kernel state validation; generated routes/public control transport connect to that boundary in Tasks 14/22. Cross-run checks belong at this envelope boundary because the prescribed FSControl recovery methods carry only session-local uint64 IDs.
+- Task 9 explicitly owns every FileOps syscall body. ops_pending.go supplies the complete interface with explicit invariant failures for unfinished calls, never success or host fallback; Task 9 removes it. Session fault settings are implemented here; their Sync syscall behavior is Task 9. Normal CLI composition still uses the authorized intermediate integration path.
+- The user briefly paused implementation to discuss directory moves, then requested continuation of the original source plan/architecture. No target-architecture/layout revision was made.
+- Final Task 8 size: 1,541 changed lines (1,533 additions + 8 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 9 — Filesystem syscall services and descriptor capabilities
+Date: 2026-10-19. Previous task commit: `7ac3390`. Commit: the Task 9 implementation commit containing this entry.
+
+Implemented
+- Replaced every Task 8 FileOps placeholder with path/open/rename/directory entries, allocation/offset/positional I/O, synchronization, stat, remove/truncate/cwd/mkdir, lock/fcntl and mapping/advice methods. File implements Resource/Readable/Writable against the shared epoch descriptor table; failed allocation closes the inode reference, and Release transfers ownership only once with the original CloseReason.
+- Linux flag values are explicit at the provider boundary, then converted to the host-compiled model's os flags. Stat/Lock use version-neutral contracts. Directory bytes retain the common little-endian Linux dirent64 layout and the existing one-batch/dummy-metadata limitation; no architecture-specific Go struct enters the model.
+- Kernel typed route decoding for every filesystem service, explicit payload/boolean/narrowed-field validation, feature checks and current-epoch service selection. Existing shared read/write/close/fcntl continue routing by descriptor ownership. Generated family-specific marshalling/manifest replacement remains Task 14.
+- Typed internal contracts.CrashRequest lets Sync report a before/after fault without importing kernel or widening Ports. Dispatcher consumes it before completion, cancels the real blocked caller and performs ordinary crash cleanup. Root sync faults end the run through root-last Close. Default zero fault probability consumes no fault stream.
+- Mapping references keep unlinked inodes alive through descriptor close, unmap drops that reference, and Detach releases remaining mappings in creation order. Duplicate mkdir/exclusive-open now produce modeled EEXIST instead of generic errors. Unsupported arguments and negative/overflowing offsets fail explicitly.
+- Capabilities inventory covers all 26 audited storage syscall names, plus fstatat/chdir/getcwd. Locks and advice remain labeled stubs; permissions/procfs routes remain missing; mappings retain the read-only/shared/zero-offset/16 MiB limit. Directory iteration and full-mapping unmap limitations are stated explicitly.
+
+Verified
+- Provider tests cover offsets and positional independence, copied write buffers, file-versus-directory durability, version-neutral stat fields, directory records, rename/unlink/open-file lifetime, permissions/flag limitations, wrong descriptor ownership, failed-open cleanup, repeated close reasons, mapping updates/unlinked lifetime/epoch cleanup, and all audited capability names.
+- Real application invocations traverse the kernel dispatcher for file/path/directory/stat/allocation/locking/mapping/advice operations. Real Sync faults before and after durability preserve the expected recovered bytes, never resume the canceled caller, and never execute application defers. Root faults terminate the run and drain all invocation ownership.
+- Malformed callable/extra payloads, invalid booleans and disabled filesystem calls abort explicitly. The race detector identified a test's unsynchronized fd handoff; it was fixed with an ordinary simulated channel, preserving the syscall transport's intentional absence of application happens-before edges.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task9-gate.log`. Focused race tests passed: `.gosim/task9-focused.log`. Production import audit confirms fs imports only contracts, its model and native ABI among Gosim packages; no network/kernel implementation import.
+
+Notes / migration ledger
+- Removed ops_pending.go and its Task 9 unfinished-method marker. The remaining manual decoder marker is owned by Task 14. Existing LinuxOS source remains only for the authorized intermediate full-suite entry path until Tasks 22/28; normal optional composition is not yet selected.
+- CrashRequest is an implementation-local typed outcome through the already prescribed error return; it is never serialized as errno or exposed as a public control API. No target architecture or public signature was changed.
+- Final Task 9 size: 1,481 changed lines (1,369 additions + 112 deletions), including checklist/log; staged whitespace check passed.
+
+## Task 10 — Network model ownership, epochs and directed links
+Date: 2026-10-19. Previous task commit: `26cf5b8`. Commit: the Task 10 implementation commit containing this entry.
+
+Implemented
+- Moved internal/simulation/network to internal/net/model, renamed its package to model, updated callers and syscall generator, and regenerated wrappers. Exact injected Network/Stack constructors and ReserveAddress/AbortReservation/Attach/Detach/ProcessIncoming/Shutdown APIs replace direct runtime dependencies.
+- Deterministic staged IPv4 allocation, checked monotonic reservation/connection IDs, duplicate-owner and address collision guards, abort rollback, persistent restart identity, explicit address destruction, and stale-detach guards. Staging emits no events and consumes no random values.
+- Independent ordered link states and queue invalidation; Both updates both edges, Forward only its selected edge. Explicit connectivity remains separate from traffic-triggered random loss. Preserved failure/repair draw order, exponential sampling/quantization, arrival floors and sequence ordering. Complete policies copy groups; legacy field updates validate both directions before committing or tracing.
+- Owner-serialized heap delivery and stream timers through injected Events/Clock, generation-checked cancellation, destination epoch admission, connection generations and handshake tombstones. Removed model mutexes, pools, timer goroutines, package randomness and native trace calls. Readiness uses contracts.ReadinessSink.
+- Quiesce retires timers/readiness and incoming packets, rearms unrelated queued destinations, and forbids application work. Graceful cleanup emits immutable close packets against surviving destination epochs; crash emits none. Cleanup sorts final close notifications by connection generation, drains the entire listener backlog, and releases buffers/maps.
+- Temporary current-simulation ports forward timer callbacks through the existing syscall dispatcher; legacy polling adapts to ReadinessSink. Both carry Task 22 removal markers. Trace ports carry copied strings with named fractional policy fields. Original plan and target layout remain unchanged.
+
+Verified
+- Focused race tests passed: `.gosim/task10-focused.log`. Tests cover reservations/rollback/restart/destroy, no staging events/randomness, duplicate reservations, connection/port reuse, stale source/destination epochs, stale handshakes/callbacks/detach, graceful close after source cancellation, crash silence, queue rearming, backlog cleanup, circular-buffer wrap/window backpressure, poll notification/retirement, directed/symmetric policies, atomic invalid updates, and random-domain independence.
+- Preserved fault probability/latency vectors and queue ordering/reference-retention coverage with injected deterministic events. Replaced old one-way rejection tests with directed mutation/isolation assertions and updated existing simulation callers.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including formatting, CLI/translation artifacts, all ordinary suites and all race suites: `.gosim/task10-gate.log`. Network tracing still preserves fractional fields, excludes payloads, and reproduces checksums/logs on replay.
+- Import audit: model's only Gosim production imports are internal/contracts and rt/runtime/abi; no fs/provider/kernel implementation or native runtime dependency. Generator output is current; staged whitespace check passed.
+
+Notes / migration ledger
+- The first full gate found exact logging IDs shifted by removal of the network goroutine and the old trace JSON structure no longer matched the string-field port. Updated those assertions without dropping coverage; documented the log diff and backlog fix in NOT PLANNED CHANGES.
+- Final review added duplicate-owner reservation rejection, quiescence on detach, and validation-before-tracing for symmetric updates. A transient syntax error in that edit was fixed before rerunning the final passing focused/full gates.
+- New provider/session/socket/control ownership is Task 11; current-simulation adapters remain only until Task 22. No compatibility tuple is certified by this development-toolchain gate.
+- Final Task 10 size: 2,792 changed lines (1,858 additions + 934 deletions) with rename detection, including checklist/log.
+
+## Task 11 — Network provider, socket capabilities and kernel controls
+Date: 2026-10-19. Previous task commit: `a329b8b`. Commit: the Task 11 implementation commit containing this entry.
+
+Implemented
+- Network Provider/Session/Prepared/Instance lifecycle with staged address/stack publication, stable session configuration, abort rollback, restart identity, deterministic cleanup and active-epoch-only SocketOps. Kernel remains unaware of the concrete network/model.
+- Socket/Bind/Listen/Accept/Connect/address/options/fcntl services on the shared descriptor table. Socket implements owned Resource/Readable/Writable/Pollable; failed allocation/accept disposes untransferred resources, release is once-only and retains its reason, graceful/explicit close notifies peers, crash/abort are silent.
+- Readiness bridges carry socket binding generation and epoch, map notifications to the actual fd, retire subscriptions on unsubscribe/close/quiesce, and preserve polling registered before connect/listen. Model listener finalization permits bounded cleanup after quiescence without duplicating its backlog algorithm.
+- Exact NetControl values/methods with complete validation/copy semantics, before-first-start address configuration, retained addresses across stop/restart, directional policy/reset/connectivity and kernel run/state/caller guards. Added explicit manual typed network syscall routes until Task 14's generator.
+- Capability evidence explicitly states IPv4-only protocol-0 TCP/nonblocking flags, fixed listen backlog, unsupported ephemeral listeners/client binds, bounded known option stubs, SO_ERROR-only reads, ENOSYS fcntl, and existing closed-read EPIPE semantics. Unknown options/families/protocols fail; no host fallback. Listener addresses report their real bound port, and SO_ERROR payloads encode Linux constants.
+
+Verified
+- Real kernel/engine provider tests cover reservations/preparation/abort/collision/retry, before-start and cross-run/stale-epoch controls, duplicate cleanup, descriptor allocation/accept failure, nonblocking data flow, peer addresses/options/unsupported arguments, readiness retirement, deadline replacement, graceful versus crash peer outcomes, and endpoint tuple reuse after restart without connection reuse.
+- Real application calls traverse the dispatcher for socket creation/bind/listen/connect/accept/options/address/read/write/fcntl/close and polling. Pending connection/data waits and deadlines wake real blocked callers; malformed payloads and disabled net calls fail the run. Closed kernel retains no epochs, events, poll registrations or invocation leases.
+- Real FS-then-Net address collision aborts filesystem preparation without publication or dirty peer-disk flush. Comparing equivalent engine runs with/without failed preparation verifies filesystem, network and scheduler random streams are unchanged. An initial test incorrectly copied native scheduler-owned RNG memory; replaced that inspection with the native stream API, preserving the race oracle.
+- Focused race suites passed: `.gosim/task11-focused.log`. Final complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including all ordinary/race suites: `.gosim/task11-gate.log`. Production import audit shows net imports only contracts/model/native ABI among Gosim packages; no fs/kernel implementation dependency.
+- The gate exposed a pre-existing metatest stderr lifecycle race. Added last-test-owner cleanup, serialized protocol access, bounded worker reaping and normal EOF shutdown. Ownership regression verifies a child owner cannot reap its parent's worker and the final owner waits for process/stderr completion. `TestScript/metatestlogs` passed three consecutive runs: `.gosim/task11-stderr-regression.log`. Read-only process audit found zero orphaned metatest workers in this checkout.
+
+Notes / migration ledger
+- Documented the metatest harness fix, actual bound address correction and listener finalization helper in NOT PLANNED CHANGES. Metatesting's build-identity replacement remains Task 23; its package-keyed cache is not final architecture. Existing simulated-use rejection coverage still passes.
+- Ordinary CLI integration still uses the authorized intermediate simulation path. Task 14 replaces manual routes; Task 22 connects public APIs and removes temporary adapters. No target document or compatibility certification was changed.
+- Final Task 11 size: 1,958 changed lines (1,913 additions + 45 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 12 — Native host ABI selection and Go 1.25 runtime hooks
+Date: 2026-10-19. Previous task commit: `14bc00c`. Commit: the Task 12 implementation commit containing this entry.
+
+Implemented
+- Added bounded go125/go126 native host packages and a stable hostabi facade for opaque coroutine handles, Start/Next/Yield/Finish, upcalls, all existing race operations and primitive HostIdentity. Engine imports now use the facade. Native coroutine cancellation still skips application defers; no blocking-channel fallback is reachable through the new facade.
+- Compile-time family selectors, race/norace implementations and named unsupported-family failure. Metadata remains inspectable across families; no executable opposite-family import. runtime.Version reports identity only and never chooses an implementation.
+- Added 96 Go 1.25 hook manifest records covering synchronization, atomics, time, maps, random and translated stdlib race hooks, plus real native Go 1.26 coroutine metadata. Actual private declarations and reviewed source-file hashes come from installed official go1.25.14/go1.26.9 distributions. Native race-only declarations have separate origin verification. No private runtime layout was copied; coroutine pointers stay opaque.
+- Profile descriptors return independent metadata, with 24 pending tuples per family and no result/source certification digests. Source fingerprints include executable adapters, shared facade/selection/spec code, ABI manifests, policy and origin files; tests and tuple evidence are excluded to avoid circular evidence identity. genprofile updates/checks only source revisions, never ABI expectations or certification.
+- New atomic AND/OR hooks return the previous value in both modes. Removed four obsolete sync symbols in favor of pinned-source internal/sync declarations. Added translated notify-list size validation. Old translator hook selection remains until Task 21; full Go 1.26 translated hooks remain Task 16.
+
+Verified
+- Exact go1.25.14 and go1.26.9 native runtime/facade/metadata suites passed in ordinary and race modes on darwin/arm64: `.gosim/task12/{native125,native126,race125,race126}.log`. Coroutine tests check yield/resume, repeated disposal, skipped defers and upcalls; an isolated intentional race verifies facade annotations remain effective.
+- Pinned-source verification passes for both Linux amd64/arm64 declaration selections. Wrong patch/family, absent private symbol, changed hook signature, modified GOROOT source and unsupported-release selectors fail explicitly. Fingerprint tests cover executable/policy/path changes and exclude tests, evidence and inactive-family source.
+- Go 1.25 hook tests cover semaphore/notification ordering, wrong notify layout, virtual timer stop/reset/periodicity/Sleep, independent map clone, random replay and atomic results for all integer widths. Both exact toolchains' `go list ./...` skip inactive executable packages and retain metadata packages. Native import audit excludes old coro and opposite-family host code.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed, including CLI build, artifact preparation, all ordinary/race suites and script fixtures: `.gosim/task12-gate.log`. Source revision generator check and whitespace checks pass.
+
+Notes / migration ledger
+- Initial full gates exposed omitted embedded profile JSON in the script-test module copy and unflagged native metatest commands that previously selected the channel fallback. Fixed embedded-file copying/error handling and added required linkname flags to those fixtures; documented the diff in NOT PLANNED CHANGES. The final gate passes without a fallback.
+- No target architecture edits or new compatibility certification. Exact toolchain enforcement remains Task 24; this development gate is not evidence for adding go1.26.0 to the supported matrix. Old coro/race packages remain for their other legacy consumers until Task 29.
+- Final Task 12 size: 3,604 changed lines (3,528 additions + 76 deletions), including checklist/log; staged whitespace check passed.
+- Final boundary review corrected new translated hooks to call primitive race bridges in the public rt/runtime package. Only original runtime code imports internal/hostabi; the new hook import test enforces this external-module boundary. No translated reflect/type value passes into the native race bridge. Re-ran both exact families' ordinary/race suites and the full development gate successfully after the correction.
+- Regenerating unchanged revision files during an intermediate gate invalidated its mtime-based prebuilts. genprofile now preserves unchanged file mtimes; regenerated artifacts and the subsequent complete gate pass. The corrected Task 12 commit includes this bridge and generator fix.
+- Corrected final Task 12 size: 3,673 changed lines (3,597 additions + 76 deletions); staged whitespace check passed.
+
+
+## Task 13.1 — Versioned Go 1.25 shim surfaces and boundary checks
+Date: 2026-10-19. Previous task commit: `ce3c4cc`. Commit: the Task 13.1 implementation commit containing this entry.
+
+Implemented
+- Recorded numbered Task 13.1/13.2 children before implementation: 2,855 existing shim lines plus fixes/tests/source evidence and the policy audit would exceed the 5,000-line commit cap. Parent Task 13 remains incomplete until the policy child passes.
+- Copied all inventoried reflect/testing/synctest/maps/cryptorand shim files under bounded go125 tags, with no executable legacy/opposite-family imports. Native reflection/cache operations remain private inside the reflection bridge; context/time/os/testing values remain in translated packages. Original translator selection is unchanged.
+- Corrected reflected map missing-key invalid Values, invalid-value deletion, map Clear, iterator reset/current-entry checks, Seq/Seq2 and early termination, comparability, negative map size, and rejection of native map/channel crossings. Map struct-field access cannot expose the native implementation pointer. Added SliceAt and retained explicit unsupported channel/dynamic-map/private-reflect2 operations; no host channel scheduling fallback.
+- Updated testing.TB to Go 1.25's Context/Output/Attr/Chdir surface and corrected CoverMode's signature. Context cancellation precedes cleanup; output buffers incomplete lines; attributes validate keys/values. TempDir/Chdir/Setenv use translated os calls and restore state through cleanup, with parallel-test guards. Bench/fuzz/coverage execution remains explicitly unsupported; initialization/query responses match the simulation runner.
+- Completed deterministic crypto/rand Int/Prime/Text without native entropy or upstream optional nondeterministic byte consumption. Read errors invoke a new primitive native Abort diagnostic bridge and cannot be recovered by application code; sync throw/fatal uses the same fatal path. Internal synctest unbubbled association probes remain modeled; creating/waiting for bubbles rejects explicitly.
+- Added 200 exact upstream shim declarations, paired implementation-side signature validation, public reflect.Type/testing.TB interface checks, and upstream source-file hashes. Shim records remain separate from individual callable hooks because translation substitutes whole packages/type universes. Source fingerprints refreshed without certification changes.
+
+Verified
+- Exact go1.25.14 ordinary and race suites passed for all adapters/shims/native runtime: `.gosim/task13/ordinary125.log`, `.gosim/task13/focused125.log`. Source signatures, both public interface method sets and modified-signature rejection pass.
+- Reflection tests exercise modeled maps inside the real engine, iteration/early exit/reset, missing/deleted entries, nil maps, independent construction, clear/deep equality, wrapped ordinary values/functions/slices, and explicit native-container rejection. Random tests cover repeatable bytes/Int/Prime/Text, supplied-reader errors and bounds; an application-machine fatal Read cannot run recovery, deferred code or its continuation.
+- Testing helper tests cover context identity/cancellation-before-LIFO-cleanup, buffered output/attributes, environment/cwd restoration, temporary-directory cleanup and parallel guards. These helper tests invoke ordinary Go directly and do not claim translated fs routing. Internal synctest probes and explicit bubble rejection pass.
+- Initial fixture failures were test setup issues: missing positive engine timeout, Darwin temporary-path symlink spelling, and incorrectly using the supervisor (whose cleanup defers must run) for the application-fatal oracle. Corrected each fixture; final exact-patch runs pass without weakening the assertions.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed after the final changes: `.gosim/task13.1-gate.log`. Native engine/old translator semantics and all ordinary/race/script suites remain green. Source fingerprint check, import search and whitespace check pass.
+
+Notes / migration ledger
+- Documented native reflected deletion and primitive fatal-adapter bridge under NOT PLANNED CHANGES. Old shims remain only for the authorized intermediate translator path until cutover/removal tasks. Task 13.2 owns reviewed package modes, named initialization probes, module pins, rejection fixtures and completion of the parent task; Task 21 connects new composition.
+- Final Task 13.1 size: 4,188 changed lines (4,178 additions + 10 deletions), including child-task split/checklist/log; staged whitespace check passed.
+
+
+## Task 13.2 — Audited Go 1.25 package and initialization policies
+Date: 2026-10-19. Previous task commit: `53ed9ba`. Commit: the Task 13.2 implementation commit containing this entry.
+
+Implemented
+- Replaced new-profile skip assumptions with explicit translate/native-pure/bridge/reject policies, exact bridge symbol rewrites and trusted adapter-only native imports. Unknown standard-library packages fail review; unknown application packages stay translated. Context/time/net/io/errors/math/big retain translated identities. HTTP/gRPC/TLS/private reflect2/host entropy/native coroutine and native embed.FS boundaries reject explicitly. Corrected legacy comments that falsely claimed native networking remained intercepted; legacy selection itself remains only until Task 21.
+- Classified 26 source-backed init/first-use/operation probes. Narrow standard-fd F_GETFL and RLIMIT_NOFILE discovery contracts do not enable fs/net or grant general syscall success. DNS configuration/hosts access requires fs; IP capability probing is lazy and requires net. Process clone, native bubbles and unknown operations reject. Source hashes cover every probe's callsite/declaration evidence.
+- Added modeled single-processor runtime hooks and explicit finalizer/metric/pool-cleanup stub capability records. GOMAXPROCS above one aborts the application machine without recovery/deferred execution. Runtime hook source signatures come from pinned Go 1.25.14. Finalizer registration does not retain a host-GC callback.
+- Pinned x/sys v0.27.0 and reflect2 v1.0.1 with module and go.mod sums; verify selected graph, reject replacements, and hash extracted source contents. No dependency upgrade was necessary. Profile verification validates policy metadata; fingerprints include the new source/metadata and preserve pending certification status.
+
+Verified
+- Exact go1.25.14 ordinary/race adapter, shim, host facade and runtime suites pass: `.gosim/task13/policy-ordinary125.log`, `.gosim/task13/policy-race125.log`. Both architecture selections' upstream signatures remain verified by existing source checks.
+- Policy fixtures exercise minimal os/net/testing imports, exact symbol rewrites, source-comment native escapes, HTTP/gRPC/entropy rejection and all four feature sets' named probe contracts. These are policy/AST fixtures, not claims of completed generated-program execution; Task 21 activates the new path. Raw AST comments are required because CommentGroup.Text removes directive comments.
+- Module tests verify actual pinned repository dependencies and reject wrong versions, replacement modules, modified source, substituted go.mod, duplicate pins and missing source. Temporary tampering fixtures never modify the shared module cache.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed with ordinary/race/script suites: `.gosim/task13.2-gate.log`. Source revision generator check and whitespace check pass.
+
+Notes / migration ledger
+- Task 14 must implement the classified os initialization responses, machine-local argv/environment/debug callbacks and bounded diagnostic writes. net's IPv4 capability probe passes IPPROTO_TCP=6, whereas the new provider currently accepts only protocol 0; its adapter/provider boundary must reconcile this explicitly. IPv6 remains EAFNOSUPPORT. These are adapter work already assigned to Task 14, not successful runtime behavior claimed by policy metadata.
+- Later translation wiring must validate assembly/private hook requirements for translated math/big, hash and third-party packages rather than inherit broad legacy assembly exemptions. Native engine/ABI are explicit bridge islands; direct generated imports of internal/hostabi are rejected. No target edits or newly certified tuple.
+- Final Task 13.2 size: 1,417 changed lines (1,311 additions + 106 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 14.1 — Stable route inventory and reproducible generator
+Date: 2026-10-19. Previous task commit: `6dff8c1`. Commit: the Task 14.1 implementation commit containing this entry.
+
+Implemented
+- Recorded children 14.1/14.2/14.3 before implementation to keep generated transport/control/architecture changes within the 5,000-line cap. Original 892-line generator remains solely for the intermediate legacy ABI until Task 26, rather than rewriting live legacy output during the new-path construction.
+- Added a 69-route schema covering current syscalls, shared fd ownership, polling, lifecycle, every FSControl/NetControl method, runtime timeout and run information. Explicit IDs preserve all 43 existing temporary route numbers. Legacy names have migration dispositions, not accepted aliases: partial-disk restart and auto-boot recovery become the target's separate controls/snapshots.
+- Added cmd/gosim-gen and host routegen GenerateProfile with required exact toolchain/family/architecture/output inputs. Before writing, it verifies actual pinned Go executable/source declarations and selected module contents, renders all outputs, then writes atomically per file. Unchanged files keep their mtimes. Only requested architecture records and common architecture-neutral transport are written; other families/architectures are untouched.
+- Generated stable route constants and typed request/result codecs in kernel. Exact payload types, empty legacy scalar slots, empty extra argument slots and typed responses are checked. Generic callbacks/pointers/any are rejected by the schema; only Create/SetMain accept the prescribed Main func(). Runtime contracts remain translated; generated source imports no concrete providers or host metadata.
+- Generated amd64 source/provenance record includes transport and manifest digests, exact source-origin digest and external module pins; embedded for script-module copying and included in adapter fingerprints. The record explicitly says transport-schema, not completed adapters or certification. Child 14.2 wires typed payloads; child 14.3 generates selected Linux layouts/wrappers.
+
+Verified
+- Inventory audit checks both existing generated syscall interfaces, manual Sys* methods and every fs/net control interface method. Stable original IDs, malformed/duplicate schema/field/callback rejection, trailing/unknown JSON rejection, current-output comparison and scoped/repeated generation checks pass.
+- Typed payload/result tests reject wrong route types, pointer instead of value payload, arbitrary callback, unused scalar/argument slots, missing payload, unknown route and mixed errno/result forms. Request value copies and representative fd/poll/fs/net/lifecycle/runtime payloads pass. Existing live kernel dispatcher semantics remain covered until the next child replaces the decoders.
+- Exact go1.25.14 ordinary/race generator, kernel and compatibility suites passed: `.gosim/task14/schema-ordinary125.log`, `.gosim/task14/schema-race125.log`.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task14.1-gate.log`. Source revision check and whitespace check pass. No architecture-native adapter execution is claimed by this transport-schema step.
+- Final Task 14.1 size: 2,530 changed lines (2,479 additions + 51 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 14.2 — Generated dispatch and per-run control transport
+Date: 2026-10-19. Previous task commit: `fd98a6b`. Commit: the Task 14.2 implementation commit containing this entry.
+
+Implemented
+- Replaced temporary core/fs/net decoders with generated dispatch for all 69 typed routes. Inputs/results use the same manifest as codecs; scalar/extra slots are rejected. Filesystem and socket methods resolve guarded typed services; lock views copy neutral Lock values in/out, and unknown/non-errno syscall errors remain fatal invariants.
+- Added all lifecycle/fs/net/runtime control routes, including epoch-capturing machine waits, non-returning root/child self-exit, retained recovery handles and separate run checks for restored snapshots. Pending poll and machine completions now return their generated result types. Crash-on-sync still cancels the invocation without waking the caller.
+- Added internal/control CurrentRef/Submit/Bind. Supervisor-only installation occurs before root startup; transport replaces caller-supplied context with the current run/epoch and relies on dispatcher admission. Teardown releases the binding, subsequent runs get fresh identities, and application rebinding cannot mutate it. No provider imports or supplied trampoline.
+- Added reviewed SharedGlobals metadata for the single translated control binding only. Task 21 will apply this selected-profile record during actual translation; the binding is not stored in native engine state. Existing translator selection remains unchanged until the planned cutover.
+- Added copied run information, kernel label/state lookups, and real virtual timeout replacement. Engine owns/resets/releases its timeout timer; invalid/overflow deadlines fail without changing the active deadline. Composition will supply runtime revision and certification metadata with the existing identity.
+
+Verified
+- Existing kernel filesystem/network/race/wait/cancellation tests now construct generated typed requests and decode typed results; previous assertions remain. No test-only production compatibility decoder was retained. The intentionally racing child fixture was also moved to the new Getpid payload.
+- Control tests exercise create/configure/start/stop/crash/restart/set-main/wait/destroy, every fs/net control route, retained snapshots, wrong-run/stale handles, context stamping, run-info copy isolation, failed application rebind, cleanup and repeated runs. Root and child self-exit skip caller defers/continuations; child exit preserves its controller. Ignored errors/recovery cannot evade disabled-feature, forged-payload or unknown-route aborts.
+- Focused development race suite passes, including the application-race oracle. Initial races identified instrumented envelope validation, compiler-generated array comparison and copied run-info backing arrays, plus a native upcall result variable. Used bounded metadata-only norace handling, scalar iteration and kernel-owned copy construction; application memory views and the oracle remain instrumented. The virtual timeout test verifies extension beyond the original deadline, rejection of invalid resets and a shorter subsequent deadline.
+- Exact go1.25.14 ordinary/race transport, kernel, runtime, generator and compatibility suites passed: `.gosim/task14/transport-ordinary125.log`, `.gosim/task14/transport-race125.log`. Repeated generation/source checks pass.
+- Complete `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed with ordinary/race/script suites: `.gosim/task14.2-gate.log`. No target architecture edits or new certification. Child 14.3 still owns Linux adapter layouts and initialization responses.
+- Final Task 14.2 size: 2,111 changed lines (1,592 additions + 519 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 14.3.1 — Go 1.25 initialization and adapter transport foundation
+Date: 2026-10-19. Previous task commit: `3aa84b2`. Commit: the Task 14.3.1 implementation commit containing this entry.
+
+Implemented
+- Split 14.3 into buildable children before implementation to keep each commit below 5,000 changed lines. Added version-owned process/environment/debug/poll adapters and exact upstream hook/source/capability records. Process state is translated and machine-local; boot configuration and isolation become reachable through composition in Task 21. Current build debug defaults are empty; no host argv/environment/debug state is inherited.
+- Added stable route 70 Require, used before optional-domain pointer marshalling/local validation. It validates the feature value and uses existing checked control transport; no new central entry point or provider import. Standard live descriptors accept only F_GETFL with zero argument, returning modeled access flags. Net sockets accept explicit TCP protocol 6 as well as 0; IPv6 and UDP remain unsupported.
+- Poll hooks use actual uintptr handle signatures from pinned Go 1.25.14, with no heap pointer disguised as an integer. Checked integer kernel registrations cover wait/reset/deadline/unblock/close; nonpollable open maps to EPERM and invalid descriptors preserve EBADF. Debug callbacks receive real local updates, diagnostic writes use kernel descriptors, and metric registration retains no callback.
+
+Verified
+- Exact go1.25.14 ordinary adapter/source/generator tests pass: `.gosim/task14/init-tests.log`; affected ordinary control/kernel/net suites passed during iteration. Exact-patch race suites pass: `.gosim/task14/init-race.log`, including existing application race oracles.
+- Static Linux amd64 Go 1.25.14 adapter test binary executed successfully via Docker Desktop emulation: `.gosim/task14/init-amd64.log`. This proves the process/poll/kernel adapter probes, not the pending architecture-specific syscall wrappers, translated composition, or certification matrix. Colima context remains unavailable; final matrix still belongs to Task 32.
+- Ordinary native tests share the process global that translation will isolate. Aborted fixture coroutines skip defers; explicit test-only race acquire/release publishes reset state across sequential runs. Production process state retains race instrumentation. Source-origin updates preserve native private-declaration verification records.
+- Complete development `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task14.3.1-gate.log`. Regeneration, source fingerprint check, formatting and whitespace checks pass. Child 14.3.2 retains the full amd64 layout/wrapper/init-resource-limit requirements; no parent completion or certification claimed.
+- Final Task 14.3.1 size: 728 changed lines (718 additions + 10 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 14.3.2 — Complete Go 1.25 amd64 syscall adapters
+Date: 2026-10-19. Previous task commit: `197eaca`. Commit: the Task 14.3.2 implementation commit containing this entry. Completes Tasks 14.3 and 14.
+
+Implemented
+- Generate 93 explicit syscall/x/sys/internal-unix wrappers across kernel/fs/net from selected Go 1.25.14 and pinned x/sys declarations. Expected hook signatures remain reviewed profile inputs; generation does not silently update expectations. Complete legacy generated-wrapper coverage is independently checked until Task 26 removes those files.
+- Generate both standard-library and x/sys Linux record layouts and reviewed syscall numbers. Struct spelling, scalar widths, padding, pointer-free layout and required declarations are checked before output. Linux getrandom's number comes from internal/syscall/unix because the frozen syscall package lacks SYS_GETRANDOM. Output records now identify typed-adapters and include the architecture-specific adapter digest.
+- Marshal neutral stat/lock/address records, bounded socket lengths, network-byte-order ports, diagnostic uname fields and typed borrowed byte views. Optional-domain gates precede pointer reads/local validation; integer fcntl rejects pointer commands and pointer locks accept only the reviewed POSIX commands. Raw calls reject, even for a known number, with no native syscall fallback. RLIMIT_NOFILE returns ENOSYS without touching output; other resources reject.
+- Capability records identify inherited lock/advice/socket-option stubs and limited semantics. GETLK intentionally preserves the existing no-op lock record; it does not invent lock ownership or unlock results. Undersized IPv4 output buffers explicitly return EINVAL before descriptor mutation. New adapter packages contain no concrete provider imports.
+
+Verified
+- Exact go1.25.14 ordinary/race host compatibility, source, generator, kernel/control/provider suites pass: `.gosim/task14/adapters-ordinary125.log`, `.gosim/task14/adapters-race125.log`. Missing declarations, mutated pointer layouts, changed syscall numbers/signatures, provider imports and missing first-operation feature gates are rejected. Complete generation is byte-identical, preserves unchanged mtimes and leaves unselected family/architecture outputs alone.
+- Linux amd64 ordinary probes pass through Docker Desktop emulation: `.gosim/task14/amd64-execution.log`. Exact `go version go1.25.14 linux/amd64` race probes pass in the requested amd64 golang:1.25.14-bookworm container: `.gosim/task14/amd64-race.log`. Tests use actual syscall/x/sys stat and flock pointer types through ABI linknames, file operations/mapping/dirents, TCP bind/connect/accept/address/options, resource discovery, nil/length errors and disabled/raw fatal boundaries.
+- Borrowed-memory race oracle detects the intentional application store versus adapter read. Its initial stack assertion assumed an uninlined wrapper name; the runtime reports racereadrange at the caller after inlining. The assertion now requires that range read and the application writer, preserving the actual race requirement. No production race suppression was added.
+- Complete development `GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task14.3.2-gate.log`. Formatting, source revision and whitespace checks pass. These are adapter executions, not yet translated-program wiring or certification; Task 21 wires composition, Task 32 owns the required Colima/host matrix. Target architecture unchanged.
+- Final Task 14.3.2 size: 3204 changed lines (3180 additions + 24 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 15 — Go 1.25 arm64 adapters and native Darwin layout verification
+Date: 2026-10-19. Previous task commit: `2ced221`. Commit: the Task 15 implementation commit containing this entry.
+
+Implemented
+- Added separately source-derived Linux arm64 layouts and kernel/fs/net wrappers, retaining identical logical hook/capability sets across architectures. Verify the complete arm64 source declarations, field widths and syscall numbers; Go's FSTATAT and x/sys NEWFSTATAT both name arm64 syscall 79. Stat.nlink narrowing explicitly aborts on overflow before output writes. Source-origin/fingerprint and architecture adapter records include the new outputs.
+- Shared the existing Linux ABI probes across amd64/arm64, preserving actual syscall/x/sys pointer-type linkname tests and the application-memory race oracle. Added arm64 maximum/overflow and negative timestamp marshalling tests, executed on Darwin as well as Linux. No copied Darwin syscall layout or provider import enters the adapters.
+- Added a native Darwin probe that reads generated Linux arm64 layout source, applies the existing translator's build-constraint/filename rewrites and compiles/executes it with exact go1.25.14 on Darwin arm64. This verifies that source-selection boundary; complete new-path translation/composition remains Task 21.
+
+Verified
+- Exact Go 1.25.14 Linux arm64 ordinary/race adapter executions pass through Docker Desktop: `.gosim/task15-linux-ordinary.log`, `.gosim/task15-linux-race.log`; container reports `go version go1.25.14 linux/arm64`. Darwin ordinary compatibility suites pass in `.gosim/task15-host-ordinary.log`; affected race/ABI/generator/native-compilation probes pass in `.gosim/task15-host-race-retry.log`. Both hook/shim package sets compile with required linkname flags.
+- Architecture parity, changed-arm64-layout/number rejection, complete generated-output checking and arm64-only repeatability/scoping pass. `.gosim/task15-scope.log` verifies arm64 generation preserves existing amd64/common bytes and unchanged mtimes. The common gate also runs these generator checks.
+- First host race attempt exhausted the internal disk's temporary storage. Its empty temporary build directories had already been removed by Go. Redirected this task's TMPDIR and GOCACHE into `.gosim/host-tmp` and `.gosim/host-go-build` on the workspace volume; no user files/shared cache were deleted and no permanent environment setting changed.
+- The subsequent full rebuild exposed a pre-existing legacy translator cold-cache bug: synthetic package.test import paths were requested as real packages. Fixed uncached reload selection to use classifyPackage's base path; recorded the small diff under NOT PLANNED CHANGES. The complete ordinary/race/script/translation rebuild then passed: `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1`, `.gosim/task15-gate-retry.log`. Do not reuse the failed first-attempt logs as evidence.
+- Source fingerprint, formatting and whitespace checks pass. No target architecture changes or certification promotion; final Colima/host matrix remains Task 32.
+- Final Task 15 size: 1618 changed lines (1551 additions + 67 deletions), with rename detection and checklist/log included; staged whitespace check passed.
+
+
+## Task 16 — Go 1.26 runtime hooks and source policies
+Date: 2026-10-19. Previous task commit: `e3da8a7`. Commit: the Task 16 implementation commit containing this entry.
+
+Implemented
+- Added independently owned, bounded Go 1.26 synchronization/atomic/time/map/random/race hooks and runtime policy records. Verified 99 runtime hook declarations against exact go1.26.9 Linux amd64 and arm64 source, recording source hashes and native private declarations. All 24 Go 1.26 tuples remain pending; full shims/init audit and syscall adapters remain Tasks 17–19.
+- Recorded the actual runtime-hook signature delta: sync.runtime_StoreReluintptr returns uintptr in Go 1.25.14 and no result in Go 1.26.9. The other reviewed runtime hook signatures match. Timer/Ticker retain their channel/bool prefix; native layout tests check the prefix without copying native timer internals. Notify-list state remains the engine-owned translated replacement.
+- Corrected ReadObjectPC/WriteObjectPC in both family adapters/facades: use one opaque native type pointer and forward to the selected runtime's pushed symbols, retaining composite range semantics. Both pinned versions already push those symbols; tests check source directives and runtime execution. Added missing Go 1.25 maps translation policy after comparing both exact source sets; recorded these incidental corrections in the plan.
+
+Verified
+- Exact go1.25.14 and go1.26.9 ordinary/race hook, shim (where implemented), native facade, engine and source-policy suites passed: `.gosim/task16/ordinary125.log`, `ordinary126.log`, `race125.log`, `race126.log`. New object read/write oracles detect races on the last array element through a separately declared single-pointer ABI. Store-result mutation, missing-symbol, unknown bridge/stdlib and unsupported-family rejection checks pass; family-owned executable imports remain isolated.
+- The first new family-ownership assertion incorrectly excluded the existing Go 1.25 native coroutine target; corrected it to require the owning family for both host and translated hook targets. Final logs above contain successful reruns. Native source origins, typed Go 1.25 generator output and adapter revisions are current.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task16-gate.log`, including ordinary, race, script and translation suites. Formatting and whitespace checks pass. No target architecture changes; this is adapter evidence, not the pending composition wiring or final certification matrix.
+- Final Task 16 size: 2,615 changed lines (2,575 additions + 40 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 17.1 — Go 1.26 shim surfaces and semantic deltas
+Date: 2026-10-19. Previous task commit: `9b6a991`. Commit: the Task 17.1 implementation commit containing this entry.
+
+Implemented
+- Split Task 17 before implementation into shim and policy/init children to retain reviewable commits below 5,000 changed lines. Added independently bounded Go 1.26 reflect/testing/maps/synctest/cryptorand sources, preserving wrapped native metadata boundaries, explicit unsupported operations and deterministic random streams.
+- Audited exact Go 1.26.9 shim declarations and source changes. Added Type.Fields/Methods/Ins/Outs and Value.Fields/Methods using wrapped indexed operations, preserving eager kind checks, bound methods and early termination. The native reflect implementation owns its changed internal type/map layouts; these are not copied across the boundary. Internal synctest source is unchanged between the pinned patches; its native bubble execution remains explicitly unsupported.
+- Added testing.ArtifactDir's default temporary-directory mode with per-test reuse, independent test directories and cleanup; TempDir honors translated GOTMPDIR. Persistent -test.artifacts output is outside the simulation runner's supported flag surface and will be recorded as a limited capability in 17.2, not silently described as implemented persistence.
+- Go 1.26 Prime now ignores the supplied reader by default and uses the deterministic application stream independently of mutable crypto/rand.Reader. Translated GODEBUG=cryptocustomrand=1 selects the supplied reader; the last setting wins. Int retains its supplied-reader behavior, Read retains fatal reader-error semantics, and no host entropy enters any shim. The new crypto/internal/rand and testing/cryptotest boundaries belong to 17.2's policy audit.
+
+Verified
+- Exact go1.26.9 and go1.25.14 ordinary/race shim, hook and source-manifest suites pass: `.gosim/task17/shims-ordinary126.log`, `shims-race126.log`, `shims-ordinary125.log`, `shims-race125.log`. Manifest verification checks the implementation and upstream signatures; reflected Type/testing.TB public interfaces match their pinned families. Invalid signature/native container, deterministic read/prime/text, iterator mutation/binding/early stop, artifact reuse/isolation/cleanup and custom-reader tests pass.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task17.1-gate.log`, including ordinary/race/script/translation suites. Go 1.25 sources and fingerprints are unchanged. Source revision, formatting and whitespace checks pass.
+- Parent Task 17 remains open for policy/init audit. No target architecture changes, composition activation or certification promotion.
+- Final Task 17.1 size: 4,316 changed lines (4,308 additions + 8 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 17.2 — Go 1.26 package and initialization policy audit
+Date: 2026-10-19. Previous task commit: `a5f43a1`. Commit: the Task 17.2 implementation commit containing this entry. Completes Task 17.
+
+Implemented
+- Added independently owned Go 1.26 package/bridge/native-import/probe/capability/module/shared-global records. Reused classifications only after comparing selected source and dependency changes. Exact compiler/native islands remain separate from application permissions; unknown stdlib and native symbols fail closed, and private native import permissions are exact owner/package pairs.
+- Audited Linux-selected dependencies of os/net/fmt/context/sync/time/random/hash/reflect/testing/maps and native pure helpers. No dependency in those roots lacks a recorded policy. Go 1.26 replaces internal/itoa and internal/runtime/strconv with translated internal/strconv; raw runtime syscalls move to rejected internal/runtime/syscall/linux. Native GC scan and pprof-label internals reject. Crypto moves entropy into versioned/FIPS packages and introduces crypto/internal/rand; the whole crypto/rand shim remains the sole supported entropy surface. testing/cryptotest.SetGlobalRandom explicitly rejects its process-wide native DRBG mutation.
+- Reviewed native-pure deltas: cmp and utf16 unchanged; math/bits and UTF-8 changes remain primitive computations; netip adds pure Prefix.Compare and replaces integer formatting without exposing handles/I/O. Reviewed unique cache change is diagnostic text only. Added exact-patch source hashes for these boundaries and named initialization probes.
+- Confirmed resource-limit, standard-fd, poll, debug registration and lazy network/resolver probe classifications. Added guarded ArtifactDir and lazy copy-file-range probe records, plus the new runtimeClearenv(map[string]int) operation. Task 18 now explicitly owns implementing this new Go 1.26 process hook; it must keep the environment map translated. Persistent artifact export, native crypto overrides, unsupported process handles and existing syscall stubs remain visible capabilities.
+
+Verified
+- Extended existing package/bridge/init/negative-fixture/native-import tests to both families. Go 1.26 delta tests verify new package rejection, integer-helper translation, clearenv classification, artifact fs gate, unknown symbols and exact native-import ownership. Probe records have pinned source evidence and modules match the reviewed dependency graph. Initial capability validation caught a duplicate Prime record; replaced the prior record with the reviewed Go 1.26 semantics before final verification.
+- Exact go1.25.14/go1.26.9 ordinary and race compatibility suites pass: `.gosim/task17/policy-ordinary125.log`, `policy-ordinary126.log`, `policy-race125.log`, `policy-race126.log`. Source and dependency audit outputs are retained under `.gosim/task17/`; no Go 1.25 source/fingerprint changes.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task17.2-gate.log`. Revision regeneration/check, formatting and whitespace checks pass. Adapter binding remains Task 18, full translated composition Task 21, certification Task 32; no target architecture changes or tuple promotion.
+- Final Task 17.2 size: 1,904 changed lines (1,392 additions + 512 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 18 — Go 1.26 amd64 syscall, process and poll adapters
+Date: 2026-10-19. Previous task commit: `566acc1`. Commit: the Task 18 implementation commit containing this entry.
+
+Implemented
+- Extended the host generator to select each family's metadata, source verification and bounded output independently. Generated Go 1.26 amd64 kernel/fs/net wrappers and Linux layouts from exact go1.26.9 plus pinned x/sys source. All 93 syscall declarations retain their reviewed signatures/layouts; the shared logical routes and neutral layout expectations are validated against the selected source, not assumed from the earlier patch. No executable cross-family import or provider import enters generated adapters.
+- Added family-owned process/poll/control bindings and the new syscall.runtimeClearenv(map[string]int) hook. The caller map remains in translated code and is not mutated; process/debug state is machine-local, host environment remains untouched, and GODEBUG notification occurs only when its key was cleared. Pinned Linux runtime source documents this new behavior. Source manifest, module pins and complete generated adapter/transport digests are current.
+- Retained first-operation optional-domain gates, neutral pointer marshalling, errno/capability classifications, explicit raw-call rejection, borrowed-memory annotations and actual uintptr poll handles. Added complete Linux amd64 probes with upstream stat/flock types through ABI linknames. Arm64 generation/output execution remains Task 19.
+
+Verified
+- Exact go1.26.9 ordinary/race host compatibility and generator suites pass: `.gosim/task18/ordinary126.log`, `race126.log`. Exact go1.25.14 compatibility/generator regression suite passes: `ordinary125.log`. Generation checks cover current outputs, signature mutation rejection, unchanged mtimes, other-family protection, absent unselected architecture, forbidden imports and feature gates before marshalling. Existing Go 1.25 generated bytes remain unchanged.
+- Linux amd64 ordinary/race adapter and runtime-hook tests passed with actual `go version go1.26.9 linux/amd64`: `.gosim/task18/linux-amd64.log`. Used Docker Desktop's existing golang:1.25.14-bookworm container OS/tooling with an explicitly mounted official Go 1.26.9 Linux amd64 toolchain and GOTOOLCHAIN=local. Docker server reports aarch64 (`docker-server-arch.log`); this is emulated execution. Full final matrix still requires Colima and its own exact image/evidence records.
+- Downloaded the selected Linux toolchain into workspace-local `.gosim/linux-toolchains` and used workspace build caches to avoid the nearly full internal disk. A direct module download stores tools without execute bits; first execution reported permission denied, then execute bits were set on this task-owned toolchain's bin/pkg-tool files, without changing source bytes. The final Linux log records the successful ordinary/race execution, including syscall-layout, filesystem/TCP, invalid/disabled/raw-call, poll/process and application-memory race oracles.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task18-gate.log`. Formatting, revision and whitespace checks pass. No target edits or compatibility promotion; new composition remains Task 21.
+- Final Task 18 size: 2,989 changed lines (2,950 additions + 39 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 19.1 — Go 1.26 arm64 generation and native host probes
+Date: 2026-10-19. Previous task commit: `d511a39`. Commit: the Task 19.1 implementation commit containing this entry.
+
+Implemented
+- Split Task 19 before implementation into arm64 execution and complete hook/shim inventory closure. Generated Go 1.26 arm64 layouts and kernel/fs/net adapters from the selected source; all four family/architecture outputs now have current-output checks. Shared Linux ABI tests across both Go 1.26 architectures; added native Darwin arm64 stat/number, timestamp and nlink-overflow probes.
+- Extended the Linux-source-to-native-Darwin compilation probe to both exact families using the real translator filename/build-constraint rewriting. It verifies Linux arm64 layout in each native Darwin executable; complete translated-program composition remains Task 21.
+- Fixed the legacy translation golden test's shared prebuilt fixture dependency after the exact Go 1.25 run exposed a missing-family host package in the extracted module. Each test now builds its own matching CLI with the test compiler, pins loader PATH/GOTOOLCHAIN and uses full repository source. Confirmed the shared extraction had go126/host and no go125/host. Recorded this incidental test isolation fix in the plan; no golden expectations or production runtime behavior changed.
+
+Verified
+- Exact go1.26.9 Linux arm64 ordinary/race adapter and runtime-hook execution passed: `.gosim/task19/linux-arm64.log`. Mounted the official Linux arm64 toolchain into the existing Debian Go 1.25 image with GOTOOLCHAIN=local, as in Task 18; actual executable reports go1.26.9 linux/arm64 on the aarch64 Docker Desktop server. This is native architecture execution within the VM, not Colima certification.
+- Darwin Go 1.26.9 ordinary and race compatibility, source, four-output generation, native ABI and layout checks passed: `.gosim/task19/host-ordinary126.log`, `host-126.log`. Go 1.25 compatibility/generation/host-ABI checks passed in `host-125.log`; that initial log's translator failure is not passing evidence. After fixture repair, exact Go 1.25 ordinary and Go 1.26 race translator suites passed with `-count=1`: `translate-125-retry.log`, `translate-126-retry.log`. Both include the two pinned native Darwin probes.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task19.1-gate.log`, with full ordinary/race/script/translation suites. Formatting, source revision and whitespace checks pass. Parent Task 19 remains open for declaration inventory closure; no target changes or compatibility promotion.
+- Final Task 19.1 size: 1,392 changed lines (1,311 additions + 81 deletions), with rename detection and checklist/log; staged whitespace check passed.
+
+
+## Task 19.2.1 — Complete computational and unsupported private hooks
+Date: 2026-10-19. Previous task commit: `31aa140`. Commit: the Task 19.2.1 implementation commit containing this entry.
+
+Implemented
+- Split inventory closure before implementation into remaining adapters and a durable declaration/route ledger. Added independently bounded family-owned byte/string helpers, translated ChaCha8 with explicit four-block interlacing/packing, and net's application-stream random hook. No production native bytes/strings or ChaCha assembly bridge is introduced. MakeNoZero's zeroed allocation is a named limited capability.
+- Added explicit non-recoverable rejection adapters for private CPU/function ABI, memory-equality ABI, process/fork/exec/thread/cgo and VDSO operations. They abort before inspecting pointers; CPU feature globals remain zero because native runtime CPU initialization is not translated application initialization. These wrappers preserve compilable stdlib bodies without host fallback or invented CPU features.
+- Added architecture-specific hook manifests and DescriptorForArch, preserving the target Profile/Hook schemas. Each family's common declarations plus selected amd64/arm64 declarations are verified against exact Linux-selected source. The private gettimeofday entry exists only on amd64 in syscall and pinned x/sys; arm64 continues through its rejected raw syscall. Updated source provenance and regenerated all four route records.
+- Removed native coro entries from both callable hook manifests; their signatures remain in native origin verification and hostabi ownership. The new architecture test prohibits any callable hook target outside the selected translated hooks tree.
+
+Verified
+- Exact go1.25.14/go1.26.9 ordinary and race compatibility/generator suites pass: `.gosim/task19/completion-125.log`, `completion-126.log`, `completion-race125.log`, `completion-race126.log`. Byte/string tests compare varied binary/UTF-8/empty/overlapping-prefix inputs with stdlib; ChaCha8 compares 64 seeds and six counters (including wraparound) with the selected native runtime. Tests verify application random-stream identity and every new fatal operation cannot return or recover.
+- Both exact families pass ordinary/race runtime and kernel hook execution on Linux amd64 and arm64: `completion-linux-amd64.log`, `completion-linux-arm64.log`. Existing Docker Desktop image/toolchain arrangement matches Tasks 18/19.1; amd64 is emulated, arm64 native within the VM, and Go 1.26 uses its explicit official mounted toolchain. These are adapter execution results, not Colima certification or completed translated composition.
+- Initial generation tests correctly reported stale route-origin digests after the added source provenance; regenerated both families before successful final tests. Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task19.2.1-gate.log`, including ordinary/race/script/translation suites. Revision check and whitespace check pass. No target edits or compatibility promotion; Task 19.2.2 remains open.
+- Final Task 19.2.1 size: 1,692 changed lines (1,627 additions + 65 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 19.2.2 — Complete declaration and route accounting
+Date: 2026-10-19. Previous task commit: `e30a842`. Commit: the Task 19.2.2 implementation commit containing this entry. Completes Tasks 19.2 and 19.
+
+Implemented
+- Added a durable 964-declaration hook/shim baseline ledger with immutable source paths/signatures and a checked digest. Dispositions: 592 hooks, 308 retained private/shim bindings, 44 package rejections, 12 target replacements and eight moved-hook records. Original go123/go125 and architecture copies remain individually accounted for. Tests expand both selected families and architectures and verify exact package/receiver/type ownership under Linux source constraints; they do not depend on legacy files or ignored brainstorm documents.
+- Verified old sync mutex declarations moved to internal/sync in both pinned families, and runtimeClearenv is absent in Go 1.25 but implemented in Go 1.26. Reviewed native ChaCha linkname and runtime-entry replacements, whole-package exclusions and architecture-only CPU/VDSO entries. Exact source inspection corrected the preliminary assumption that os.ignoreSIGSYS/restoreSIGSYS were obsolete: both still exist around pidfd probing, so added fatal kernel adapters and tests for both families.
+- Added named existing shim limitations: private reflect2 and StructOf rejection, no-bubble synctest probes, and testing init/coverage/verbosity behavior. Added bounded-family source-selection checks, target service-route ownership checks and dispatcher coverage for every recorded route. Existing generated ABI/layout/source/behavior tests remain in place.
+- Added the planned read-only generator check mode and corrected validation commands to actual explicit flag names. Tests cover unchanged mtimes, stale/missing outputs, failure preservation and explicit destination. No target changes or compatibility promotion; composition/public cutover and certification remain later tasks.
+
+Verified
+- Exact go1.25.14/go1.26.9 ordinary and race compatibility, four-output generation and hostabi suites pass: `.gosim/task19/ledger-125.log`, `ledger-126.log`, `ledger-race125.log`, `ledger-race126.log`. These include unsupported-family compilation rejection. Both pinned CLI `gosim-gen -toolchain=<patch> -profile=<family> -arches=amd64,arm64 -output=. -check` commands pass (`check125.log`, `check126.log`). Task 19.1 and 19.2.1 retain actual Linux amd64/arm64 and Darwin adapter execution evidence.
+- Initial full gate failed when macOS killed prebuilt ordinary metatest workers (`task19.2.2-gate.log`). codesign verified their bytes; launching a fresh byte-identical copy succeeded while the existing inode exited -9. Fixed legacy copy publication to create/chmod/copy/close/rename a fresh file, with regression checks for open-inode preservation, unchanged mtimes and failed-copy cleanup. Refreshed the two known-bad task-owned metatest artifacts without changing bytes.
+- First retry passed those tests but exposed the same stale-inode fault in the native race reference fixture (`task19.2.2-gate-retry.log`); its fresh identical copy also ran. Refreshed that fixture, then uncached TestRaceOriginal passed (`native-race-retry.log`). Expected simulated race reports were correctly classified by their outer harness; none were waived.
+- Final complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task19.2.2-gate-final.log`, including ordinary/race/script/translation suites. Source revision, formatting and whitespace checks pass. Incidental executable-copy fix and generator-command correction are recorded in the plan's NOT PLANNED CHANGES.
+- Final Task 19.2.2 size: 1,753 changed lines (1,733 additions + 20 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 20 — V2 translation cache and package-specific artifacts
+Date: 2026-10-19. Previous task commit: `8efa76d`. Commit: the Task 20 implementation commit containing this entry.
+
+Implemented
+- Added exact CacheEntryV2 and PackageSelector-based result serialization using gzip/gob. Keys include the gosim-translation-v2 namespace, canonical complete identity, package/test identity, selected CompiledGoFiles and non-Go/embed contents, module/replacement metadata and go.mod contents, and sorted dependency hashes, all length-delimited. Read failures return errors; no new-path log.Fatal. Decoding consumes the gzip checksum/footer and rejects trailing data, wrong format/digests and unsafe output paths. Corrupt entries produce a diagnostic, delete safely and become misses; old-format keys are not consulted.
+- Added DB.Delete and locked Cache.Delete, retaining immutable inserts and the sole unchanged STRICT SQLite table. Get/Put/Clean now compute the coarsened current hour per operation instead of retaining the construction hour; seven-day last-use retention remains unchanged.
+- Added canonical manifest records, content/identity/package-set verification and `.gosim/v2/<identity>/packages/<package-build-digest>/` directories. Binary/generated hashes, executable permissions and complete recorded file sets are checked. Candidate/certified identities and separate package names cannot collide. Paths reject traversal, file/directory conflicts, reserved manifest collisions and symlink escapes.
+- Added private process-unique staging, per-artifact OS file locks and validated atomic directory publication. Complete valid artifacts are immutable/reused; a failed build preserves the previous output. Corrupt outputs are replaced only after a new complete artifact validates, with rollback if publication fails. Different packages under one identity build independently. Filesystem I/O errors are surfaced rather than silently replacing unreadable output.
+- Kept the active v1 translator on explicitly named migration helpers until Task 21 connects immutable selection, cache and compiler artifacts. Mechanical PackageSelector changes include its legacy generator template, keeping regeneration coherent. No target edits, public cutover or compatibility promotion.
+
+Verified
+- Cache tests cover hits/misses, immutable insert, corrupt gzip/truncation/checksum/trailing/old-envelope/old-result data, wrong digests, unsafe output names, observable deletion/replacement, old-key isolation and SQLite I/O failures. Hash tests cover every identity field, candidate promotion, canonical order, length boundaries, selected source/non-Go/embed/go.mod content changes with unchanged mtimes, ignored unselected source, dependencies, module metadata and test-package identity.
+- Artifact tests verify manifests and hashes, unknown/trailing JSON rejection, independent package slots (including equal content), failed builder/invalid manifest preservation, corrupt-output repair, staging cleanup, executable permissions, traversal/parent/root/lock symlink rejection, twelve concurrent callers with one build, concurrent different-package builds and two real processes sharing one build lock. Database tests verify the unchanged sole STRICT table, hourly touches, seven-day cleanup, idempotent deletion and replacement.
+- Exact go1.25.14/go1.26.9 host ordinary/race suites for gosimtool, translator/cache and CLI pass: `.gosim/task20-125.log`, `task20-126.log`, `task20-race125.log`, `task20-race126.log`. Both pinned families also pass artifact/SQLite ordinary and race execution on Linux amd64 and arm64: `.gosim/task20/linux-amd64.log`, `linux-arm64.log`, using the existing Docker Desktop arrangement; amd64 is emulated, and this does not replace the final Colima matrix.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task20-gate.log`, with ordinary/race/script/translation suites. Formatting, revision and whitespace checks pass. The executable publication fix from Task 19 remained green.
+- Final Task 20 size: 1,856 changed lines (1,707 additions + 149 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 21.1 — Immutable profile policies and source boundaries
+Date: 2026-10-19. Previous task commit: `d7513d9`. Commit: the Task 21.1 implementation commit containing this entry.
+
+Implemented
+- Split Task 21 before implementation into four buildable children: policy validation, composition/Driver generation, translator/cache wiring, and real candidate execution. Retained every parent requirement and verification; the split keeps each implementation commit below the authorized 5,000-line cap. No target changes.
+- Added selected.Resolve against the compile-time family and architecture-specific descriptor. It reselects the declared tuple, checks the complete canonical Selection (including hook digest, providers and runtime packages), validates owned policy metadata and returns independent values. A supplied identity cannot switch executable adapter families.
+- Added Policies with owned selected hook targets, package/symbol replacements, explicit native bridges and shared control binding metadata. ValidateBoundary checks typed imports and symbol uses, including dot imports, method receivers and function values; rejects unsupported/native/cgo/retired/other-family boundaries, unauthorized notranslate directives, unreviewed native linknames and bodyless assembly entries. Concrete provider imports are restricted to the identity-specific generated composition path or their own implementation tree.
+- Standard-library references to exact reviewed fatal hooks remain compilable; application uses of rejected capabilities fail. Bodies replaced entirely by hooks are not treated as surviving native calls. Existing legacy execution remains active until the remaining Task 21 wiring and Task 22 cutover; this commit does not claim new-path execution or certification.
+
+Verified
+- Exact go1.25.14/go1.26.9 ordinary and race translator, selection and compatibility suites pass: `.gosim/task21.1-125.log`, `task21.1-126.log`, `task21.1-race125.log`, `task21.1-race126.log`. Tests cover all feature sets, both simulation architectures, altered selection/profile/patch/revision/digest/provider fields, metadata ownership, typed native boundary rejection, reviewed shim exemptions and provider dependency direction.
+- Initial focused tests exposed diagnostic expectations that were less specific than the existing named capability errors; corrected those expectations. Initial full compatibility checks correctly caught stale source fingerprints after changing selected metadata; regenerated both revisions before successful checks. No source ABI expectations or tuple evidence changed.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task21.1-gate.log`, including ordinary/race/script/translation suites. Formatting, source revision and whitespace checks pass. Parent Task 21 remains open.
+- Final Task 21.1 size: 732 changed lines (729 additions + 3 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 21.2 — Optional composition and generated Driver
+Date: 2026-10-19. Previous task commit: `ba59b31`. Commit: the Task 21.2 implementation commit containing this entry.
+
+Implemented
+- Added Generate/ValidateImports and GeneratedComposition. The host generator imports metadata only; rendered source includes selected hooks/shims and only enabled concrete provider constructors. Generation validates canonical selection before I/O, publishes one complete source file atomically/exclusively, reuses identical files without changing inode/mtime, and rejects changed source, extra Go files, symlinks or malformed output records.
+- Generated Driver checks the exact native HostIdentity, creates one Engine, opens kernel/providers inside its supervisor, binds control before published root initialization, delegates test entry to the selected shim, and closes kernel/control before Engine.Close. Preserved the existing ten-minute default timeout. Run identity/certification is stamped from selection, never promoted.
+- Added native engine ConfigureRun/RunResult capture and a primitive HostIdentity bridge. Runner inputs and outputs are copied; logs/checksums survive cleanup; trace flags are applied only under the single-run guard and restored afterward. Translated cleanup errors are formatted while the supervisor remains active.
+- Fixed resolved directory opening in the filesystem model after the generated probe found that `/` returned ENOENT through an empty filename lookup. Tests retain root/multiple/trailing slash directories, empty path rejection (including O_CREATE), and ENOTDIR for a regular file with a trailing slash. Recorded this incidental repair in the plan.
+
+Verified
+- Exact go1.25.14/go1.26.9 ordinary and race composition, engine and complete filesystem suites pass: `.gosim/task21.2-125.log`, `task21.2-126.log`, `task21.2-race125.log`, `task21.2-race126.log`. Generated temporary modules compile/run all four feature combinations with each pinned native compiler, including race builds. Probes cover binding before init, typed directory/socket operations, identity/features, repeated-seed checksums, disabled-feature non-return/non-recovery, abort cleanup, subsequent runs, invalid traces and mismatched native host rejection.
+- Actual generated native dependency graphs exclude each disabled provider/model. Generation tests cover ten concurrent callers, immutable identical reuse, forged provider selections, source/import tampering and unsafe output records. These native-input composition probes are explicitly not AST-translated execution; Task 21.4 retains that required proof.
+- Initial probe fixes included valid Linux nonblocking socket flags and a shared host observer counter changed to atomic after race checks caught accesses across aborted simulated runs. No engine/application race suppression was introduced. Capture tests also verify input/output ownership, state rejection, trace restoration and rejected nested engines leaving the active run unchanged.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task21.2-gate.log`, including ordinary/race/script/translation suites. Formatting, revision and whitespace checks pass; no target edits or certification promotion. Parent Task 21 remains open.
+- Final Task 21.2 size: 865 changed lines (862 additions + 3 deletions), including checklist/log; staged whitespace check passed.
+
+
+## Task 21.3 — Immutable translation inputs and v2 cache wiring
+Date: 2026-10-19. Previous task commit: `8803322`. Commit: the Task 21.3 implementation commit containing this entry.
+
+Implemented
+- Adopted exact BuildConfig/TranslateInput/TranslateOutput records and independently owned selection data. The new entry validates identity/selection/digest/worker, generates composition first, loads Linux sources with cgo disabled using the pinned executable, selects the reviewed graph, hashes actual selected files and content dependencies, and materializes v2 cached results into private staging. Caller errors and AST failures return errors instead of terminating the host.
+- Added explicit Go-command PATH binding because go/packages resolves `go` from the worker process PATH before applying Config.Env. The loader rejects an unbound worker, sets GOTOOLCHAIN=local, and uses read-only module loading. Generated input module files are atomically/exclusively published; framework requirements are merged before loading so Go cannot mutate shared go.mod. Existing regular go.sum additions are retained. Relative replacements become absolute, with version suffix handling for /vN and gopkg.in modules.
+- Threaded selected hooks, bridge rewrites, native-import permissions, shared globals, test Driver metadata and filename rewriting into AST transforms. Removed automatic SSA-derived map sharing on the new path; only selected explicit shared globals survive. Hook-only imports are excluded using surviving signatures/declarations, preserving rejection for remaining uses, dot/blank imports and application private ABI. Pushed translated linkname definitions can target packages absent from a reduced graph without importing them.
+- Isolated old CLI/viewer/full-suite calls as LegacyTranslate/LegacyBuildConfig/LegacyTranslateOutput until Task 22. Added a temporary native TestMainDriver entry that calls generated Driver directly; Task 22 removes the old Runtime entry, and Task 23 retains responsibility for the protocol-2 handshake. Actual candidate artifact compilation/execution remains Task 21.4.
+- New-path evidence exposed profile gaps: reflect's bytes/strings imports formed a cycle through errors, so replaced only the two tiny comparisons locally; reviewed slog/internal and slog/internal/buffer as translated state; selected math/big's supplied pure Go arithmetic using the owned math_big_pure_go source tag. Added deterministic empty simulated GOROOT and translated fatal AddCleanup/Cleanup.Stop adapters, retaining application AddCleanup rejection and never registering host GC callbacks. Regenerated family source revisions; no target edits or promotion.
+
+Verified
+- Exact go1.25.14/go1.26.9 ordinary and race suites for translator, gosimtool, buildcfg, compatibility, composition, runtime and CLI pass: `.gosim/task21.3-125.log`, `task21.3-126.log`, `task21.3-race125.log`, `task21.3-race126.log`. Pinned child workers exercise real AST translation, generated test Driver metadata, cache miss/hit byte equivalence and changed source content with unchanged mtime; race workers select race sources. Full translated binary execution remains explicitly required by 21.4.
+- Tests cover config ownership/forgery, unbound loader rejection, Linux/cgo-free environment, concurrent input publication/immutable reuse/failed replacement/symlinks, module paths, hook-exclusive versus surviving rejected dependencies, returned input errors, reflection byte equality, deterministic GOROOT and unrecoverable cleanup rejection. Existing typed boundary, artifact corruption, hook/layout/source and legacy translation tests remain green.
+- Complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` passed: `.gosim/task21.3-gate.log`, including ordinary/race/script/translation suites. Formatting, source revision and whitespace checks pass. Parent Task 21 remains open.
+- Final Task 21.3 size: 3,381 changed lines (2,534 additions + 847 deletions), including checklist/log, using conservative `git diff --cached --numstat -M`; staged whitespace check passed.
+
+
+## Task 21.4 — Execute translated candidate artifacts
+Date: 2026-10-19. Previous task commit: `3b5ec84`. Commit: the Task 21.4 implementation commit containing this entry (validation in progress).
+
+Implemented
+- Added internal candidate Resolve/Build/Run. Resolve checks the exact worker, real official distribution fingerprint, pending tuple, immutable selection and hook signatures. Build translates Linux-selected sources, audits the native compiler's full dependency graph, compiles with the exact native toolchain/linkname flags, and publishes/reuses validated package manifests through Task 20's artifact builder. Run verifies stored bytes and returned build/replay identities, supports repeated requests in one owned/reaped process, and rejects certified identities. The temporary request protocol retains its explicit Task 23 replacement marker.
+- Real translated execution exposed an import cycle through the large runtime hook package. Moved direct runtime/race bridge implementations into each family's translated leaf `shims/runtimebridge`; reviewed hook entrypoints remain in `hooks/rt` and delegate to that leaf. Updated selected rewrites and source fingerprints without introducing another native island.
+- Hook inspection now uses a private copy of the caller's module requirements/replacements, preserving relative overrides as absolute paths and leaving application go.mod untouched. Errors include Go diagnostics and cleanup failures. Selected graph validation accepts empty test-only base packages, uses canonical vendored package paths, and recognizes surviving selected translated linkname definitions such as os -> net.newUnixFile; native and hook-removed bodies cannot supply definitions.
+- Corrected the remaining legacy globals-collector sharing heuristic on the new path. Task 21.3 removed SSA map sharing, but actual context.Canceled execution showed that initializer-shape inference still shared errors.New values; selected metadata is now the sole source of shared globals. Constant array len/cap expressions retain their type-checked values. Embedded string/byte contents are resolved only from hashed loader-selected files and initialized before dependent expressions on every boot, with fresh mutable byte storage.
+- Added composition-owned machine initialization before each published root/child/restart boot. It configures copied process state before translated package initialization. Supervisor globals have a separate allocation and lazy initialization limited to composition's dependency closure; application/test initializers are forbidden there. Native event callbacks use the same supervisor storage. Initialization transitions use the existing native upcall path, and a small uninstrumented metadata accessor leaves application-memory instrumentation intact. Supervisor callback randomness uses machine ID zero, distinct from application machines. Close releases initialization state/callbacks; invariant failures now retain a native stack.
+- Changed domain sentinels to comparable values so returned errors retain errors.Is identity across isolated supervisor/application globals. Filesystem stat handling now preserves syscall errno (including ENOTDIR) without evaluating os globals on the supervisor. Network backlog probing returns the model's existing five-entry accept capacity, guarded by net, instead of reading procfs. Driver process defaults include TZ=UTC when unset so normal logs do not require fs; explicit TZ values remain intact. Added source/probe/capability records for both families.
+
+Verified so far
+- Exact go1.25.14/go1.26.9 ordinary and race affected-package suites pass: `.gosim/task21.4-125.log`, `task21.4-126.log`, `task21.4-race125.log`, `task21.4-race126.log`. These cover compatibility ownership/signatures/revisions, composition, translator, contracts, kernel, both providers/models and native runtime. A native-only composition fixture needed synchronization around its shared process setup; its generated fixture alone gets that adaptation. Actual translated candidate source is unchanged and tests real isolation.
+- Both exact families pass all four ordinary candidate combinations in `.gosim/task21.4-candidate.log`: real channel/map/context/time behavior, os filesystem I/O, TCP echo, embedded initialization, child startup/restart/global isolation, environment propagation, cache reuse preserving binary inode/mtime, wrong-run error comparison, and same-process checksum replay after disabled-feature aborts and expected test failures. Original content dependencies and compiled translated graphs exclude disabled providers; disabled operations go through real os/net APIs and cannot recover or unwind application defers.
+- Both exact families passed all four race candidate combinations before the final logging/default-timezone additions (`.gosim/task21.4-candidate-race.log`). The full common gate is now rerunning the final ordinary/race candidate suites and all legacy integration/script/race tests: `.gosim/task21.4-gate.log`. Completion requires its actual successful exit.
+- Initial real probes corrected fixture assumptions about loopback and ephemeral listening ports: use the provider-assigned IPv4 address and explicit port 8080, preserving existing unsupported behavior. Race probes caught transition-counter and native metadata accesses, which were fixed without suppressing application races. A cache-reuse failure correctly detected a test-source edit during validation; subsequent runs freeze all source, including tests. No target architecture edits or compatibility promotion.
+
+Validation follow-up
+- The first full gate passed final candidate race execution (both exact families/all features, 382.8s), native/translated compatibility and composition tests, and existing behavior/race/script suites. It failed only `internal/routegen` freshness checks: the newly verified net/time source files changed origin digests in four route records. Regenerated both architecture outputs with the exact family generators, then regenerated profile revisions. No syscall route or adapter behavior changed in that regeneration. The complete gate must still be rerun successfully.
+
+Completion
+- Both exact families pass ordinary/race route-generator suites after regeneration: `.gosim/task21.4-routegen125.log`, `task21.4-routegen126.log`, `task21.4-routegen-race125.log`, `task21.4-routegen-race126.log`. Corrected the generator test's assumption that every net-owned hook is generated: generated syscall wrappers retain their first-gate assertions, and the handwritten backlog adapter has an explicit equivalent check in both families.
+- Final complete development `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` exited successfully: `.gosim/task21.4-gate-final.log`. Final-source candidate execution passes ordinary and race under both exact families/all four features, alongside the complete existing behavior/race/script/native/translation suites. Formatting, source-revision freshness and staged whitespace checks pass. The module cache location changed externally during validation and required fresh downloads; all final commands completed successfully.
+- Task 21 and child 21.4 are complete. Public API/live integration cutover remains Task 22; protocol-2 prebuilt ownership remains Task 23. No source promotion or final certification is claimed.
+- Final Task 21.4 size: 2,029 changed lines (1,795 additions + 234 deletions), including checklist/log, using rename-aware `git diff --cached --numstat -M`; staged whitespace check passed.
+
+## Task 22.1 — Prepare package-specific artifact discovery
+Date: 2026-10-19. Previous task commit: `1ffab58`. Validation in progress.
+
+Implemented
+- Recorded Tasks 22.1/22.2 before implementation to keep the public API/caller/live-path cutover atomic within the commit budget. The target remains unchanged; parent Task 22 checks are retained. Content-based discovery is pulled forward from Task 23 because the new harness cannot reuse legacy timestamp artifacts.
+- Added dependency inspection through the same exact worker, generated composition, selected graph and content hashing as translation. Inspection reloads current source membership, so additions/removals and embedded contents participate instead of checking only an old manifest's file list. Per-package closures include their own test variants and selected composition, independent of unrelated packages in the build batch.
+- Candidate builds and prebuilt lookup share canonical package-source digests. Lookup resolves exactly one identity/package/content slot and verifies the manifest, executable and generated files; it rejects symlinked namespace parents and never selects a nearby stale/other-feature/race/certified artifact. Existing manifest schema remains unchanged; no additional timestamp/index sidecar is needed.
+
+Verified so far
+- Exact-family ordinary/race gosimtool checks pass (`.gosim/task22.1-tools126.log`, `task22.1-tools-race125.log`, `task22.1-tools-race126.log`). Complete affected-package ordinary checks pass in `.gosim/task22.1-focused.log`; translator/candidate tests launch both go1.25.14 and go1.26.9 workers. Real candidate discovery matches built artifacts for all four feature sets and those binaries execute successfully.
+- Tests cover single/batch package identity parity, unrelated source exclusion, newly added/removed Go files, edited sources/embedded payloads with preserved mtime, missing builds, alternate identity dimensions, corrupted binaries and linked namespace parents. Initial tests also exposed macOS's /var versus /private/var temporary-path aliases in fixtures; canonicalized fixture roots before comparing loader paths. No production fallback was added.
+- Focused race checks and the complete common gate are still required before completion. Legacy public API/full-suite entry points remain active until Task 22.2.
+
+Completion
+- Focused ordinary/race checks pass for both exact families: `.gosim/task22.1-focused.log`, `task22.1-focused-race.log`, `task22.1-native126.log`, `task22.1-native-race126.log`, plus the tool checks above. Candidate race execution completed successfully in 388.5s; the selected-source tests cover both exact workers.
+- The complete development gate `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1` exited 0: `.gosim/task22.1-gate.log`. All ordinary/race/behavior/race-oracle/script/translation suites pass. Final candidate race execution took 357.8s and ordinary execution 64.2s. Profile revision freshness and staged whitespace checks pass.
+- Task 22.1 is complete. The parent Task 22 remains open; Task 22.2 performs the public API and live execution cutover. No architecture edits or certification promotion.
+- Final Task 22.1 size: 497 changed lines (450 additions + 47 deletions), including checklist/log, using rename-aware staged additions plus deletions.
+
+
+## Task 22.2 — Integration work in progress
+Date: 2026-10-19. No cutover commit yet.
+
+- Implemented the target public value/control APIs and native ErrNotSim behavior, migrated active behavior/nemesis/example callers, and replaced generic HTTP lifecycle fixtures with framed raw TCP. Isolated public probes pass both exact families; final-source race/full gates remain required.
+- Real full-feature candidate compilation exposed the Zap adapter's net/http import. The generic stack logging fixture now uses modeled slog; unsupported HTTP/gRPC boundaries remain required. Expanded execution found arm64 O_DIRECTORY mismatch, final notifications rejected during ordered run close, and io.Copy attempting native splice/sendfile. Added reviewed adapters/fallbacks and retained raw-syscall rejection. Hash/maphash byte hashing now uses deterministic seeded hashing instead of host process-random memhash; pointer-based Comparable operations are explicitly rejected.
+- Restored composition-owned per-machine structured logging and scalar syscall tracing without reading borrowed buffers. Native abort diagnostics retain call frames. CLI/prebuilt integration now uses selected translation/current content manifests; exact Go 1.26.9 is the proposed development harness transition, still awaiting complete verification.
+- Recorded children 22.2.1/22.2.2 before extracting a buildable prerequisite commit. The additional integration fixes plus retirement/harness work would exceed the commit cap. Public API, callers, and live switch stay together; prerequisites are validated in an isolated pre-cutover checkout. No target document changes or compatibility promotion.
+- Initial exact-go1.26.9 affected native suites pass (`.gosim/task22.2-focused126.log`). Candidate examples and TCP nemesis execution pass; behavior execution exposed the two copy optimizations above. Full metatests are now exercising the newly wired CLI/artifact path. These interim results do not complete Task 22.
+
+### Prerequisite gate follow-up
+The first full pre-cutover gate failed only the expanded candidate race probes: `golang.org/x/sys/unix` calls runtime.RaceAcquire/ReleaseMerge/ReadRange/WriteRange under the race tag. Added explicit selected rewrites to the already reviewed per-family runtime race bridge and refreshed both profile revisions. All other native, legacy behavior, script, race-oracle and translation packages in that gate passed. The complete gate is rerunning against frozen source; no pass or completion is claimed yet.
+
+### Trace ownership correction
+The second prerequisite gate passed the x/sys race-boundary translation and exposed a real ownership defect in the new diagnostic bridge: an instrumented native callback read the translated provider's string slice after the coroutine upcall. The native entry now copies primitive metadata before switching to its supervisor, using the existing race-invisible metadata boundary; application buffers and their instrumentation remain unchanged. The new-path full gate was stopped (exit 143) before continuing against known-bad shared code. Focused traced race probes precede another complete gate. No failed/interrupted gate is recorded as passing.
+
+## Task 22.2.1 — Candidate integration prerequisites complete
+Date: 2026-10-19. Previous commit: e5bd15d. Commit: the prerequisite commit containing this entry.
+
+- Completed composition-owned logging, copied syscall/network diagnostics, deterministic byte hashing and x/sys randomness/race bridges, explicit copy-optimization fallbacks, arm64 directory flags, SetMain classification, and ordered final-event admission. Legacy public API/callers/harness remain unchanged in this commit.
+- Exact-family affected ordinary/race native checks passed (`.gosim/prereq-focused125.log`, `prereq-focused126.log`, `prereq-race125.log`, `prereq-race126.log` in the prerequisite checkout). Traced race regression passes in `prereq-trace-race.log` after copying primitive provider metadata before the native upcall.
+- The complete pre-cutover common gate exited 0: `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" GOTOOLCHAIN=go1.26.0 ./test.sh --concurrency 1`, log `.gosim/prereq-gate-owned.log` in `.gosim/task22-prereq`. Both exact-family/all-feature candidate race checks pass (488.0s), along with the complete ordinary/race/native/legacy behavior/script/race-oracle/translation suites. Earlier failures and corrections remain recorded above. No certification promotion or target changes.
+- Final prerequisite size: 747 changed lines (711 additions + 36 deletions), including checklist/log and generated output, using rename-aware staged additions plus deletions; whitespace check passes.
+
+## Task 22.2.2 — Cutover retirement inventory (work in progress)
+Date: 2026-10-19. No cutover commit yet.
+
+The following files are excluded by `gosim_retired` pending bounded deletion in Tasks 26–29. Selected translation rejects retired application imports. No command enables this tag. The active entry uses generated composition/Driver; package-level legacy engine setup and syscall allocation are removed.
+
+- `internal/cryptorand/rand.go`
+- `internal/hooks/go123/doc.go`
+- `internal/hooks/go123/entrypoint.go`
+- `internal/hooks/go123/golangorg_x_sys_unix.go`
+- `internal/hooks/go123/golangorg_x_sys_unix_gen_amd64.go`
+- `internal/hooks/go123/golangorg_x_sys_unix_gen_arm64.go`
+- `internal/hooks/go123/hash_maphash.go`
+- `internal/hooks/go123/internal_abi.go`
+- `internal/hooks/go123/internal_bytealg.go`
+- `internal/hooks/go123/internal_chacha8.go`
+- `internal/hooks/go123/internal_cpu.go`
+- `internal/hooks/go123/internal_godebug.go`
+- `internal/hooks/go123/internal_poll.go`
+- `internal/hooks/go123/internal_syscall_unix.go`
+- `internal/hooks/go123/maps.go`
+- `internal/hooks/go123/math_rand.go`
+- `internal/hooks/go123/math_rand_v2.go`
+- `internal/hooks/go123/net.go`
+- `internal/hooks/go123/os.go`
+- `internal/hooks/go123/os_signal.go`
+- `internal/hooks/go123/runtime_debug.go`
+- `internal/hooks/go123/runtime_trace.go`
+- `internal/hooks/go123/sync.go`
+- `internal/hooks/go123/sync_atomic.go`
+- `internal/hooks/go123/syscall.go`
+- `internal/hooks/go123/syscall_gen_amd64.go`
+- `internal/hooks/go123/syscall_gen_arm64.go`
+- `internal/hooks/go123/time.go`
+- `internal/hooks/go123/weak.go`
+- `internal/hooks/go125/doc.go`
+- `internal/hooks/go125/entrypoint.go`
+- `internal/hooks/go125/golangorg_x_sys_unix.go`
+- `internal/hooks/go125/golangorg_x_sys_unix_gen_amd64.go`
+- `internal/hooks/go125/golangorg_x_sys_unix_gen_arm64.go`
+- `internal/hooks/go125/hash_maphash.go`
+- `internal/hooks/go125/internal_abi.go`
+- `internal/hooks/go125/internal_bytealg.go`
+- `internal/hooks/go125/internal_chacha8.go`
+- `internal/hooks/go125/internal_cpu.go`
+- `internal/hooks/go125/internal_godebug.go`
+- `internal/hooks/go125/internal_poll.go`
+- `internal/hooks/go125/internal_syscall_unix.go`
+- `internal/hooks/go125/maps.go`
+- `internal/hooks/go125/math_rand.go`
+- `internal/hooks/go125/math_rand_v2.go`
+- `internal/hooks/go125/net.go`
+- `internal/hooks/go125/os.go`
+- `internal/hooks/go125/os_signal.go`
+- `internal/hooks/go125/runtime_debug.go`
+- `internal/hooks/go125/runtime_trace.go`
+- `internal/hooks/go125/sync.go`
+- `internal/hooks/go125/sync_atomic.go`
+- `internal/hooks/go125/syscall.go`
+- `internal/hooks/go125/syscall_gen_amd64.go`
+- `internal/hooks/go125/syscall_gen_arm64.go`
+- `internal/hooks/go125/time.go`
+- `internal/hooks/go125/weak.go`
+- `internal/maps_shim/shim.go`
+- `internal/reflect/deepequal.go`
+- `internal/reflect/doc.go`
+- `internal/reflect/makefunc.go`
+- `internal/reflect/no.go`
+- `internal/reflect/swapper.go`
+- `internal/reflect/type.go`
+- `internal/reflect/value.go`
+- `internal/reflect/visiblefields.go`
+- `internal/simulation/generate.go`
+- `internal/simulation/gensyscall/main.go`
+- `internal/simulation/gosim.go`
+- `internal/simulation/gosim_gen.go`
+- `internal/simulation/linux_gen_amd64.go`
+- `internal/simulation/linux_gen_arm64.go`
+- `internal/simulation/linux_syscall.go`
+- `internal/simulation/network_ports.go`
+- `internal/simulation/os_linux.go`
+- `internal/simulation/os_other.go`
+- `internal/simulation/simulation.go`
+- `internal/simulation/syscallabi/errno.go`
+- `internal/simulation/syscallabi/poll.go`
+- `internal/simulation/syscallabi/syscall.go`
+- `internal/simulation/userspace.go`
+- `internal/synctest/synctest.go`
+- `internal/testing/match.go`
+- `internal/testing/missing.go`
+- `internal/testing/testing.go`
+- `internal/translate/cache_legacy.go`
+- `internal/translate/hooks_go123.go`
+- `internal/translate/hooks_go123_amd64_gen.go`
+- `internal/translate/hooks_go123_arm64_gen.go`
+- `internal/translate/legacy_main.go`
+
+Additional integration verification now includes public self-transition results, disabled public controls before nil/argument validation, HTTP/gRPC translation rejection, and the etcd example's explicit unsupported boundary. The formerly commented HTTP race fixture is replaced by a framed TCP exchange with an explicit completion edge and shared-state assertions for both race oracles. Golden translation uses the selected exact worker; dotless application link targets are classified from imported package metadata rather than their spelling.
+
+### Cutover integration follow-up
+- Both exact families pass the expanded ordinary candidate/translator suites (`.gosim/task22.2-candidate-translate.log`, 116.3s/36.2s); the exact125 golden pass is `.gosim/task22.2-golden125.log`. Real public machine/configuration and disabled controls are included. Additional root self-exit probes are included in the final gate.
+- New-path full behavior and nemesis metatests pass (`.gosim/task22.2-cutover-meta.log`, 68.1s/20.8s), including structured/caller/syscall/network logging, timeout diagnostics, and crash recovery. All native packages compile and native control/default tests pass (`.gosim/task22.2-native-build.log`).
+- The complete CLI script suite passes (`.gosim/task22.2-scripts-third.log`, 45.3s). Fixes preserve plain test output before JSON formatting, honor existing GOSIMCACHE for official distribution verification in the script environment, preserve higher application Gosim requirements in the generated module, and have the host metatest read/recheck freshly discovered source contents so Go's outer test cache observes those inputs. This is current-graph content verification, not a timestamp sidecar fallback. HTTP/gRPC and nested host-metatesting now assert translation rejection explicitly.
+- The full new-path gate is running with `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" ./test.sh --concurrency 1`; test.sh now selects exact go1.26.9. Completion still requires its successful exit, prerequisite commit adoption and review-budget checks. Target architecture is unchanged.
+
+
+### Race-oracle boundary audit
+The first uninterrupted cutover gate passed the complete ordinary suite, then correctly rejected runtime.GC while compiling the race oracle. Its sole call is in the already-unconditionally-skipped upstream TestNoRaceDeferAtomicStore GC-scanning regression. Moved that exact fixture into a native-only test file (retaining its existing skip) and added an executed translation-rejection fixture for runtime.GC. Other atomic race assertions remain in both oracles. This does not add simulated GC or claim skipped native coverage. The cutover gate remains incomplete until the ordinary/race rerun succeeds.
+
+### Live CLI race-report ordering
+The isolated simulation race oracle initially classified a WaitGroup test as a false positive and the following intentional race as a false negative. Direct execution showed the race reports were correct but appeared before their buffered RUN header, so the outer parser attributed them to the preceding test. CLI-owned native logging now streams test output and diagnostics during execution while retaining the identical per-run capture/checksum for metatests. Plain test lines bypass JSON formatting. The final targeted oracle passes all 146 cases, 0 false positives/0 false negatives (`.gosim/task22.2-race-oracle-stream.log`). The complete final gate is `.gosim/task22.2-cutover-gate-stream.log`, still in progress. No race suppression or known-failure waiver was added.
+
+### Control-error ownership regression
+The final cutover race gate passed the two-family candidate suite (473.0s), scripts, translator, and race oracle but failed behavior validation: fmt-wrapped provider errors crossed from the supervisor to the application without ownership copying. This was an error-result boundary defect, not the previously fixed trace metadata defect. Completion now copies diagnostic text and named sentinel identity; Submit copies and boxes that value on the caller, preserving errors.Is without introducing application synchronization or retaining provider error pointers. The exact126 native kernel race suite and real translated NetworkTrace/deterministic/seed validation pass (14.5s for the focused behavior run). The complete gate is being rerun in `.gosim/task22.2-cutover-gate-errors.log`; Task 22 remains unchecked pending its result.
+
+The subsequent ordinary gate exposed the poll adapter’s required direct syscall.Errno result identity. Numeric errno results now retain their existing scalar transport; only allocated domain errors are copied. Both exact-family native kernel and kernel-adapter race suites pass (`task22.2-control-errors-native125-final.log` and `task22.2-control-errors-native126-final.log`). Final full-gate retry: `.gosim/task22.2-cutover-gate-values.log`.
+
+## Task 22.2.2 — Atomic public API and live harness cutover complete
+Date: 2026-10-19. Prerequisite commit: 6fdb105. Target architecture unchanged.
+
+Implemented the replacement machine/fs/net/rt APIs and all active callers, framed TCP fixtures, selected composition/Driver CLI entry, exact config/content-checked artifact discovery, and 90-file retirement inventory. Removed active legacy runtime/translator entry paths. Active development patch transitions to exact go1.26.9; normal artifacts remain candidate until Task 24 enforces promotion policy.
+
+Verified:
+- `TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" ./test.sh --concurrency 1` exited 0; complete ordinary/race suite, CLI scripts, translator goldens, behavior/metatesting/nemesis and both race oracles pass. Log: `.gosim/task22.2-cutover-gate-values.log`.
+- Fresh exact125/exact126 network candidate race probes exited 0 (57.175s/56.171s), supplementing cached candidate results in the final gate. Both exact-family native kernel/kernel-adapter race suites pass after the control-error ownership correction.
+- Exact125 native controls/defaults, runtime cleanup and translator golden tests passed in `.gosim/task22.2-final-native125.log`.
+- `git diff --check` clean. The cutover commit remains below 5,000 changed lines including tests, new files, retirement constraints and documentation; actual staged count is recorded below.
+
+Integration corrections and failed attempts are recorded above. No test failure is waived; skipped native GC fixture coverage is not claimed. Task 23 remains responsible for protocol 2, identity-based constructor inputs and removal of package-only runner ownership.
+Actual rename-aware staged change size including this record: 4,690 lines (2,314 additions + 2,376 deletions).
+
+## Task 23 — Identity-checked metatest ownership (in progress)
+Task 22 cutover commit: 8290c26 (4,690 changed lines).
+
+Replaced package-global runner/build ownership with constructor-owned children, Options.ConfigPath, explicit expected build identities, content verification before launch and a bidirectional protocol-2 handshake. Generated Driver exposes immutable identity without initializing application globals; the native test main checks its actual compiler version. Requests serialize per runner, results verify build/replay metadata, and Close interrupts blocked I/O and waits/reaps exactly once. Startup failures close/reap and join the handshake goroutine. Candidate probes use the same protocol. Existing callers and script fixtures use the replacement constructors.
+
+Verified so far:
+- All native packages compile.
+- Protocol race tests pass on both exact patches, including mismatched protocol/patch/digest, changed binary bytes, concurrent requests/Close, crashes, result mismatch and early cleanup. Tests verify children are already reaped via wait status.
+- Real CLI scripts for logging, prebuilt discovery, alternate feature/race configs and same-size/same-mtime source changes pass (52.806s).
+- Fresh rt+net candidate race probes pass on exact126 (60.116s) and exact125 (91.230s).
+- Common ordinary/race gate is running in `.gosim/task23-gate.log`; no Task 23 boxes are checked yet.
+
+Small related correction: CheckSeeds now honors its existing numSeeds argument instead of hard-coding five. Copied selftest source/config setup already landed in Task 22 and is exercised by the updated scripts. Target architecture unchanged.
+
+The first Task 23 gate passed the ordinary suite; its race pass was intentionally stopped (exit 143) after target review found an unnecessary cross-patch worker bootstrap in the new lookup helper. T§11 postpones that facility. Host metatests now require the selected exact patch and report the existing explicit rebuild error on mismatch. Explicit GOSIMTOOL is never replaced automatically. Final gate: `.gosim/task23-gate-final.log`; source remains frozen during validation.
+
+### Task 23 complete
+`TMPDIR="$PWD/.gosim/host-tmp" GOCACHE="$PWD/.gosim/host-go-build" ./test.sh --concurrency 1` exited 0. Final log: `.gosim/task23-gate-final.log`. Both exact-family candidate suites, complete ordinary/race suites, independent child ownership, actual reaping, request serialization, protocol/result mismatch rejection, config/feature/race artifact selection and same-mtime source invalidation pass. Race behavior 164.373s, metatesting 46.681s, scripts 72.414s; ordinary behavior 115.523s and metatesting 36.990s. No failures waived. `git diff --check` clean. Target unchanged.
+Actual rename-aware commit size including this record: 900 changed lines (679 additions + 221 deletions).
+
+## Task 24 — Strict commands and candidate certification (in progress)
+Task 23 commit: e497329 (900 changed lines). Normal building/lookup commands now require reviewed source-matching reports; repository testing explicitly selects `internal-candidate`. The shared build implementation accepts already validated selections, while the candidate API still rejects certified inputs. Candidate reports record tuple, framework/build identity, execution mode, architecture, image digest, suite/log digests and package artifact outputs without changing tuple status. Both profiles begin with empty evidence catalogs.
+
+Source-fingerprint correction: the previous SourceDigest included the application ModuleGraphDigest. That would require certifying Gosim again for each consuming application despite identical framework/toolchain/provider sources. Compatibility evidence now fingerprints the unchanged framework and tuple independently of application graphs; full artifact Digest still includes the application graph. This aligns T§2’s framework-source evidence with T§9’s per-build cache identity. Added regression coverage proving graph changes invalidate artifacts while preserving unchanged-framework certification. Profile evidence metadata is excluded from its own adapter fingerprint. Target document unchanged.
+
+Initial focused buildcfg/spec/command tests pass, including command parity and rejection of pending, missing, stale, tampered, failed or incomplete evidence. Full gates remain outstanding; Task 24 is unchecked.
+
+Task 24 integration checks: explicit candidate-wrapper CLI scripts pass (54.170s). A real rt-only certification run passes build/execution and records pending/candidate status, actual package manifests and log hashes (`.gosim/task24-reports/25f20892f7a87e5098cbd13caa18678cfd26865f6eccc44a1308a11ff5644116/run-118267737/report.json`). An earlier generated-fixture unused import was correctly captured as failed evidence and then fixed. Each certification run now owns a separate evidence directory. Complete exact126 verification is running via `.ci/verify-step.sh`; exact125 follows. No tuple is promoted.
+
+The first exact126 shared-runner gate passed direct application execution and native candidate/behavior/scripts, but cross-architecture generator checks rejected inherited GOARCH=arm64 when intentionally inspecting amd64 sources. The native host-test command now clears that inherited override (GOENV remains off; the selected native toolchain is verified); generator/source commands still select and validate their own architecture. No production environment validation was relaxed. Retry: `.gosim/task24-gate126-final.log`. Exact125 focused race checks pass, including command parity and evidence rejection (145.831s for cmd/gosim under race).
+
+Exact go1.26.9 `.ci/verify-step.sh` exited 0 (`.gosim/task24-gate126-final.log`): direct ordinary/race application execution and complete native ordinary/race suites pass. This includes the corrected cross-architecture generator checks and the native oracle’s content/compiler identity check. Exact125 full verification is now running in `.gosim/task24-gate125.log`; Task 24 remains unchecked.
+
+Exact125’s first ordinary gate passed. Its race pass was stopped (exit 143) to finish the Go-command audit: dependency/translator tests now use the same pinned GoCommand helper. The unsupported-family compile test adds its intentionally invalid release tag after constructing the pinned command, preserving that negative test without permitting production release-tag overrides. Focused kernel/hostabi/translator checks pass; the contracts-only filter selected no tests, so no contracts execution coverage is claimed from that focused command. Final complete gates run sequentially in `.gosim/task24-gate125-final.log` and `.gosim/task24-gate126-audit.log`.
+
+### Task 24 complete
+Final sequential verification exited 0 with source frozen: `GOTOOLCHAIN=go1.25.14 GOSIM_TOOLCHAIN=go1.25.14 ./.ci/verify-step.sh`, then the identical command selecting go1.26.9. Both used workspace-local TMPDIR/GOCACHE. Logs: `.gosim/task24-gate125-final.log` and `.gosim/task24-gate126-audit.log`. Complete ordinary/race direct application and native suites pass for both patches, including pinned compiler-call audit, cross-architecture generation, command certification parity, evidence rejection, native oracle identity and CLI scripts. Exact125 identities: 81f0b8d9a7dedc199074194e05ad4199f8fa5c74297b1812ec1b9f269e2e8f24 / 5b441603aaae57915addeac2c5e65f7f36e15910ca02d9cdeaeab47165ddf673. Exact126 identities: 909903e432a9392725345b50a7e8656e0c24524bac4f4bb67a3572ba4e710ac6 / 040840a9e4b9ea13782ceaebc76ea98eca8cf4c0edc120b27ead320631edcee0.
+
+No tuple promoted; both reviewed evidence catalogs remain empty. The earlier reduced-feature report is development evidence and becomes stale after subsequent source changes. `git diff --check` clean. Target architecture unchanged.
+Actual rename-aware staged size including this record: 1205 changed lines (985 additions + 220 deletions).
+
+## Task 25 — Feature applicability and translated fault coverage (in progress)
+Task 24 commit: a586cc7 (1,205 changed lines). Moved the behavior package into rt/fs/net/integration packages and recorded all 207 baseline test declarations plus file moves. An AST comparison confirmed unchanged test bodies, including explicit ignored HTTP/gRPC source fixtures; native rejection tests remain active. Split mixed crash/logging files, preserved their metatests, and moved external runner consumers to rt. A single package registry now selects applicable suites before loading for both candidate probes and certification.
+
+New checks cover disabled fs/net during init and normal calls, ignored results/recover attempts, diagnostic feature/operation/machine/epoch/PC plus in-process resolved caller traces, and host file/socket probes. Offline addr2line cannot resolve ASLR-adjusted macOS process PCs; the test uses the engine's resolved in-process caller trace instead. The first rt-only run exposed empty unnamed-machine uname values triggering os.Hostname's /proc fallback. Restored the original simulator's deterministic machine-<id> label; recorded in NOT PLANNED CHANGES.
+
+Translated lifecycle injection copies the framework into a private temporary module, adds a private test route/fakes only in that copy, and builds it with a separate content identity. It uses the generated driver's single active engine and surviving supervisor, with disjoint fixture machine IDs and owned kernel sessions. No production hook, nested engine, or modified published artifact is introduced. First complete full-feature exact125 probe passed 32 startup/publication/cleanup/overflow/cancellation/poll scenarios in 27.219s (`.gosim/task25-full125-second.log`). Later additions cover destroy failure, init panic, domain-stream isolation, real artifact identity mutations, snapshot ownership/limits and endpoint reuse with canceled deadlines; validation remains outstanding.
+
+Intermediate failures: unused log import after splitting fs crash tests (removed); initial rollback fixture attempted forbidden network identity reconfiguration after first start (corrected to restore an owned snapshot into a new machine before failing preparation); initial connection-reuse fixture transferred a net.Conn to another machine and correctly received EBADF (operations now remain on the owning server machine, using channels only for test coordination). These are fixture corrections, not weakened provider rules. Full gates and Task 25 completion remain unchecked. Target architecture unchanged.
+
+All four exact125 feature probes passed in 84.117s (`.gosim/task25-features125-complete.log`), including 33 translated faults, init failure, snapshot/endpoint ownership and random-domain replay. Focused report/applicability tests passed. The initial full gate was deliberately stopped (exit 143) during its ordinary native pass to strengthen queued-old-packet coverage before final validation. The restart fixture now enqueues a one-second delayed data packet before crashing, reuses the endpoint, keeps the new connection live past delivery, and has a native trace assertion proving the old data was queued. The focused rt+net probe before the final delayed-read assertion passed (18.997s). No full gate result is claimed from the interrupted run.
+
+The common gate now uses `-count=1` and explicit 30-minute package timeout; candidate workers have a 25-minute bound. Each worker tests only its selected exact patch, while the common gate runs both patches separately. This preserves required coverage without making a tuple's container install and retest an unrelated compiler. Reduced reports now require applicable native metatests plus boundary evidence; full reports include the complete native suite. Missing applicable package artifacts are a build failure.
+
+The first uninterrupted final ordinary gate failed only TestLogTraceSyscall: the split fs package no longer imports the rt package's os.Hostname init, so its expected trace contained an obsolete Uname call/return pair. Removed that incidental pair and renumbered the remaining expected steps; all FcntlInt/Require/Openat/Write/Close assertions remain. Native rt (160.769s), net (77.181s), integration (60.737s), candidate (123.964s), scripts (94.948s) and all other packages passed. The net queued-old-packet trace assertion passed. Log: `.gosim/task25-gate125-final.log`; no race or exact126 completion is claimed from this failed gate.
+
+Exact125's corrected complete ordinary gate passed with identity `5b9b43acb6428db96ec161f244a936ca1753f2e38705f76be26476d361d3b0f3` (`.gosim/task25-gate125-trace.log`). Race and exact126 gates remain in progress; source is frozen. Required future completion also includes one real reduced-feature certification command to exercise the shared applicability runner end to end.
+
+Exact125 complete ordinary/race gate passed (`.gosim/task25-gate125-trace.log`); race identity `d603e1c9fa711664bb3b05c69cdf87ababd4d370ad594d5c56491b0a688b7e45`. Race candidate worker 538.995s, rt 188.640s, fs 86.241s, net 77.738s, integration 54.607s. Exact126 ordinary gate passed with identity `4b3652c1a3d9d180a2f4c934dd104652a409b1974f86c6424e9a627cd9f2d5ae`; its race gate remains outstanding.
+
+Both final exact-patch common gates exited 0 with source frozen (session 79494): `.gosim/task25-gate125-trace.log`, `.gosim/task25-gate126-trace.log`. Exact126 race identity `d03d434ea19c9ef911fb278398a22418c715a3a2f49052247a880827f844ae8b`; candidate 568.214s, rt 195.487s, fs 88.849s, net 81.095s, integration 55.001s. Complete native and direct translated ordinary/race suites passed on both patches. The required standalone rt-only certification command is now running separately; no tuple is promoted.
+
+### Task 25 complete
+The standalone command `.gosim/ci/go1.26.9/gosim internal-candidate certify -go go1.26.9 -features rt -output .gosim/task25-certify` exited 0 using workspace-local TMPDIR/GOCACHE. Report: `.gosim/task25-certify/6457a07f31082d2fdb21528ebbf137f407460d2c3c9744f33fda5139ebfc8fe3/run-392348468/report.json`. Build, execute, native and boundaries all passed; independently recomputed every log SHA-256. Status remains pending/candidate. Result digest: `1c23dd60cdc061712e6b7b7562064541aefd7ff291affad409450adb042f373d`.
+
+All Task 25 requirements and both exact-patch ordinary/race common gates pass. The inventory preserves 207 baseline declarations; required exclusions remain explicit rejection cases. No failure waived, no tuple promoted, target architecture unchanged. `git diff --check` and staged diff check clean.
+Actual rename-aware commit size including this record: 2571 changed lines (2121 additions + 450 deletions).
+
+## Task 26 — Remove retired generated syscall wrappers (in progress)
+Task 25 commit: b7d5176 (2,571 changed lines). Before deletion, extracted the existing AST audit's complete union of 55 legacy route names from both generated syscall interfaces, machine interface and manual syscall methods. Froze it as `internal/routegen/testdata/legacy_routes.txt`, pinned by SHA-256 in the existing route-coverage test. That test still checks the active manifest, stable route IDs and current control interfaces. Removed the two retired generated syscall files (4,682 lines) and the obsolete generator's write to those locations. Selected family outputs are unchanged. Target unchanged; generation and both common gates remain outstanding.
+
+Task 26 focused verification: `TestInventoryCoversLegacyRoutes` passed under exact125. Both pinned `gosim-gen -check` commands passed for amd64+arm64 (logs `.gosim/task26-generation125.log` and `.gosim/task26-generation126.log`), confirming all four selected outputs are unchanged. Source searches under internal/cmd/.ci find no retired linux_gen output references. Exact125 ordinary common gate passed, identity `e8811190beca9769998ca5a67f0f895fb48d6b7fe6f2c23390a92adb821a6469`; race and exact126 remain running. Staged intermediate size: 4,795 lines before this progress entry and final checklist/log updates.
+
+Task 26 exact125 complete gate passed: ordinary identity above, race identity `bf00dfafad7c97b4ae7b0ebb7968f03a7dffc19b61bc52ab751bebd98c4ec4d7`; candidate race 542.183s and routegen 71.514s. Exact126 ordinary passed with identity `8d4f268bd75fed76a48f44b08c2e706cb5c78f927acc175a0cba3995e4281fa0`; race remains outstanding. Logs: `.gosim/task26-gate125.log`, `.gosim/task26-gate126.log`.
+
+Read-only future prerequisite check: `colima status` reports stopped; `colima list` shows the existing default aarch64 profile (2 CPUs, 2 GiB, 100 GiB, docker). Docker's colima context is absent; contexts are default and desktop-linux. Task 30 should start the existing profile and recheck context/readiness without recreating the VM or substituting Desktop certification. No Colima/Docker state changed by this check.
+
+### Task 26 complete
+Sequential exact125 and exact126 `.ci/verify-step.sh` commands exited 0 (session 90115) with workspace-local TMPDIR/GOCACHE and source frozen. Exact126 race identity: `a7ecbba5b48f39a77250b09790ba5c357576e086affc7afcc40eb89f58e6583f`. Both complete ordinary/race suites pass, including actual generated import graphs and translated positive/negative/fault tests. All four family/architecture generator checks and the frozen 55-route inventory check pass. No old generated wrapper/output reference remains under internal/cmd/.ci. Selected generated adapters and target architecture unchanged. Diff checks clean.
+Actual rename-aware commit size including this record: 4815 changed lines (86 additions + 4729 deletions).
+
+## Task 27.1 — Remove retired translator hook selection (in progress)
+Task 26 commit: c4d519e (4,815 changed lines). Recorded children 27.1/27.2 before implementation because old hook trees plus translator/cache/tables already exceed 5,000 lines. Removed the excluded legacy translator, v1 cache path and go123 hook tables, their generator's proxy/table outputs, and old dependency-only hook/shim/simulator imports. Tool dependency imports and the live selected translator remain. The old hook trees stay excluded until 27.2; their independent source audit remains intact. Target unchanged; verification outstanding.
+
+Task 27.1 focused tests passed: complete immutable hook/shim declaration ledger, pinned removed declarations and old-wrapper/provider-boundary audit (`.gosim/task27-1-focused.log`). All 56 remaining old hook Go files require `gosim_retired`; the old translator entry, go123 table constants and proxy generator are absent. Remaining old-path strings in the active translator are intentional rejection/negative-import assertions. Formatting and diff checks pass after removing Markdown trailing spaces in the newly recorded child tasks. Both full exact-patch gates are running with source frozen.
+
+Read-only AST reconciliation found all 666 current old hook declarations exactly match the immutable baseline ledger (333 per tree; no extra or missing names). Per tree: 296 hooks, 4 moved hooks, 5 bindings, 6 replacements and 22 package-rejected declarations; the selected-target ledger tests passed above. Scratch evidence: `.gosim/task27-old-hook-declarations.json`. Exact125 ordinary gate passed, identity `3c61952c1b6d0bd94f63872aa08062d1a30286672d579100851e660265a0601c`; race and exact126 remain outstanding.
+
+Task 27.1 exact125 ordinary/race gate passed (`.gosim/task27-1-gate125.log`), race identity `f48cde64c400d196947f16d5fd422d2152d805271fcc59477183369ab704f6bb`. Exact126 gate has started; no Task 27/27.1 completion boxes are checked yet.
+
+Verification workflow preparation (no tracked source change): a private snapshot helper under `.gosim/` copies source/scripts with independent artifact directories, then compares all identity-relevant files. Probe copy `.gosim/verification-source/task27-1-probe` matches all 682 current inputs; full exact126 `buildcfg.Identity` JSON is byte-equivalent after parsing between working tree and copy, including module graph and all source revisions. Evidence: `.gosim/task27-1-{snapshot,source-identity,copy-identity}.json`. Future dual-patch gates can run concurrently in isolated roots without overwriting shared selftest/native-oracle artifacts. The current gate continues unchanged. Host has 64 GiB RAM / 14 CPUs.
+
+### Task 27.1 complete
+Both exact-patch ordinary/race common gates exited 0 (session 85528), with source frozen and workspace-local TMPDIR/GOCACHE. Logs: `.gosim/task27-1-gate125.log`, `.gosim/task27-1-gate126.log`. Exact126 ordinary/race identities: `030a8e14533b33593ef23851743062a904def033b9c20b1671cba36ec6eebd77` / `cbdc3eca98acdeec9366590f4b39fe4527e84ea8ec54f85ab6dc0ea6f2f4b0a1`. Active selected translation, both families' hook/declaration checks, actual generated graphs and all ordinary/race suites pass. The old hook trees remain excluded and retain their source audit for 27.2. Target unchanged; no required check waived. Diff checks clean.
+Actual rename-aware commit size including this record: 1571 changed lines (45 additions + 1526 deletions).
+
+## Task 27.2 — Remove superseded hook trees (in progress)
+Task 27.1 commit: 7c57f63 (1,571 changed lines). Before deletion, froze the existing source-based adapter audit's 70 generated wrapper names into `internal/routegen/testdata/legacy_adapters.txt`, pinned by SHA-256. The audit still checks the active symbol table and provider/rejection boundaries. Removed both retired hook trees (56 files / 3,708 lines); the immutable 666-declaration hook ownership audit remains, with all old declarations matched in 27.1. Selected family sources and target architecture unchanged. Validation outstanding; both patch gates will use isolated source-matched roots.
+
+Task 27.2 focused exact125 wrapper/declaration/family-selection/hook-signature tests passed (`.gosim/task27-2-focused125.log`). No Go source imports the removed old hook paths. Private exact126 snapshot `.gosim/verification-source/task27-2-go126` matches all 627 identity-relevant files and the complete `buildcfg.Identity`; translator digest `791444b6a376a5629921d7647388859ac2fe017b4e637b485fb05f1236e1a0a1`. Evidence: `.gosim/task27-2-{snapshot,source-identity,copy-identity}.json`. Both common gates now run concurrently in independent roots/artifact directories, sharing only Go's concurrency-safe compiler cache. Logs: `.gosim/task27-2-gate125.log`, `.gosim/task27-2-gate126.log`. No source changes while either gate runs.
+
+### Validation cadence changed by user
+The user explicitly requested full race suites on both Go patches only during final verification at the end of the task list. Updated the common commit gate and validation instructions; target architecture is unchanged. Future intermediate gates retain complete ordinary suites on both patches and task-specific checks, using isolated roots concurrently. Full race and 48-tuple evidence remain mandatory in final verification (Tasks 32–33).
+
+Task 27.2 ordinary suites completed successfully on both exact patches before this instruction: identities `3c717d3b82c4d01dbd5560cf053930a0d44d1f35f2f267497d0a66cd77045cb7` (125) and `7d31e6af7b2a81700c2a9e4ed05a181b51e662a10c333e446401e7c679d4b0ef` (126), with `native: passed=true` in their gate logs. Their subsequent race process trees were deliberately terminated at the user's request (sessions 61577/41339 exit 143). These race runs are canceled, not passed; they do not invalidate the completed ordinary passes. Full race verification is deferred to final verification.
+
+### Task 27.2 complete
+Both exact-patch complete ordinary suites passed before the canceled race runs. Additional exact126 wrapper/declaration/selection/signature checks passed (`.gosim/task27-2-focused126.log`), matching the earlier exact125 focused pass. The frozen 70-wrapper audit, 666-declaration reconciliation and selected-family source checks preserve all legacy coverage. Formatting/diff checks pass. Parent Task 27 is complete under the user-amended gate; full race verification remains outstanding at the end. Target architecture unchanged.
+
+## Task 28 — Remove retired simulation coordinator (in progress)
+Task 27.2 commit: 6861f0c (3,842 changed lines). Audited and removed all 13 remaining retired simulation Go files (4,186 lines). Responsibility mapping: simulation lifecycle/IDs/waits/start-stop and timeout → kernel machine/transaction/control_runtime and runtime Engine; userspace globals/log setup → control transport, generated composition and selected runtime hooks; Linux file/socket operations → typed FileOps/SocketOps providers with shared kernel descriptors; process calls → kernel process service; syscall dispatcher/poll → kernel dispatcher/poll with epoch/cancellation ownership; network ports → kernel-owned injected ports; error conversion and generated wrappers → selected family adapters and generated kernel decoders; memory views → rt/runtime/abi only. The independent 55-name legacy route ledger still maps entirely to active routes.
+
+Deleted the obsolete gensyscall command and its sole generation directive; syscall generation now uses cmd/gosim-gen, with model stringer generation unrelated and retained. Also removed internal/tests/race/testdata/os_test.go: it was already excluded by `sim && skip` and referenced a long-absent simulation/bridge package. Its seven declared tests were not executable coverage; active syscall, descriptor, memory-view and race-oracle tests remain. No skipped test is counted as passing. No simulation stub or runtime fallback remains. Target unchanged; full ordinary validation outstanding, race deferred by user instruction.
+
+### Task 28 complete
+Both exact-patch ordinary candidate certification commands exited 0 (sessions 56677/19016); logs `.gosim/task28-gate125.log` and `.gosim/task28-gate126.log` identify full reports. Build, execute and complete native suites passed; each suite log hash independently matches its report, both report identities are non-race and have the same source digest. Snapshot matched all 613 identity inputs (`.gosim/task28-snapshot.json`). Route inventory and generated-output tests run in the complete native suites; old simulation imports/generator are absent. Formatting/diff checks pass. Race remains deferred to final verification. Report digests: 35902e5c1896e34b9ebe7709727e5f6857bb9c0e9008dceaf43848e1ce34dc5c, 8c96663514f8c018519f1047358f1b1a2ac70565dcadac17590de6bb9dc591f6.
+
+## Task 29 — Remove obsolete shared shims and native helpers (in progress)
+Task 28 commit: 3b48989 (4,482 changed lines). Before deletion, AST reconciliation matched all 298 remaining legacy shim declarations exactly to the immutable ownership ledger, with no missing/extra declarations (`.gosim/task29-old-shim-declarations.json`). Together with the 666 old hooks, this reconciles every declaration in the 964-entry hook/shim ledger. Native coroutine/upcall and 14 race operations are retained through hostabi and selected go125/go126 host implementations; unused direct private coroutine symbols and the channel fallback are removed. Object race APIs use the corrected native type-pointer ABI already validated in Task 16.
+
+Migrated seven remaining native host-tool/test consumers from internal/race to hostabi (including the !sim annotation oracle); removed the unused translator racePackage constant and all seven old packages. Updated the stale reflect comment and removed completed migration TODOs from both profiles. Documented why the shared Upcallcoro wrapper is stable across the pinned families. Profile source revisions will be regenerated; no compatibility tuple is promoted. Target unchanged. Ordinary verification outstanding; full race verification deferred to the final phase.
+
+### Task 29 complete
+Both ordinary candidate gates exited 0 (sessions 23407/28705), covering build, translated execution and the complete native suite: `.gosim/task29-gate125.log`, `.gosim/task29-gate126.log`. Report/log hashes verified independently; both source identities match. Focused hostabi/spec/routegen tests and formatting pass. Both exact-patch `go list -deps -test -tags=linkname ./...` graphs contain no retired module packages (`.gosim/task29-packages{125,126}.log`). Source has no retirement tag or migration TODO. Both profile revisions regenerated; source-matched snapshot contained 593 inputs. Full race validation remains deferred to final verification. Report digests: c2d5482b682609ed9bff33d5e5d6bc3bc57cf220272cfb99c8d45fc901e7a643, 084202cf70c52559986eca22c6288786c2cfc210734f149f5f54cd09dea81b20.
+
+## Task 30 — Certification matrix automation (in progress)
+Task 29 commit: 3b8325f (3,306 changed lines). Implementing isolated native/Colima matrix workers with exact patch/image selection, source-copy equality, actual worker/daemon architecture records, bounded concurrency, and retained logs/reports/artifacts. Dry enumeration produces 48 unique tuples; six initial Python checks cover routing, missing/failed evidence and failure propagation. Reduced reports now additionally require native runtime/ABI/contract units and enabled-domain model tests, with a transitive import audit for excluded models. Full jobs retain the complete native suite. Ordinary smoke jobs run before final certification; full race runs remain deferred to Tasks 32–33.
+
+Resumed the existing default Colima profile with `colima start default --activate=false`; exited 0 and restored context colima. Observed daemon linux/aarch64 with 2,054,828,032 bytes memory, so container jobs are serialized. Current Docker context remains desktop-linux; runner calls select colima explicitly. No VM recreation/resource change. GitHub runner labels checked against https://docs.github.com/en/actions/reference/runners/github-hosted-runners and https://github.com/actions/runner-images (ubuntu-24.04, ubuntu-24.04-arm, macos-15); workflow verifies actual platform before executing. Target unchanged. Matrix smoke/common gates outstanding.
+
+Initial Linux ARM64 smoke correctly failed (session 55633 exit 1): exact base image pulled and the test image built, but Docker rejected a bind mount because Colima does not share this checkout's /Volumes path. Failed job/report status retained under `.gosim/task30-smoke-linux-arm64/matrix-cx30z5yr/`. The runner will collect evidence/state through Docker's copy API; no VM mount change is needed. Native smoke remains in progress against unchanged source; the fix is prepared privately until that execution finishes.
+
+Native Darwin ordinary rt smoke passed (session 80285 exit 0), including new native-units and boundaries suites and independent result/log digest verification: `.gosim/task30-smoke-darwin/matrix-9yx9xop3/`. Pinned Linux AMD64 toolchain execution under the ARM64 daemon also passed (session 17767; `.gosim/task30-amd64-worker-probe.log`), establishing emulation readiness but not yet a passing test tuple. Applied the container-copy fix after native smoke finished: collect reports/state even after suite failure, check actual container exit state, then remove only the owned container. Added a failure-path cleanup test and removed Compose's host bind-mount assumption. Final source validation reruns follow.
+
+Task 30 final-source ordinary gates both exited 0 (63224/67251), with independent report/log hash verification and matching translator digest `ca1687edf5cdef71abe7d58485cfb4b6593320b1211cc1e89420283a2627ba57`. Logs `.gosim/task30-gate{125,126}.log`. Final native rt smoke exited 0 (27821; matrix-x9ma2e_j). Linux ARM64 rt smoke exited 0 (66035; matrix-dhr1wtba), reported container-native, copied reports/state to host and removed its owned container. AMD64 emulated smoke remains outstanding. No race suites run.
+
+Read-only pre-certification finding for Task 31: `spec.ValidateTuple` intentionally permits candidate execution only for pending tuples; the current developer verification entry builds directly from the working profile, and several native tests construct candidate selections from it. Promotion would therefore disable that development gate. Recorded a Task 31 prerequisite to run candidate verification in an explicitly unpromoted source-matched copy, changing only status/evidence metadata already excluded from executable digests. Preserve the pending-only selector and normal certified validation; implement/test before final matrix so no later source fix invalidates all 48 results. No executable source was changed during Task 30 validation.
+
+AMD64 QEMU smoke failed (session 99666 exit 1) while compiling the CLI: `crypto/internal/boring/sig` compiler segmentation fault. The runner retained failure evidence and removed the container. Read-only inspection found existing VM type vz, rosetta=false, and /usr/bin/qemu-x86_64 binfmt. Apple's Rosetta package was already installed; no other containers were running. Restarted the existing default profile using `colima start default --activate=false --vz-rosetta` (session 92750 exit 0). Config diff changes only `rosetta: false` to `true`; CPU=2, memory=2GiB, disk=100GiB and active desktop-linux context are unchanged. /proc/sys/fs/binfmt_misc/rosetta now selects /mnt/lima-rosetta/rosetta. Retrying the same source/image/ordinary AMD64 tuple under Rosetta; no source changes or race executions.
+
+### Task 30 complete
+Final AMD64 ordinary rt smoke under Rosetta exited 0 (session 30479), truthful `container-emulated` result 26eecc51496c67982d0f5d94859fd6e1be6742511f71013b90aebc4ab6104781; `.gosim/task30-smoke-linux-amd64-rosetta/matrix-a4wvfwfw/`. All required build/execute/native/native-units/boundaries suites passed and log/result hashes were independently checked by collection. Its translator digest matches both host common gates and the Darwin/ARM64 smoke reports. Actual Go worker is linux/amd64 on the ARM64 Colima daemon. Reports and artifacts were collected, owned container removed.
+
+Verification completed: 48 unique dry-run tuples, seven runner unit checks including failed-command/cleanup paths, shellcheck, YAML parsing for workflow/Taskfile/Compose, actual Compose config, focused Go report/import tests, both complete ordinary host gates, and real ordinary rt smoke on all three worker routes. Colima change is limited to enabling already-installed Rosetta after the observed QEMU compiler failure. No tuple is promoted; all 48 final-source executions and full race suites remain required after Task 31.
+
+## Task 31 — Usage, architecture and final configuration (in progress)
+Updated README, package docs, architecture and repository guidance for the actual API/package graph, exact patch/feature policy, candidate/certified workflow, per-package artifacts and scope limits. Labeled supported examples and retained etcd rejection fixtures explicitly. Announced and reconciled only the target artifact-path wording; repaired historical report links. Raised the language minimum to Go 1.25.0 without a toolchain directive or dependency change.
+
+Prepared promoted-checkout validation in source-matched pending copies. Only designated status/evidence files change in the copy; original metadata and tuple allowlist stay intact, and the pending-only selector is unchanged. Added a fixture verifying certified originals remain untouched. Stable verify-step now supports --ordinary. Also corrected setup-go action version inputs to bare semantic versions and the Colima task default to a Linux platform. These configuration corrections precede final certification. Validation outstanding; no final race evidence claimed.
+
+Task 31 focused checks: eight Python orchestration tests passed, including preservation of certified originals when preparing pending copies; shell syntax and YAML parsing passed for the workflow, Taskfile and Compose. All local links in the updated usage/architecture/example guidance resolve. Formatter output contains only goimports/gofumpt headings; diff whitespace check is clean. Exact README Go blocks were extracted into two separate external modules and executed with freshly built workers on both patches: TestClock passed seeds 1–3 under rt, TestMachine passed under rt,fs,net, and fs-without-rt configuration failed with the documented diagnostic. Logs: `.gosim/task31-readme/go1.{25.14,26.9}/run.log`. The final-source ordinary gates are running in `.gosim/verification/go1.25.14/gate-8p9uwxv1` and `.gosim/verification/go1.26.9/gate-empn_pxn`; no source edits are permitted until they finish.
+
+Task 31 first ordinary results: exact126 passed (session 57840), including independent report/log hash validation and equal source-copy inputs; report result `b242d251d53ed385433afdf25383d298f0a685a161e15a4757dc3d8829cdf916`, translator `341c2e74bd17043298f3be585ed6c14208a31f45ec2576e98b49b4dc59462139`. Exact125 first gate failed (session 7008): TestScript/simmetatest returned a module-graph resolution error before the expected application rejection. All other packages passed. The fixture passed unchanged on a preserved-work retry (session 20136, `.gosim/verification/go1.25.14/task31-script-retry.log`); the original error did not preserve subprocess stderr, so a network cause is suspected but not established. A complete ordinary retry runs in the same frozen copy with fresh report output; the failed report is retained and is not acceptance evidence.
+
+Final-matrix preparation: existing Colima was idle (no running containers). To support the user-requested parallelism, backed up configuration to `.gosim/task32-colima-before-resources.yaml` and began a temporary resize from 2 CPUs/2 GiB to 6 CPUs/12 GiB. Restore the original CPU/memory settings after final matrix verification, retaining the already-enabled Rosetta backend. No VM recreation and no source change.
+
+### Task 31 complete
+Exact125 complete ordinary retry passed unchanged (session 47660); independent suite-log/result validation passed: result `b985e21e91c042040f7c4647c0c3758365f0586d2f516cfe831b80497e6843a8`. Both accepted patch reports bind translator `341c2e74bd17043298f3be585ed6c14208a31f45ec2576e98b49b4dc59462139`. All 599 executable inputs still match original, both copies and `.gosim/task31-final-snapshot.json`. The failed first exact125 report remains retained separately. No final race pass or tuple promotion. Supported examples, invalid configurations, metadata-copy workflow, links, formatting and configuration syntax all passed. Target artifact-path/log-link edits remain in the intentionally ignored local design documents; reviewed architecture changes are in docs/design.md.
+
+Colima resource preparation completed (session 43734): observed 6 CPUs/12,514,787,328 bytes, aarch64, unchanged desktop-linux active context. Config diff contains only CPU 2→6 and memory 2→12; restore these two settings after all final matrix runs.
+Task 31 rename-aware commit size including this line: 1696 added/deleted lines.
+
+## Task 32 — Final exact-tuple matrix (in progress)
+Task 31 committed as 4d5188e (1,696 changed lines). Starting the actual 48-combination final matrix, including deferred full race suites, against frozen translator `341c2e74bd17043298f3be585ed6c14208a31f45ec2576e98b49b4dc59462139` and 599-input snapshot. Darwin ARM64 runs two isolated jobs concurrently; Colima runs two Linux jobs concurrently with temporary 6-CPU/12-GiB resources. Linux platform batches remain sequential to bound total VM concurrency. No tuple is promoted until every required final-source report is validated.
+
+Task 32 coverage review found one wording error in the new examples guide: the matrix positive registry contains ./examples, but not its separate sim-only ./examples/bolt package. Corrected that documentation claim without changing executable inputs. Ran the documented Bolt example separately on both exact patches with full features; both TestBbolt executions passed (sessions 99796/94054, `.gosim/task32-bolt{125,126}.log`). This is explicit additional example evidence, not an unrun matrix claim.
+
+### Task 32 initial attempt canceled before source correction
+Command-contract review found a concrete gap: ValidateWorker recommends `go build` without the required linker flag. Strict-linker probe (`-ldflags=-checklinkname=1`, a deliberate negative check) failed with `invalid reference to runtime.newcoro`; log `.gosim/task32-tools/strict-link-check-cli.log`. Recorded Task 32.1 before fixing it, followed by 32.2 for fresh certification.
+
+Stopped only the two owned matrix process trees (17 host processes; sessions 19149/87459 exit 143). Stopped, collected evidence from, and removed the two owned Colima containers; cleanup session 13395 exit 0. Matrix manifests/execution records explicitly mark unfinished jobs canceled. There were 8 completed Darwin tuples and 7 completed Linux ARM64 tuples, with no reported test failure; these 15 reports are pre-fix evidence and will not be promoted. Paths: task32-darwin-arm64/matrix-i_d5fb2n and task32-linux-arm64/matrix-k5tvz65x. Compiler caches remain reusable. Temporary VM resources remain 6 CPUs/12 GiB until final verification, then restore 2 CPUs/2 GiB.
+
+### Task 32.1 correction and focused verification
+The mismatch diagnostic now includes `-ldflags=-checklinkname=0 -tags=linkname` and the fully qualified CLI module path, which works from the repository or an application module. Extended the existing mismatch regression to preserve both requirements. Both exact-patch focused worker/build-policy tests passed. Executed the actual emitted opposite-patch rebuild command from each external README application module: both rebuilt successfully (sessions 52468/74750; `.gosim/task32-1-rebuild-go1.{25.14,26.9}.log`). Corrected the plan’s certified go-run examples to retain the required host flags. Both complete ordinary gates are now running in gate-veoakupt (125) and gate-ozhntanl (126); all 599 frozen executable inputs match `.gosim/task32-1-final-snapshot.json`. No source edits during these gates.
+
+### Task 32.1 complete
+Both complete ordinary gates passed (sessions 71053/75655 exit 0), including command-contract regression, native candidate workers, generated graphs and scripts. Independent report/suite-log digest checks and source-copy comparisons passed. Results: exact125 `c5069df5b9de04273ebe4baf952e6f1f3d47152e2bb207eb52c372465434eeaa`; exact126 `2a16c43b7d4c285424d6a9fc201c24b3478fcb3ee23b1b246e1d14e5bc60cc82`. Corrected frozen translator: `be933baa3d1c42fe559fcc4054e2b9602a6f7838d4509f3b0cdc8cdedfd42a49`; snapshot `.gosim/task32-1-final-snapshot.json`, 599 inputs. No additional full race gate was run for this source fix; fresh final matrix follows after commit.
+Task 32.1 rename-aware commit size including this line: 57 added/deleted lines.
+
+## Task 32.2 — Restarted final matrix (in progress)
+Correction committed as abcfd7a (57 changed lines). New frozen translator `be933baa3d1c42fe559fcc4054e2b9602a6f7838d4509f3b0cdc8cdedfd42a49`, 599-input snapshot `.gosim/task32-1-final-snapshot.json`. Restarting all 48 tuples. Darwin ARM64 and Linux AMD64 batches run concurrently, two jobs each; Linux ARM64 follows AMD64 to keep total VM concurrency bounded. Running emulated AMD64 first exposes any architecture/emulation-specific full-race failures before spending the next ARM64 batch. All reports from the canceled attempt remain ineligible for promotion.
+
+Post-promotion acceptance preparation also clarified README wording: external application metatests use build-tests; prepare-selftest is repository test infrastructure and must run from the Gosim checkout. This matches its existing implementation and changes no executable input. Acceptance scripts are prepared under `.gosim/task32-tools/`: independent Python matrix/log/worker/source collection, authoritative Go report/source-digest validation with staged-only metadata, normal commands for both patches/all four features, actual headless Delve RPC execution, and negative source/flags/patch/binary checks. They will run only after all 48 new-source reports pass and are reviewed.
+
+### Second matrix attempt canceled for source preflight
+T§4 explicitly restricts public Destroy to New/Stopped/Crashed and requires ErrMachineNotFound for destroyed handles. Kernel.Destroy currently returns nil on repeated destruction, and the existing kernel test encodes that exception. Record the mismatch before fixing it. Full T§1–12 source preflight now precedes the next certification attempt (32.2.1), with all source corrections grouped before final ordinary gates and matrix restart (32.2.2). Task 33 remains final post-promotion closure.
+
+Canceled only owned host matrix processes (12 processes; sessions 86661/23961 exit 143), collected canceled container evidence and removed both owned AMD64 containers (cleanup session 28455). One Darwin rt ordinary tuple had completed; no report from this attempt can certify the subsequent corrected source. Paths: task32-final-darwin-arm64/matrix-_or_67_p and task32-final-linux-amd64/matrix-jlinsejm. VM resources remain temporary 6 CPUs/12 GiB; restore 2/2 after the final verified matrix.
+
+### Task 32.2.1 — Source preflight and grouped corrections
+Reviewed T§1–12 against the final source before restarting certification. Public/native controls and errors map through generated typed routes; contracts/kernel/provider imports preserve the translated boundary; Engine.Run owns the one scheduler and generated composition binds control before root initialization. Startup allocates runtime staging before FS/Net preparation, rolls descriptors back before reverse provider abort, and publishes before application init. Stop cancels admission, invocations and events before settle/finalize/detach/dispose; completion clears borrowed arguments before waking. FD/poll owner checks, monotonic IDs and deadline generations are present. FS recovery uses immutable retained images and synchronous bounded lookahead enumeration; network packets check endpoint epochs, link and connection generations, and graceful final packets survive source teardown. Domain RNG derivation/update matches T§12 and streams survive restart. Both compile-time compatibility families retain reviewed native facades, hook/shim ledgers and explicit unsupported policies.
+
+Build/cache review confirmed pinned CLI resolution, composition before loading, selected policies, length-delimited content hashes, v2 envelope validation, unchanged SQLite schema/hourly touch/seven-day cleanup, per-package manifests, locks and atomic staging. Metatesting validates binary content and protocol/identity before requests, serializes requests and reaps owned processes. Certification checks applicable suites and hashes; 48-tuple coverage and actual execution modes remain pending final execution. No additional required source discrepancy was found beyond repeated public Destroy. Final Task 33 will bind this source review to the promoted evidence and normal-command execution.
+
+Removed Kernel.Destroy's already-destroyed success exception. The native lifecycle regression now expects ErrMachineNotFound, and translated TestMachineDestroyedHandle checks repeated Destroy and State after destruction for New, Stopped and Crashed machines. Provider cleanup remains idempotent. Corrected docs/design.md's startup ordering to match existing source/target, clarified external metatest preparation in README, and repaired the plan's generator commands to include mandatory linkname build flags after the unflagged command failed on runtime.newcoro. No target change was needed.
+
+Focused kernel/provider/composition/build/artifact/cache tests passed on both exact patches. Route generation, compatibility declaration ledgers and the 207-entry preserved-test applicability inventory passed; both exact family/architecture generator -check commands passed with the required flags. Formatting passed. Frozen 599 executable inputs are recorded in `.gosim/task32-2-1-final-snapshot.json`; both complete ordinary gates are running concurrently. No full race suite is added to this corrective commit.
+
+Task 32.2.1 complete: both complete ordinary gates passed (sessions 14016/29484, exit 0), including translated Destroy regression in all three permitted terminal states. Reports and suite-log hashes independently verified; both source copies and checkout equal the frozen 599-input map. Exact125 result `a29abecce6a40f28b5a76e0f8bc865c9d55da5409b02deb2d3390a7fd249906c` (gate-f975my09); exact126 `8aab53fc084bb66db0ec37b333366bdfd809f152594d4edd00aedbc8dbf05e93` (gate-5orzu6t1). Final translator is `251285e6a014e54255f7a8528d3ae8d20399528dbd6d12f30cff7c15b739fa1f`. All eight matrix-runner tests also pass. No required source preflight gap remains; final matrix and normal certified acceptance are still pending.
+
+## Task 32.2.2 — Certification of audited source
+Task 32.2.1 committed as 9e31f4e, 79 added/deleted lines. Starting the complete 48-tuple matrix against frozen translator `251285e6a014e54255f7a8528d3ae8d20399528dbd6d12f30cff7c15b739fa1f` and `.gosim/task32-2-1-final-snapshot.json`. Native Darwin ARM64 and emulated Linux AMD64 run concurrently with two jobs each; native-container Linux ARM64 follows AMD64. Full race coverage is confined to this final verification phase. All earlier canceled reports remain ineligible for promotion.
+
+Additional read-only inventory reconciliation during final execution: `.gosim/task32-tools/declaration-audit.go` compares baseline e6122b1 AST names with all production files in each directly moved destination package (543 type/function/method entries). Retained runtime/channel/map/time/view primitives remain present. Name differences are the target's explicit replacements: old runtime initialization/run/syscall allocator helpers → Engine/Driver and typed dispatcher; private run records → RunConfig/RunResult; live FS crash traversal → frozen CrashImage/crashPlanIterator; network lock/runtime-random/run-loop helpers → injected ports, event queue, directed policy, reservation/Attach/Detach and generation-checked ProcessIncoming; ForCurrentPackage → ForPackage. The generated depkind inventory also includes its package variable beyond these AST type/function names. Family hook/shim declarations are separately checked by the frozen 964-entry ledger; host coroutine/race and syscallabi rows are reconciled to selected hostabi and contracts/kernel/view ownership. This supplements the section-by-section preflight without changing executable inputs or claiming unfinished matrix evidence.
+
+Concurrency adjustment based on live measurements: the 6-CPU/12-GiB Colima VM had 10,648 MiB available with both AMD64 workers active (approximately 0.8 GiB combined container memory). Started the Linux ARM64 batch with one worker concurrently, rather than waiting for AMD64 to finish. This permits three VM jobs with two logical Go processors each; native Darwin remains at two jobs. No VM restart, source change or evidence reuse is involved. Monitor total memory while all three routes progress.
+
+Darwin ARM64 matrix completed: all 16 combinations passed, including full race suites on go1.25.14 and go1.26.9. Run: `.gosim/certification/task32-audited-darwin-arm64/matrix-q_p7ggur`; session 70880 exited 0. Linux AMD64 and ARM64 remain in progress; no tuple has been promoted from this partial matrix.
+
+## User-requested disablement; implementation goal paused
+The user explicitly disabled TestCandidateWorker, TestSelectedTranslation/TestSelectedTranslationWorker and the entire TestScript group. Added unconditional explained skips to those functions and TestCandidate's launcher, preserving their source and fixtures. The user instruction overrides their earlier execution requirements. The broader implementation goal remains paused; no certification promotion, acceptance run or matrix restart is performed.
+
+At cleanup inspection all three previous-source matrix manifests already reported 16/16 passed (48 total), with no remaining matrix process or container. Darwin run: matrix-q_p7ggur; AMD64: matrix-7lhig7w0; ARM64: matrix-noij1r2p under `.gosim/certification/task32-audited-*`. These reports precede the disabled-test source change and do not certify the edited checkout. The final ARM64 race native log recorded candidate package 536.5s, CLI scripts 139.7s and translation 100.1s; package timings overlap. The test design repeats feature sweeps in the candidate harness and both patches in selected-translation checks, on top of the outer matrix.
+
+Verification is limited to running the five named test entry points with worker environment variables explicitly enabled on both exact patches, ensuring direct invocations also skip. Temporary Colima resources are being restored from 6 CPUs/12 GiB to 2 CPUs/2 GiB, retaining Rosetta and the existing Docker context.
+
+Disablement verification completed: all five entry points report SKIP in 0.00s on both go1.25.14 and go1.26.9, including direct worker invocations with their worker environment variables set. Focused runs exited 0; gofmt and git diff --check passed. No complete suite or matrix rerun was started. Colima restoration completed successfully: 2 CPUs/2 GiB configured, Rosetta retained, active Docker context still desktop-linux. The implementation goal remains paused and the edits are left uncommitted.
+
+## Resumed goal — test separation and certification preflight
+Current HEAD is 1bc35bf (Better tests); the worktree was clean on resumption. The preceding user turn updated AGENTS.md, which is concrete progress. Read the brainstorm/target verification requirements and the unfinished Tasks 32–33. The user explicitly authorized running/checking large suites and the final matrix after the direct-instruction rule was explained. Two ordinary local runs and one Go 1.26.9 large run are executing in isolated snapshots, each bounded to four workers. No matrix has restarted yet.
+
+Found a required certification gap introduced by opt-in test separation: reduced-feature `boundaries` still runs TestCandidateWorker without enabling the large suite, so it can report a skipped worker as passed. Full-feature native reports similarly lack the opt-in tests. Recorded 32.2.3 before source changes to distinguish ordinary validation from complete evidence and route selected-tuple coverage through make test-large without repeating sweeps. Historical 48-tuple reports remain ineligible for the changed checkout.
+
+### Task 32.2.3 complete — truthful selected-tuple large coverage
+Added non-promotable validation_only reports for ordinary local checks. Full certification now explicitly requests -large, invokes make test-large with the exact prepared tuple/race/executable, and includes its hashed log in required evidence. Candidate checks no longer rerun positive suites or other features inside a matrix tuple. Translation cache workers run on rt and CLI scripts on full features. Reporting requires actual worker and selected-feature terminal passes; skips/missing selection fail. Original opt-in entry points remain skipped in ordinary/race runs. No runtime/provider/profile production source changed.
+
+Validation: 15 reporter tests and 13 orchestration tests pass; focused buildcfg/buildspec/CLI checks pass; formatting/diff checks pass. Final-source make test: Go 1.25.14 1652 passed/16 expected skips in 159.076s (unit/20261019T170634.868040Z-0oyzbsvj); Go 1.26.9 1658 passed/16 expected skips in 164.147s (unit/20261019T170634.867994Z-e03dl6y7). Both private copies and root match all 607 frozen inputs in .gosim/resume-final-source.json; both reports correctly have validation_only=true. Translator 413896af11a8c328944cb15d1e4148f62977bcc646ea1dbb09a935b484ba89ec.
+
+Authorized large checks: standalone Go 1.26.9 before this correction passed 17/17 in 153.642s; corrected-source standalone Go 1.25.14 passed 17/17 in 165.526s (large/20261019T170739.139676Z-qaskq47x). Corrected-source selected rt Go 1.26.9 passed 9/9 in 20.559s (large/20261019T170653.649372Z-3po74eu0). No large skips. Full and reduced tuple integration is exercised next by the authorized matrix.
+
+Colima had no running containers before its temporary resize. Saved .gosim/resume-colima-before.yaml; current 6 CPUs/12 GiB with Rosetta, active Docker context remains desktop-linux. Restore original 2 CPUs/2 GiB after final matrix execution. No VM recreation.
+
+## Task 32.2.2 resumed — final matrix on 9d6ddff
+Certification fix committed as 9d6ddff (278 added/deleted lines). Frozen source remains 607 inputs, translator 413896af11a8c328944cb15d1e4148f62977bcc646ea1dbb09a935b484ba89ec. Native Darwin ARM64 runs in .gosim/certification/resume-darwin-arm64/matrix-bwvoco62 (two workers, session 19454); emulated Linux AMD64 runs in .gosim/certification/resume-linux-amd64/matrix-13fyha6u (two workers, session 8057). Linux ARM64 follows AMD64 within the 6-CPU VM budget. No promotion until all 48 current-source jobs and their actual selected large events pass independent verification.
+
+Live evidence check: the first Darwin rt ordinary report contains build/execute/native/native-units/large; its event log records TestCandidateWorker/rt and four disabled-fs/net init/test children passing, with no other feature subtest. Both Darwin and AMD64 rt race tuples subsequently passed. The direct-move AST reconciliation was rerun: all 30 file mappings/543 declarations have exactly the same retained/replaced-name sets as the earlier full source preflight. Production runtime/provider/public/adapter source is unchanged from audited 9e31f4e; subsequent production differences are confined to testing/reporting, artifact-copy exclusions and certification coverage, reviewed above.
+
+User-requested README update: replaced the Features placeholder with a 42-row package/feature/status/comment table, covering the turmoil comparison inventory while correcting historical API/status claims (including real Forward links and owned crash snapshots). Preserved the user's introductory prose. Four-column/status validation and git diff --check passed; no tests started for this documentation edit.
+
+Final-matrix scheduling adjustment: measured two AMD64 workers at about 2.7 of 6 VM CPUs and 1.2 of 12 GiB memory. Started Linux ARM64 with one job alongside them (session 58325, .gosim/resume-matrix-arm64.log), retaining the VM's resource cap. This replaces the planned sequential ARM64 start; Darwin remains at two jobs. No duplicated tuples, source change, or promotion.
+
+Darwin ARM64 completed with 16/16 passing tuples; matrix session 19454 exited 0. The independent collector verified every Darwin report against the 607-input snapshot, worker observations, suite/report hashes and actual selected large-test PASS events (including no repeated candidate feature sweep). Linux AMD64 and ARM64 remain running; no evidence has been promoted.
+
+User-requested performance follow-up filed as https://github.com/neria-cloud/gosim/issues/2. It records the >60-minute in-progress matrix baseline on M4 Pro/64 GiB, the actual 6-vCPU/12-GiB Colima allocation, measured native/emulated tuple and large-suite timings, and profiling/scheduling/cache/artifact-transfer work without weakening the 48-tuple gate. This issue does not change executable source or expand the current implementation task into a performance rewrite. Status checks now follow the user's five-minute cadence.
+
+Final matrix complete: all 48/48 tuples passed; Darwin session 19454 and Linux sessions 8057/58325 exited 0. Runs: resume-darwin-arm64/matrix-bwvoco62, resume-linux-amd64/matrix-13fyha6u, resume-linux-arm64/matrix-uevafifp under .gosim/certification/. The independent collector checked all 48 unique tuples, 607-input source maps, observed exact Go/OS/architecture, truthful native/container-native/container-emulated modes, image digests, required suite/report hashes, and actual selected large-worker terminal PASS events without overlapping candidate feature sweeps.
+
+The current-source Go reviewer independently validated every report/profile revision and CertifiedIdentity selection, staged 24 tuples per family in .gosim/resume-reviewed-metadata, then the four reviewed tuples/evidence JSON files were copied into their profiles. Publication leaves all 607 executable inputs byte-identical. Fresh normal-command acceptance is running on both exact patches; task completion awaits those checks and debugger acceptance.
+
+Colima restoration verified: original 2 CPUs/2 GiB, vz/Rosetta retained, active Docker context desktop-linux. No containers were running before stopping the VM. No VM recreation.
+
+Final audit evidence: rechecked 20 critical named lifecycle/rollback/epoch, snapshot lifetime, packet/poll generation, engine abort/single-run, RNG, cache-corruption and preserved-inventory test cases in each corrected-source ordinary JUnit report; all are explicit passes (not skips). Existing source preflight still applies to unchanged runtime/provider/public/adapter implementation; subsequent production changes were reviewed as reporting/certification coverage and report-directory exclusions.
+
+### Task 32 complete — reviewed certification and normal-command acceptance
+Both corrected-source ordinary gates and all 48 final matrix executions passed. Metadata publication preserves the frozen translator/source digests. Fresh normal CLI builds for go1.25.14 and go1.26.9 passed resolve-build, translate, build-tests, test (seeds 1–3), lookup-test and manifest/certified-identity checks for all four feature sets. Both prepare-selftest paths and external-module metatests passed; changed-framework source, wrong patch, unapproved flags and a tampered worker binary were rejected. Evidence: .gosim/resume-acceptance/<patch>/{acceptance.log,identities.json}.
+
+Both normal headless debug commands stopped at the requested simulation step and continued to target exit 0. Independently checked recorded RPC breakpoint name, step argument and terminal exit in debug-rpc.json. The second helper invocation initially encountered TCP TIME_WAIT on its preflight bind, with no live listener; SO_REUSEADDR in the ignored acceptance helper allowed the sequential check without changing product source or terminating unrelated processes. Both debugger processes were reaped.
+
+No production source changed after the 607-input freeze, so the complete ordinary/race/large matrix remains the final common gate; metadata/docs-only publication does not require another expensive sweep. Task 32 and its remaining certification children are now complete. Task 33 binds the already completed section-by-section source audit to this final evidence and fresh public entry-point execution.
+
+## Task 33 — Final architectural delta and wiring closure
+Task 32 committed as b56d7b8 (200 added/deleted lines, six files). Reconciled T§1–12 again with the current source, the full earlier source preflight and its unchanged production owners, final matrix evidence, and fresh certified user-path execution. No further executable-source discrepancy was found.
+
+| Requirement | Final source and execution evidence |
+| --- | --- |
+| T§1/3: four immutable feature sets and package boundaries | Selected composition imports only enabled providers; contracts/kernel/control boundaries and transitive generated import checks passed for every applicable tuple. Old production imports and migration/retirement tags are absent. |
+| T§2: exact patch/platform certification | 48 independently verified current-source reports; 24 certified records per family. Darwin ARM64 native, Linux ARM64 container-native and Linux AMD64 container-emulated are recorded truthfully with observed workers and image digests. |
+| T§4: public API, native behavior and replacement | Common value types plus sim/native implementations retain the specified lifecycle, fs/net/rt signatures and errors. Destroy rejects invalidated handles. Native API tests, translated lifecycle/control suites, examples/nemesis and both external certified acceptance modules pass. |
+| T§5/6: contracts, staged lifecycle and borrowed memory | Exact FileOps/SocketOps/control contracts feed generated typed routes. Runtime staging precedes FS/Net preparation; rollback finalizes descriptors before reverse abort; Commit publishes before init. Dispatcher clears leases before wake/cancel; stop/crash completes deterministic cleanup. Native fault-injection and translated suites cover these paths, including explicit passing JUnit cases rechecked above. |
+| T§7: filesystem ownership and recovery | Provider sessions retain immutable crash images, synchronous budgeted iterators and independently owned snapshots; restore/failed restart/early close tests pass. Existing lock/permission/mapping limitations remain accurately classified. |
+| T§7: network ownership and faults | Address reservation rollback, directed policy, traffic-driven fault state, epoch/connection generations and final graceful packets are wired through provider/model ports. Native and translated network/race suites pass; crash does not send a close notification. |
+| T§8: runtime primitives, views and version adapters | The direct-move audit retains/reconciles 543 declarations in 30 mappings; the frozen 964-entry compatibility ledger and generated signature/layout audits pass. Engine/RNG/ABI/facade methods, bounded family selection, abort and single-active-run behavior match; no old coroutine fallback survives. |
+| T§9: configuration, translation and compilation | resolveBuild validates config, exact worker/distribution, selected profile and current evidence before composition/loading. All normal build commands use the pinned toolchain; both patches passed fresh four-feature normal-command acceptance and rejection probes. |
+| T§9: cache, artifacts and persistence | The unchanged STRICT SQLite table, primary key, hourly touch and seven-day retention remain. V2 identity/content envelopes, corrupt-entry replacement, per-package manifests, atomic publication/locks, metatest handshake/content validation and owned child cleanup are covered by passing tests and the final tamper rejection. |
+| T§10: required behavioral gates | Both final-source ordinary suites and all 48 ordinary/race/large tuple jobs passed. Selected-tuple workers really executed; no skipped worker or repeated internal feature sweep was accepted. The 207-entry preserved test inventory and both family generator checks remain valid for unchanged source. |
+| T§11: exclusions and gaps | Every discovered implementation gap is Fixed in the plan: rebuild diagnostic, destroyed-handle behavior and skipped-large certification. Explicit exclusions remain capability/rejection boundaries, not silent promises. Performance issue #2 is user-requested follow-up, not a deferred architecture requirement. |
+| T§12: algorithms and live wiring | Rechecked resolveBuild, Generate/cacheGet, staged commit/abort, stop/restart, Require, descriptor routing, Complete, snapshot lookahead/DFS and RNG derivation against their owning source. Generated Driver constructs the selected providers inside Engine.Run, binds transport before kernel/root initialization, and closes kernel before engine. |
+
+Final wiring proof combines actual candidate positive/negative/syscall/replay execution on every applicable matrix tuple with fresh certified CLI/config → selection → composition/translation → pinned compile → Driver/Engine → kernel/provider → public control → cleanup/metatest paths on both exact patches and all four feature sets. Normal debug also reached the requested step and exited cleanly on both patches. No required component is accepted solely because a unit test calls it.
+
+The user's 42-row README feature inventory was added and checked earlier; subsequent user edits/staging (including status icons) are preserved and left staged outside this closure commit. The plan, target design and capability boundaries are not changed by those presentation edits. Final closure changes only plan/progress documentation; it leaves all certified executable fingerprints unchanged. No additional full test sweep is needed for this documentation-only commit.
+
+All implementation tasks and required gaps are complete. Final evidence remains under the three .gosim/certification/resume-* runs, ordinary/large reports under test-reports, and normal acceptance/debug logs under .gosim/resume-acceptance. Colima resources are restored. The certification performance follow-up is https://github.com/neria-cloud/gosim/issues/2.
+
+Final completion audit passed: no unchecked implementation/verification item remains; both profiles contain 24 certified tuples with matching evidence digests; the 607 executable inputs remain unchanged. Rebuilt .gosim/gosimtool with Go 1.26.9 and verified the repository default rt,fs,net configuration resolves to the current certified identity. This Task 33 documentation commit contains the final closure record; the adjacent commit history supplies its hash.

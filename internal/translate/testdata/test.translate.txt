@@ -22,7 +22,7 @@ func TestFoo(t *testing.T) {
 package basictest
 
 import (
-	"translated/github.com/neria-cloud/gosim/internal_/testing"
+	"translated/github.com/neria-cloud/gosim/internal_/compat/SELECTED/shims/testing"
 	"translated/time"
 )
 
@@ -45,8 +45,8 @@ import (
 	testing_original "testing"
 	"translated/test/test"
 
-	"github.com/neria-cloud/gosim/gosimruntime"
-	"translated/github.com/neria-cloud/gosim/internal_/hooks/go123"
+	"github.com/neria-cloud/gosim/rt/runtime"
+	"translated/github.com/neria-cloud/gosim/.gosim/v2/IDENTITY/input/gosimcomposition"
 )
 
 func init() {
@@ -55,5 +55,5 @@ func init() {
 	})
 }
 func TestMain(m *testing_original.M) {
-	gosimruntime.TestMain(go123.Runtime())
+	gosimruntime.TestMain(gosimcomposition.Driver{})
 }

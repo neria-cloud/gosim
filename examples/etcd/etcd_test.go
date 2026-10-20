@@ -17,6 +17,8 @@ import (
 	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/examples/etcd"
 	"github.com/neria-cloud/gosim/nemesis"
+	simnet "github.com/neria-cloud/gosim/net"
+	"github.com/neria-cloud/gosim/rt"
 )
 
 func parseUrls(a ...string) []url.URL {
@@ -57,32 +59,23 @@ func runEtcdNode(name, addr string) {
 // TestEtcd runs a 3 node etcd cluster, partitions the network between the
 // nodes, and makes sure key-value puts and gets work.
 func TestEtcd(t *testing.T) {
-	gosim.SetSimulationTimeout(2 * time.Minute)
-
-	// run machines:
-	gosim.NewMachine(gosim.MachineConfig{
-		Label: "etcd-1",
-		Addr:  netip.MustParseAddr("10.0.0.1"),
-		MainFunc: func() {
-			runEtcdNode("etcd-1", "10.0.0.1")
-		},
-	})
-	gosim.NewMachine(gosim.MachineConfig{
-		Label: "etcd-2",
-		Addr:  netip.MustParseAddr("10.0.0.2"),
-		MainFunc: func() {
-			time.Sleep(100 * time.Millisecond)
-			runEtcdNode("etcd-2", "10.0.0.2")
-		},
-	})
-	gosim.NewMachine(gosim.MachineConfig{
-		Label: "etcd-3",
-		Addr:  netip.MustParseAddr("10.0.0.3"),
-		MainFunc: func() {
-			time.Sleep(200 * time.Millisecond)
-			runEtcdNode("etcd-3", "10.0.0.3")
-		},
-	})
+	if err := rt.SetTimeout(2 * time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 3; i++ {
+		label, addr := fmt.Sprintf("etcd-%d", i), fmt.Sprintf("10.0.0.%d", i)
+		delay := time.Duration(i-1) * 100 * time.Millisecond
+		m, err := gosim.NewMachine(gosim.MachineConfig{Label: label, Main: func() { time.Sleep(delay); runEtcdNode(label, addr) }})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := simnet.ConfigureMachine(m, simnet.MachineConfig{Addr: netip.MustParseAddr(addr)}); err != nil {
+			t.Fatal(err)
+		}
+		if err := m.Start(); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	// mess with the network in the background
 	go nemesis.Sequence(

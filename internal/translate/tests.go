@@ -39,49 +39,14 @@ func (t *packageTranslator) rewriteTestFunc(c *dstutil.Cursor) {
 
 		funcDecl.Name.Name = newName
 		newDecls = append(newDecls, funcDecl)
-		/*
-			newDecls = append(newDecls, &dst.FuncDecl{
-				Name: dst.NewIdent(oldName),
-				Type: &dst.FuncType{
-					Params: &dst.FieldList{
-						List: []*dst.Field{
-							{
-								Names: []*dst.Ident{
-									dst.NewIdent("t"),
-								},
-								Type: &dst.StarExpr{
-									X: &dst.Ident{
-										Path: "testing",
-										Name: "T",
-									},
-								},
-							},
-						},
-					},
-				},
-				Body: &dst.BlockStmt{
-					List: []dst.Stmt{
-						&dst.ExprStmt{
-							X: &dst.CallExpr{
-								Fun: &dst.Ident{Path: t.replacedPkgs[testingPackage], Name: "RunTest"},
-								Args: []dst.Expr{
-									dst.NewIdent("t"),
-									dst.NewIdent(newName),
-								},
-							},
-						},
-					},
-				},
-			})
-		*/
 	}
 
 	file.Decls = newDecls
 }
 
-func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []packageSelector, runtime string) (*dst.File, error) {
+func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []PackageSelector, runtime string) (*dst.File, error) {
 	var elts []dst.Expr
-	slices.SortFunc(tests, func(a, b packageSelector) int {
+	slices.SortFunc(tests, func(a, b PackageSelector) int {
 		if d := cmp.Compare(a.Pkg, b.Pkg); d != 0 {
 			return d
 		}
@@ -117,12 +82,6 @@ func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []packageSele
 	dstFile := &dst.File{
 		Name: dst.NewIdent(pkgName + "_test"),
 		Decls: []dst.Decl{
-			/*
-				&dst.GenDecl{
-					Tok:   token.VAR,
-					Specs: specs,
-				},
-			*/
 			&dst.FuncDecl{
 				Name: dst.NewIdent("init"),
 				Type: &dst.FuncType{
@@ -171,15 +130,8 @@ func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []packageSele
 					List: []dst.Stmt{
 						&dst.ExprStmt{
 							X: &dst.CallExpr{
-								Fun: t.newRuntimeSelector("TestMain"),
-								Args: []dst.Expr{
-									&dst.CallExpr{
-										Fun: &dst.Ident{
-											Path: t.replacedPkgs[runtime],
-											Name: "Runtime",
-										},
-									},
-								},
+								Fun:  t.newRuntimeSelector("TestMain"),
+								Args: []dst.Expr{&dst.CompositeLit{Type: &dst.Ident{Path: t.replacedPkgs[runtime], Name: "Driver"}}},
 							},
 							Decs: dst.ExprStmtDecorations{
 								NodeDecs: dst.NodeDecs{
@@ -187,26 +139,6 @@ func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []packageSele
 								},
 							},
 						},
-						/*
-							&dst.ExprStmt{
-								X: &dst.CallExpr{
-									Fun: &dst.Ident{Path: "os", Name: "Exit"},
-									Args: []dst.Expr{
-										&dst.CallExpr{
-											Fun: &dst.SelectorExpr{
-												X:   dst.NewIdent("m"),
-												Sel: dst.NewIdent("Run"),
-											},
-										},
-									},
-								},
-								Decs: dst.ExprStmtDecorations{
-									NodeDecs: dst.NodeDecs{
-										After: dst.NewLine,
-									},
-								},
-							},
-						*/
 					},
 				},
 			},

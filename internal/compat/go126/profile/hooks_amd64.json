@@ -1,0 +1,37 @@
+[
+  {
+    "package": "internal/cpu",
+    "symbol": "cpuid",
+    "signature": "func(uint32, uint32) (uint32, uint32, uint32, uint32)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalCpu_cpuid",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/cpu",
+    "symbol": "xgetbv",
+    "signature": "func() (uint32, uint32)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalCpu_xgetbv",
+    "owner": "rt"
+  },
+  {
+    "package": "internal/cpu",
+    "symbol": "getGOAMD64level",
+    "signature": "func() int32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalCpu_getGOAMD64level",
+    "owner": "rt"
+  },
+  {
+    "package": "syscall",
+    "symbol": "gettimeofday",
+    "signature": "func(*Timeval) Errno",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Syscall_gettimeofday",
+    "owner": "kernel"
+  },
+  {
+    "package": "golang.org/x/sys/unix",
+    "symbol": "gettimeofday",
+    "signature": "func(*Timeval) syscall.Errno",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.GolangOrgXSysUnix_gettimeofday",
+    "owner": "kernel"
+  }
+]
