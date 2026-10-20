@@ -665,6 +665,46 @@ func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
 		var err error
 		out.Stats, err = service.FstatFS(ctx, p.FD)
 		return syscallRouteResult(out, err)
+	case RouteFchmod:
+		p := inv.Args[0].(FchmodRequest)
+		var out FchmodResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		err = service.Fchmod(ctx, p.FD, p.Mode)
+		return syscallRouteResult(out, err)
+	case RouteChmodat:
+		p := inv.Args[0].(ChmodatRequest)
+		var out ChmodatResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		err = service.Chmodat(ctx, p.DirFD, p.Path, p.Mode, p.Flags)
+		return syscallRouteResult(out, err)
+	case RouteFchown:
+		p := inv.Args[0].(FchownRequest)
+		var out FchownResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		err = service.Fchown(ctx, p.FD, p.UID, p.GID)
+		return syscallRouteResult(out, err)
+	case RouteChownat:
+		p := inv.Args[0].(ChownatRequest)
+		var out ChownatResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		err = service.Chownat(ctx, p.DirFD, p.Path, p.UID, p.GID, p.Flags)
+		return syscallRouteResult(out, err)
 	}
 	return Result{}, false, invalidPayload(ctx, "unreachable route")
 }

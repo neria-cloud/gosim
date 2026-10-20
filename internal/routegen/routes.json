@@ -74,5 +74,9 @@
 {"id":71,"name":"FSSetReadOnly","owner":"fs","kind":"control","inputs":[{"name":"Machine","type":"contracts.MachineRef"},{"name":"Enabled","type":"bool"}],"results":[],"legacy":[]},
 {"id":72,"name":"FSStats","owner":"fs","kind":"control","inputs":[{"name":"Machine","type":"contracts.MachineRef"}],"results":[{"name":"Stats","type":"contracts.FSStorageStats"}],"legacy":[]},
 {"id":73,"name":"StatFS","owner":"fs","kind":"syscall","inputs":[{"name":"Path","type":"string"}],"results":[{"name":"Stats","type":"contracts.FSStorageStats"}],"legacy":[]},
-{"id":74,"name":"FstatFS","owner":"fs","kind":"syscall","inputs":[{"name":"FD","type":"int"}],"results":[{"name":"Stats","type":"contracts.FSStorageStats"}],"legacy":[]}
+{"id":74,"name":"FstatFS","owner":"fs","kind":"syscall","inputs":[{"name":"FD","type":"int"}],"results":[{"name":"Stats","type":"contracts.FSStorageStats"}],"legacy":[]},
+{"id":75,"name":"Fchmod","owner":"fs","kind":"syscall","inputs":[{"name":"FD","type":"int"},{"name":"Mode","type":"uint32"}],"results":[],"legacy":[]},
+{"id":76,"name":"Chmodat","owner":"fs","kind":"syscall","inputs":[{"name":"DirFD","type":"int"},{"name":"Path","type":"string"},{"name":"Mode","type":"uint32"},{"name":"Flags","type":"int"}],"results":[],"legacy":[]},
+{"id":77,"name":"Fchown","owner":"fs","kind":"syscall","inputs":[{"name":"FD","type":"int"},{"name":"UID","type":"int"},{"name":"GID","type":"int"}],"results":[],"legacy":[]},
+{"id":78,"name":"Chownat","owner":"fs","kind":"syscall","inputs":[{"name":"DirFD","type":"int"},{"name":"Path","type":"string"},{"name":"UID","type":"int"},{"name":"GID","type":"int"},{"name":"Flags","type":"int"}],"results":[],"legacy":[]}
 ]}

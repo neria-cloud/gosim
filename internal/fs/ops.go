@@ -312,6 +312,70 @@ func (i *Instance) storageStats() contracts.FSStorageStats {
 	return contracts.FSStorageStats{TotalBytes: stats.TotalBytes, FreeBytes: stats.FreeBytes, UsedBytes: stats.UsedBytes, BlockSize: stats.BlockSize, ReadOnly: i.machine.readOnly}
 }
 
+func (i *Instance) Fchmod(ctx contracts.CallContext, fd int, mode uint32) error {
+	f, err := i.file(ctx, fd)
+	if err != nil {
+		return err
+	}
+	if err := i.checkMutation(); err != nil {
+		return err
+	}
+	return i.model.Chmod(f.inode, mode, i.identity())
+}
+
+func (i *Instance) Chmodat(ctx contracts.CallContext, dirfd int, path string, mode uint32, flags int) error {
+	if err := i.validateCall(ctx); err != nil {
+		return err
+	}
+	dir, err := i.dirInode(dirfd)
+	if err != nil {
+		return err
+	}
+	if flags != 0 && flags != atSymlinkNoFollow {
+		return syscall.EINVAL
+	}
+	stat, err := i.model.Stat(dir, path, i.identity())
+	if err != nil {
+		return err
+	}
+	if err := i.checkMutation(); err != nil {
+		return err
+	}
+	return i.model.Chmod(stat.Inode, mode, i.identity())
+}
+
+func (i *Instance) Fchown(ctx contracts.CallContext, fd, uid, gid int) error {
+	f, err := i.file(ctx, fd)
+	if err != nil {
+		return err
+	}
+	if err := i.checkMutation(); err != nil {
+		return err
+	}
+	return i.model.Chown(f.inode, uid, gid, i.identity())
+}
+
+func (i *Instance) Chownat(ctx contracts.CallContext, dirfd int, path string, uid, gid, flags int) error {
+	if err := i.validateCall(ctx); err != nil {
+		return err
+	}
+	dir, err := i.dirInode(dirfd)
+	if err != nil {
+		return err
+	}
+	if flags != 0 && flags != atSymlinkNoFollow {
+		return syscall.EINVAL
+	}
+	stat, err := i.model.Stat(dir, path, i.identity())
+	if err != nil {
+		return err
+	}
+	if err := i.checkMutation(); err != nil {
+		return err
+	}
+	return i.model.Chown(stat.Inode, uid, gid, i.identity())
+}
+
 func (i *Instance) Unlinkat(ctx contracts.CallContext, dirfd int, path string, flags int) error {
 	if err := i.validateCall(ctx); err != nil {
 		return err

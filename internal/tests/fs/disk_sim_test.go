@@ -43,6 +43,34 @@ func TestStorageStatfsRoutes(t *testing.T) {
 	}
 }
 
+func TestMetadataSyscallRoutes(t *testing.T) {
+	f, err := os.OpenFile("metadata-syscalls", os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := os.Chmod("metadata-syscalls", 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Fchmod(int(f.Fd()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chown("metadata-syscalls", 111, 222); err != nil {
+		t.Fatal(err)
+	}
+	if err := unix.Fchownat(unix.AT_FDCWD, "metadata-syscalls", -1, 223, 0); err != nil {
+		t.Fatal(err)
+	}
+	info, err := f.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || stat.Mode != 0o100600 || stat.Uid != 111 || stat.Gid != 223 {
+		t.Fatalf("syscall metadata: %#v", info.Sys())
+	}
+}
+
 // TODO: more scenarios for either triggering or not triggering GC (pending ops, rename, delete, etc.)
 
 func getInode(f *os.File) (int, error) {

@@ -24,14 +24,18 @@ func (*fakeFiles) StatFS(CallContext, string) (FSStorageStats, error) {
 func (*fakeFiles) FstatFS(CallContext, int) (FSStorageStats, error) {
 	return FSStorageStats{}, errInjected
 }
-func (*fakeFiles) Unlinkat(CallContext, int, string, int) error     { return errInjected }
-func (*fakeFiles) Truncate(CallContext, int, int64) error           { return errInjected }
-func (*fakeFiles) Chdir(CallContext, string) error                  { return errInjected }
-func (*fakeFiles) Getcwd(CallContext, abi.ByteView) (int, error)    { return 0, errInjected }
-func (*fakeFiles) Mkdirat(CallContext, int, string, uint32) error   { return errInjected }
-func (*fakeFiles) Flock(CallContext, int, int) error                { return errInjected }
-func (*fakeFiles) FcntlInt(CallContext, int, int, int) (int, error) { return 0, errInjected }
-func (*fakeFiles) FcntlLock(CallContext, int, int, *Lock) error     { return errInjected }
+func (*fakeFiles) Fchmod(CallContext, int, uint32) error                 { return errInjected }
+func (*fakeFiles) Chmodat(CallContext, int, string, uint32, int) error   { return errInjected }
+func (*fakeFiles) Fchown(CallContext, int, int, int) error               { return errInjected }
+func (*fakeFiles) Chownat(CallContext, int, string, int, int, int) error { return errInjected }
+func (*fakeFiles) Unlinkat(CallContext, int, string, int) error          { return errInjected }
+func (*fakeFiles) Truncate(CallContext, int, int64) error                { return errInjected }
+func (*fakeFiles) Chdir(CallContext, string) error                       { return errInjected }
+func (*fakeFiles) Getcwd(CallContext, abi.ByteView) (int, error)         { return 0, errInjected }
+func (*fakeFiles) Mkdirat(CallContext, int, string, uint32) error        { return errInjected }
+func (*fakeFiles) Flock(CallContext, int, int) error                     { return errInjected }
+func (*fakeFiles) FcntlInt(CallContext, int, int, int) (int, error)      { return 0, errInjected }
+func (*fakeFiles) FcntlLock(CallContext, int, int, *Lock) error          { return errInjected }
 func (*fakeFiles) Map(CallContext, uintptr, uintptr, int, int, int, int64) (uintptr, error) {
 	return 0, errInjected
 }

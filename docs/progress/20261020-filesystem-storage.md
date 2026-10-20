@@ -85,3 +85,15 @@ Implemented
 Verified
 - Both exact `gosim-gen -check` baselines, focused native/translated tests, `./.ci/gofmt check`, and `make build` passed.
 - `make test` passed: 1,818 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T141002.245085Z-hkgd383b/report.md`).
+
+## Task 7 — Add chmod and chown syscall routes
+
+Implemented
+- Added typed descriptor/path chmod and chown contracts, routes and provider methods with owner/root and read-only checks.
+- Wired `syscall`, `x/sys/unix` and `internal/syscall/unix` entry points through reviewed Go 1.25/1.26 adapters.
+- Added provider and translated syscall tests for mode, ownership, `-1` preservation, access denial and unsupported flags.
+- Updated filesystem and profile capability records.
+
+Verified
+- Both exact `gosim-gen -check` baselines, focused native/translated tests, `./.ci/gofmt check`, and `make build` passed.
+- `make test` passed: 1,823 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T141656.067148Z-riy4xdd4/report.md`).

@@ -217,6 +217,36 @@ func Syscall_unlinkat(p0 int, p1 string, p2 int) error {
 	return err
 }
 
+func Syscall_Fchmod(p0 int, p1 uint32) error {
+	kh.Require(contracts.FS, "syscall.Fchmod")
+	_, err := kh.Call(k.FchmodRequest{FD: p0, Mode: p1}, k.DecodeFchmodResult)
+	return err
+}
+
+func Syscall_Fchmodat(p0 int, p1 string, p2 uint32, p3 int) error {
+	kh.Require(contracts.FS, "syscall.Fchmodat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.ChmodatRequest{DirFD: p0, Path: p1, Mode: p2, Flags: p3}, k.DecodeChmodatResult)
+	return err
+}
+
+func Syscall_Fchown(p0 int, p1 int, p2 int) error {
+	kh.Require(contracts.FS, "syscall.Fchown")
+	_, err := kh.Call(k.FchownRequest{FD: p0, UID: p1, GID: p2}, k.DecodeFchownResult)
+	return err
+}
+
+func Syscall_Fchownat(p0 int, p1 string, p2 int, p3 int, p4 int) error {
+	kh.Require(contracts.FS, "syscall.Fchownat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.ChownatRequest{DirFD: p0, Path: p1, UID: p2, GID: p3, Flags: p4}, k.DecodeChownatResult)
+	return err
+}
+
 func GolangOrgXSysUnix_Chdir(p0 string) error {
 	kh.Require(contracts.FS, "golang.org/x/sys/unix.Chdir")
 	if strings.IndexByte(p0, 0) >= 0 {
@@ -413,6 +443,36 @@ func GolangOrgXSysUnix_Unlinkat(p0 int, p1 string, p2 int) error {
 	return err
 }
 
+func GolangOrgXSysUnix_Fchmod(p0 int, p1 uint32) error {
+	kh.Require(contracts.FS, "golang.org/x/sys/unix.Fchmod")
+	_, err := kh.Call(k.FchmodRequest{FD: p0, Mode: p1}, k.DecodeFchmodResult)
+	return err
+}
+
+func GolangOrgXSysUnix_Fchmodat(p0 int, p1 string, p2 uint32, p3 int) error {
+	kh.Require(contracts.FS, "golang.org/x/sys/unix.Fchmodat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.ChmodatRequest{DirFD: p0, Path: p1, Mode: p2, Flags: p3}, k.DecodeChmodatResult)
+	return err
+}
+
+func GolangOrgXSysUnix_Fchown(p0 int, p1 int, p2 int) error {
+	kh.Require(contracts.FS, "golang.org/x/sys/unix.Fchown")
+	_, err := kh.Call(k.FchownRequest{FD: p0, UID: p1, GID: p2}, k.DecodeFchownResult)
+	return err
+}
+
+func GolangOrgXSysUnix_Fchownat(p0 int, p1 string, p2 int, p3 int, p4 int) error {
+	kh.Require(contracts.FS, "golang.org/x/sys/unix.Fchownat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.ChownatRequest{DirFD: p0, Path: p1, UID: p2, GID: p3, Flags: p4}, k.DecodeChownatResult)
+	return err
+}
+
 func InternalSyscallUnix_Openat(p0 int, p1 string, p2 int, p3 uint32) (int, error) {
 	kh.Require(contracts.FS, "internal/syscall/unix.Openat")
 	if strings.IndexByte(p1, 0) >= 0 {
@@ -428,6 +488,24 @@ func InternalSyscallUnix_Unlinkat(p0 int, p1 string, p2 int) error {
 		return syscall.EINVAL
 	}
 	_, err := kh.Call(k.UnlinkatRequest{DirFD: p0, Path: p1, Flags: p2}, k.DecodeUnlinkatResult)
+	return err
+}
+
+func InternalSyscallUnix_Fchmodat(p0 int, p1 string, p2 uint32, p3 int) error {
+	kh.Require(contracts.FS, "internal/syscall/unix.Fchmodat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.ChmodatRequest{DirFD: p0, Path: p1, Mode: p2, Flags: p3}, k.DecodeChmodatResult)
+	return err
+}
+
+func InternalSyscallUnix_Fchownat(p0 int, p1 string, p2 int, p3 int, p4 int) error {
+	kh.Require(contracts.FS, "internal/syscall/unix.Fchownat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.ChownatRequest{DirFD: p0, Path: p1, UID: p2, GID: p3, Flags: p4}, k.DecodeChownatResult)
 	return err
 }
 

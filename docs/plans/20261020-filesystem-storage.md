@@ -169,14 +169,14 @@ The public `Config` converts explicitly to `contracts.FSConfig{WorkingDir,Capaci
 **References**: target §Public API and control wiring (`Fchmod`, `Chmodat`, `Fchown`, `Chownat`), §Route and adapter table (`AT_FDCWD`, flags and `-1`), §Data flows 5, failure table; target §Storage schema and invariants (`metadataOp`, DAC).  
 **Goal**: Expose already-implemented metadata operations to ordinary Go code through typed routes.
 
-- [ ] Add exact `FileOps` signatures from target: `Fchmod`, `Chmodat`, `Fchown`, `Chownat`; update fakes and provider methods. Accept only `AT_FDCWD` and flags 0/`AT_SYMLINK_NOFOLLOW`; reject other options explicitly. Preserve UID/GID `-1` semantics and correct `EPERM`/`EROFS` errors.
-- [ ] Append four typed routes without changing earlier IDs; regenerate kernel dispatch and route payload validation. Update family-owned hook declarations, generated adapters and profile records for Go 1.25/1.26 on Linux AMD64/ARM64. Confirm that `os.Chmod`, `os.Chown`, `syscall.Fchmod` and relevant `x/sys/unix` calls reach these routes.
-- [ ] Update capability inventories and test fakes. Add translated tests for mode and UID/GID in `os.FileInfo.Sys()` and `syscall.Stat_t`, owner/root checks, `-1` chown fields, read-only toggling, crash/restore and both family adapter builds.
+- [x] Add exact `FileOps` signatures from target: `Fchmod`, `Chmodat`, `Fchown`, `Chownat`; update fakes and provider methods. Accept only `AT_FDCWD` and flags 0/`AT_SYMLINK_NOFOLLOW`; reject other options explicitly. Preserve UID/GID `-1` semantics and correct `EPERM`/`EROFS` errors.
+- [x] Append four typed routes without changing earlier IDs; regenerate kernel dispatch and route payload validation. Update family-owned hook declarations, generated adapters and profile records for Go 1.25/1.26 on Linux AMD64/ARM64. Confirm that `os.Chmod`, `os.Chown`, `syscall.Fchmod` and relevant `x/sys/unix` calls reach these routes.
+- [x] Update capability inventories and test fakes. Add translated tests for mode and UID/GID in `os.FileInfo.Sys()` and `syscall.Stat_t`, owner/root checks, `-1` chown fields, read-only toggling, crash/restore and both family adapter builds.
 
 #### Verification
 
-- [ ] Regenerate and run both documented `gosim-gen -check` baselines from `AGENTS.md`; inspect generated diffs and profile revisions.
-- [ ] Run focused routegen/contracts/kernel/provider tests, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
+- [x] Regenerate and run both documented `gosim-gen -check` baselines from `AGENTS.md`; inspect generated diffs and profile revisions.
+- [x] Run focused routegen/contracts/kernel/provider tests, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
 
 ---
 

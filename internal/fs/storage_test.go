@@ -216,3 +216,46 @@ func TestStatFSPathsDescriptorsAndReadOnly(t *testing.T) {
 		t.Fatalf("fstatfs after allocation: %+v, %v", got, err)
 	}
 }
+
+func TestMetadataRoutesIdentityAndReadOnly(t *testing.T) {
+	i, ctx, _ := ioFixture(t)
+	fd := open(t, i, ctx, "metadata-route", openCreate|2)
+	if err := i.Fchmod(ctx, fd, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := i.Fchown(ctx, fd, 101, 202); err != nil {
+		t.Fatal(err)
+	}
+	if err := i.Chownat(ctx, atFDCWD, "metadata-route", -1, 203, atSymlinkNoFollow); err != nil {
+		t.Fatal(err)
+	}
+	i.machine.config.UID, i.machine.config.GID = 101, 203
+	if err := i.Chmodat(ctx, atFDCWD, "metadata-route", 0o600, 0); err != nil {
+		t.Fatal(err)
+	}
+	stat, err := i.Fstat(ctx, fd)
+	if err != nil || stat.Mode != 0o100600 || stat.UID != 101 || stat.GID != 203 {
+		t.Fatalf("metadata routes: %+v, %v", stat, err)
+	}
+	i.machine.config.UID = 999
+	if err := i.Fchmod(ctx, fd, 0o644); !errors.Is(err, syscall.EPERM) {
+		t.Fatalf("non-owner chmod: %v", err)
+	}
+	if err := i.Fchown(ctx, fd, 999, -1); !errors.Is(err, syscall.EPERM) {
+		t.Fatalf("non-root chown: %v", err)
+	}
+	if err := i.session.SetReadOnly(ref1, true); err != nil {
+		t.Fatal(err)
+	}
+	for _, err := range []error{i.Fchmod(ctx, fd, 0o644), i.Chmodat(ctx, atFDCWD, "metadata-route", 0o644, 0), i.Fchown(ctx, fd, -1, -1), i.Chownat(ctx, atFDCWD, "metadata-route", -1, -1, 0)} {
+		if !errors.Is(err, syscall.EROFS) {
+			t.Fatalf("read-only metadata mutation: %v", err)
+		}
+	}
+	if err := i.Chmodat(ctx, 4, "metadata-route", 0o644, 0); !errors.Is(err, syscall.EINVAL) {
+		t.Fatalf("unsupported directory descriptor: %v", err)
+	}
+	if err := i.Chownat(ctx, atFDCWD, "metadata-route", -1, -1, 2); !errors.Is(err, syscall.EINVAL) {
+		t.Fatalf("unsupported chown flags: %v", err)
+	}
+}

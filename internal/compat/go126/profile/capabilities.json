@@ -238,5 +238,15 @@
 {"package":"syscall","symbol":"Statfs","status":"implemented","reason":"Typed filesystem route reports allocated 1 KiB blocks for the bounded in-memory volume."},
 {"package":"syscall","symbol":"Fstatfs","status":"implemented","reason":"Typed filesystem route reports allocated 1 KiB blocks for the bounded in-memory volume."},
 {"package":"golang.org/x/sys/unix","symbol":"Statfs","status":"implemented","reason":"Typed filesystem route reports allocated 1 KiB blocks for the bounded in-memory volume."},
-{"package":"golang.org/x/sys/unix","symbol":"Fstatfs","status":"implemented","reason":"Typed filesystem route reports allocated 1 KiB blocks for the bounded in-memory volume."}
+{"package":"golang.org/x/sys/unix","symbol":"Fstatfs","status":"implemented","reason":"Typed filesystem route reports allocated 1 KiB blocks for the bounded in-memory volume."},
+{"package":"syscall","symbol":"Fchmod","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"syscall","symbol":"Fchmodat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"syscall","symbol":"Fchown","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"syscall","symbol":"Fchownat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"golang.org/x/sys/unix","symbol":"Fchmod","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"golang.org/x/sys/unix","symbol":"Fchmodat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"golang.org/x/sys/unix","symbol":"Fchown","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"golang.org/x/sys/unix","symbol":"Fchownat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"internal/syscall/unix","symbol":"Fchmodat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"internal/syscall/unix","symbol":"Fchownat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."}
 ]

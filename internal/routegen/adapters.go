@@ -20,6 +20,7 @@ var adapterOperations = map[string]string{
 	"accept4": "Accept", "bind": "Bind", "Chdir": "Chdir", "Close": "Close", "connect": "Connect",
 	"Fallocate": "Fallocate", "fcntl": "FcntlInt", "FcntlInt": "FcntlInt", "FcntlFlock": "FcntlLock",
 	"Fdatasync": "DataSync", "Flock": "Flock", "Fstat": "Fstat", "Fstatfs": "FstatFS", "Statfs": "StatFS", "fstatat": "Statat", "Fstatat": "Statat", "Fsync": "Sync",
+	"Fchmod": "Fchmod", "Fchmodat": "Chmodat", "Fchown": "Fchown", "Fchownat": "Chownat",
 	"Ftruncate": "Truncate", "Getcwd": "Getcwd", "Getdents": "Getdents64", "getpeername": "PeerAddress", "Getpid": "Getpid",
 	"Getrandom": "Getrandom", "GetRandom": "Getrandom", "vgetrandom": "VGetrandom", "getsockname": "LocalAddress", "getsockopt": "GetOption",
 	"Listen": "Listen", "Madvise": "Advise", "Mkdirat": "Mkdirat", "mmap": "Map", "munmap": "Unmap", "openat": "Openat", "Openat": "Openat",
@@ -30,7 +31,7 @@ var adapterOperations = map[string]string{
 }
 
 func adapterOwner(operation string) string {
-	if slices.Contains(strings.Fields("Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync DataSync Fstat Statat StatFS FstatFS Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise"), operation) {
+	if slices.Contains(strings.Fields("Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync DataSync Fstat Statat StatFS FstatFS Fchmod Chmodat Fchown Chownat Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise"), operation) {
 		return "fs"
 	}
 	if slices.Contains(strings.Fields("Socket Bind Listen Accept Connect LocalAddress PeerAddress SetOption GetOption"), operation) {
@@ -43,11 +44,11 @@ func adapterSymbols(pkg string) []string {
 	symbols := strings.Fields("accept4 bind Chdir Close connect Fallocate Fdatasync Flock Fstat Fstatfs Statfs Fsync Ftruncate Getcwd Getdents getpeername Getpid getsockname getsockopt Listen Madvise Mkdirat mmap munmap openat pread pwrite read Renameat Seek setsockopt socket Uname write fcntl FcntlFlock Getrlimit RawSyscall RawSyscall6 Syscall Syscall6")
 	switch pkg {
 	case "syscall":
-		return append(symbols, "fstatat", "unlinkat", "rawSyscallNoError", "rawVforkSyscall")
+		return append(symbols, "fstatat", "unlinkat", "rawSyscallNoError", "rawVforkSyscall", "Fchmod", "Fchmodat", "Fchown", "Fchownat")
 	case "golang.org/x/sys/unix":
-		return append(symbols, "Fstatat", "Unlinkat", "Getrandom", "vgetrandom", "FcntlInt", "SyscallNoError", "RawSyscallNoError")
+		return append(symbols, "Fstatat", "Unlinkat", "Getrandom", "vgetrandom", "FcntlInt", "SyscallNoError", "RawSyscallNoError", "Fchmod", "Fchmodat", "Fchown", "Fchownat")
 	case "internal/syscall/unix":
-		return strings.Fields("fcntl GetRandom vgetrandom Openat Unlinkat")
+		return strings.Fields("fcntl GetRandom vgetrandom Openat Unlinkat Fchmodat Fchownat")
 	}
 	panic(pkg)
 }

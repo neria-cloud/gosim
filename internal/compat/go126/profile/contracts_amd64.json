@@ -3361,7 +3361,17 @@
     {"package": "syscall", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Statfs", "owner": "fs"},
     {"package": "syscall", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fstatfs", "owner": "fs"},
     {"package": "golang.org/x/sys/unix", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Statfs", "owner": "fs"},
-    {"package": "golang.org/x/sys/unix", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fstatfs", "owner": "fs"}
+    {"package": "golang.org/x/sys/unix", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fstatfs", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchmod", "signature": "func(int, uint32) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fchmod", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fchmodat", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchown", "signature": "func(int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fchown", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fchownat", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchmod", "signature": "func(int, uint32) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fchmod", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fchmodat", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchown", "signature": "func(int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fchown", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fchownat", "owner": "fs"},
+    {"package": "internal/syscall/unix", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.InternalSyscallUnix_Fchmodat", "owner": "fs"},
+    {"package": "internal/syscall/unix", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.InternalSyscallUnix_Fchownat", "owner": "fs"}
   ],
   "layouts": [
     {

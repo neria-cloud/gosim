@@ -28,6 +28,10 @@ type FileOps interface {
 	Statat(CallContext, int, string, int) (Stat, error)
 	StatFS(CallContext, string) (FSStorageStats, error)
 	FstatFS(CallContext, int) (FSStorageStats, error)
+	Fchmod(CallContext, int, uint32) error
+	Chmodat(CallContext, int, string, uint32, int) error
+	Fchown(CallContext, int, int, int) error
+	Chownat(CallContext, int, string, int, int, int) error
 	Unlinkat(CallContext, int, string, int) error
 	Truncate(CallContext, int, int64) error
 	Chdir(CallContext, string) error
