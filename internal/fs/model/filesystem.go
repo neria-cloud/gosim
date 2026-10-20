@@ -681,7 +681,7 @@ func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView, capacityB
 	}
 	limit := capacityBytes / StorageBlockSize
 	needed := file.file.NewBlocksForWrite(int(pos), buffer.Len())
-	if needed > limit || fs.UsedBlocks() > limit-needed {
+	if needed != 0 && (needed > limit || fs.UsedBlocks() > limit-needed) {
 		return 0, syscall.ENOSPC
 	}
 
@@ -736,7 +736,7 @@ func (fs *Filesystem) Fallocate(inode int, offset, length int64, capacityBytes u
 	}
 	limit := capacityBytes / StorageBlockSize
 	needed := file.file.NewBlocksForWrite(int(offset), int(length))
-	if needed > limit || fs.UsedBlocks() > limit-needed {
+	if needed != 0 && (needed > limit || fs.UsedBlocks() > limit-needed) {
 		return syscall.ENOSPC
 	}
 	if end := int(offset + length); end > file.len() {

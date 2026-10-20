@@ -120,3 +120,14 @@ Implemented
 Verified
 - Focused translated tests passed with `rt,fs` and `rt,fs,net` for seeds 1–2; `./.ci/gofmt check` and `make build` passed.
 - `make test` passed: 1,841 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T143134.733406Z-142kf_bw/report.md`).
+
+## Task 10 — Verify architectural delta and final wiring
+
+Implemented
+- Audited model schema, quota, crash operations, controls, generated routes, both Go-family adapters, dispatcher timers, provider bindings and documentation against the target architecture.
+- Fixed over-capacity recovery so writes and reservations using existing blocks succeed while new allocation still returns `ENOSPC`; added a regression test.
+- Recorded no remaining implementation gaps or unplanned deviations in the plan.
+
+Verified
+- Focused model quota tests, `./.ci/gofmt check`, `make build`, and both exact `gosim-gen -check` baselines passed.
+- Final `make test` passed: 1,842 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T143724.935552Z-496c6sx5/report.md`).

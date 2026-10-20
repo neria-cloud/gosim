@@ -97,6 +97,38 @@ func TestCapacityAdmissionIsAtomic(t *testing.T) {
 	}
 }
 
+func TestOverCapacityImageAllowsExistingBlocks(t *testing.T) {
+	fs := NewLinuxFilesystem()
+	defer fs.Release()
+	inode, err := fs.OpenFile(RootInode, "/app/recovered", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fs.CloseFile(inode)
+	if _, err := fs.Write(inode, 0, abi.ByteView{Ptr: make([]byte, 2*chunkSize)}, DefaultCapacityBytes); err != nil {
+		t.Fatal(err)
+	}
+	const capacity = 2 * StorageBlockSize
+	if stats := fs.Stats(capacity); stats.UsedBytes != 3*StorageBlockSize || stats.FreeBytes != 0 {
+		t.Fatalf("over-capacity stats: %+v", stats)
+	}
+	if n, err := fs.Write(inode, 0, abi.ByteView{Ptr: []byte("x")}, capacity); n != 1 || err != nil {
+		t.Fatalf("existing-block overwrite: n=%d err=%v", n, err)
+	}
+	if err := fs.Fallocate(inode, 0, 2*chunkSize, capacity); err != nil {
+		t.Fatalf("existing-block reservation: %v", err)
+	}
+	if n, err := fs.Write(inode, 2*chunkSize, abi.ByteView{Ptr: []byte("x")}, capacity); n != 0 || !errors.Is(err, syscall.ENOSPC) {
+		t.Fatalf("new allocation above capacity: n=%d err=%v", n, err)
+	}
+	if err := fs.Truncate(inode, 0, capacity); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := fs.Write(inode, 0, abi.ByteView{Ptr: []byte("x")}, capacity); n != 1 || err != nil {
+		t.Fatalf("new allocation after shrink: n=%d err=%v", n, err)
+	}
+}
+
 func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()

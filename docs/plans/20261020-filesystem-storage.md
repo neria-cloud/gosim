@@ -221,17 +221,17 @@ The public `Config` converts explicitly to `contracts.FSConfig{WorkingDir,Capaci
 **References**: **all** target architecture sections, especially §Architectural view, §Storage schema and invariants, §Public API and control wiring, §Model/provider methods, §Route and adapter table, §Data flows, failure table, §Validation and documentation and §Method decision logic.  
 **Goal**: Prove every designed component exists, behaves as specified and is reachable from real entry points.
 
-- [ ] Verify in-memory schema and quota: metadata fields, COW chunk accounting, linked/open inode charging, default/zero capacity, sparse write/reservation rules, atomic `ENOSPC`, over-capacity recovery, and no DB/cache schema delta all match target §Storage schema and invariants. Check code, not just tests.
-- [ ] Verify model durability: `allocOp`, `writeOp`, `resizeOp`, `reserveOp`, `metadataOp`, pending dependencies, flush/crash clone/release, snapshot restore and stat metadata all match target §Model/provider methods and §Data flows 3–5 and 8.
-- [ ] Verify public API/contracts/control state: exact `Config`, `StorageStats`, `FSConfig`, `FSStorageStats`, `SetReadOnly`, `Stats`, native `ErrNotSim` behavior, kernel state guards, provider ownership and retained policy match target §Public API and control wiring and §Data flows 1, 2 and 6.
-- [ ] Verify syscall interfaces and generated routes: every target `FileOps` signature, append-only route, payload validation, Go 1.25/1.26 AMD64/ARM64 adapter, profile capability declaration, Linux stat/statfs layout and error mapping match target §Route and adapter table and failure table.
-- [ ] Verify latency and lifecycle: covered route classification, descriptor ownership, borrowed-view clearing, epoch timer cancellation, exact-once completion, startup non-yielding, restart and trace/replay constraints match target §Architectural view, §Data flows 7–8 and pseudocode.
-- [ ] Verify tests/docs/scope: all target §Validation and documentation cases are covered; README/design/capabilities reflect actual limits; every target §NOT CONSIDERED & TODO item has an explicit rejection, default behavior or `// TODO(not planned): ...` comment where applicable. Record all differences in **NOT IMPLEMENTED GAPS** and fix them. Mark an unfixable item `[_]` only if a later user decision explicitly defers it.
-- [ ] **Last wiring check:** trace every method and component from public control or translated Go syscall entry point through generated route, kernel service, session/instance and model, including constructor/composition bindings and both selected Go families. No component counts as implemented merely because it exists or is tested in isolation. Record and fix every wiring gap in **NOT IMPLEMENTED GAPS**.
+- [x] Verify in-memory schema and quota: metadata fields, COW chunk accounting, linked/open inode charging, default/zero capacity, sparse write/reservation rules, atomic `ENOSPC`, over-capacity recovery, and no DB/cache schema delta all match target §Storage schema and invariants. Check code, not just tests.
+- [x] Verify model durability: `allocOp`, `writeOp`, `resizeOp`, `reserveOp`, `metadataOp`, pending dependencies, flush/crash clone/release, snapshot restore and stat metadata all match target §Model/provider methods and §Data flows 3–5 and 8.
+- [x] Verify public API/contracts/control state: exact `Config`, `StorageStats`, `FSConfig`, `FSStorageStats`, `SetReadOnly`, `Stats`, native `ErrNotSim` behavior, kernel state guards, provider ownership and retained policy match target §Public API and control wiring and §Data flows 1, 2 and 6.
+- [x] Verify syscall interfaces and generated routes: every target `FileOps` signature, append-only route, payload validation, Go 1.25/1.26 AMD64/ARM64 adapter, profile capability declaration, Linux stat/statfs layout and error mapping match target §Route and adapter table and failure table.
+- [x] Verify latency and lifecycle: covered route classification, descriptor ownership, borrowed-view clearing, epoch timer cancellation, exact-once completion, startup non-yielding, restart and trace/replay constraints match target §Architectural view, §Data flows 7–8 and pseudocode.
+- [x] Verify tests/docs/scope: all target §Validation and documentation cases are covered; README/design/capabilities reflect actual limits; every target §NOT CONSIDERED & TODO item has an explicit rejection, default behavior or `// TODO(not planned): ...` comment where applicable. Record all differences in **NOT IMPLEMENTED GAPS** and fix them. Mark an unfixable item `[_]` only if a later user decision explicitly defers it.
+- [x] **Last wiring check:** trace every method and component from public control or translated Go syscall entry point through generated route, kernel service, session/instance and model, including constructor/composition bindings and both selected Go families. No component counts as implemented merely because it exists or is tested in isolation. Record and fix every wiring gap in **NOT IMPLEMENTED GAPS**.
 
 #### Verification
 
-- [ ] Run `./.ci/gofmt check`, `make build`, both exact `gosim-gen -check` baselines when generated sources changed, and `make test`; inspect report totals/failures and fix all failures. Do not run race/large suites without an explicit later instruction.
+- [x] Run `./.ci/gofmt check`, `make build`, both exact `gosim-gen -check` baselines when generated sources changed, and `make test`; inspect report totals/failures and fix all failures. Do not run race/large suites without an explicit later instruction.
 
 ## Validation Commands
 
@@ -266,8 +266,8 @@ Use `make test` reports rather than treating terminal silence, skips or compile-
 
 ## NOT IMPLEMENTED GAPS
 
-_Populate during Task 10; resolve every gap or mark `[_]` only after explicit user deferral._
+None remain. The final audit found an over-capacity recovery error: overwrites and overlapping reservations of already allocated blocks returned `ENOSPC`. The admission check now applies only when an operation needs new blocks, with a focused regression test in `internal/fs/model/storage_test.go`.
 
 ## NOT PLANNED CHANGES
 
-_Record implementation deviations here with reason, affected files, and target-document update. None at planning time._
+None. The final quota correction implements the target's existing-block recovery rule.
