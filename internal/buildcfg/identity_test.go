@@ -12,12 +12,12 @@ import (
 )
 
 func fixtureIdentity() buildspec.Identity {
-	d := strings.Repeat("a", 64)
+	d := strings.Repeat("a", fixtureDigestLength)
 	return buildspec.Identity{
 		Schema: 2, Toolchain: "go1.26.9", Profile: "go126", ToolchainDigest: d, StdlibDigest: d, ContractDigest: d,
-		AdapterRevision: d, RuntimeRevision: d, ProviderRevisions: []buildspec.Revision{{Name: "fs", Digest: d}, {Name: "net", Digest: d}},
-		HostOS: "darwin", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64", Features: []string{"rt", "fs", "net"},
-		Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
+		AdapterRevision: d, RuntimeRevision: d, ProviderRevisions: []buildspec.Revision{{Name: featureFS, Digest: d}, {Name: featureNet, Digest: d}},
+		HostOS: "darwin", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64", Features: []string{featureRT, featureFS, featureNet},
+		Tags: []string{"linkname", tagSim}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
 	}
 }
 
@@ -28,15 +28,15 @@ func TestCanonicalIdentityOwnsOrderedInputs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	id.Features = []string{"net", "fs", "rt"}
-	id.Tags = []string{"sim", "linkname"}
+	id.Features = []string{featureNet, featureFS, featureRT}
+	id.Tags = []string{tagSim, "linkname"}
 	id.ProviderRevisions[0], id.ProviderRevisions[1] = id.ProviderRevisions[1], id.ProviderRevisions[0]
 	beforeFeatures := append([]string(nil), id.Features...)
 	got, err := Digest(id)
 	if err != nil || got != want {
 		t.Fatalf("order affected identity: %s %s %v", got, want, err)
 	}
-	if !reflect.DeepEqual(id.Features, beforeFeatures) || id.ProviderRevisions[0].Name != "net" || id.Tags[0] != "sim" {
+	if !reflect.DeepEqual(id.Features, beforeFeatures) || id.ProviderRevisions[0].Name != featureNet || id.Tags[0] != tagSim {
 		t.Fatal("canonicalization mutated caller")
 	}
 }
@@ -55,7 +55,7 @@ func TestEveryIdentityDimensionChangesDigest(t *testing.T) {
 			value := reflect.ValueOf(&id).Elem().Field(i)
 			switch value.Kind() {
 			case reflect.String:
-				value.SetString(strings.Repeat("b", 64))
+				value.SetString(strings.Repeat("b", fixtureDigestLength))
 			case reflect.Int:
 				value.SetInt(1)
 			case reflect.Bool:
@@ -96,10 +96,10 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 	write := func(name, data string) {
 		t.Helper()
 		filename := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(filename), 0o700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(filename), fixtureDirPerm); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filename, []byte(data), 0o600); err != nil {
+		if err := os.WriteFile(filename, []byte(data), fixtureFilePerm); err != nil {
 			t.Fatal(err)
 		}
 	}

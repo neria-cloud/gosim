@@ -19,10 +19,10 @@ func TestPrivateModulePreservesWorkspaceSelection(t *testing.T) {
 	}
 	write := func(name, text string) {
 		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(path), fixtureModuleDirPerm); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
+		if err := os.WriteFile(path, []byte(text), fixtureModuleFilePerm); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -43,20 +43,20 @@ func TestPrivateModulePreservesWorkspaceSelection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := buildspec.ModuleFiles(r, input, "gosim-private")
+	files, err := buildspec.ModuleFiles(r, input, fixturePrivateModule)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for name, content := range files {
-		write(filepath.Join("output", name), string(content))
+		write(filepath.Join(fixtureOutputDir, name), string(content))
 	}
 	flat := r
-	flat.Context = buildspec.ModuleContext{Directory: filepath.Join(root, "output"), GoWork: "off", GoMod: filepath.Join(root, "output/go.mod")}
+	flat.Context = buildspec.ModuleContext{Directory: filepath.Join(root, fixtureOutputDir), GoWork: "off", GoMod: filepath.Join(root, fixtureOutputDir, "go.mod")}
 	output, err := buildspec.ResolveModuleGraph(t.Context(), flat)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := buildspec.MatchModuleGraph(input, output, "gosim-private"); err != nil {
+	if err := buildspec.MatchModuleGraph(input, output, fixturePrivateModule); err != nil {
 		t.Fatal(err)
 	}
 	cmd := buildspec.ApplicationCommand(t.Context(), flat, "list", "-mod=readonly", "-deps", "example.org/app")
@@ -75,21 +75,21 @@ func TestPrivateModulePreservesWorkspaceSelection(t *testing.T) {
 		}
 		changed := slices.Clone(output)
 		changed[i].Version = "v0.4.0"
-		if err := buildspec.MatchModuleGraph(input, changed, "gosim-private"); err == nil {
+		if err := buildspec.MatchModuleGraph(input, changed, fixturePrivateModule); err == nil {
 			t.Fatal("accepted version change")
 		}
 		changed = slices.Clone(output)
 		replacement := *changed[i].Replace
 		replacement.Dir = filepath.Join(root, "foo")
 		changed[i].Replace = &replacement
-		if err := buildspec.MatchModuleGraph(input, changed, "gosim-private"); err == nil {
+		if err := buildspec.MatchModuleGraph(input, changed, fixturePrivateModule); err == nil {
 			t.Fatal("accepted replacement change")
 		}
 	}
-	if err := buildspec.MatchModuleGraph(input, output[:1], "gosim-private"); err == nil {
+	if err := buildspec.MatchModuleGraph(input, output[:1], fixturePrivateModule); err == nil {
 		t.Fatal("accepted missing modules")
 	}
-	if err := buildspec.MatchModuleGraph(input, append(slices.Clone(output), buildspec.Module{Path: "example.org/unselected"}), "gosim-private"); err == nil {
+	if err := buildspec.MatchModuleGraph(input, append(slices.Clone(output), buildspec.Module{Path: "example.org/unselected"}), fixturePrivateModule); err == nil {
 		t.Fatal("accepted extra module")
 	}
 }
@@ -99,10 +99,10 @@ func TestPrivateModuleDoesNotExpandPrunedDependencies(t *testing.T) {
 	root := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(path), fixtureModuleDirPerm); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		if err := os.WriteFile(path, []byte(content), fixtureModuleFilePerm); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -129,20 +129,20 @@ replace example.org/unneeded => ../unneeded
 			t.Fatal("fixture does not exercise a pruned dependency")
 		}
 	}
-	files, err := buildspec.ModuleFiles(r, input, "gosim-private")
+	files, err := buildspec.ModuleFiles(r, input, fixturePrivateModule)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for name, data := range files {
-		write(filepath.Join("output", name), string(data))
+		write(filepath.Join(fixtureOutputDir, name), string(data))
 	}
 	flat := r
-	flat.Context = buildspec.ModuleContext{Directory: filepath.Join(root, "output"), GoWork: "off", GoMod: filepath.Join(root, "output/go.mod")}
+	flat.Context = buildspec.ModuleContext{Directory: filepath.Join(root, fixtureOutputDir), GoWork: "off", GoMod: filepath.Join(root, fixtureOutputDir, "go.mod")}
 	output, err := buildspec.ResolveModuleGraph(t.Context(), flat)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := buildspec.MatchModuleGraph(input, output, "gosim-private"); err != nil {
+	if err := buildspec.MatchModuleGraph(input, output, fixturePrivateModule); err != nil {
 		t.Fatal(err)
 	}
 }

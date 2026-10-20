@@ -39,24 +39,24 @@ func TestManualReportRejectsFalseStaleAndIncompleteEvidence(t *testing.T) {
 			_, r := certificationFixture(t)
 			switch name {
 			case "source":
-				r.FrameworkDigest = strings.Repeat("b", 64)
+				r.FrameworkDigest = strings.Repeat("b", fixtureDigestLength)
 			case "failed":
 				r.Suites[0].Passed = false
 			case "incomplete":
 				r.Suites = nil
 			case "tampered":
-				r.Suites[0].LogDigest = strings.Repeat("b", 64)
+				r.Suites[0].LogDigest = strings.Repeat("b", fixtureDigestLength)
 			case "worker":
 				r.WorkerArch = "other"
 			case "image":
-				r.ContainerImageDigest = "sha256:" + strings.Repeat("a", 64)
+				r.ContainerImageDigest = "sha256:" + strings.Repeat("a", fixtureDigestLength)
 			case "tuple":
 				r.Tuple.Race = !r.Tuple.Race
 			case "large-skipped":
 				r.Suites = r.Suites[:3]
 				r.ResultDigest, _ = buildspec.ReportDigest(r)
 			case "identity":
-				r.Identity.TranslatorDigest = strings.Repeat("b", 64)
+				r.Identity.TranslatorDigest = strings.Repeat("b", fixtureDigestLength)
 			case "old-schema":
 				r.Schema = 1
 			}
@@ -72,7 +72,7 @@ func TestEvidenceIsOutsideExecutableIdentity(t *testing.T) {
 	id, r := certificationFixture(t)
 	before, _ := buildspec.Digest(id)
 	// A report can be missing, stale or invalid without changing the build value.
-	r.FrameworkDigest = strings.Repeat("c", 64)
+	r.FrameworkDigest = strings.Repeat("c", fixtureDigestLength)
 	r.ResultDigest = ""
 	if err := buildspec.ValidateReport(r); err == nil {
 		t.Fatal("accepted stale report")
@@ -89,7 +89,7 @@ func TestEvidenceIsOutsideExecutableIdentity(t *testing.T) {
 		t.Fatal("evidence remains in executable identity", string(data))
 	}
 	source, _ := buildspec.SourceDigest(id)
-	id.ModuleGraphDigest = strings.Repeat("b", 64)
+	id.ModuleGraphDigest = strings.Repeat("b", fixtureDigestLength)
 	changed, _ := buildspec.Digest(id)
 	sameSource, _ := buildspec.SourceDigest(id)
 	if changed == before || source != sameSource {

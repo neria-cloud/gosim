@@ -17,10 +17,10 @@ func distributionFixture(t *testing.T) string {
 		"VERSION": "go1.25.1\n", "go.env": "GOTOOLCHAIN=auto\n",
 	} {
 		filename := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(filename), 0o700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(filename), fixtureDirPerm); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filename, []byte(body), 0o600); err != nil {
+		if err := os.WriteFile(filename, []byte(body), fixtureFilePerm); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -48,14 +48,14 @@ func TestDistributionFingerprintTracksInstalledContent(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := os.WriteFile(file, []byte("changed"), 0o600); err != nil {
+				if err := os.WriteFile(file, []byte("changed"), fixtureFilePerm); err != nil {
 					t.Fatal(err)
 				}
 				if err := os.Chtimes(file, stat.ModTime(), stat.ModTime()); err != nil {
 					t.Fatal(err)
 				}
 			case "extra":
-				if err := os.WriteFile(filepath.Join(root, "src/runtime/extra.go"), []byte("package runtime"), 0o600); err != nil {
+				if err := os.WriteFile(filepath.Join(root, "src/runtime/extra.go"), []byte("package runtime"), fixtureFilePerm); err != nil {
 					t.Fatal(err)
 				}
 			case "missing", "symlink":

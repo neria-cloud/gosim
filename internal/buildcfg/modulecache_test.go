@@ -19,10 +19,10 @@ func TestPublishedModuleUsesDiscoveredCache(t *testing.T) {
 	root := t.TempDir()
 	write := func(name string, data []byte) {
 		t.Helper()
-		if err := os.MkdirAll(filepath.Dir(name), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(name), fixtureSharedDirPerm); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(name, data, 0o600); err != nil {
+		if err := os.WriteFile(name, data, fixtureFilePerm); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -50,7 +50,7 @@ func TestPublishedModuleUsesDiscoveredCache(t *testing.T) {
 	t.Cleanup(func() {
 		_ = filepath.WalkDir(cache, func(path string, entry fs.DirEntry, err error) error {
 			if err == nil && entry.IsDir() {
-				return os.Chmod(path, 0o755)
+				return os.Chmod(path, fixtureSharedDirPerm)
 			}
 			return err
 		})

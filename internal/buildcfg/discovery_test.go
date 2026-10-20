@@ -23,7 +23,7 @@ func fakeDiscoveryGo(t *testing.T, version string) (string, string, string) {
 		t.Fatal(err)
 	}
 	bin := filepath.Join(root, "bin")
-	if err := os.Mkdir(bin, 0o700); err != nil {
+	if err := os.Mkdir(bin, fixtureDirPerm); err != nil {
 		t.Fatal(err)
 	}
 	observed := filepath.Join(root, "observed")
@@ -34,7 +34,7 @@ func fakeDiscoveryGo(t *testing.T, version string) (string, string, string) {
 		t.Fatal(err)
 	}
 	script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = version ]; then\n printf '%%s\\n' %s\nelse\n printf '%%s\\n' \"$PWD\" \"$GOTOOLCHAIN\" \"$GOWORK\" > %s\n printf '%%s\\n' %s\nfi\n", shellQuote("go version "+version+" "+runtime.GOOS+"/"+runtime.GOARCH), shellQuote(observed), shellQuote(string(data)))
-	if err := os.WriteFile(filepath.Join(bin, "go"), []byte(script), 0o700); err != nil {
+	if err := os.WriteFile(filepath.Join(bin, "go"), []byte(script), fixtureExecPerm); err != nil {
 		t.Fatal(err)
 	}
 	return root, observed, work

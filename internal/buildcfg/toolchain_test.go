@@ -19,7 +19,7 @@ func TestCommandPinsExecutableAndEnvironment(t *testing.T) {
 	exe := filepath.Join(root, "go")
 	// A tiny subprocess reports the actual received environment and arguments.
 	script := "#!/bin/sh\nprintf '%s\\n' \"$GOTOOLCHAIN\" \"$GOROOT\" \"$GOENV\" \"$GOWORK\" \"$GOOS/$GOARCH\" \"$GOFLAGS\" \"$PWD\" \"$@\"\n"
-	if err := os.WriteFile(exe, []byte(script), 0o700); err != nil {
+	if err := os.WriteFile(exe, []byte(script), fixtureExecPerm); err != nil {
 		t.Fatal(err)
 	}
 	tc := buildspec.Toolchain{Executable: exe, GOROOT: root, Version: "go1.26.9", HostOS: runtime.GOOS, HostArch: runtime.GOARCH}

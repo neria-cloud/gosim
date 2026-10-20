@@ -12,15 +12,15 @@ import (
 func TestConfigOverridesReplaceAndOwnFeatures(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join(t.TempDir(), "gosim.json")
-	if err := os.WriteFile(path, []byte(`{"schema":1,"toolchain":"go1.25.1","features":["rt","net"]}`), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(`{"schema":1,"toolchain":"go1.25.1","features":["rt","net"]}`), fixtureFilePerm); err != nil {
 		t.Fatal(err)
 	}
-	version, features := "go1.26.1", []string{"fs", "rt"}
+	version, features := "go1.26.1", []string{featureFS, featureRT}
 	got, err := Load(path, Overrides{Toolchain: &version, Features: &features})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ConfigRequest{Config: buildspec.Config{Schema: 2, Features: []string{"rt", "fs"}, SimulationOS: "linux"}, ExplicitToolchain: version, Legacy: true}
+	want := ConfigRequest{Config: buildspec.Config{Schema: 2, Features: []string{featureRT, featureFS}, SimulationOS: "linux"}, ExplicitToolchain: version, Legacy: true}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %#v, want %#v", got, want)
 	}
@@ -41,7 +41,7 @@ func TestConfigDefaultUsesGoResolution(t *testing.T) {
 		t.Fatalf("default config: %+v, %v", got, err)
 	}
 	path := filepath.Join(t.TempDir(), "gosim.json")
-	if err := os.WriteFile(path, []byte(`{"schema":2,"features":["rt"]}`), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(`{"schema":2,"features":["rt"]}`), fixtureFilePerm); err != nil {
 		t.Fatal(err)
 	}
 	got, err = Load(path, Overrides{})
@@ -62,7 +62,7 @@ func TestConfigRejectsInvalidInput(t *testing.T) {
 		t.Run(input, func(t *testing.T) {
 			t.Parallel()
 			path := filepath.Join(t.TempDir(), "gosim.json")
-			if err := os.WriteFile(path, []byte(input), 0o600); err != nil {
+			if err := os.WriteFile(path, []byte(input), fixtureFilePerm); err != nil {
 				t.Fatal(err)
 			}
 			if _, err := Load(path, Overrides{}); err == nil {
@@ -70,7 +70,7 @@ func TestConfigRejectsInvalidInput(t *testing.T) {
 			}
 		})
 	}
-	for _, features := range [][]string{nil, {}, {"fs"}, {"net"}, {"fs", "net"}, {"rt", "fs", "fs"}, {"rt", "RT"}, {"rt", ""}} {
+	for _, features := range [][]string{nil, {}, {featureFS}, {featureNet}, {featureFS, featureNet}, {featureRT, featureFS, featureFS}, {featureRT, "RT"}, {featureRT, ""}} {
 		if _, err := Normalize(buildspec.Config{Schema: 2, Features: features}); err == nil {
 			t.Fatalf("accepted features %v", features)
 		}
