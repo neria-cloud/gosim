@@ -12,7 +12,11 @@ const (
 	mapKeyOne       = 1
 	mapKeyTwo       = 2
 	mapKeyThree     = 3
+	mapKeyFour      = 4
 	mapKeyFive      = 5
+	mapKeySix       = 6
+	mapKeySeven     = 7
+	mapKeyEight     = 8
 	mapKeyNine      = 9
 	mapKeyEleven    = 11
 	mapKeyThirteen  = 13
@@ -30,6 +34,8 @@ const (
 	mapValueEleven      = 11
 	mapValueTen         = 10
 	mapValueSeven       = 7
+	mapValueTwelve      = 12
+	mapValueThirteen    = 13
 	mapValueNegativeOne = -1
 	mapRMWResult        = 6
 	mapLengthTwo        = 2
@@ -38,6 +44,10 @@ const (
 	mapMissingKey       = 10
 	mapZeroValue        = 0
 	mapIterationTrials  = 20
+	mapGrowValueOffset  = 6
+	mapBadGet           = "bad get"
+	mapBadLen           = "bad len"
+	mapBad              = "bad"
 )
 
 func TestMapSmallGetOK(t *testing.T) {
@@ -47,7 +57,7 @@ func TestMapSmallGetOK(t *testing.T) {
 	m[mapKeyThree] = mapValueEight
 
 	if value, ok := m[mapKeyTwo]; !ok || value != mapValueFive {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -60,10 +70,10 @@ func TestMapGetOK(t *testing.T) {
 	m[mapKeySixteen] = mapValueSeven
 
 	if value, ok := m[mapKeyTwo]; !ok || value != mapValueFive {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 	if value, ok := m[mapKeySixteen]; !ok || value != mapValueSeven {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -74,7 +84,7 @@ func TestMapRMW(t *testing.T) {
 	m[mapKeyOne]++
 
 	if value, ok := m[mapKeyOne]; !ok || value != mapRMWResult {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -86,7 +96,7 @@ func TestMapSmallLen(t *testing.T) {
 	delete(m, mapKeyTwo)
 
 	if len(m) != mapLengthTwo {
-		t.Error("bad len")
+		t.Error(mapBadLen)
 	}
 }
 
@@ -101,12 +111,12 @@ func TestMapLen(t *testing.T) {
 	delete(m, mapKeyTwo)
 
 	if len(m) != mapLengthFive {
-		t.Error("bad len")
+		t.Error(mapBadLen)
 	}
 
 	delete(m, mapKeySixteen)
 	if len(m) != mapLengthFour {
-		t.Error("bad len")
+		t.Error(mapBadLen)
 	}
 }
 
@@ -114,11 +124,11 @@ func TestMapGetNil(t *testing.T) {
 	var m map[int]int
 
 	if m[mapMissingKey] != mapZeroValue {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	if _, ok := m[mapMissingKey]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -126,7 +136,7 @@ func TestMapLenNil(t *testing.T) {
 	var m map[int]int
 
 	if len(m) != mapZeroValue {
-		t.Error("bad len")
+		t.Error(mapBadLen)
 	}
 }
 
@@ -218,21 +228,21 @@ func TestMapsClone(t *testing.T) {
 	}
 
 	if v, ok := m[mapKeyThree]; !ok || v != mapValueEight {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	if v, ok := clone[mapKeyThree]; !ok || v != mapValueEight {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	delete(m, mapKeyThree)
 
 	if _, ok := m[mapKeyThree]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	if v, ok := clone[mapKeyThree]; !ok || v != mapValueEight {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -243,7 +253,7 @@ func TestMapSmallGetMissing(t *testing.T) {
 	m[mapKeyThree] = mapValueEight
 
 	if _, ok := m[mapKeyFive]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -257,7 +267,7 @@ func TestMapGetMissing(t *testing.T) {
 	m[mapKeyNineteen] = mapValueOne
 
 	if _, ok := m[mapKeyFive]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -268,13 +278,13 @@ func TestMapSmallGetMissingThenSet(t *testing.T) {
 	m[mapKeyThree] = mapValueEight
 
 	if _, ok := m[mapKeyFive]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	m[mapKeyFive] = mapValueTen
 
 	if value, ok := m[mapKeyFive]; !ok || value != mapValueTen {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -288,13 +298,13 @@ func TestMapGetMissingThenSet(t *testing.T) {
 	m[mapKeyNineteen] = mapValueOne
 
 	if _, ok := m[mapKeyFive]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	m[mapKeyFive] = mapValueTen
 
 	if value, ok := m[mapKeyFive]; !ok || value != mapValueTen {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -305,13 +315,13 @@ func TestMapSmallDelete(t *testing.T) {
 	m[mapKeyThree] = mapValueEight
 
 	if value, ok := m[mapKeyTwo]; !ok || value != mapValueFive {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	delete(m, mapKeyTwo)
 
 	if _, ok := m[mapKeyTwo]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -325,13 +335,13 @@ func TestMapDelete(t *testing.T) {
 	m[mapKeyNineteen] = mapValueOne
 
 	if value, ok := m[mapKeyTwo]; !ok || value != mapValueFive {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	delete(m, mapKeyTwo)
 
 	if _, ok := m[mapKeyTwo]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -342,13 +352,13 @@ func TestMapSmallDeleteMissing(t *testing.T) {
 	m[mapKeyThree] = mapValueEight
 
 	if _, ok := m[mapKeyFive]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	delete(m, mapKeyFive)
 
 	if _, ok := m[mapKeyFive]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -362,13 +372,13 @@ func TestMapDeleteMissing(t *testing.T) {
 	m[mapKeyNineteen] = mapValueOne
 
 	if _, ok := m[mapKeyFive]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 
 	delete(m, mapKeyFive)
 
 	if _, ok := m[mapKeyFive]; ok {
-		t.Error("bad get")
+		t.Error(mapBadGet)
 	}
 }
 
@@ -395,7 +405,7 @@ func TestMapSmallSimpleIter(t *testing.T) {
 		return cmp.Compare(a.key, b.key)
 	})
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
@@ -424,7 +434,7 @@ func TestMapSimpleIter(t *testing.T) {
 		return cmp.Compare(a.key, b.key)
 	})
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
@@ -452,7 +462,7 @@ func TestMapSmallRandomIter(t *testing.T) {
 	}
 
 	if !success {
-		t.Error("bad")
+		t.Error(mapBad)
 	}
 }
 
@@ -482,21 +492,21 @@ func TestMapRandomIter(t *testing.T) {
 	}
 
 	if !success {
-		t.Error("bad")
+		t.Error(mapBad)
 	}
 }
 
 func TestMapLiteral(t *testing.T) {
 	m := map[int]int{
-		1: 3,
-		2: 5,
-		3: 8,
+		mapKeyOne:   mapValueThree,
+		mapKeyTwo:   mapValueFive,
+		mapKeyThree: mapValueEight,
 	}
 
 	expected := []pair{
-		{1, 3},
-		{2, 5},
-		{3, 8},
+		{mapKeyOne, mapValueThree},
+		{mapKeyTwo, mapValueFive},
+		{mapKeyThree, mapValueEight},
 	}
 
 	var seen []pair
@@ -508,30 +518,30 @@ func TestMapLiteral(t *testing.T) {
 	})
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
 func TestMapSmallIterDelete(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[4] = 10
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyFour] = mapValueTen
 
 	expected := []pair{
-		{1, 3},
-		{4, 10},
+		{mapKeyOne, mapValueThree},
+		{mapKeyFour, mapValueTen},
 	}
 
 	var seen []pair
 	for k, v := range m {
-		if k == 2 || k == 3 {
+		if k == mapKeyTwo || k == mapKeyThree {
 			expected = append(expected, pair{k, v})
 		}
 
-		delete(m, 2)
-		delete(m, 3)
+		delete(m, mapKeyTwo)
+		delete(m, mapKeyThree)
 
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -544,34 +554,34 @@ func TestMapSmallIterDelete(t *testing.T) {
 	})
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
 func TestMapIterDelete(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[4] = 10
-	m[5] = 11
-	m[6] = 13
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyFour] = mapValueTen
+	m[mapKeyFive] = mapValueEleven
+	m[mapKeySix] = mapValueThirteen
 
 	expected := []pair{
-		{1, 3},
-		{4, 10},
-		{5, 11},
-		{6, 13},
+		{mapKeyOne, mapValueThree},
+		{mapKeyFour, mapValueTen},
+		{mapKeyFive, mapValueEleven},
+		{mapKeySix, mapValueThirteen},
 	}
 
 	var seen []pair
 	for k, v := range m {
-		if k == 2 || k == 3 {
+		if k == mapKeyTwo || k == mapKeyThree {
 			expected = append(expected, pair{k, v})
 		}
 
-		delete(m, 2)
-		delete(m, 3)
+		delete(m, mapKeyTwo)
+		delete(m, mapKeyThree)
 
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -584,29 +594,29 @@ func TestMapIterDelete(t *testing.T) {
 	})
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
 func TestMapSmallIterAdd(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
 	expected := []pair{
-		{1, 3},
-		{2, 5},
-		{3, 8},
+		{mapKeyOne, mapValueThree},
+		{mapKeyTwo, mapValueFive},
+		{mapKeyThree, mapValueEight},
 	}
 
 	var seen []pair
 	for k, v := range m {
-		if k == 4 {
+		if k == mapKeyFour {
 			expected = append(expected, pair{k, v})
 		}
 
-		m[4] = 10
+		m[mapKeyFour] = mapValueTen
 
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -619,33 +629,33 @@ func TestMapSmallIterAdd(t *testing.T) {
 	})
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
 func TestMapIterAdd(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[5] = 11
-	m[6] = 13
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyFive] = mapValueEleven
+	m[mapKeySix] = mapValueThirteen
 
 	expected := []pair{
-		{1, 3},
-		{2, 5},
-		{3, 8},
-		{5, 11},
-		{6, 13},
+		{mapKeyOne, mapValueThree},
+		{mapKeyTwo, mapValueFive},
+		{mapKeyThree, mapValueEight},
+		{mapKeyFive, mapValueEleven},
+		{mapKeySix, mapValueThirteen},
 	}
 
 	var seen []pair
 	for k, v := range m {
-		if k == 4 {
+		if k == mapKeyFour {
 			expected = append(expected, pair{k, v})
 		}
 
-		m[4] = 10
+		m[mapKeyFour] = mapValueTen
 
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -658,7 +668,7 @@ func TestMapIterAdd(t *testing.T) {
 	})
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
@@ -666,26 +676,26 @@ func TestMapGrowingIterAdd(t *testing.T) {
 	// grow from small to not small during iteration
 
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
 	expected := []pair{
-		{1, 3},
-		{2, 5},
-		{3, 8},
+		{mapKeyOne, mapValueThree},
+		{mapKeyTwo, mapValueFive},
+		{mapKeyThree, mapValueEight},
 	}
 
 	var seen []pair
 	for k, v := range m {
-		if k >= 4 && k <= 7 {
-			expected = append(expected, pair{k, k + 6})
+		if k >= mapKeyFour && k <= mapKeySeven {
+			expected = append(expected, pair{k, k + mapGrowValueOffset})
 		}
 
-		m[4] = 10
-		m[5] = 11
-		m[6] = 12
-		m[7] = 13
+		m[mapKeyFour] = mapValueTen
+		m[mapKeyFive] = mapValueEleven
+		m[mapKeySix] = mapValueTwelve
+		m[mapKeySeven] = mapValueThirteen
 
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -698,31 +708,31 @@ func TestMapGrowingIterAdd(t *testing.T) {
 	})
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
 func TestMapIterDeleteAdd(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[4] = 10
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyFour] = mapValueTen
 
 	expected := []pair{
-		{1, 3},
-		{4, 10},
+		{mapKeyOne, mapValueThree},
+		{mapKeyFour, mapValueTen},
 	}
 
 	var seen []pair
 	for k, v := range m {
-		if k == 2 || k == 3 || k == 5 {
+		if k == mapKeyTwo || k == mapKeyThree || k == mapKeyFive {
 			expected = append(expected, pair{k, v})
 		}
 
-		delete(m, 2)
-		delete(m, 3)
-		m[5] = 13
+		delete(m, mapKeyTwo)
+		delete(m, mapKeyThree)
+		m[mapKeyFive] = mapValueThirteen
 
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -735,15 +745,15 @@ func TestMapIterDeleteAdd(t *testing.T) {
 	})
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
 func TestMapIterDeleteRestore(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
 	expected := []pair{}
 
@@ -764,7 +774,7 @@ func TestMapIterDeleteRestore(t *testing.T) {
 	})
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
@@ -778,43 +788,43 @@ func TestMapNilClear(t *testing.T) {
 
 func TestMapSmallClear(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
 	clear(m)
 	if len(m) != 0 {
-		t.Error("bad len")
+		t.Error(mapBadLen)
 	}
-	if _, ok := m[2]; ok {
-		t.Error("bad get")
+	if _, ok := m[mapKeyTwo]; ok {
+		t.Error(mapBadGet)
 	}
 
-	m[8] = 10
-	if value, ok := m[8]; !ok || value != 10 {
-		t.Error("bad get")
+	m[mapKeyEight] = mapValueTen
+	if value, ok := m[mapKeyEight]; !ok || value != mapValueTen {
+		t.Error(mapBadGet)
 	}
 }
 
 func TestMapClear(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[9] = 11
-	m[16] = 7
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyNine] = mapValueEleven
+	m[mapKeySixteen] = mapValueSeven
 
 	clear(m)
 	if len(m) != 0 {
-		t.Error("bad len")
+		t.Error(mapBadLen)
 	}
-	if _, ok := m[2]; ok {
-		t.Error("bad get")
+	if _, ok := m[mapKeyTwo]; ok {
+		t.Error(mapBadGet)
 	}
 
-	m[8] = 10
-	if value, ok := m[8]; !ok || value != 10 {
-		t.Error("bad get")
+	m[mapKeyEight] = mapValueTen
+	if value, ok := m[mapKeyEight]; !ok || value != mapValueTen {
+		t.Error(mapBadGet)
 	}
 }
 
@@ -822,9 +832,9 @@ func TestMapLiteralRange(t *testing.T) {
 	var seen []pair
 
 	for k, v := range map[int]int{
-		1: 3,
-		2: 5,
-		3: 8,
+		mapKeyOne:   mapValueThree,
+		mapKeyTwo:   mapValueFive,
+		mapKeyThree: mapValueEight,
 	} {
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -834,13 +844,13 @@ func TestMapLiteralRange(t *testing.T) {
 	})
 
 	expected := []pair{
-		{key: 1, value: 3},
-		{key: 2, value: 5},
-		{key: 3, value: 8},
+		{key: mapKeyOne, value: mapValueThree},
+		{key: mapKeyTwo, value: mapValueFive},
+		{key: mapKeyThree, value: mapValueEight},
 	}
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
@@ -848,12 +858,12 @@ func TestMapAliasConversions(t *testing.T) {
 	type Alias map[int]int
 
 	x := []Alias{
-		map[int]int{1: 3},
-		map[int]int{2: 5},
+		map[int]int{mapKeyOne: mapValueThree},
+		map[int]int{mapKeyTwo: mapValueFive},
 	}
 
 	y := [...]Alias{
-		map[int]int{3: 8},
+		map[int]int{mapKeyThree: mapValueEight},
 	}
 
 	var seen []pair
@@ -873,13 +883,13 @@ func TestMapAliasConversions(t *testing.T) {
 	})
 
 	expected := []pair{
-		{key: 1, value: 3},
-		{key: 2, value: 5},
-		{key: 3, value: 8},
+		{key: mapKeyOne, value: mapValueThree},
+		{key: mapKeyTwo, value: mapValueFive},
+		{key: mapKeyThree, value: mapValueEight},
 	}
 
 	if !reflect.DeepEqual(seen, expected) {
-		t.Error("bad", seen, expected)
+		t.Error(mapBad, seen, expected)
 	}
 }
 
@@ -887,16 +897,16 @@ func TestMapMultiAssign(t *testing.T) {
 	m := make(map[int]string)
 
 	var foo string
-	m[1], m[2], m[3], foo = "4", "5", "6", "7"
+	m[mapKeyOne], m[mapKeyTwo], m[mapKeyThree], foo = "4", "5", "6", "7"
 
-	if m[1] != "4" {
-		t.Errorf("expected 4, got %s", m[1])
+	if m[mapKeyOne] != "4" {
+		t.Errorf("expected 4, got %s", m[mapKeyOne])
 	}
-	if m[2] != "5" {
-		t.Errorf("expected 5, got %s", m[2])
+	if m[mapKeyTwo] != "5" {
+		t.Errorf("expected 5, got %s", m[mapKeyTwo])
 	}
-	if m[3] != "6" {
-		t.Errorf("expected 6, got %s", m[3])
+	if m[mapKeyThree] != "6" {
+		t.Errorf("expected 6, got %s", m[mapKeyThree])
 	}
 	if foo != "7" {
 		t.Errorf("expected 7, got %s", foo)
