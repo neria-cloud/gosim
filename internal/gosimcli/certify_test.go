@@ -14,17 +14,12 @@ import (
 	"time"
 )
 
-const (
-	privateTestFileMode  = 0o600
-	childTimeoutExitCode = 3
-)
-
 func TestSuiteWorkerProcess(t *testing.T) {
 	if os.Getenv("GOSIM_SUITE_TEST_CHILD") != "1" {
 		return
 	}
 	dir, name := os.Getenv("GOSIM_SUITE_TEST_DIR"), os.Getenv("GOSIM_SUITE_TEST_NAME")
-	if err := os.WriteFile(filepath.Join(dir, name), nil, privateTestFileMode); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, name), nil, 0o600); err != nil {
 		os.Exit(2)
 	}
 	deadline := time.Now().Add(10 * time.Second)
@@ -33,7 +28,7 @@ func TestSuiteWorkerProcess(t *testing.T) {
 			break
 		}
 		if time.Now().After(deadline) {
-			os.Exit(childTimeoutExitCode)
+			os.Exit(3)
 		}
 		time.Sleep(time.Millisecond)
 	}
@@ -65,7 +60,7 @@ func TestSuiteCommandsOverlapWithinBudgetAndKeepAllResults(t *testing.T) {
 	go func() { output, err := runTestCommands(t.Context(), commands, 2); done <- result{output, err} }()
 	// Always release and reap workers before TempDir cleanup, including failure.
 	t.Cleanup(func() {
-		_ = os.WriteFile(filepath.Join(dir, "release"), nil, privateTestFileMode)
+		_ = os.WriteFile(filepath.Join(dir, "release"), nil, 0o600)
 		select {
 		case <-done:
 		case <-time.After(15 * time.Second):

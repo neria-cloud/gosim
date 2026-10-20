@@ -12,18 +12,13 @@ import (
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
-const (
-	selftestExecutableMode = 0o755
-	selftestFileMode       = 0o644
-	selftestArgsCapacity   = 8
-)
-
 // prepareSelftest prepares for running tests in the gosim module.
 func prepareSelftest(cfg gosimtool.BuildConfig) error {
 	modDir, err := gosimtool.FindGoModDir()
 	if err != nil {
 		return err
 	}
+
 	// The native race oracle is needed only for an explicitly selected race run.
 	if cfg.Identity.Race {
 		buildDir, err := os.MkdirTemp("", "gosimbuild")
@@ -35,17 +30,17 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 		// Prepare the racetest binary
 		raceBuildPath := filepath.Join(buildDir, "testdata.test")
 		raceFinalPath := filepath.Join(modDir, gosimtool.OutputDirectory, "racetest", "testdata.test")
-		if err := os.MkdirAll(filepath.Dir(raceFinalPath), selftestExecutableMode); err != nil {
+		if err := os.MkdirAll(filepath.Dir(raceFinalPath), 0o755); err != nil {
 			return err
 		}
 		// try to reuse the old binary
-		if err := copyFile(raceFinalPath, raceBuildPath, selftestExecutableMode); err != nil {
+		if err := copyFile(raceFinalPath, raceBuildPath, 0o755); err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				return fmt.Errorf("copy source: %w", err)
 			}
 		}
 		// do the build
-		args := make([]string, 0, selftestArgsCapacity)
+		args := make([]string, 0, 8)
 		args = append(args, "test")
 		args = append(args, "-ldflags=-checklinkname=0", "-tags=linkname")
 		args = append(args, "-race")
@@ -59,7 +54,7 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 			return err
 		}
 		// place the binary
-		if err := copyFileIfChanged(raceBuildPath, raceFinalPath, selftestExecutableMode); err != nil {
+		if err := copyFileIfChanged(raceBuildPath, raceFinalPath, 0o755); err != nil {
 			return fmt.Errorf("copy final: %w", err)
 		}
 
@@ -77,11 +72,7 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 	}
 	defer os.RemoveAll(buildDir)
 	gosimBuildPath := filepath.Join(buildDir, "gosim")
-	args := []string{
-		"build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", gosimBuildPath,
-		gosimtool.Module + "/cmd/gosim",
-	}
-	cmd := buildspec.ApplicationCommand(cfg.Context, cfg.Resolution, args...)
+	cmd := buildspec.ApplicationCommand(cfg.Context, cfg.Resolution, "build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", gosimBuildPath, gosimtool.Module+"/cmd/gosim")
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 	if err := buildspec.RunProcess(cfg.Context, cmd); err != nil {
 		return err
@@ -94,8 +85,7 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 		return fmt.Errorf("copy final: %w", err)
 	}
 
-	quotedPath := "'" + strings.ReplaceAll(gosimFinalPath, "'", "'\\''") + "'"
-	wrapper := []byte("#!/bin/sh\nexec " + quotedPath + " internal-candidate \"$@\"\n")
+	wrapper := []byte("#!/bin/sh\nexec " + "'" + strings.ReplaceAll(gosimFinalPath, "'", "'\\''") + "'" + " internal-candidate \"$@\"\n")
 	if err := os.WriteFile(filepath.Join(filepath.Dir(gosimFinalPath), "gosim"), wrapper, 0o755); err != nil {
 		return err
 	}
@@ -144,7 +134,7 @@ func copyModuleForScriptTest(modDir string) error {
 		if err := os.MkdirAll(filepath.Dir(newP), 0o755); err != nil {
 			return err
 		}
-		if err := copyFileIfChanged(file, newP, selftestFileMode); err != nil {
+		if err := copyFileIfChanged(file, newP, 0o644); err != nil {
 			return err
 		}
 		wanted[newP] = true
