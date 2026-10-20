@@ -260,7 +260,7 @@ func TestListenerCloseDrainsWholeBacklog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clients := make([]*Stream, 0, 5)
+	var clients []*Stream
 	for range 5 {
 		stream, err := a.OpenStream(netip.AddrPortFrom(b.endpoint.addr, 80))
 		if err != nil {
@@ -392,7 +392,7 @@ func TestNetworkRandomStreamIndependence(t *testing.T) {
 		rng := gosimruntime.NewDomainRandom(19, "net", 0)
 		n := NewNetwork(events, events, rng, &testTrace{})
 		attachTestEndpoints(n, testPair.SourceHost, testPair.DestHost)
-		got := make([]timeIndex, 0, 20)
+		var got []timeIndex
 		for range 20 {
 			if noise {
 				for _, domain := range []string{"fs", "application", "scheduler"} {

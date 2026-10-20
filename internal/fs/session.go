@@ -134,7 +134,7 @@ func (s *Session) Close() {
 	if s.closed {
 		return
 	}
-	ids := make([]uint64, 0, len(s.handles))
+	var ids []uint64
 	for id := range s.machines {
 		ids = append(ids, id)
 	}
@@ -156,7 +156,7 @@ func (s *Session) Close() {
 }
 
 func (s *Session) handleIDs() []uint64 {
-	ids := make([]uint64, 0, len(s.handles))
+	var ids []uint64
 	for id := range s.handles {
 		ids = append(ids, id)
 	}

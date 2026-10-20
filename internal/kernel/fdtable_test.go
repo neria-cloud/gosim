@@ -93,7 +93,7 @@ func TestDescriptorFinalizeContinuesInOrder(t *testing.T) {
 	t.Parallel()
 	table := NewFDTable(contracts.EpochRef{})
 	var order []int
-	resources := make([]*dataResource, 0, 3)
+	var resources []*dataResource
 	for range 3 {
 		r := &dataResource{owner: contracts.FS, releaseOrder: &order}
 		fd, err := table.Allocate(r)

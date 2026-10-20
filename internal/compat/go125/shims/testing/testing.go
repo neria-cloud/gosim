@@ -1027,7 +1027,7 @@ func runTests(match string, skip string, tests []InternalTest) (ran, ok bool) {
 }
 
 func Entrypoint(match string, skip string, tests []gosimruntime.Test) bool {
-	parsedTests := make([]InternalTest, 0, len(tests))
+	var parsedTests []InternalTest
 	for _, test := range tests {
 		parsedTests = append(parsedTests, InternalTest{
 			Name: test.Name,

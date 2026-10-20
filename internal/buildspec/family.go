@@ -81,7 +81,7 @@ func SupportedFamilies() []FamilySupport {
 }
 
 func supportedFamilyNames() []string {
-	names := make([]string, 0, len(families))
+	var names []string
 	for _, family := range families {
 		names = append(names, family.Family)
 	}

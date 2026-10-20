@@ -303,7 +303,7 @@ func (k *Kernel) Wait(ctx contracts.CallContext, ref contracts.MachineRef) (cont
 }
 
 func (k *Kernel) finishWaits(epoch contracts.EpochRef, exit ExitRecord) {
-	ids := make([]contracts.WaitID, 0, len(k.waits))
+	var ids []contracts.WaitID
 	for id := range k.waits {
 		ids = append(ids, id)
 	}

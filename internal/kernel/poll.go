@@ -247,14 +247,14 @@ func (k *Kernel) closePoll(p *pollRegistration) error {
 }
 
 func (k *Kernel) closePolls(epoch contracts.EpochRef, fd int) error {
-	ids := make([]uint64, 0, len(k.polls))
+	var ids []uint64
 	for id, p := range k.polls {
 		if p.epoch == epoch && (fd < 0 || p.fd == fd) {
 			ids = append(ids, id)
 		}
 	}
 	slices.Sort(ids)
-	failures := make([]error, 0, len(ids))
+	var failures []error
 	for _, id := range ids {
 		failures = append(failures, k.closePoll(k.polls[id]))
 	}
@@ -265,7 +265,7 @@ func (k *Kernel) Notify(epoch contracts.EpochRef, fd int, ready contracts.Readin
 	if !k.Accepts(epoch) {
 		return
 	}
-	ids := make([]uint64, 0, len(k.polls))
+	var ids []uint64
 	for id, p := range k.polls {
 		if p.epoch == epoch && p.fd == fd {
 			ids = append(ids, id)
@@ -292,7 +292,7 @@ func (k *Kernel) notifyPoll(p *pollRegistration, ready contracts.Readiness) {
 }
 
 func (k *Kernel) completePollWaiters(p *pollRegistration, d *pollDirection, err error) {
-	ids := make([]uint64, 0, len(d.waiters))
+	var ids []uint64
 	for id := range d.waiters {
 		ids = append(ids, id)
 	}

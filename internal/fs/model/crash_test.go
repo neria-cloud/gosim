@@ -67,7 +67,7 @@ func compareCrashOrder(t *testing.T, pending *pendingOps) {
 		if !ok {
 			break
 		}
-		ids := make([]int, 0, len(ops))
+		var ids []int
 		for _, op := range ops {
 			ids = append(ids, op.(*allocOp).inode)
 		}
@@ -224,7 +224,7 @@ func TestCrashSnapshotDependencyMetadata(t *testing.T) {
 		if !ok {
 			break
 		}
-		ids := make([]int, 0, len(ops))
+		var ids []int
 		for _, op := range ops {
 			ids = append(ids, op.(*allocOp).inode)
 		}

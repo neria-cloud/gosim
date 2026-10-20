@@ -41,7 +41,7 @@ func TestSelectFeatureProvidersAndOwnInputs(t *testing.T) {
 	for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
 		p, id := fixture()
 		id.Features = slices.Clone(features)
-		want := make([]string, 0, len(features)-1)
+		var want []string
 		for _, feature := range features[1:] {
 			id.ProviderRevisions = append(id.ProviderRevisions, buildspec.Revision{Name: feature, Digest: id.RuntimeRevision})
 			want = append(want, module+"/internal/"+feature)

@@ -133,7 +133,7 @@ type MsgAndStack struct {
 }
 
 func extractStacksUntilTest(logs []*gosimlog.Log) []MsgAndStack {
-	all := make([]MsgAndStack, 0, len(logs))
+	var all []MsgAndStack
 	for _, log := range logs {
 		msg := log.Msg
 		var stack []string
