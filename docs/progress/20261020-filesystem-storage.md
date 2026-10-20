@@ -60,3 +60,16 @@ Implemented
 Verified
 - Focused filesystem, kernel, network and Go 1.25 hook tests passed; `./.ci/gofmt check` and `make build` passed.
 - `make test` passed: 1,807 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T135214.086819Z-0n2qpo5l/report.md`).
+
+## Task 5 — Enforce identity and read-only mode on mutations
+
+Implemented
+- Added owner/group/other access checks, directory execute traversal, and write access on directory mutations using per-machine UID/GID.
+- Applied a fixed 0022 umask and ownership on file and directory creation; propagated identity through path and directory operations.
+- Centralized read-only checks for mutation paths and preserved model error values in rename and directory listing.
+- Added model/provider tests for access denial, creation metadata and read-only mutation transitions.
+
+Verified
+- Focused filesystem, kernel, network and Go 1.25 hook tests, `./.ci/gofmt check`, and `make build` passed.
+- `make test` passed: 1,809 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T135743.593082Z-bsl3j_we/report.md`).
+- After adding the restore-policy assertion, `make test` passed again: 1,809 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T140039.431773Z-4xwf8kc8/report.md`).

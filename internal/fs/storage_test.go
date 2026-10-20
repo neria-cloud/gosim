@@ -142,3 +142,49 @@ func TestStorageConfigValidationAtomic(t *testing.T) {
 		}
 	}
 }
+
+func TestIdentityAndReadOnlyMutations(t *testing.T) {
+	i, ctx, _ := ioFixture(t)
+	i.machine.config.UID, i.machine.config.GID = 101, 202
+	fd := open(t, i, ctx, "mine", openCreate|2)
+	stat, err := i.Fstat(ctx, fd)
+	if err != nil || stat.Mode != 0o100600 || stat.UID != 101 || stat.GID != 202 {
+		t.Fatalf("created metadata: %+v, %v", stat, err)
+	}
+	if _, err := i.Openat(ctx, atFDCWD, "/etc/hosts", 2, 0); !errors.Is(err, syscall.EACCES) {
+		t.Fatalf("non-root write to hosts: %v", err)
+	}
+	if err := i.Mkdirat(ctx, atFDCWD, "sub", 0o777); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := i.Statat(ctx, atFDCWD, "sub", 0)
+	if err != nil || dir.Mode != 0o040755 || dir.UID != 101 || dir.GID != 202 {
+		t.Fatalf("created directory: %+v, %v", dir, err)
+	}
+	if err := i.session.SetReadOnly(ref1, true); err != nil {
+		t.Fatal(err)
+	}
+	for name, mutate := range map[string]func() error{
+		"mkdir":    func() error { return i.Mkdirat(ctx, atFDCWD, "blocked", 0o777) },
+		"unlink":   func() error { return i.Unlinkat(ctx, atFDCWD, "mine", 0) },
+		"rename":   func() error { return i.Renameat(ctx, atFDCWD, "mine", atFDCWD, "renamed") },
+		"truncate": func() error { return i.Truncate(ctx, fd, 0) },
+		"reserve":  func() error { return i.Fallocate(ctx, fd, 0, 0, 1) },
+	} {
+		if err := mutate(); !errors.Is(err, syscall.EROFS) {
+			t.Fatalf("read-only %s: %v", name, err)
+		}
+	}
+	if _, err := i.Openat(ctx, atFDCWD, "mine", openTruncate|2, 0); !errors.Is(err, syscall.EROFS) {
+		t.Fatalf("read-only truncate open: %v", err)
+	}
+	if err := i.session.SetReadOnly(ref1, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := i.Renameat(ctx, atFDCWD, "mine", atFDCWD, "renamed"); err != nil {
+		t.Fatal(err)
+	}
+	if err := i.Unlinkat(ctx, atFDCWD, "renamed", 0); err != nil {
+		t.Fatal(err)
+	}
+}

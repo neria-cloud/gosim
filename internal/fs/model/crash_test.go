@@ -146,7 +146,7 @@ func TestCrashImageEmptyPlan(t *testing.T) {
 func TestCrashImageRetention(t *testing.T) {
 	t.Parallel()
 	fs := NewEmptyFilesystem()
-	inode, err := fs.OpenFile(RootInode, "a", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "a", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,14 +283,14 @@ func TestChunkCopyOnWriteReleasesOldReference(t *testing.T) {
 func TestCrashImageOwnsDirectoryOperations(t *testing.T) {
 	t.Parallel()
 	fs := NewEmptyFilesystem()
-	inode, err := fs.OpenFile(RootInode, "before", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "before", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	mustWriteModel(t, fs, inode, 0, []byte("pending"))
 	image := fs.FreezeCrash()
 	it := image.IterCrashes()
-	if err := fs.Rename(RootInode, "before", RootInode, "after"); err != nil {
+	if err := fs.Rename(RootInode, "before", RootInode, "after", Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	fs.FlushEverything()
@@ -302,10 +302,10 @@ func TestCrashImageOwnsDirectoryOperations(t *testing.T) {
 	}
 	it.Close()
 	defer recovered.Release()
-	if _, err := recovered.Stat(RootInode, "before"); err != nil {
+	if _, err := recovered.Stat(RootInode, "before", Identity{}); err != nil {
 		t.Fatal("frozen directory changed", err)
 	}
-	if _, err := recovered.Stat(RootInode, "after"); err == nil {
+	if _, err := recovered.Stat(RootInode, "after", Identity{}); err == nil {
 		t.Fatal("later rename entered snapshot")
 	}
 	got := make([]byte, 7)
@@ -318,7 +318,7 @@ func TestCrashImageOwnsDirectoryOperations(t *testing.T) {
 func TestCrashCloneDoesNotRetainMappings(t *testing.T) {
 	t.Parallel()
 	fs := NewEmptyFilesystem()
-	inode, err := fs.OpenFile(RootInode, "mapped", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "mapped", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}

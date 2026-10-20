@@ -76,7 +76,7 @@ func (s *Session) Prepare(spec contracts.StartSpec, fds contracts.DescriptorTabl
 	} else {
 		disk = cloneDisk(m.disk)
 	}
-	cwd, err := disk.Getdirinode(model.RootInode, m.config.WorkingDir)
+	cwd, err := disk.Getdirinode(model.RootInode, m.config.WorkingDir, model.Identity{UID: m.config.UID, GID: m.config.GID})
 	if err != nil {
 		disk.Release()
 		return nil, err

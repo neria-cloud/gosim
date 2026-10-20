@@ -78,8 +78,8 @@ func (f *File) writeAt(ctx contracts.CallContext, buffer abi.ByteView, offset in
 	if stat.IsDir {
 		return 0, syscall.EISDIR
 	}
-	if f.instance.machine.readOnly {
-		return 0, syscall.EROFS
+	if err := f.instance.checkMutation(); err != nil {
+		return 0, err
 	}
 	return f.instance.model.Write(f.inode, offset, buffer, f.instance.machine.config.CapacityBytes)
 }

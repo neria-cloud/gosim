@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
+	"github.com/neria-cloud/gosim/internal/fs/model"
 	"github.com/neria-cloud/gosim/internal/kernel"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
@@ -203,7 +204,7 @@ func TestFileDescriptorOwnerFailuresAndCleanup(t *testing.T) {
 	if _, err := i.Openat(ctx, atFDCWD, "allocation", openCreate|2, 0); !errors.Is(err, syscall.EMFILE) {
 		t.Fatal(err)
 	}
-	stat, err := i.model.Stat(4, "allocation")
+	stat, err := i.model.Stat(4, "allocation", model.Identity{})
 	must(t, err)
 	if i.model.GetInodeInfo(stat.Inode).Handles != 0 {
 		t.Fatal("failed allocation leaked inode reference")

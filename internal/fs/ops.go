@@ -37,6 +37,17 @@ func (i *Instance) dirInode(dirfd int) (int, error) {
 	return i.workingDir, nil
 }
 
+func (i *Instance) identity() model.Identity {
+	return model.Identity{UID: i.machine.config.UID, GID: i.machine.config.GID}
+}
+
+func (i *Instance) checkMutation() error {
+	if i.machine.readOnly {
+		return syscall.EROFS
+	}
+	return nil
+}
+
 func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, flags int, mode uint32) (int, error) {
 	if err := i.validateCall(ctx); err != nil {
 		return 0, err
@@ -50,17 +61,19 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 	if flags&^supported != 0 || flags&3 == 3 {
 		return 0, syscall.EINVAL
 	}
-	if i.machine.readOnly && flags&(openCreate|openTruncate) != 0 {
-		return 0, syscall.EROFS
+	if flags&(openCreate|openTruncate) != 0 {
+		if err := i.checkMutation(); err != nil {
+			return 0, err
+		}
 	}
-	// TODO(not planned): permissions, O_APPEND, and strict O_DIRECTORY semantics.
+	// TODO(not planned): O_APPEND and strict O_DIRECTORY semantics.
 	modelFlags := flags & 3
 	for _, flag := range []struct{ linux, host int }{{openCreate, os.O_CREATE}, {openExclusive, os.O_EXCL}, {openTruncate, os.O_TRUNC}} {
 		if flags&flag.linux != 0 {
 			modelFlags |= flag.host
 		}
 	}
-	inode, err := i.model.OpenFile(dir, path, modelFlags)
+	inode, err := i.model.OpenFile(dir, path, modelFlags, mode, i.identity())
 	if err != nil {
 		return 0, err
 	}
@@ -85,11 +98,10 @@ func (i *Instance) Renameat(ctx contracts.CallContext, oldFD int, oldPath string
 	if err != nil {
 		return err
 	}
-	err = i.model.Rename(old, oldPath, new, newPath)
-	if err != nil && err != syscall.ENOENT {
-		return syscall.EINVAL
+	if err := i.checkMutation(); err != nil {
+		return err
 	}
-	return err
+	return i.model.Rename(old, oldPath, new, newPath, i.identity())
 }
 
 func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteView) (int, error) {
@@ -100,9 +112,12 @@ func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteVi
 	if f.didReaddir {
 		return 0, nil
 	}
-	entries, err := i.model.ReadDir(f.inode)
+	if !f.read {
+		return 0, syscall.EBADF
+	}
+	entries, err := i.model.ReadDir(f.inode, i.identity())
 	if err != nil {
-		return 0, syscall.EINVAL
+		return 0, err
 	}
 	// This explicit Linux dirent64 byte layout is shared by both target arches.
 	// TODO(not planned): resumable directory cursor and real inode/offset fields.
@@ -149,8 +164,8 @@ func (i *Instance) Fallocate(ctx contracts.CallContext, fd int, mode uint32, off
 	if stat.IsDir {
 		return syscall.EISDIR
 	}
-	if i.machine.readOnly {
-		return syscall.EROFS
+	if err := i.checkMutation(); err != nil {
+		return err
 	}
 	return i.model.Fallocate(f.inode, offset, length, i.machine.config.CapacityBytes)
 }
@@ -271,7 +286,7 @@ func (i *Instance) Statat(ctx contracts.CallContext, dirfd int, path string, fla
 	if flags&^atSymlinkNoFollow != 0 {
 		return contracts.Stat{}, syscall.EINVAL
 	}
-	stat, err := i.model.Stat(dir, path)
+	stat, err := i.model.Stat(dir, path, i.identity())
 	return statResult(stat), statError(err)
 }
 
@@ -286,7 +301,10 @@ func (i *Instance) Unlinkat(ctx contracts.CallContext, dirfd int, path string, f
 	if flags != 0 && flags != atRemoveDir {
 		return syscall.EINVAL
 	}
-	return i.model.Remove(dir, path, flags == atRemoveDir)
+	if err := i.checkMutation(); err != nil {
+		return err
+	}
+	return i.model.Remove(dir, path, flags == atRemoveDir, i.identity())
 }
 
 func (i *Instance) Truncate(ctx contracts.CallContext, fd int, size int64) error {
@@ -307,8 +325,8 @@ func (i *Instance) Truncate(ctx contracts.CallContext, fd int, size int64) error
 	if stat.IsDir {
 		return syscall.EISDIR
 	}
-	if i.machine.readOnly {
-		return syscall.EROFS
+	if err := i.checkMutation(); err != nil {
+		return err
 	}
 	return i.model.Truncate(f.inode, size, i.machine.config.CapacityBytes)
 }
@@ -317,7 +335,7 @@ func (i *Instance) Chdir(ctx contracts.CallContext, path string) error {
 	if err := i.validateCall(ctx); err != nil {
 		return err
 	}
-	inode, err := i.model.Getdirinode(i.workingDir, path)
+	inode, err := i.model.Getdirinode(i.workingDir, path, i.identity())
 	if err != nil {
 		return err
 	}
@@ -349,7 +367,10 @@ func (i *Instance) Mkdirat(ctx contracts.CallContext, dirfd int, path string, mo
 	if err != nil {
 		return err
 	}
-	return i.model.Mkdir(dir, path)
+	if err := i.checkMutation(); err != nil {
+		return err
+	}
+	return i.model.Mkdir(dir, path, mode, i.identity())
 }
 
 func (i *Instance) Flock(ctx contracts.CallContext, fd, how int) error {

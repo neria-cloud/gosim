@@ -132,16 +132,16 @@ The public `Config` converts explicitly to `contracts.FSConfig{WorkingDir,Capaci
 **References**: target §Storage schema and invariants (DAC rules, fixed umask), §Model/provider methods (permission-aware path methods and `CheckAccess`), §Data flows 3, 5 and 6, failure table, §Method decision logic (`checkMutation`).  
 **Goal**: Make mode/UID/GID meaningful and make read-only reversible for existing descriptors.
 
-- [ ] Implement `Identity` and `Access` checks for owner/group/other using primary GID and root bypass, with directory execute traversal, read listing, and write+execute creation/removal/rename. Use configured effective UID/GID; defaults are root/root. Keep path resolution, `.` and `..` behavior within the existing inode tree.
-- [ ] Apply mode `&^ 0022` at file/dir creation, owner UID/GID from machine config, and check existing target/open flags. Update `Getdirinode`, `Mkdir`, `OpenFile`, `Stat`, `Remove`, `Rename`, `ReadDir` and provider callers to the target signatures.
-- [ ] Centralize read-only check for data and metadata mutation: `Openat` when creating or truncating, `Write`/`Pwrite`, `Truncate`, `Fallocate`, `Mkdirat`, `Renameat`, `Unlinkat`, and chmod/chown. Return `EROFS` without mutation even for a descriptor opened before the mode changed. `SetReadOnly(false)` re-enables normal operations on that descriptor.
-- [ ] Preserve proper error priority for invalid descriptor/flags/range before mutation policy where documented; preserve `EACCES`, `EPERM`, `EROFS`, `ENOENT` and `ENOSPC` rather than collapsing errors to `EINVAL` in `Renameat` or other adapters.
-- [ ] Test root and non-root traversal, mode changes, parent access, write via open descriptor across both read-only transitions, stop/crash/restart persistence, snapshot restore into a read-only target and disabled-feature abort behavior.
-- [ ] Add `// TODO(not planned): ...` at existing limitations for supplemental groups/ACLs/sticky bits, symlinks and non-`AT_FDCWD` directory descriptors. Do not return fake success for an unsupported operation.
+- [x] Implement `Identity` and `Access` checks for owner/group/other using primary GID and root bypass, with directory execute traversal, read listing, and write+execute creation/removal/rename. Use configured effective UID/GID; defaults are root/root. Keep path resolution, `.` and `..` behavior within the existing inode tree.
+- [x] Apply mode `&^ 0022` at file/dir creation, owner UID/GID from machine config, and check existing target/open flags. Update `Getdirinode`, `Mkdir`, `OpenFile`, `Stat`, `Remove`, `Rename`, `ReadDir` and provider callers to the target signatures.
+- [x] Centralize read-only check for data and metadata mutation: `Openat` when creating or truncating, `Write`/`Pwrite`, `Truncate`, `Fallocate`, `Mkdirat`, `Renameat`, `Unlinkat`, and chmod/chown. Return `EROFS` without mutation even for a descriptor opened before the mode changed. `SetReadOnly(false)` re-enables normal operations on that descriptor.
+- [x] Preserve proper error priority for invalid descriptor/flags/range before mutation policy where documented; preserve `EACCES`, `EPERM`, `EROFS`, `ENOENT` and `ENOSPC` rather than collapsing errors to `EINVAL` in `Renameat` or other adapters.
+- [x] Test root and non-root traversal, mode changes, parent access, write via open descriptor across both read-only transitions, stop/crash/restart persistence, snapshot restore into a read-only target and disabled-feature abort behavior.
+- [x] Add `// TODO(not planned): ...` at existing limitations for supplemental groups/ACLs/sticky bits, symlinks and non-`AT_FDCWD` directory descriptors. Do not return fake success for an unsupported operation.
 
 #### Verification
 
-- [ ] Run focused provider and model tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
+- [x] Run focused provider and model tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
 
 ---
 

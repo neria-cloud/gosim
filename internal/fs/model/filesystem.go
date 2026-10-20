@@ -114,6 +114,36 @@ type inodeMetadata struct {
 
 type Identity struct{ UID, GID uint32 }
 
+type Access uint8
+
+const (
+	AccessExecute Access = 1
+	AccessWrite   Access = 2
+	AccessRead    Access = 4
+)
+
+func (fs *Filesystem) CheckAccess(inode int, who Identity, need Access) error {
+	// TODO(not planned): supplemental groups, ACLs and sticky-directory rules.
+	meta, err := fs.metadata(inode)
+	if err != nil {
+		return err
+	}
+	if who.UID == 0 {
+		return nil
+	}
+	bits := meta.Mode & 7
+	if who.GID == meta.GID {
+		bits = meta.Mode >> 3 & 7
+	}
+	if who.UID == meta.UID {
+		bits = meta.Mode >> 6 & 7
+	}
+	if bits&uint32(need) != uint32(need) {
+		return syscall.EACCES
+	}
+	return nil
+}
+
 const RootInode = 1
 
 type filesystemState struct {
@@ -722,9 +752,9 @@ func (fs *Filesystem) Sync(inode int) {
 	fs.flushInode(inode)
 }
 
-func (fs *Filesystem) Getdirinode(dirInode int, path string) (int, error) {
+func (fs *Filesystem) Getdirinode(dirInode int, path string, who Identity) (int, error) {
 	// For chdir
-	dirInode, _, err := fs.walkpath(dirInode, path, false)
+	dirInode, _, err := fs.walkpath(dirInode, path, false, who)
 	if err != nil {
 		return 0, err
 	}
@@ -733,12 +763,15 @@ func (fs *Filesystem) Getdirinode(dirInode int, path string) (int, error) {
 	if !ok {
 		return 0, syscall.ENOTDIR
 	}
+	if err := fs.CheckAccess(dirInode, who, AccessExecute); err != nil {
+		return 0, err
+	}
 
 	return dirInode, nil
 }
 
-func (fs *Filesystem) Mkdir(dirInode int, path string) error {
-	dirInode, name, err := fs.walkpath(dirInode, path, true)
+func (fs *Filesystem) Mkdir(dirInode int, path string, mode uint32, who Identity) error {
+	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
 	if err != nil {
 		return err
 	}
@@ -746,6 +779,9 @@ func (fs *Filesystem) Mkdir(dirInode int, path string) error {
 	dir, ok := fs.mem.getDir(dirInode)
 	if !ok {
 		return syscall.ENOTDIR
+	}
+	if err := fs.CheckAccess(dirInode, who, AccessWrite|AccessExecute); err != nil {
+		return err
 	}
 
 	if _, ok := dir.entries[name]; ok {
@@ -756,7 +792,7 @@ func (fs *Filesystem) Mkdir(dirInode int, path string) error {
 	op := &allocOp{
 		dir:   true,
 		inode: inode,
-		meta:  inodeMetadata{Mode: 0o755},
+		meta:  inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID},
 	}
 	fs.apply(op)
 
@@ -813,8 +849,8 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 	}
 }
 
-func (fs *Filesystem) Stat(dirInode int, path string) (StatResp, error) {
-	dirInode, name, err := fs.walkpath(dirInode, path, true)
+func (fs *Filesystem) Stat(dirInode int, path string, who Identity) (StatResp, error) {
+	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
 	if err != nil {
 		return StatResp{}, err
 	}
@@ -917,8 +953,8 @@ func (fs *Filesystem) Getpath(dirInode int) (string, error) {
 	return strings.Join(s, "/"), nil
 }
 
-func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool) error {
-	dirInode, name, err := fs.walkpath(dirInode, path, true)
+func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool, who Identity) error {
+	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
 	if err != nil {
 		return err
 	}
@@ -926,6 +962,9 @@ func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool) error {
 	dir, ok := fs.mem.getDir(dirInode)
 	if !ok {
 		return syscall.ENOTDIR
+	}
+	if err := fs.CheckAccess(dirInode, who, AccessWrite|AccessExecute); err != nil {
+		return err
 	}
 
 	entry, ok := dir.entries[name]
@@ -965,8 +1004,8 @@ func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool) error {
 	return nil
 }
 
-func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath string) error {
-	fromInode, fromName, err := fs.walkpath(fromInode, fromPath, true)
+func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath string, who Identity) error {
+	fromInode, fromName, err := fs.walkpath(fromInode, fromPath, true, who)
 	if err != nil {
 		return err
 	}
@@ -975,19 +1014,25 @@ func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath
 	if !ok {
 		return syscall.ENOTDIR
 	}
+	if err := fs.CheckAccess(fromInode, who, AccessWrite|AccessExecute); err != nil {
+		return err
+	}
 
 	inode, ok := fromDir.entries[fromName]
 	if !ok {
 		return syscall.ENOENT
 	}
 
-	toInode, toName, err := fs.walkpath(toInode, toPath, true)
+	toInode, toName, err := fs.walkpath(toInode, toPath, true, who)
 	if err != nil {
 		return err
 	}
 
 	if _, ok := fs.mem.getDir(toInode); !ok {
 		return syscall.ENOTDIR
+	}
+	if err := fs.CheckAccess(toInode, who, AccessWrite|AccessExecute); err != nil {
+		return err
 	}
 
 	// TODO: prevent cycles?
@@ -1013,8 +1058,8 @@ func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath
 	return nil
 }
 
-func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error) {
-	dirInode, name, err := fs.walkpath(dirInode, path, true)
+func (fs *Filesystem) OpenFile(dirInode int, path string, flag int, mode uint32, who Identity) (int, error) {
+	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
 	if err != nil {
 		return 0, err
 	}
@@ -1034,18 +1079,22 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 	}
 
 	var inode int
+	created := false
 	if name != "." {
 		inode, ok = dir.entries[name]
 		if !ok {
 			if flag&os.O_CREATE == 0 {
 				return 0, syscall.ENOENT
 			}
+			if err := fs.CheckAccess(dirInode, who, AccessWrite|AccessExecute); err != nil {
+				return 0, err
+			}
 
 			inode = fs.mem.next
 			op := &allocOp{
 				dir:   false,
 				inode: inode,
-				meta:  inodeMetadata{Mode: 0o644},
+				meta:  inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID},
 			}
 			fs.apply(op)
 
@@ -1059,6 +1108,7 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 				},
 			}
 			fs.apply(dOp)
+			created = true
 
 			// slog.Info("fs create", "path", args.Path, "inode", inode)
 		}
@@ -1070,8 +1120,24 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 		ok = true
 	}
 
-	if ok && flag&os.O_EXCL != 0 {
+	if ok && flag&os.O_EXCL != 0 && flag&os.O_CREATE != 0 {
 		return 0, syscall.EEXIST
+	}
+	if _, isDir := fs.mem.getDir(inode); !isDir {
+		var need Access
+		if flag&3 != os.O_WRONLY {
+			need |= AccessRead
+		}
+		if flag&3 != os.O_RDONLY {
+			need |= AccessWrite
+		}
+		if !created {
+			if err := fs.CheckAccess(inode, who, need); err != nil {
+				return 0, err
+			}
+		}
+	} else if flag&3 != os.O_RDONLY {
+		return 0, syscall.EISDIR
 	}
 	if ok && flag&os.O_TRUNC != 0 {
 		file := fs.mem.getFile(inode)
@@ -1106,10 +1172,13 @@ type ReadDirEntry struct {
 	IsDir bool
 }
 
-func (fs *Filesystem) ReadDir(inode int) ([]ReadDirEntry, error) {
+func (fs *Filesystem) ReadDir(inode int, who Identity) ([]ReadDirEntry, error) {
 	dir, ok := fs.mem.getDir(inode)
 	if !ok {
 		return nil, syscall.ENOTDIR
+	}
+	if err := fs.CheckAccess(inode, who, AccessRead); err != nil {
+		return nil, err
 	}
 
 	var entries []ReadDirEntry
@@ -1147,7 +1216,8 @@ func (fs *Filesystem) GetInodeInfo(inode int) InodeInfo {
 	return fs.getInodeInfo(inode)
 }
 
-func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool) (inode int, entry string, err error) {
+func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool, who Identity) (inode int, entry string, err error) {
+	// TODO(not planned): symlink traversal; the model contains only files and directories.
 	// TODO: harden and test; this function and its callers are not not well
 	// tested and brittle
 
@@ -1170,11 +1240,20 @@ func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool) (inode
 		}
 
 		if len(name) == len(path) && keepLast {
+			if _, ok := fs.mem.getDir(inode); !ok {
+				return 0, "", syscall.ENOTDIR
+			}
+			if err := fs.CheckAccess(inode, who, AccessExecute); err != nil {
+				return 0, "", err
+			}
 			return inode, name, nil
 		}
 
 		if name == "" {
 			// entire path is empty? assume current dir
+			if err := fs.CheckAccess(inode, who, AccessExecute); err != nil {
+				return 0, "", err
+			}
 			return inode, "", nil
 		}
 
@@ -1182,6 +1261,9 @@ func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool) (inode
 		dir, ok := fs.mem.getDir(inode)
 		if !ok {
 			return 0, "", syscall.ENOTDIR
+		}
+		if err := fs.CheckAccess(inode, who, AccessExecute); err != nil {
+			return 0, "", err
 		}
 
 		if name == "." {

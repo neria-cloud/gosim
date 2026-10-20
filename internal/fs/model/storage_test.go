@@ -16,7 +16,7 @@ func TestUsedBlocksCountsAllocatedLiveFiles(t *testing.T) {
 	if got := fs.UsedBlocks(); got != 1 {
 		t.Fatalf("initial blocks = %d, want hosts block", got)
 	}
-	inode, err := fs.OpenFile(RootInode, "/app/sparse", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "/app/sparse", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func TestUsedBlocksCountsAllocatedLiveFiles(t *testing.T) {
 	if got := fs.UsedBlocks(); got != 2 {
 		t.Fatalf("write allocated %d blocks", got)
 	}
-	if err := fs.Remove(RootInode, "/app/sparse", false); err != nil {
+	if err := fs.Remove(RootInode, "/app/sparse", false, Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	if got := fs.UsedBlocks(); got != 2 {
@@ -49,7 +49,7 @@ func TestUsedBlocksCountsAllocatedLiveFiles(t *testing.T) {
 func TestCapacityAdmissionIsAtomic(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
-	inode, err := fs.OpenFile(RootInode, "/app/full", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "/app/full", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestCapacityAdmissionIsAtomic(t *testing.T) {
 func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
-	inode, err := fs.OpenFile(RootInode, "/app/reserved", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "/app/reserved", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
 func TestMetadataOwnershipAndDurability(t *testing.T) {
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
-	inode, err := fs.OpenFile(RootInode, "/app/meta", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "/app/meta", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,4 +235,61 @@ func TestMetadataOwnershipAndDurability(t *testing.T) {
 		t.Fatalf("synced metadata: %+v, %v", stat, err)
 	}
 	recovered.Release()
+}
+
+func TestIdentityAccessAndCreationModes(t *testing.T) {
+	fs := NewLinuxFilesystem()
+	defer fs.Release()
+	user := Identity{UID: 123, GID: 456}
+	if err := fs.Mkdir(RootInode, "/app/private", 0o777, user); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := fs.Getdirinode(RootInode, "/app/private", user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stat, err := fs.Stat(RootInode, "/app/private", user)
+	if err != nil || stat.Mode != 0o755 || stat.UID != user.UID || stat.GID != user.GID {
+		t.Fatalf("directory metadata: %+v, %v", stat, err)
+	}
+	inode, err := fs.OpenFile(dir, "secret", os.O_CREATE|os.O_RDWR, 0o666, user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fs.CloseFile(inode)
+	stat, err = fs.Statfd(inode)
+	if err != nil || stat.Mode != 0o644 || stat.UID != user.UID || stat.GID != user.GID {
+		t.Fatalf("file metadata: %+v, %v", stat, err)
+	}
+	other := Identity{UID: 789, GID: 999}
+	if err := fs.Chmod(inode, 0o600, user); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fs.OpenFile(dir, "secret", os.O_RDONLY, 0, other); !errors.Is(err, syscall.EACCES) {
+		t.Fatalf("other user read: %v", err)
+	}
+	if _, err := fs.OpenFile(dir, "secret", os.O_WRONLY, 0, other); !errors.Is(err, syscall.EACCES) {
+		t.Fatalf("other user write: %v", err)
+	}
+	if err := fs.Chmod(dir, 0o700, user); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fs.Stat(RootInode, "/app/private/secret", other); !errors.Is(err, syscall.EACCES) {
+		t.Fatalf("blocked traversal: %v", err)
+	}
+	if err := fs.Remove(RootInode, "/app/private/secret", false, other); !errors.Is(err, syscall.EACCES) {
+		t.Fatalf("blocked removal: %v", err)
+	}
+	if _, err := fs.ReadDir(dir, other); !errors.Is(err, syscall.EACCES) {
+		t.Fatalf("blocked directory listing: %v", err)
+	}
+	if err := fs.Chmod(inode, 0o644, other); !errors.Is(err, syscall.EPERM) {
+		t.Fatalf("non-owner chmod: %v", err)
+	}
+	if err := fs.Chown(inode, 1, -1, user); !errors.Is(err, syscall.EPERM) {
+		t.Fatalf("non-root chown: %v", err)
+	}
+	if err := fs.Remove(RootInode, "/app/private/secret", false, user); err != nil {
+		t.Fatal(err)
+	}
 }
