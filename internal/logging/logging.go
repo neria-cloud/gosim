@@ -51,7 +51,7 @@ func (w gosimSlogHandler) WithGroup(name string) slog.Handler {
 
 type gosimLogWriter struct{}
 
-func (w gosimLogWriter) Write(b []byte) (n int, err error) {
+func (_ gosimLogWriter) Write(b []byte) (n int, err error) {
 	gosimruntime.WriteLog(b)
 	return len(b), nil
 }

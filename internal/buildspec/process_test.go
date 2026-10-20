@@ -14,13 +14,15 @@ import (
 	"time"
 )
 
+const testProcessExitCode = 23
+
 func TestRunProcessStreamsAndExit(t *testing.T) {
 	t.Parallel()
 	cmd := exec.Command("/bin/sh", "-c", "cat; printf diagnostic >&2; exit 23")
 	var out, diagnostics bytes.Buffer
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = strings.NewReader("input"), &out, &diagnostics
 	err := RunProcess(t.Context(), cmd)
-	if ExitCode(err) != 23 || out.String() != "input" || diagnostics.String() != "diagnostic" {
+	if ExitCode(err) != testProcessExitCode || out.String() != "input" || diagnostics.String() != "diagnostic" {
 		t.Fatalf("err=%v stdout=%s stderr=%s", err, &out, &diagnostics)
 	}
 }
@@ -51,7 +53,7 @@ func TestRunProcessCancellationReapsGroup(t *testing.T) {
 	cancel()
 	select {
 	case err := <-done:
-		if !errors.Is(err, context.Canceled) || ExitCode(err) != 130 {
+		if !errors.Is(err, context.Canceled) || ExitCode(err) != interruptedExitCode {
 			t.Fatal(err)
 		}
 	case <-time.After(5 * time.Second):

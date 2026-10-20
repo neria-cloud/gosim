@@ -3,6 +3,7 @@ package gosimtool
 import (
 	"debug/buildinfo"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -48,21 +49,21 @@ func VerifyNativeArtifact(path string, identity buildspec.Identity) error {
 	}
 	actual, err := buildspec.SourceDigest(record.Identity)
 	if err != nil || actual != source {
-		return fmt.Errorf("native oracle source identity mismatch")
+		return errors.New("native oracle source identity mismatch")
 	}
 	data, err = os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 	if buildspec.Hash(data) != record.SHA256 {
-		return fmt.Errorf("native oracle binary content mismatch")
+		return errors.New("native oracle binary content mismatch")
 	}
 	info, err := buildinfo.ReadFile(path)
 	if err != nil {
 		return err
 	}
 	if info.GoVersion != identity.Toolchain {
-		return fmt.Errorf("native oracle compiler patch mismatch")
+		return errors.New("native oracle compiler patch mismatch")
 	}
 	for _, setting := range info.Settings {
 		if setting.Key == "-race" && setting.Value == "true" {

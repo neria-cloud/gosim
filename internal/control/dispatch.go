@@ -10,6 +10,11 @@ import (
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 )
 
+const (
+	publicSubmitCallerSkip = 3
+	publicCallCallerSkip   = 4
+)
+
 // The selected profile marks binding as shared translated run state. It never
 // enters native engine storage. The harness installs it before machine init and
 // clears it after teardown; the single-active-run invariant prevents overlap.
@@ -57,14 +62,17 @@ func CurrentRef() contracts.MachineRef {
 //
 //go:norace
 func Submit(route kernel.RouteID, inv *kernel.Invocation) error {
-	return submit(route, inv, 3)
+	return submitInvocation(route, inv, publicSubmitCallerSkip)
 }
 
 // Call submits a copied, generated request for a public control method. Capture
 // that method's caller rather than the generic transport frame in diagnostics.
-func Call[T any](request interface{ Invocation() kernel.Invocation }, decode func(kernel.Result) (T, error)) (T, error) {
+func Call[T any](
+	request interface{ Invocation() kernel.Invocation },
+	decode func(kernel.Result) (T, error),
+) (T, error) {
 	inv := request.Invocation()
-	if err := submit(inv.Route, &inv, 4); err != nil {
+	if err := submitInvocation(inv.Route, &inv, publicCallCallerSkip); err != nil {
 		var zero T
 		return zero, err
 	}
@@ -75,7 +83,7 @@ func Call[T any](request interface{ Invocation() kernel.Invocation }, decode fun
 // The dispatcher aborts disabled operations before returning to application code.
 func Require(feature contracts.Feature, operation string) error {
 	inv := (kernel.RequireRequest{Feature: feature, Operation: operation}).Invocation()
-	if err := submit(inv.Route, &inv, 4); err != nil {
+	if err := submitInvocation(inv.Route, &inv, publicCallCallerSkip); err != nil {
 		return err
 	}
 	_, err := kernel.DecodeRequireResult(inv.TakeResult())
@@ -83,7 +91,7 @@ func Require(feature contracts.Feature, operation string) error {
 }
 
 //go:norace
-func submit(route kernel.RouteID, inv *kernel.Invocation, callerSkip int) error {
+func submitInvocation(route kernel.RouteID, inv *kernel.Invocation, callerSkip int) error {
 	ref := CurrentRef()
 	if ref.ID == 0 {
 		return contracts.ErrNotSim

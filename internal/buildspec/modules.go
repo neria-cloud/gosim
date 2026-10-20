@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -69,7 +70,7 @@ func ResolveModuleGraph(ctx context.Context, r Resolution) ([]Module, error) {
 		modules = append(modules, m)
 	}
 	if len(modules) == 0 {
-		return nil, fmt.Errorf("no application module graph; run inside a Go module or workspace")
+		return nil, errors.New("no application module graph; run inside a Go module or workspace")
 	}
 	slices.SortFunc(modules, func(a, b Module) int { return strings.Compare(a.Path, b.Path) })
 	return modules, nil

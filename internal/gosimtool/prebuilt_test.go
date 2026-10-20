@@ -10,6 +10,11 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
+const (
+	prebuiltTestDigestLength = 64
+	prebuiltTestFileMode     = 0o755
+)
+
 func TestLookupArtifactUsesExactCurrentInputs(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -45,7 +50,7 @@ func TestLookupArtifactUsesExactCurrentInputs(t *testing.T) {
 		"race": func(id *buildspec.Identity, _ *string, _ map[string]string) { id.Race = true },
 		"features": func(id *buildspec.Identity, _ *string, _ map[string]string) {
 			id.Features = []string{"rt", "fs"}
-			id.ProviderRevisions = []buildspec.Revision{{Name: "fs", Digest: strings.Repeat("b", 64)}}
+			id.ProviderRevisions = []buildspec.Revision{{Name: "fs", Digest: strings.Repeat("b", prebuiltTestDigestLength)}}
 		},
 		"toolchain": func(id *buildspec.Identity, _ *string, _ map[string]string) {
 			id.Toolchain = "go1.26.1"
@@ -62,7 +67,7 @@ func TestLookupArtifactUsesExactCurrentInputs(t *testing.T) {
 			}
 		})
 	}
-	if err := os.WriteFile(filepath.Join(built.Directory, built.Manifest.Binary.Path), []byte("corrupt"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(built.Directory, built.Manifest.Binary.Path), []byte("corrupt"), prebuiltTestFileMode); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := LookupArtifact(root, id, pkg, sources); err == nil {
