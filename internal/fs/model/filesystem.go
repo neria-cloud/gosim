@@ -577,39 +577,39 @@ func (o *allocOp) String() string {
 }
 
 func (o *allocOp) addDeps(p *pendingOps, op *pendingOp) {
-	p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(o.inode)}, depStoreAs)
-	p.addDep(op, depKey{kind: depKeyResizeFile, inode: int32(o.inode)}, depStoreAs) // optimization?
+	p.addDep(op, depKey{kind: depKeyAlloc, inode: depInode(o.inode)}, depStoreAs)
+	p.addDep(op, depKey{kind: depKeyResizeFile, inode: depInode(o.inode)}, depStoreAs) // optimization?
 }
 
 func (o *writeOp) addDeps(p *pendingOps, op *pendingOp) {
-	p.addDep(op, depKey{kind: depKeyWriteFile, inode: int32(o.inode)}, depStoreAs)
+	p.addDep(op, depKey{kind: depKeyWriteFile, inode: depInode(o.inode)}, depStoreAs)
 	// p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(o.inode)}, depDependsOn) // optimization?
-	p.addDep(op, depKey{kind: depKeyResizeFile, inode: int32(o.inode)}, depDependsOn)
+	p.addDep(op, depKey{kind: depKeyResizeFile, inode: depInode(o.inode)}, depDependsOn)
 }
 
 func (o *resizeOp) addDeps(p *pendingOps, op *pendingOp) {
 	// p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(o.inode)}, depDependsOn) // optimization?
-	p.addDep(op, depKey{kind: depKeyResizeFile, inode: int32(o.inode)}, depStoreAsAndDependsOn)
+	p.addDep(op, depKey{kind: depKeyResizeFile, inode: depInode(o.inode)}, depStoreAsAndDependsOn)
 }
 
 func (o *reserveOp) addDeps(p *pendingOps, op *pendingOp) {
-	p.addDep(op, depKey{kind: depKeyWriteFile, inode: int32(o.inode)}, depStoreAs)
-	p.addDep(op, depKey{kind: depKeyResizeFile, inode: int32(o.inode)}, depDependsOn)
+	p.addDep(op, depKey{kind: depKeyWriteFile, inode: depInode(o.inode)}, depStoreAs)
+	p.addDep(op, depKey{kind: depKeyResizeFile, inode: depInode(o.inode)}, depDependsOn)
 }
 
 func (o *metadataOp) addDeps(p *pendingOps, op *pendingOp) {
-	p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(o.inode)}, depDependsOn)
-	p.addDep(op, depKey{kind: depKeyMetadata, inode: int32(o.inode)}, depStoreAsAndDependsOn)
+	p.addDep(op, depKey{kind: depKeyAlloc, inode: depInode(o.inode)}, depDependsOn)
+	p.addDep(op, depKey{kind: depKeyMetadata, inode: depInode(o.inode)}, depStoreAsAndDependsOn)
 }
 
 func (o *dirOp) addDeps(p *pendingOps, op *pendingOp) {
 	for _, part := range o.parts {
-		p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(part.file)}, depDependsOn)
-		p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(part.dir)}, depDependsOn)
-		p.addDep(op, depKey{kind: depKeyWriteDir, inode: int32(part.dir)}, depStoreAs)
+		p.addDep(op, depKey{kind: depKeyAlloc, inode: depInode(part.file)}, depDependsOn)
+		p.addDep(op, depKey{kind: depKeyAlloc, inode: depInode(part.dir)}, depDependsOn)
+		p.addDep(op, depKey{kind: depKeyWriteDir, inode: depInode(part.dir)}, depStoreAs)
 		p.addDep(
 			op,
-			depKey{kind: depKeyWriteDirEntry, inode: int32(part.dir), entry: part.name},
+			depKey{kind: depKeyWriteDirEntry, inode: depInode(part.dir), entry: part.name},
 			depStoreAsAndDependsOn,
 		)
 	}
@@ -853,6 +853,8 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 		}, nil
 
 	case *backingFile:
+		// Link counts are maintained as nonnegative filesystem metadata.
+		// #nosec G115 -- widening this count preserves its value.
 		return StatResp{
 			Inode: inode,
 			IsDir: false,
@@ -935,15 +937,19 @@ func (fs *Filesystem) Chown(inode, uid, gid int, who Identity) error {
 	if who.UID != 0 {
 		return syscall.EPERM
 	}
+	// The unsigned checks retain the existing -1 sentinel behavior.
+	// #nosec G115 -- negative values other than -1 are rejected first.
 	if uid < -1 || gid < -1 || uint64(uid) > uint64(^uint32(0)) && uid != -1 ||
 		uint64(gid) > uint64(^uint32(0)) && gid != -1 {
 		return syscall.EINVAL
 	}
 	next := meta
 	if uid != -1 {
+		// #nosec G115 -- the range check above excludes values outside uint32.
 		next.UID = uint32(uid)
 	}
 	if gid != -1 {
+		// #nosec G115 -- the range check above excludes values outside uint32.
 		next.GID = uint32(gid)
 	}
 	if next == meta {

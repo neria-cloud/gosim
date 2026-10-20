@@ -79,14 +79,8 @@ func readWorker(dir string, want WorkerManifest) (Worker, error) {
 
 func readWorkerFile(path string, want WorkerManifest) (Worker, error) {
 	dir := filepath.Dir(path)
-	for _, name := range []string{dir, filepath.Join(dir, "manifest.json"), path} {
-		info, err := os.Lstat(name)
-		if err != nil {
-			return Worker{}, err
-		}
-		if (name == dir && !info.IsDir()) || (name != dir && !info.Mode().IsRegular()) {
-			return Worker{}, fmt.Errorf("worker cache entry is not regular: %s", name)
-		}
+	if err := validateWorkerCacheFiles(dir, path); err != nil {
+		return Worker{}, err
 	}
 	data, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
 	if err != nil {
@@ -126,6 +120,19 @@ func readWorkerFile(path string, want WorkerManifest) (Worker, error) {
 		return Worker{}, err
 	}
 	return Worker{Path: path, Manifest: got}, nil
+}
+
+func validateWorkerCacheFiles(dir, path string) error {
+	for _, name := range []string{dir, filepath.Join(dir, "manifest.json"), path} {
+		info, err := os.Lstat(name)
+		if err != nil {
+			return err
+		}
+		if (name == dir && !info.IsDir()) || (name != dir && !info.Mode().IsRegular()) {
+			return fmt.Errorf("worker cache entry is not regular: %s", name)
+		}
+	}
+	return nil
 }
 
 // OpenOverride validates an explicitly supplied worker against the same source
@@ -251,22 +258,7 @@ func Ensure(
 	if err := Verify(ctx, staged, r); err != nil {
 		return Worker{}, err
 	}
-	// A compiler/build can take time; never publish against inputs that changed.
-	current, err := ResolveSource(ctx, r)
-	if err != nil {
-		return Worker{}, err
-	}
-	if current != source {
-		return Worker{}, fmt.Errorf("Gosim source or worker dependency graph changed during build; retry")
-	}
-	currentInputs, err := buildcfg.Fingerprint(r.Toolchain)
-	if err != nil {
-		return Worker{}, err
-	}
-	if currentInputs != inputs {
-		return Worker{}, fmt.Errorf("Go distribution changed during worker build; retry")
-	}
-	if err := ctx.Err(); err != nil {
+	if err := validateWorkerBuildInputs(ctx, r, source, inputs); err != nil {
 		return Worker{}, err
 	}
 	// Replacing a corrupt entry never truncates an executable already running.
@@ -284,4 +276,25 @@ func Ensure(
 		return Worker{}, err
 	}
 	return readWorker(dir, want)
+}
+
+func validateWorkerBuildInputs(
+	ctx context.Context, r buildspec.Resolution, source Source, inputs buildspec.Fingerprints,
+) error {
+	// A compiler/build can take time; never publish against inputs that changed.
+	current, err := ResolveSource(ctx, r)
+	if err != nil {
+		return err
+	}
+	if current != source {
+		return fmt.Errorf("Gosim source or worker dependency graph changed during build; retry")
+	}
+	currentInputs, err := buildcfg.Fingerprint(r.Toolchain)
+	if err != nil {
+		return err
+	}
+	if currentInputs != inputs {
+		return fmt.Errorf("Go distribution changed during worker build; retry")
+	}
+	return ctx.Err()
 }

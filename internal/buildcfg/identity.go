@@ -146,61 +146,65 @@ func hashSourcePaths(root string, paths []string) (string, error) {
 	if root == "" {
 		return "", fmt.Errorf("missing source root")
 	}
-	var files []buildspec.Revision
+	walk := sourcePathWalk{root: root}
 	for _, sub := range paths {
-		before := len(files)
-		err := filepath.WalkDir(
-			filepath.Join(root, sub),
-			func(filename string, entry fs.DirEntry, walkErr error) error {
-				if walkErr != nil {
-					return walkErr
-				}
-				rel, err := filepath.Rel(root, filename)
-				if err != nil {
-					return err
-				}
-				rel = filepath.ToSlash(rel)
-				if rel == ".git" {
-					if entry.IsDir() {
-						return filepath.SkipDir
-					}
-					return nil
-				}
-				if entry.IsDir() {
-					if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" || rel == "test-reports" {
-						return filepath.SkipDir
-					}
-					return nil
-				}
-				if evidenceMetadata(rel) {
-					return nil
-				}
-				// Hash all non-documentation inputs, including embeds and templates.
-				if filepath.Ext(rel) == ".md" {
-					return nil
-				}
-				if !entry.Type().IsRegular() {
-					return fmt.Errorf("source input must be a regular file: %s", rel)
-				}
-				digest, err := hashFileContents(filename)
-				if err != nil {
-					return err
-				}
-				files = append(files, buildspec.Revision{Name: rel, Digest: digest})
-				return nil
-			},
-		)
+		before := len(walk.files)
+		err := filepath.WalkDir(filepath.Join(root, sub), walk.visit)
 		if err != nil {
 			return "", fmt.Errorf("fingerprint %s: %w", sub, err)
 		}
-		if len(files) == before {
+		if len(walk.files) == before {
 			return "", fmt.Errorf("no source inputs in %s", sub)
 		}
 	}
-	slices.SortFunc(files, func(a, b buildspec.Revision) int { return strings.Compare(a.Name, b.Name) })
-	data, err := json.Marshal(files)
+	slices.SortFunc(walk.files, func(a, b buildspec.Revision) int { return strings.Compare(a.Name, b.Name) })
+	data, err := json.Marshal(walk.files)
 	if err != nil {
 		return "", err
 	}
 	return buildspec.Hash(data), nil
+}
+
+type sourcePathWalk struct {
+	root  string
+	files []buildspec.Revision
+}
+
+func (w *sourcePathWalk) visit(filename string, entry fs.DirEntry, walkErr error) error {
+	if walkErr != nil {
+		return walkErr
+	}
+	rel, err := filepath.Rel(w.root, filename)
+	if err != nil {
+		return err
+	}
+	rel = filepath.ToSlash(rel)
+	if rel == ".git" {
+		if entry.IsDir() {
+			return filepath.SkipDir
+		}
+		return nil
+	}
+	if entry.IsDir() {
+		if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" || rel == "test-reports" {
+			return filepath.SkipDir
+		}
+		return nil
+	}
+	if evidenceMetadata(rel) {
+		return nil
+	}
+	// Hash all non-documentation inputs, including embeds and templates.
+	if filepath.Ext(rel) == ".md" {
+		return nil
+	}
+	if !entry.Type().IsRegular() {
+		return fmt.Errorf("source input must be a regular file: %s", rel)
+	}
+	digest, err := hashFileContents(filename)
+	if err != nil {
+		return err
+	}
+	w.files = append(w.files, buildspec.Revision{Name: rel, Digest: digest})
+	return nil
 }

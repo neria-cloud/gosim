@@ -27,7 +27,9 @@ func RecordNativeArtifact(path string, identity buildspec.Identity) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(path+".json", encoded, 0o644); err != nil {
+	// Artifact metadata is intentionally readable by other local tools.
+	// #nosec G306 -- preserve its existing shared permissions.
+	if err := os.WriteFile(path+".json", encoded, artifactFileMode); err != nil {
 		return err
 	}
 	return VerifyNativeArtifact(path, identity)

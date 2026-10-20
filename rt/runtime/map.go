@@ -262,7 +262,7 @@ func (m Map[K, V]) Set(k K, v V) {
 		m.resizeLater()
 	}
 
-	freeIdx := int(fastrandn(uint32(len(m.Impl.free))))
+	freeIdx := int(fastrandn(randomBound(len(m.Impl.free))))
 	idx := m.Impl.free[freeIdx]
 	m.Impl.free[freeIdx] = m.Impl.free[len(m.Impl.free)-1]
 	m.Impl.free = m.Impl.free[:len(m.Impl.free)-1]
@@ -369,7 +369,7 @@ func (m Map[K, V]) Iter() MapIter[K, V] {
 		return MapIter[K, V]{}
 	}
 	size := len(m.Impl.values) + len(m.Impl.small)
-	start := int(fastrandn(uint32(size)))
+	start := int(fastrandn(randomBound(size)))
 	return MapIter[K, V]{
 		impl:   m.Impl,
 		size:   size,

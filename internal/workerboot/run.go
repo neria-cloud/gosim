@@ -38,6 +38,7 @@ func Run(ctx context.Context, w Worker, r buildspec.Resolution, args []string, s
 		return 1, err
 	}
 	command := append([]string{"--resolution", file.Name()}, args...)
+	// #nosec G204 -- the selected worker is validated before this entry point runs it.
 	cmd := exec.CommandContext(ctx, w.Path, command...)
 	cmd.Dir = r.Context.Directory
 	cmd.Env = buildspec.ApplicationCommand(ctx, r, "env").Env
@@ -181,7 +182,8 @@ func Main(ctx context.Context, args []string, streams Streams) int {
 	if err != nil {
 		return fail(err)
 	}
-	if len(remainingArgs) == 0 || remainingArgs[0] == "help" || remainingArgs[0] == "-h" || remainingArgs[0] == "--help" {
+	if len(remainingArgs) == 0 || remainingArgs[0] == "help" ||
+		remainingArgs[0] == "-h" || remainingArgs[0] == "--help" {
 		fmt.Fprint(streams.Out, Help)
 		return 0
 	}

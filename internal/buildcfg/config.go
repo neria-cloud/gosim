@@ -30,44 +30,9 @@ func Load(path string, overrides Overrides) (ConfigRequest, error) {
 		Config: buildspec.Config{Schema: 2, Features: []string{"rt", "fs", "net"}, SimulationOS: "linux"},
 	}
 	if path != "" {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return request, fmt.Errorf("read config: %w", err)
+		if err := loadFileConfig(path, &request); err != nil {
+			return request, err
 		}
-		if len(bytes.TrimSpace(data)) == 0 || bytes.TrimSpace(data)[0] != '{' {
-			return request, fmt.Errorf("config must be a JSON object")
-		}
-		var wire struct {
-			Schema       int      `json:"schema"`
-			Toolchain    *string  `json:"toolchain"`
-			Features     []string `json:"features"`
-			SimulationOS string   `json:"simulation_os"`
-		}
-		decoder := json.NewDecoder(bytes.NewReader(data))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&wire); err != nil {
-			return request, fmt.Errorf("decode config: %w", err)
-		}
-		if err := decoder.Decode(new(any)); err != io.EOF {
-			return request, fmt.Errorf("config must contain exactly one JSON object")
-		}
-		if wire.Schema != 1 && wire.Schema != 2 {
-			return request, fmt.Errorf("unsupported config schema %d", wire.Schema)
-		}
-		if wire.Schema == 2 && wire.Toolchain != nil {
-			return request, fmt.Errorf(
-				"schema 2 uses Go tooling for compiler selection; remove toolchain or use explicit -go",
-			)
-		}
-		if wire.Schema == 1 {
-			if wire.Toolchain == nil || *wire.Toolchain == "" {
-				return request, fmt.Errorf(
-					"legacy schema 1 requires an exact toolchain; migrate to schema 2 for automatic Go selection",
-				)
-			}
-			request.ExplicitToolchain, request.Legacy = *wire.Toolchain, true
-		}
-		request.Config = buildspec.Config{Schema: 2, Features: wire.Features, SimulationOS: wire.SimulationOS}
 	}
 	if overrides.Toolchain != nil {
 		request.ExplicitToolchain = *overrides.Toolchain
@@ -86,6 +51,46 @@ func Load(path string, overrides Overrides) (ConfigRequest, error) {
 	cfg, err := Normalize(request.Config)
 	request.Config = cfg
 	return request, err
+}
+
+func loadFileConfig(path string, request *ConfigRequest) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read config: %w", err)
+	}
+	if len(bytes.TrimSpace(data)) == 0 || bytes.TrimSpace(data)[0] != '{' {
+		return fmt.Errorf("config must be a JSON object")
+	}
+	var wire struct {
+		Schema       int      `json:"schema"`
+		Toolchain    *string  `json:"toolchain"`
+		Features     []string `json:"features"`
+		SimulationOS string   `json:"simulation_os"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&wire); err != nil {
+		return fmt.Errorf("decode config: %w", err)
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return fmt.Errorf("config must contain exactly one JSON object")
+	}
+	if wire.Schema != 1 && wire.Schema != 2 {
+		return fmt.Errorf("unsupported config schema %d", wire.Schema)
+	}
+	if wire.Schema == 2 && wire.Toolchain != nil {
+		return fmt.Errorf("schema 2 uses Go tooling for compiler selection; remove toolchain or use explicit -go")
+	}
+	if wire.Schema == 1 {
+		if wire.Toolchain == nil || *wire.Toolchain == "" {
+			return fmt.Errorf(
+				"legacy schema 1 requires an exact toolchain; migrate to schema 2 for automatic Go selection",
+			)
+		}
+		request.ExplicitToolchain, request.Legacy = *wire.Toolchain, true
+	}
+	request.Config = buildspec.Config{Schema: 2, Features: wire.Features, SimulationOS: wire.SimulationOS}
+	return nil
 }
 
 func Normalize(cfg buildspec.Config) (buildspec.Config, error) {

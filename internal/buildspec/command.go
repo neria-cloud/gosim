@@ -45,6 +45,7 @@ func GoCommand(tc Toolchain, dir string, args ...string) *exec.Cmd {
 }
 
 func OutputCommand(ctx context.Context, tc Toolchain, dir string, args ...string) *exec.Cmd {
+	// #nosec G204 -- the selected toolchain and arguments are validated below before execution.
 	cmd := exec.CommandContext(ctx, tc.Executable, args...)
 	cmd.Dir = dir
 	if !filepath.IsAbs(tc.Executable) || !filepath.IsAbs(tc.GOROOT) {

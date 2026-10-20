@@ -113,10 +113,13 @@ func MakeGoModForTest(goSimModDir, testModDir string, requires []string) error {
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(testModDir, "go.mod"), newModBytes, 0o644); err != nil {
+	// Module files in the generated test module are intentionally readable.
+	// #nosec G306 -- preserve their existing permissions.
+	if err := os.WriteFile(filepath.Join(testModDir, "go.mod"), newModBytes, artifactFileMode); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(testModDir, "go.sum"), origSumBytes, 0o644); err != nil {
+	// #nosec G306 -- preserve generated module-file permissions.
+	if err := os.WriteFile(filepath.Join(testModDir, "go.sum"), origSumBytes, artifactFileMode); err != nil {
 		return err
 	}
 	return nil

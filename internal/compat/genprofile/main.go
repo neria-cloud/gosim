@@ -12,6 +12,8 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
+const profileFileMode = 0o644
+
 func main() {
 	root := flag.String("root", ".", "repository root")
 	check := flag.Bool("check", false, "fail on stale source fingerprints")
@@ -33,7 +35,7 @@ func main() {
 		}
 		if *check {
 			fail(fmt.Errorf("stale %s; run go run ./internal/compat/genprofile", path))
-		} else if err := os.WriteFile(path, data, 0o644); err != nil {
+		} else if err := os.WriteFile(path, data, profileFileMode); err != nil { // #nosec G306
 			fail(err)
 		}
 	}

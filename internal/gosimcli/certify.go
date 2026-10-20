@@ -30,6 +30,8 @@ type (
 	SuiteResult         = buildspec.SuiteResult
 )
 
+const certificationFileMode = 0o644
+
 type suiteOptions struct {
 	concurrency int
 	parallel    int
@@ -151,7 +153,8 @@ func certifyContext(
 		report.ResultDigest, _ = buildspec.ReportDigest(report)
 		data, marshalErr := json.MarshalIndent(report, "", "  ")
 		if marshalErr == nil {
-			marshalErr = os.WriteFile(filepath.Join(dir, "report.json"), append(data, '\n'), 0o644)
+			// #nosec G306 -- certification reports are shared artifacts.
+			marshalErr = os.WriteFile(filepath.Join(dir, "report.json"), append(data, '\n'), certificationFileMode)
 		}
 		err = errors.Join(err, marshalErr)
 	}()
@@ -219,7 +222,8 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	if buildErr != nil {
 		data = append(data, []byte("\n"+buildErr.Error())...)
 	}
-	if writeErr := os.WriteFile(filepath.Join(dir, "build.log"), data, 0o644); writeErr != nil {
+	// #nosec G306 -- build logs are shared certification artifacts.
+	if writeErr := os.WriteFile(filepath.Join(dir, "build.log"), data, certificationFileMode); writeErr != nil {
 		return results, writeErr
 	}
 	results = append(results, SuiteResult{Name: "build", Passed: buildErr == nil, LogDigest: buildspec.Hash(data)})
@@ -262,7 +266,8 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 		}
 		return captureCommand(cfg.Context, commands[i], &outputLock, stream)
 	})
-	if writeErr := os.WriteFile(filepath.Join(dir, "execute.log"), execution, 0o644); writeErr != nil {
+	// #nosec G306 -- execution logs are shared certification artifacts.
+	if writeErr := os.WriteFile(filepath.Join(dir, "execute.log"), execution, certificationFileMode); writeErr != nil {
 		return results, writeErr
 	}
 	results = append(results, SuiteResult{Name: "execute", Passed: err == nil, LogDigest: buildspec.Hash(execution)})
@@ -295,7 +300,8 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	if err != nil {
 		return results, err
 	}
-	if err := os.WriteFile(configPath, configData, 0o644); err != nil {
+	// #nosec G306 -- tuple configuration is shared certification evidence.
+	if err := os.WriteFile(configPath, configData, certificationFileMode); err != nil {
 		return results, err
 	}
 	cmd.Env = append(cmd.Env, "GOSIM_CONFIG="+configPath, "GOSIMTOOL=", "GOSIM_TEST_LARGE=0")
@@ -347,6 +353,7 @@ func runLargeSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (S
 	if cfg.Identity.Race {
 		race = "1"
 	}
+	// #nosec G204 -- make is fixed and the tuple values are passed as literal arguments.
 	cmd := exec.Command("make", "test-large", "LARGE_TUPLE="+strings.Join(cfg.Identity.Features, ","),
 		"LARGE_GO="+cfg.Toolchain.Executable, "LARGE_RACE="+race,
 		"UNIT_PARALLEL="+strconv.Itoa(parallel), "UNIT_PACKAGES="+strconv.Itoa(packages),
@@ -400,7 +407,8 @@ func runTestJobs(count, concurrency int, run func(int) ([]byte, error)) ([]byte,
 func runLogged(ctx context.Context, cmd *exec.Cmd, dir, name string, stream ...io.Writer) (SuiteResult, error) {
 	output, err := captureCommand(ctx, cmd, new(sync.Mutex), stream...)
 	// Preserve stdout/stderr even on failure; a failed report remains incomplete.
-	if writeErr := os.WriteFile(filepath.Join(dir, name+".log"), output, 0o644); writeErr != nil {
+	// #nosec G306 -- suite logs are shared certification artifacts.
+	if writeErr := os.WriteFile(filepath.Join(dir, name+".log"), output, certificationFileMode); writeErr != nil {
 		return SuiteResult{}, errors.Join(err, writeErr)
 	}
 	fmt.Fprintf(os.Stdout, "%s: passed=%t (%s)\n", name, err == nil, filepath.Join(dir, name+".log"))

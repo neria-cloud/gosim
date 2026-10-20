@@ -113,6 +113,12 @@ func fastrandn(n uint32) uint32 {
 	return gs.get().fastrander.fastrandn(n)
 }
 
+func randomBound(size int) uint32 {
+	// Existing random selection uses a uint32 bound even on 64-bit hosts.
+	// #nosec G115 -- retain the existing bound conversion and replay sequence.
+	return uint32(size)
+}
+
 func fastrand64() uint64 {
 	return gs.get().fastrander.fastrand64()
 }

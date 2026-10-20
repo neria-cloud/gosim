@@ -75,8 +75,19 @@ func ValidateReport(report CertificationReport) error {
 	if err := ValidateExecution(report.Identity, report.WorkerArch, report.ExecutionMode, report.ContainerImageDigest); err != nil {
 		return err
 	}
+	if err := validateReportSuites(report.Suites, len(id.Features) < minimumFullFeatureCount); err != nil {
+		return err
+	}
+	digest, err := ReportDigest(report)
+	if err != nil || digest != report.ResultDigest {
+		return fmt.Errorf("certification result digest mismatch")
+	}
+	return nil
+}
+
+func validateReportSuites(suites []SuiteResult, reducedFeatures bool) error {
 	seen := map[string]bool{}
-	for _, suite := range report.Suites {
+	for _, suite := range suites {
 		if suite.Name == "" || seen[suite.Name] || !suite.Passed || !ValidDigest(suite.LogDigest) {
 			return fmt.Errorf("failed, duplicate or incomplete suite %q", suite.Name)
 		}
@@ -90,16 +101,12 @@ func ValidateReport(report CertificationReport) error {
 	if !seen["large"] {
 		return fmt.Errorf("missing required large suite; ordinary validation cannot certify a tuple")
 	}
-	if len(id.Features) < minimumFullFeatureCount {
+	if reducedFeatures {
 		for _, name := range []string{"native-units"} {
 			if !seen[name] {
 				return fmt.Errorf("missing reduced-feature suite %s", name)
 			}
 		}
-	}
-	digest, err := ReportDigest(report)
-	if err != nil || digest != report.ResultDigest {
-		return fmt.Errorf("certification result digest mismatch")
 	}
 	return nil
 }

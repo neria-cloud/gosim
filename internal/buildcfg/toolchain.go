@@ -106,6 +106,7 @@ func discoverWith(ctx context.Context, launcher, directory string, env []string)
 		ModuleCache: info.GOMODCACHE,
 	}
 	// Check the resolved executable directly. Do not re-enter the launcher's module.
+	// #nosec G204 -- this invocation verifies the selected Go executable identity.
 	version := exec.CommandContext(ctx, tc.Executable, "version")
 	version.Env = append(withoutEnv(withoutEnv(env, "GOTOOLCHAIN"), goRootEnv), "GOTOOLCHAIN=local", "GOROOT="+root)
 	actual, err := version.Output()

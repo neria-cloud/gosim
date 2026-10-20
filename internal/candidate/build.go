@@ -94,7 +94,6 @@ func runRequests(
 	if err != nil {
 		return nil, err
 	}
-	var requests bytes.Buffer
 	digest, err := buildspec.Digest(manifest.Identity)
 	if err != nil {
 		return nil, err
@@ -102,16 +101,13 @@ func runRequests(
 	hello := simrt.MetatestHandshake{
 		Protocol: metatestProtocol, IdentityDigest: digest, Toolchain: manifest.Identity.Toolchain,
 	}
-	if err := json.NewEncoder(&requests).Encode(hello); err != nil {
+	requests, err := encodeCandidateRequests(hello, configs)
+	if err != nil {
 		return nil, err
 	}
-	for _, config := range configs {
-		if err := json.NewEncoder(&requests).Encode(config); err != nil {
-			return nil, err
-		}
-	}
+	// #nosec G204 -- VerifyArtifact above validates the binary and manifest before launch.
 	cmd := exec.CommandContext(ctx, filepath.Join(artifact.Directory, manifest.Binary.Path), "-metatest")
-	cmd.Stdin = &requests
+	cmd.Stdin = requests
 	cmd.Env = replaceEnv(os.Environ(), "GODEBUG", "")
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -138,6 +134,19 @@ func runRequests(
 		return nil, fmt.Errorf("unexpected trailing candidate response: %v", err)
 	}
 	return results, nil
+}
+
+func encodeCandidateRequests(hello simrt.MetatestHandshake, configs []simrt.RunConfig) (*bytes.Buffer, error) {
+	var requests bytes.Buffer
+	if err := json.NewEncoder(&requests).Encode(hello); err != nil {
+		return nil, err
+	}
+	for _, config := range configs {
+		if err := json.NewEncoder(&requests).Encode(config); err != nil {
+			return nil, err
+		}
+	}
+	return &requests, nil
 }
 
 func replaceEnv(env []string, key, value string) []string {

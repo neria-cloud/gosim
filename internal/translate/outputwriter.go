@@ -141,6 +141,9 @@ func (w *outputWriter) extract() map[string][]byte {
 	return w.desired
 }
 
+// Register the legacy CLI flag even though the file writer is not currently called.
+//
+//nolint:unused // flag.Bool registration is an init-time side effect.
 var dryrun = flag.Bool("dryrun", false, "dryrun")
 
 func (w *outputWriter) writeFiles(rootDir string) error {

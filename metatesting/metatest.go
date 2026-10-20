@@ -140,18 +140,7 @@ func startRunner(path string, expected Manifest, startupTimeout time.Duration) (
 		},
 	}
 	ready := make(chan error, 1)
-	go func() {
-		var hello gosimruntime.MetatestHandshake
-		if err := runner.r.Decode(&hello); err != nil {
-			ready <- err
-			return
-		}
-		if hello != runner.expected {
-			ready <- fmt.Errorf("metatest protocol/identity mismatch: got %+v, expected %+v", hello, runner.expected)
-			return
-		}
-		ready <- runner.w.Encode(runner.expected)
-	}()
+	go runner.exchangeHandshake(ready)
 	timer := time.NewTimer(startupTimeout)
 	defer timer.Stop()
 	timedOut := false
@@ -169,6 +158,19 @@ func startRunner(path string, expected Manifest, startupTimeout time.Duration) (
 		return nil, errors.Join(err, cleanup)
 	}
 	return runner, nil
+}
+
+func (r *MetaT) exchangeHandshake(ready chan<- error) {
+	var hello gosimruntime.MetatestHandshake
+	if err := r.r.Decode(&hello); err != nil {
+		ready <- err
+		return
+	}
+	if hello != r.expected {
+		ready <- fmt.Errorf("metatest protocol/identity mismatch: got %+v, expected %+v", hello, r.expected)
+		return
+	}
+	ready <- r.w.Encode(r.expected)
 }
 
 // Close ends this runner's request stream and joins its process and stderr

@@ -46,6 +46,7 @@ func (p PartitionMachines) Run() {
 	for {
 		a, b = nil, nil
 		for _, addr := range p.Addresses {
+			// #nosec G404 -- nemesis choices use the simulation's replayable random stream.
 			if rand.Intn(2) == 0 {
 				a = append(a, addr)
 			} else {
@@ -59,23 +60,19 @@ func (p PartitionMachines) Run() {
 
 	log.Printf("partition machines: partitioning network into %v and %v", a, b)
 
-	for _, a := range a {
-		for _, b := range b {
-			if err := simnet.Partition(simnet.Link{
-				From: netip.MustParseAddr(a), To: netip.MustParseAddr(b),
-			}); err != nil {
-				panic(err)
-			}
-		}
-	}
+	applyPartitionLinks(a, b, simnet.Partition)
 
 	time.Sleep(p.Duration)
 
 	log.Printf("partition machines: rejoining network between %v and %v", a, b)
 
-	for _, a := range a {
-		for _, b := range b {
-			if err := simnet.Repair(simnet.Link{From: netip.MustParseAddr(a), To: netip.MustParseAddr(b)}); err != nil {
+	applyPartitionLinks(a, b, simnet.Repair)
+}
+
+func applyPartitionLinks(a, b []string, apply func(simnet.Link) error) {
+	for _, from := range a {
+		for _, to := range b {
+			if err := apply(simnet.Link{From: netip.MustParseAddr(from), To: netip.MustParseAddr(to)}); err != nil {
 				panic(err)
 			}
 		}
@@ -95,6 +92,7 @@ func (r RestartRandomly) Run() {
 	if len(r.Machines) == 0 {
 		panic("restart randomly: need at least one machine")
 	}
+	// #nosec G404 -- nemesis choices use the simulation's replayable random stream.
 	m := r.Machines[rand.Intn(len(r.Machines))]
 
 	label, err := m.Label()

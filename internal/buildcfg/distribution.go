@@ -16,65 +16,22 @@ import (
 // fingerprintInstalled identifies the installation Go selected. It does not
 // download another copy or confuse installation trust with family compatibility.
 func fingerprintInstalled(root string) (buildspec.Fingerprints, error) {
-	var tools, sources []buildspec.Revision
-	seen := make(map[string]bool)
-	err := filepath.WalkDir(root, func(filename string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(root, filename)
-		if err != nil {
-			return err
-		}
-		name := filepath.ToSlash(rel)
-		if entry.IsDir() {
-			if name == "." || name == "src" || name == "bin" || name == "lib" || name == "pkg" || name == "pkg/tool" ||
-				strings.HasPrefix(
-					name,
-					"src/",
-				) || strings.HasPrefix(name, "bin/") ||
-				strings.HasPrefix(name, "lib/") || strings.HasPrefix(name, "pkg/tool/") {
-				return nil
-			}
-			return filepath.SkipDir
-		}
-		source := strings.HasPrefix(name, "src/")
-		tool := name == "VERSION" || name == "go.env" || strings.HasPrefix(name, "bin/") ||
-			strings.HasPrefix(name, "lib/") ||
-			strings.HasPrefix(name, "pkg/tool/")
-		if !source && !tool {
-			return nil
-		}
-		if !entry.Type().IsRegular() {
-			return fmt.Errorf("nonregular GOROOT input %s", name)
-		}
-		digest, err := hashFileContents(filename)
-		if err != nil {
-			return err
-		}
-		item := buildspec.Revision{Name: name, Digest: digest}
-		if source {
-			sources = append(sources, item)
-		} else {
-			tools = append(tools, item)
-		}
-		seen[name] = true
-		return nil
-	})
+	walk := installedFingerprintWalk{root: root, seen: make(map[string]bool)}
+	err := filepath.WalkDir(root, walk.visit)
 	if err != nil {
 		return buildspec.Fingerprints{}, err
 	}
 	for _, required := range []string{"VERSION", "bin/go", "src/runtime/runtime.go"} {
-		if !seen[required] {
+		if !walk.seen[required] {
 			return buildspec.Fingerprints{}, fmt.Errorf("incomplete Go installation: missing %s", required)
 		}
 	}
 	// WalkDir gives lexical path order. Both inventories include paths and bytes.
-	toolData, err := json.Marshal(tools)
+	toolData, err := json.Marshal(walk.tools)
 	if err != nil {
 		return buildspec.Fingerprints{}, err
 	}
-	sourceData, err := json.Marshal(sources)
+	sourceData, err := json.Marshal(walk.sources)
 	if err != nil {
 		return buildspec.Fingerprints{}, err
 	}
@@ -82,6 +39,57 @@ func fingerprintInstalled(root string) (buildspec.Fingerprints, error) {
 		ToolchainDigest: buildspec.Hash(toolData),
 		StdlibDigest:    buildspec.Hash(sourceData),
 	}, nil
+}
+
+type installedFingerprintWalk struct {
+	root    string
+	tools   []buildspec.Revision
+	sources []buildspec.Revision
+	seen    map[string]bool
+}
+
+func (w *installedFingerprintWalk) visit(filename string, entry fs.DirEntry, walkErr error) error {
+	if walkErr != nil {
+		return walkErr
+	}
+	rel, err := filepath.Rel(w.root, filename)
+	if err != nil {
+		return err
+	}
+	name := filepath.ToSlash(rel)
+	if entry.IsDir() {
+		if name == "." || name == "src" || name == "bin" || name == "lib" || name == "pkg" || name == "pkg/tool" ||
+			strings.HasPrefix(
+				name,
+				"src/",
+			) || strings.HasPrefix(name, "bin/") ||
+			strings.HasPrefix(name, "lib/") || strings.HasPrefix(name, "pkg/tool/") {
+			return nil
+		}
+		return filepath.SkipDir
+	}
+	source := strings.HasPrefix(name, "src/")
+	tool := name == "VERSION" || name == "go.env" || strings.HasPrefix(name, "bin/") ||
+		strings.HasPrefix(name, "lib/") ||
+		strings.HasPrefix(name, "pkg/tool/")
+	if !source && !tool {
+		return nil
+	}
+	if !entry.Type().IsRegular() {
+		return fmt.Errorf("nonregular GOROOT input %s", name)
+	}
+	digest, err := hashFileContents(filename)
+	if err != nil {
+		return err
+	}
+	item := buildspec.Revision{Name: name, Digest: digest}
+	if source {
+		w.sources = append(w.sources, item)
+	} else {
+		w.tools = append(w.tools, item)
+	}
+	w.seen[name] = true
+	return nil
 }
 
 func hashFileContents(path string) (string, error) {

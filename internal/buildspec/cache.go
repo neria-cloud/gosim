@@ -52,24 +52,30 @@ func LockCache(ctx context.Context, path string) (unlock func() error, err error
 	if !info.Mode().IsRegular() {
 		return nil, fmt.Errorf("cache lock is not a regular file")
 	}
+	if err := waitForCacheLock(ctx, file); err != nil {
+		return nil, err
+	}
+	return func() error { return errors.Join(syscall.Flock(int(file.Fd()), syscall.LOCK_UN), file.Close()) }, nil
+}
+
+func waitForCacheLock(ctx context.Context, file *os.File) error {
 	for {
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return err
 		}
-		err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+		err := syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
 		if err == nil {
-			break
+			return nil
 		}
 		if !errors.Is(err, syscall.EWOULDBLOCK) && !errors.Is(err, syscall.EAGAIN) && !errors.Is(err, syscall.EINTR) {
-			return nil, err
+			return err
 		}
 		timer := time.NewTimer(20 * time.Millisecond)
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return nil, ctx.Err()
+			return ctx.Err()
 		case <-timer.C:
 		}
 	}
-	return func() error { return errors.Join(syscall.Flock(int(file.Fd()), syscall.LOCK_UN), file.Close()) }, nil
 }

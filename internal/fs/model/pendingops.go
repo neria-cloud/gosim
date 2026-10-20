@@ -33,6 +33,12 @@ type depKey struct {
 	entry string // for dir entry write, "" means nothing
 }
 
+func depInode(inode int) int32 {
+	// Dependency keys have always stored the low 32 bits of inode numbers.
+	// #nosec G115 -- preserve the existing dependency-key representation.
+	return int32(inode)
+}
+
 func (k *depKey) String() string {
 	return fmt.Sprintf("kind:%s inode:%d entry:%s", k.kind, k.inode, k.entry)
 }
@@ -243,12 +249,12 @@ func (p *pendingOps) addOp(fsOp fsOp) {
 func (p *pendingOps) flushInode(inode int, out []*pendingOp) []*pendingOp {
 	pending := out
 	// file
-	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyAlloc, inode: int32(inode)}], pending)
-	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyResizeFile, inode: int32(inode)}], pending)
-	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteFile, inode: int32(inode)}], pending)
-	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyMetadata, inode: int32(inode)}], pending)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyAlloc, inode: depInode(inode)}], pending)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyResizeFile, inode: depInode(inode)}], pending)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteFile, inode: depInode(inode)}], pending)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyMetadata, inode: depInode(inode)}], pending)
 	// dir
-	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteDir, inode: int32(inode)}], pending)
+	pending = p.enqueuePrevDeps(p.lastDepForKey[depKey{kind: depKeyWriteDir, inode: depInode(inode)}], pending)
 
 	pending = p.processQueue(pending)
 

@@ -133,6 +133,7 @@ type scheduler struct {
 func newScheduler(seed int64, logger logger, checksummer *checksummer, extraenv []string) *scheduler {
 	clock := newClock()
 
+	// #nosec G404 -- the scheduler must replay the same seeded choices.
 	rand := mathrand.New(mathrand.NewSource(seed))
 
 	s := &scheduler{
@@ -208,7 +209,7 @@ func (s *scheduler) pickRandomOtherGoroutine(g *goroutine) *goroutine {
 	if len(s.goroutines) == 1 {
 		return nil
 	}
-	idx := fastrandn(uint32(len(s.goroutines) - 1))
+	idx := fastrandn(randomBound(len(s.goroutines) - 1))
 	if s.goroutines[idx] == g {
 		idx++
 	}
@@ -290,7 +291,7 @@ func (s *scheduler) Run() (result error) {
 			return fmt.Errorf("all goroutines blocked\n\n%s", string(buf))
 		}
 
-		pick := s.runnable[s.fastrander.fastrandn(uint32(len(s.runnable)))]
+		pick := s.runnable[s.fastrander.fastrandn(randomBound(len(s.runnable)))]
 
 		if s.checksummer != nil {
 			s.checksummer.recordIntInt(checksumKeyRunPick, uint64(pick.ID), uint64(s.fastrander.state)) // #nosec G115 -- goroutine IDs are nonnegative.

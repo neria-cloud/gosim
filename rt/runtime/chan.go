@@ -523,7 +523,7 @@ func Select(selectors ...ChanSelector) (int, any, bool) {
 		if len(ready) == 1 {
 			idx = ready[0]
 		} else {
-			idx = ready[fastrandn(uint32(len(ready)))]
+			idx = ready[fastrandn(randomBound(len(ready)))]
 		}
 		v, ok := selectors[idx].exec()
 		return int(idx), v, ok

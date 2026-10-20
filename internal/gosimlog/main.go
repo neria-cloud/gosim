@@ -61,13 +61,9 @@ func unmarshalWithExtraFields(data []byte, value any, extra *[]UnknownField, kno
 		return errors.New("expected {")
 	}
 	for d.More() {
-		tok, err = d.Token()
+		key, err := readObjectKey(d)
 		if err != nil {
 			return err
-		}
-		key, ok := tok.(string)
-		if !ok {
-			return fmt.Errorf("expected string key, got %q", tok)
 		}
 		if idx, ok := known[key]; ok {
 			target := reflectValue.Field(idx).Addr().Interface()
@@ -79,21 +75,7 @@ func unmarshalWithExtraFields(data []byte, value any, extra *[]UnknownField, kno
 			if err := d.Decode(&value); err != nil {
 				return err
 			}
-
-			// decode base64 binary in values and make it easier to read
-			// TODO: make this less hacky, it would be nice to support
-			// "types" broadly (time, references to steps/machines/FDs,
-			// binary data, other stuff) and format them nicely
-			const base64Prefix = `"base64:`
-			if len(value) > 0 && bytes.HasPrefix(value, []byte(base64Prefix)) {
-				if maybeBytes, err := base64.StdEncoding.AppendDecode(
-					nil, value[len(base64Prefix):len(value)-1],
-				); err == nil {
-					*extra = append(*extra, UnknownField{Key: key, Value: strconv.QuoteToASCII(string(maybeBytes))})
-					continue
-				}
-			}
-			*extra = append(*extra, UnknownField{Key: key, Value: string(value)})
+			*extra = append(*extra, decodeUnknownField(key, value))
 		}
 	}
 	tok, err = d.Token()
@@ -104,6 +86,32 @@ func unmarshalWithExtraFields(data []byte, value any, extra *[]UnknownField, kno
 		return errors.New("expected }")
 	}
 	return nil
+}
+
+func readObjectKey(d *json.Decoder) (string, error) {
+	tok, err := d.Token()
+	if err != nil {
+		return "", err
+	}
+	key, ok := tok.(string)
+	if !ok {
+		return "", fmt.Errorf("expected string key, got %q", tok)
+	}
+	return key, nil
+}
+
+func decodeUnknownField(key string, value json.RawMessage) UnknownField {
+	// Decode base64 binary in values and make it easier to read.
+	// TODO: support more value types when formatting unknown fields.
+	const base64Prefix = `"base64:`
+	if len(value) > 0 && bytes.HasPrefix(value, []byte(base64Prefix)) {
+		if maybeBytes, err := base64.StdEncoding.AppendDecode(
+			nil, value[len(base64Prefix):len(value)-1],
+		); err == nil {
+			return UnknownField{Key: key, Value: strconv.QuoteToASCII(string(maybeBytes))}
+		}
+	}
+	return UnknownField{Key: key, Value: string(value)}
 }
 
 type UnknownField struct {
