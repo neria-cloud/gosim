@@ -19,21 +19,31 @@ import (
 )
 
 const (
-	diskFileMode    = 0o644
-	diskDirMode     = 0o755
-	diskHello       = "hello"
-	diskGoodbye     = "goodbye"
-	diskFoo         = "foo"
-	diskBar         = "bar"
-	diskErrorField  = "err"
-	diskBadRead     = "bad read"
-	mmapPageSize    = 4096
-	mmapSmallSize   = 1024
-	mmapNearEnd     = 4000
-	mmapWriteLength = 40
-	mmapReadLength  = 128
-	mmapWideLength  = 256
-	mmapEndOffset   = 20
+	diskFileMode      = 0o644
+	diskDirMode       = 0o755
+	diskHello         = "hello"
+	diskGoodbye       = "goodbye"
+	diskFoo           = "foo"
+	diskBar           = "bar"
+	diskErrorField    = "err"
+	diskBadRead       = "bad read"
+	diskHelloLength   = 5
+	diskGoodbyeLength = 7
+	diskSeekPastEnd   = 10
+	diskWorldOffset   = 8
+	diskShortRead     = 3
+	diskWorldEnd      = 13
+	diskSeekGapEnd    = 15
+	diskAfterGoodbye  = 22
+	diskBackTwo       = 20
+	diskBackFive      = 17
+	mmapPageSize      = 4096
+	mmapSmallSize     = 1024
+	mmapNearEnd       = 4000
+	mmapWriteLength   = 40
+	mmapReadLength    = 128
+	mmapWideLength    = 256
+	mmapEndOffset     = 20
 )
 
 func setupRealDisk(t *testing.T) {
@@ -567,90 +577,90 @@ func TestDiskSeekBasic(t *testing.T) {
 	}
 
 	// get current pos
-	ok(0, io.SeekCurrent, 5)
+	ok(0, io.SeekCurrent, diskHelloLength)
 
 	// seek to start
 	ok(0, io.SeekStart, 0)
 	ok(0, io.SeekCurrent, 0)
 
 	// read from current pos
-	buf := make([]byte, 5)
-	if n, err := f.Read(buf); err != nil || n != 5 {
+	buf := make([]byte, diskHelloLength)
+	if n, err := f.Read(buf); err != nil || n != diskHelloLength {
 		t.Error(n, err)
 	}
 	if string(buf) != diskHello {
 		t.Error(string(buf))
 	}
-	ok(0, io.SeekCurrent, 5)
+	ok(0, io.SeekCurrent, diskHelloLength)
 
 	// seek to start
 	ok(0, io.SeekStart, 0)
 	ok(0, io.SeekCurrent, 0)
 
 	// seek to end
-	ok(0, io.SeekEnd, 5)
-	ok(0, io.SeekCurrent, 5)
+	ok(0, io.SeekEnd, diskHelloLength)
+	ok(0, io.SeekCurrent, diskHelloLength)
 
 	// seek after end
-	ok(5, io.SeekEnd, 10)
-	ok(0, io.SeekCurrent, 10)
+	ok(diskHelloLength, io.SeekEnd, diskSeekPastEnd)
+	ok(0, io.SeekCurrent, diskSeekPastEnd)
 
 	// read in nowhere and stay
 	if n, err := f.Read(buf); err != io.EOF || n != 0 {
 		t.Error(n, err)
 	}
-	ok(0, io.SeekCurrent, 10)
+	ok(0, io.SeekCurrent, diskSeekPastEnd)
 
 	// writeat over current and read
-	if n, err := f.WriteAt([]byte("world"), 8); err != nil || n != 5 {
+	if n, err := f.WriteAt([]byte("world"), diskWorldOffset); err != nil || n != diskHelloLength {
 		t.Error(n, err)
 	}
-	if n, err := f.Read(buf); err != nil || n != 3 {
+	if n, err := f.Read(buf); err != nil || n != diskShortRead {
 		t.Error(n, err)
 	}
-	if string(buf[0:3]) != "rld" {
-		t.Error(buf[0:3])
+	if string(buf[0:diskShortRead]) != "rld" {
+		t.Error(buf[0:diskShortRead])
 	}
-	ok(0, io.SeekCurrent, 13)
+	ok(0, io.SeekCurrent, diskWorldEnd)
 
 	// seek from start and read
-	ok(8, io.SeekStart, 8)
-	if n, err := f.Read(buf); err != nil || n != 5 {
+	ok(diskWorldOffset, io.SeekStart, diskWorldOffset)
+	if n, err := f.Read(buf); err != nil || n != diskHelloLength {
 		t.Error(n, err)
 	}
 	if string(buf) != "world" {
 		t.Error(buf)
 	}
-	ok(0, io.SeekCurrent, 13)
+	ok(0, io.SeekCurrent, diskWorldEnd)
 
 	// seek after end and write
-	ok(2, io.SeekEnd, 15)
-	ok(0, io.SeekCurrent, 15)
-	if n, err := f.Write([]byte(diskGoodbye)); err != nil || n != 7 {
+	ok(2, io.SeekEnd, diskSeekGapEnd)
+	ok(0, io.SeekCurrent, diskSeekGapEnd)
+	if n, err := f.Write([]byte(diskGoodbye)); err != nil || n != diskGoodbyeLength {
 		t.Error(err)
 	}
-	ok(0, io.SeekCurrent, 22)
+	ok(0, io.SeekCurrent, diskAfterGoodbye)
 
 	// invalid seek from start
 	bad(-2, io.SeekStart, syscall.EINVAL)
-	ok(0, io.SeekCurrent, 22)
+	ok(0, io.SeekCurrent, diskAfterGoodbye)
 
 	// invalid seek from current
 	bad(-23, io.SeekCurrent, syscall.EINVAL)
-	ok(0, io.SeekCurrent, 22)
+	ok(0, io.SeekCurrent, diskAfterGoodbye)
 
 	// invalid seek from end
 	pos, err = f.Seek(-23, io.SeekEnd)
 	bad(-23, io.SeekEnd, syscall.EINVAL)
-	ok(0, io.SeekCurrent, 22)
+	ok(0, io.SeekCurrent, diskAfterGoodbye)
 
 	// ok negative seek
-	ok(-2, io.SeekCurrent, 20)
-	ok(0, io.SeekCurrent, 20)
+	ok(-2, io.SeekCurrent, diskBackTwo)
+	ok(0, io.SeekCurrent, diskBackTwo)
 
 	// ok negative seek
-	ok(-5, io.SeekEnd, 17)
-	ok(0, io.SeekCurrent, 17)
+	ok(-5, io.SeekEnd, diskBackFive)
+	ok(0, io.SeekCurrent, diskBackFive)
 }
 
 func TestDiskOpenMissingFile(t *testing.T) {
