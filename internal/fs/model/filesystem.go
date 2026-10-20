@@ -861,7 +861,10 @@ func (fs *Filesystem) Stat(dirInode int, path string, who Identity) (StatResp, e
 	}
 
 	var inode int
-	if name == "." {
+	if name == "" && path == "" {
+		return StatResp{}, syscall.ENOENT
+	}
+	if name == "." || name == "" {
 		// TODO: clean up...
 		inode = dirInode
 	} else {

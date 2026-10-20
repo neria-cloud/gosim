@@ -1,12 +1,12 @@
 {
-  "adapter_digest": "321231746bb22bc2cebeef74708888c841fc1329614b0c0e862d8f9f64b980f2",
-  "transport_digest": "2289133d061ba365d9e076f314763c5c11bb4eeae963804d407ebb49cde530af",
+  "adapter_digest": "c6cb522611e06b7626e5561740f82af7fbdb2cc7bb1bffed90c6be6bbf795789",
+  "transport_digest": "1219b44ede5b9ca667d817b153e0e05b8cab20b1bcc4659256419d390c3b6d2f",
   "schema": 2,
   "generated_with": "go1.25.14",
   "family": "1.25",
   "profile": "go125",
   "architecture": "amd64",
-  "route_digest": "c92cd45f2176162522221c5e63eb265af56db72cabd1f87a32d6b6f9ccfad9cf",
+  "route_digest": "2444e9e16fc2fdcb8d09886d63dfef940def6842159a39e82888e67f06c92bc6",
   "origin_digest": "5c6765b708e2888bb7850919614cc089ea3c9f251cb3c8dd928d3a2b52eeec1a",
   "modules": [
     {

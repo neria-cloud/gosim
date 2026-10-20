@@ -60,6 +60,33 @@ func Syscall_Fstat(p0 int, p1 *kh.Stat_t) error {
 	return err
 }
 
+func Syscall_Fstatfs(p0 int, p1 *kh.Statfs_t) error {
+	kh.Require(contracts.FS, "syscall.Fstatfs")
+	if p1 == nil {
+		return syscall.EFAULT
+	}
+	out, err := kh.Call(k.FstatFSRequest{FD: p0}, k.DecodeFstatFSResult)
+	if err == nil {
+		writeStatFS(unsafe.Pointer(p1), out.Stats)
+	}
+	return err
+}
+
+func Syscall_Statfs(p0 string, p1 *kh.Statfs_t) error {
+	kh.Require(contracts.FS, "syscall.Statfs")
+	if strings.IndexByte(p0, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	if p1 == nil {
+		return syscall.EFAULT
+	}
+	out, err := kh.Call(k.StatFSRequest{Path: p0}, k.DecodeStatFSResult)
+	if err == nil {
+		writeStatFS(unsafe.Pointer(p1), out.Stats)
+	}
+	return err
+}
+
 func Syscall_Fsync(p0 int) error {
 	kh.Require(contracts.FS, "syscall.Fsync")
 	_, err := kh.Call(k.SyncRequest{FD: p0, DataOnly: false}, k.DecodeSyncResult)
@@ -229,6 +256,33 @@ func GolangOrgXSysUnix_Fstat(p0 int, p1 *kh.XStat_t) error {
 	return err
 }
 
+func GolangOrgXSysUnix_Fstatfs(p0 int, p1 *kh.XStatfs_t) error {
+	kh.Require(contracts.FS, "golang.org/x/sys/unix.Fstatfs")
+	if p1 == nil {
+		return syscall.EFAULT
+	}
+	out, err := kh.Call(k.FstatFSRequest{FD: p0}, k.DecodeFstatFSResult)
+	if err == nil {
+		writeStatFS(unsafe.Pointer(p1), out.Stats)
+	}
+	return err
+}
+
+func GolangOrgXSysUnix_Statfs(p0 string, p1 *kh.XStatfs_t) error {
+	kh.Require(contracts.FS, "golang.org/x/sys/unix.Statfs")
+	if strings.IndexByte(p0, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	if p1 == nil {
+		return syscall.EFAULT
+	}
+	out, err := kh.Call(k.StatFSRequest{Path: p0}, k.DecodeStatFSResult)
+	if err == nil {
+		writeStatFS(unsafe.Pointer(p1), out.Stats)
+	}
+	return err
+}
+
 func GolangOrgXSysUnix_Fsync(p0 int) error {
 	kh.Require(contracts.FS, "golang.org/x/sys/unix.Fsync")
 	_, err := kh.Call(k.SyncRequest{FD: p0, DataOnly: false}, k.DecodeSyncResult)
@@ -389,6 +443,15 @@ func writeStat(p unsafe.Pointer, stat contracts.Stat) {
 	out := kh.Stat_t{Ino: stat.Inode, Size: stat.Size, Mode: stat.Mode, Uid: stat.UID, Gid: stat.GID, Nlink: stat.Nlink, Atim: ns(stat.AtimeNS), Mtim: ns(stat.MtimeNS), Ctim: ns(stat.CtimeNS)}
 	simrt.RaceWriteRange(p, int(unsafe.Sizeof(out)))
 	abi.NewValueView((*kh.Stat_t)(p)).Set(out)
+}
+func writeStatFS(p unsafe.Pointer, stats contracts.FSStorageStats) {
+	flags := int64(0)
+	if stats.ReadOnly {
+		flags = 1
+	}
+	out := kh.Statfs_t{Type: 0x01021994, Bsize: int64(stats.BlockSize), Blocks: stats.TotalBytes / stats.BlockSize, Bfree: stats.FreeBytes / stats.BlockSize, Bavail: stats.FreeBytes / stats.BlockSize, Frsize: int64(stats.BlockSize), Namelen: 255, Flags: flags}
+	simrt.RaceWriteRange(p, int(unsafe.Sizeof(out)))
+	abi.NewValueView((*kh.Statfs_t)(p)).Set(out)
 }
 func fcntlLock(fd, command int, p unsafe.Pointer) error {
 	if command != 5 && command != 6 && command != 7 {

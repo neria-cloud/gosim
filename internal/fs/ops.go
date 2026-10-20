@@ -290,6 +290,28 @@ func (i *Instance) Statat(ctx contracts.CallContext, dirfd int, path string, fla
 	return statResult(stat), statError(err)
 }
 
+func (i *Instance) StatFS(ctx contracts.CallContext, path string) (contracts.FSStorageStats, error) {
+	if err := i.validateCall(ctx); err != nil {
+		return contracts.FSStorageStats{}, err
+	}
+	if _, err := i.model.Stat(i.workingDir, path, i.identity()); err != nil {
+		return contracts.FSStorageStats{}, err
+	}
+	return i.storageStats(), nil
+}
+
+func (i *Instance) FstatFS(ctx contracts.CallContext, fd int) (contracts.FSStorageStats, error) {
+	if _, err := i.file(ctx, fd); err != nil {
+		return contracts.FSStorageStats{}, err
+	}
+	return i.storageStats(), nil
+}
+
+func (i *Instance) storageStats() contracts.FSStorageStats {
+	stats := i.model.Stats(i.machine.config.CapacityBytes)
+	return contracts.FSStorageStats{TotalBytes: stats.TotalBytes, FreeBytes: stats.FreeBytes, UsedBytes: stats.UsedBytes, BlockSize: stats.BlockSize, ReadOnly: i.machine.readOnly}
+}
+
 func (i *Instance) Unlinkat(ctx contracts.CallContext, dirfd int, path string, flags int) error {
 	if err := i.validateCall(ctx); err != nil {
 		return err

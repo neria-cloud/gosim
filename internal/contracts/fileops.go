@@ -26,6 +26,8 @@ type FileOps interface {
 	Sync(CallContext, int, bool) error // bool=dataOnly; current semantics may coincide
 	Fstat(CallContext, int) (Stat, error)
 	Statat(CallContext, int, string, int) (Stat, error)
+	StatFS(CallContext, string) (FSStorageStats, error)
+	FstatFS(CallContext, int) (FSStorageStats, error)
 	Unlinkat(CallContext, int, string, int) error
 	Truncate(CallContext, int, int64) error
 	Chdir(CallContext, string) error

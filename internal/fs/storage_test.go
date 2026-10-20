@@ -188,3 +188,31 @@ func TestIdentityAndReadOnlyMutations(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestStatFSPathsDescriptorsAndReadOnly(t *testing.T) {
+	i, ctx, _ := ioFixture(t)
+	i.machine.config.CapacityBytes = 4 * model.StorageBlockSize
+	fd := open(t, i, ctx, "stats", openCreate|2)
+	for _, path := range []string{"/", "/app", "stats"} {
+		got, err := i.StatFS(ctx, path)
+		if err != nil || got.TotalBytes != 4*model.StorageBlockSize || got.UsedBytes != model.StorageBlockSize || got.BlockSize != model.StorageBlockSize {
+			t.Fatalf("statfs %q: %+v, %v", path, got, err)
+		}
+	}
+	if _, err := i.StatFS(ctx, "missing"); !errors.Is(err, syscall.ENOENT) {
+		t.Fatalf("missing statfs path: %v", err)
+	}
+	if _, err := i.FstatFS(ctx, -1); !errors.Is(err, syscall.EBADF) {
+		t.Fatalf("invalid statfs descriptor: %v", err)
+	}
+	if _, err := i.Pwrite(ctx, fd, abi.ByteView{Ptr: []byte("x")}, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := i.session.SetReadOnly(ref1, true); err != nil {
+		t.Fatal(err)
+	}
+	got, err := i.FstatFS(ctx, fd)
+	if err != nil || !got.ReadOnly || got.UsedBytes != 2*model.StorageBlockSize || got.FreeBytes != 2*model.StorageBlockSize {
+		t.Fatalf("fstatfs after allocation: %+v, %v", got, err)
+	}
+}

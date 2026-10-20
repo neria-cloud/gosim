@@ -31,6 +31,12 @@ func linkedFstat(int, *syscall.Stat_t) error
 //go:linkname linkedXStat github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fstat
 func linkedXStat(int, *unix.Stat_t) error
 
+//go:linkname linkedStatFS github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Statfs
+func linkedStatFS(string, *syscall.Statfs_t) error
+
+//go:linkname linkedXFstatFS github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fstatfs
+func linkedXFstatFS(int, *unix.Statfs_t) error
+
 //go:linkname linkedLock github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_FcntlFlock
 func linkedLock(uintptr, int, *syscall.Flock_t) error
 
@@ -41,6 +47,7 @@ func TestLinuxLayouts(t *testing.T) {
 	t.Parallel()
 	for name, pair := range map[string][2]uintptr{
 		"stat-size": {unsafe.Sizeof(kh.Stat_t{}), unsafe.Sizeof(syscall.Stat_t{})}, "xstat-size": {unsafe.Sizeof(kh.XStat_t{}), unsafe.Sizeof(unix.Stat_t{})},
+		"statfs-size": {unsafe.Sizeof(kh.Statfs_t{}), unsafe.Sizeof(syscall.Statfs_t{})}, "xstatfs-size": {unsafe.Sizeof(kh.XStatfs_t{}), unsafe.Sizeof(unix.Statfs_t{})},
 		"stat-mode": {unsafe.Offsetof(kh.Stat_t{}.Mode), unsafe.Offsetof(syscall.Stat_t{}.Mode)}, "xstat-atim": {unsafe.Offsetof(kh.XStat_t{}.Atim), unsafe.Offsetof(unix.Stat_t{}.Atim)},
 		"flock-size": {unsafe.Sizeof(kh.Flock_t{}), unsafe.Sizeof(syscall.Flock_t{})}, "xflock-size": {unsafe.Sizeof(kh.XFlock_t{}), unsafe.Sizeof(unix.Flock_t{})},
 		"flock-start": {unsafe.Offsetof(kh.Flock_t{}.Start), unsafe.Offsetof(unix.Flock_t{}.Start)}, "flock-pid": {unsafe.Offsetof(kh.Flock_t{}.Pid), unsafe.Offsetof(unix.Flock_t{}.Pid)},
@@ -87,6 +94,16 @@ func TestLinuxFileRoutes(t *testing.T) {
 		must(t, linkedXStat(fd, &xstat))
 		if xstat.Size != stat.Size || xstat.Ino != stat.Ino || xstat.Mode != stat.Mode {
 			t.Fatal(xstat)
+		}
+		var volume syscall.Statfs_t
+		must(t, linkedStatFS("/app/file", &volume))
+		if volume.Bsize != 1024 || volume.Blocks != 128*1024 || volume.Bfree != volume.Blocks-2 {
+			t.Fatal(volume)
+		}
+		var xvolume unix.Statfs_t
+		must(t, linkedXFstatFS(fd, &xvolume))
+		if xvolume.Blocks != volume.Blocks || xvolume.Bfree != volume.Bfree {
+			t.Fatal(xvolume)
 		}
 		lock := syscall.Flock_t{Type: syscall.F_WRLCK, Whence: 0}
 		must(t, linkedLock(uintptr(fd), syscall.F_SETLK, &lock))

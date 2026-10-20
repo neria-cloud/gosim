@@ -151,15 +151,15 @@ The public `Config` converts explicitly to `contracts.FSConfig{WorkingDir,Capaci
 **References**: target §Public API and control wiring (`StatFS`, `FstatFS`), §Route and adapter table, §Data flows 2 and failure table; `docs/design.md` §Translation and composition and §Dispatcher.  
 **Goal**: Make both path and fd filesystem statistics observable through selected Linux Go syscall surfaces.
 
-- [ ] Add `StatFS(CallContext,string)(FSStorageStats,error)` and `FstatFS(CallContext,int)(FSStorageStats,error)` to `FileOps`, update fakes, and implement provider methods. Resolve path or fd before returning the one mounted volume's current stats; reject bad paths/descriptors with the existing errno contract.
-- [ ] Append typed `StatFS` and `FstatFS` routes, regenerate kernel code and inspect route ID stability. Discover exact selected-family `syscall`, `os`, `internal/syscall/unix`, and `golang.org/x/sys/unix` symbols/signatures for Go 1.25 and 1.26 on Linux AMD64 and ARM64; update owned hook declarations and profile inventories accordingly.
-- [ ] Have generated adapters fill architecture-correct Linux `Statfs_t` fields from the block-based stats. Use the selected family's source definitions, not host Darwin layouts; write output only on success. Do not route unknown/raw syscall entry points to the host.
-- [ ] Update profile capability entries and `internal/fs/capabilities.go`; add route-generation and translated integration tests for total/free/available blocks, existing/missing paths, fd variant, read-only policy visibility and cross-family adapter compilation.
+- [x] Add `StatFS(CallContext,string)(FSStorageStats,error)` and `FstatFS(CallContext,int)(FSStorageStats,error)` to `FileOps`, update fakes, and implement provider methods. Resolve path or fd before returning the one mounted volume's current stats; reject bad paths/descriptors with the existing errno contract.
+- [x] Append typed `StatFS` and `FstatFS` routes, regenerate kernel code and inspect route ID stability. Discover exact selected-family `syscall`, `os`, `internal/syscall/unix`, and `golang.org/x/sys/unix` symbols/signatures for Go 1.25 and 1.26 on Linux AMD64 and ARM64; update owned hook declarations and profile inventories accordingly.
+- [x] Have generated adapters fill architecture-correct Linux `Statfs_t` fields from the block-based stats. Use the selected family's source definitions, not host Darwin layouts; write output only on success. Do not route unknown/raw syscall entry points to the host.
+- [x] Update profile capability entries and `internal/fs/capabilities.go`; add route-generation and translated integration tests for total/free/available blocks, existing/missing paths, fd variant, read-only policy visibility and cross-family adapter compilation.
 
 #### Verification
 
-- [ ] Regenerate and run both documented `gosim-gen -check` baselines from `AGENTS.md`; inspect generated diffs and profile revisions.
-- [ ] Run focused routegen/contracts/kernel/provider tests, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
+- [x] Regenerate and run both documented `gosim-gen -check` baselines from `AGENTS.md`; inspect generated diffs and profile revisions.
+- [x] Run focused routegen/contracts/kernel/provider tests, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
 
 ---
 

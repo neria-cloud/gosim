@@ -645,6 +645,26 @@ func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
 		var err error
 		out.Stats, err = service.Stats(p.Machine)
 		return controlRouteResult(out, err)
+	case RouteStatFS:
+		p := inv.Args[0].(StatFSRequest)
+		var out StatFSResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		out.Stats, err = service.StatFS(ctx, p.Path)
+		return syscallRouteResult(out, err)
+	case RouteFstatFS:
+		p := inv.Args[0].(FstatFSRequest)
+		var out FstatFSResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		out.Stats, err = service.FstatFS(ctx, p.FD)
+		return syscallRouteResult(out, err)
 	}
 	return Result{}, false, invalidPayload(ctx, "unreachable route")
 }

@@ -10,7 +10,7 @@ import (
 )
 
 const RouteSchema = 1
-const RouteSchemaDigest = "c92cd45f2176162522221c5e63eb265af56db72cabd1f87a32d6b6f9ccfad9cf"
+const RouteSchemaDigest = "2444e9e16fc2fdcb8d09886d63dfef940def6842159a39e82888e67f06c92bc6"
 const (
 	RouteRead                RouteID = 1
 	RouteWrite               RouteID = 2
@@ -84,6 +84,8 @@ const (
 	RouteRequire             RouteID = 70
 	RouteFSSetReadOnly       RouteID = 71
 	RouteFSStats             RouteID = 72
+	RouteStatFS              RouteID = 73
+	RouteFstatFS             RouteID = 74
 )
 
 func (r RouteID) String() string {
@@ -232,6 +234,10 @@ func (r RouteID) String() string {
 		return "FSSetReadOnly"
 	case RouteFSStats:
 		return "FSStats"
+	case RouteStatFS:
+		return "StatFS"
+	case RouteFstatFS:
+		return "FstatFS"
 	}
 	return fmt.Sprintf("unknown(%d)", r)
 }
@@ -1510,6 +1516,40 @@ func DecodeFSStatsResult(r Result) (FSStatsResult, error) {
 	return decodeRouteResult[FSStatsResult](r, RouteFSStats)
 }
 
+type StatFSRequest struct {
+	Path string
+}
+type StatFSResult struct {
+	Stats contracts.FSStorageStats
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p StatFSRequest) Invocation() Invocation {
+	return Invocation{Route: RouteStatFS, Args: [5]any{p}}
+}
+
+func DecodeStatFSResult(r Result) (StatFSResult, error) {
+	return decodeRouteResult[StatFSResult](r, RouteStatFS)
+}
+
+type FstatFSRequest struct {
+	FD int
+}
+type FstatFSResult struct {
+	Stats contracts.FSStorageStats
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p FstatFSRequest) Invocation() Invocation {
+	return Invocation{Route: RouteFstatFS, Args: [5]any{p}}
+}
+
+func DecodeFstatFSResult(r Result) (FstatFSResult, error) {
+	return decodeRouteResult[FstatFSResult](r, RouteFstatFS)
+}
+
 func decodeRouteResult[T any](r Result, route RouteID) (T, error) {
 	var zero T
 	if r.R0 != 0 || r.R1 != 0 {
@@ -1848,6 +1888,14 @@ func validateRoutePayload(inv *Invocation) error {
 		}
 	case RouteFSStats:
 		if _, ok := inv.Args[0].(FSStatsRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteStatFS:
+		if _, ok := inv.Args[0].(StatFSRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteFstatFS:
+		if _, ok := inv.Args[0].(FstatFSRequest); !ok {
 			return invalidRoutePayload(inv)
 		}
 	default:

@@ -1742,5 +1742,9 @@
     "signature": "func(int, []syscall.Iovec) (uintptr, error)",
     "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_writev",
     "owner": "kernel"
-  }
+  },
+{"package": "syscall", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Statfs", "owner": "fs"},
+{"package": "syscall", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fstatfs", "owner": "fs"},
+{"package": "golang.org/x/sys/unix", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Statfs", "owner": "fs"},
+{"package": "golang.org/x/sys/unix", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fstatfs", "owner": "fs"}
 ]

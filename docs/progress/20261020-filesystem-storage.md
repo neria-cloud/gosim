@@ -73,3 +73,15 @@ Verified
 - Focused filesystem, kernel, network and Go 1.25 hook tests, `./.ci/gofmt check`, and `make build` passed.
 - `make test` passed: 1,809 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T135743.593082Z-bsl3j_we/report.md`).
 - After adding the restore-policy assertion, `make test` passed again: 1,809 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T140039.431773Z-4xwf8kc8/report.md`).
+
+## Task 6 — Add Linux statfs and fstatfs routes
+
+Implemented
+- Added typed path and descriptor storage-stat routes, provider resolution and contract fakes.
+- Added reviewed Linux `Statfs_t`/`Fsid` layouts and syscall/x/sys adapters for both Go families and both target architectures.
+- Added provider and translated tests for capacity, allocated/free blocks, missing paths, descriptors and read-only reporting.
+- Updated capability records and generated route/profile revisions.
+
+Verified
+- Both exact `gosim-gen -check` baselines, focused native/translated tests, `./.ci/gofmt check`, and `make build` passed.
+- `make test` passed: 1,818 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T141002.245085Z-hkgd383b/report.md`).

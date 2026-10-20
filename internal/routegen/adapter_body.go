@@ -37,6 +37,10 @@ func adapterBody(h spec.Hook, m Manifest) (string, error) {
 		body = "return fcntlLock(int(p0),p1,unsafe.Pointer(p2))"
 	case "Fstat":
 		body = "if p1==nil{return syscall.EFAULT}; out,err:=" + call + "(k.FstatRequest{FD:p0},k.DecodeFstatResult);if err==nil{writeStat(unsafe.Pointer(p1),out.Stat)};return err"
+	case "FstatFS":
+		body = "if p1==nil{return syscall.EFAULT}; out,err:=" + call + "(k.FstatFSRequest{FD:p0},k.DecodeFstatFSResult);if err==nil{writeStatFS(unsafe.Pointer(p1),out.Stats)};return err"
+	case "StatFS":
+		body = "if strings.IndexByte(p0,0)>=0{return syscall.EINVAL};if p1==nil{return syscall.EFAULT};out,err:=" + call + "(k.StatFSRequest{Path:p0},k.DecodeStatFSResult);if err==nil{writeStatFS(unsafe.Pointer(p1),out.Stats)};return err"
 	case "Statat":
 		body = "if strings.IndexByte(p1,0)>=0{return syscall.EINVAL};if p2==nil{return syscall.EFAULT};out,err:=" + call + "(k.StatatRequest{DirFD:p0,Path:p1,Flags:p3},k.DecodeStatatResult);if err==nil{writeStat(unsafe.Pointer(p2),out.Stat)};return err"
 	case "Uname":
@@ -136,6 +140,11 @@ func writeStat(p unsafe.Pointer,stat contracts.Stat){
  ns:=func(n int64)kh.Timespec {sec,rem:=n/1e9,n%1e9;if rem<0{sec--;rem+=1e9};return kh.Timespec{Sec:sec,Nsec:rem}}
  out:=kh.Stat_t{Ino:stat.Inode,Size:stat.Size,Mode:stat.Mode,Uid:stat.UID,Gid:stat.GID,Nlink:stat.Nlink,Atim:ns(stat.AtimeNS),Mtim:ns(stat.MtimeNS),Ctim:ns(stat.CtimeNS)}
  simrt.RaceWriteRange(p,int(unsafe.Sizeof(out)));abi.NewValueView((*kh.Stat_t)(p)).Set(out)
+}
+func writeStatFS(p unsafe.Pointer,stats contracts.FSStorageStats){
+ flags:=int64(0);if stats.ReadOnly{flags=1}
+ out:=kh.Statfs_t{Type:0x01021994,Bsize:int64(stats.BlockSize),Blocks:stats.TotalBytes/stats.BlockSize,Bfree:stats.FreeBytes/stats.BlockSize,Bavail:stats.FreeBytes/stats.BlockSize,Frsize:int64(stats.BlockSize),Namelen:255,Flags:flags}
+ simrt.RaceWriteRange(p,int(unsafe.Sizeof(out)));abi.NewValueView((*kh.Statfs_t)(p)).Set(out)
 }
 func fcntlLock(fd,command int,p unsafe.Pointer)error{
  if command!=5 && command!=6 && command!=7{return syscall.EINVAL}
