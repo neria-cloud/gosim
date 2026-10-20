@@ -3,6 +3,7 @@
 package latency_test
 
 import (
+	"encoding/json"
 	"io"
 	"net"
 	"net/netip"
@@ -13,6 +14,14 @@ import (
 	simnet "github.com/neria-cloud/gosim/net"
 	"github.com/neria-cloud/gosim/rt"
 )
+
+type message struct {
+	Kind         string
+	Sequence     int
+	PingSent     time.Time
+	PingReceived time.Time
+	PongSent     time.Time
+}
 
 func TestLatency0To5ms(t *testing.T) {
 	runLatencyExample(t, 0, 5*time.Millisecond)
@@ -45,7 +54,7 @@ func runLatencyExample(t *testing.T, minLatency, maxLatency time.Duration) {
 
 	ready := make(chan struct{})
 	server, err := gosim.NewMachine(gosim.MachineConfig{
-		Label: "latency-echo",
+		Label: "latency-pong",
 		Main: func() {
 			listener, err := net.Listen("tcp", serverAddress)
 			if err != nil {
@@ -58,8 +67,29 @@ func runLatencyExample(t *testing.T, minLatency, maxLatency time.Duration) {
 				panic(err)
 			}
 			defer conn.Close()
-			if _, err := io.Copy(conn, conn); err != nil {
-				panic(err)
+			decoder, encoder := json.NewDecoder(conn), json.NewEncoder(conn)
+			for {
+				var ping message
+				if err := decoder.Decode(&ping); err != nil {
+					if err == io.EOF {
+						return
+					}
+					panic(err)
+				}
+				received := time.Now()
+				if ping.Kind != "ping" {
+					panic("expected ping")
+				}
+				pong := message{
+					Kind:         "pong",
+					Sequence:     ping.Sequence,
+					PingSent:     ping.PingSent,
+					PingReceived: received,
+					PongSent:     time.Now(),
+				}
+				if err := encoder.Encode(pong); err != nil {
+					panic(err)
+				}
 			}
 		},
 	})
@@ -97,39 +127,54 @@ func runLatencyExample(t *testing.T, minLatency, maxLatency time.Duration) {
 	if err := conn.SetDeadline(end); err != nil {
 		t.Fatal(err)
 	}
+	encoder, decoder := json.NewEncoder(conn), json.NewDecoder(conn)
+	t.Logf("BEGIN ping/pong: one-way latency=%s..%s duration=%s connection drops=0",
+		minLatency, maxLatency, duration)
 
 	var completed int
 	var totalRTT, longestRTT time.Duration
 	shortestRTT := duration
 	for time.Until(end) > 2*maxLatency {
 		sent := time.Now()
-		if _, err := conn.Write([]byte("ping")); err != nil {
-			t.Fatalf("connection failed after %d echoes: %v", completed, err)
+		ping := message{Kind: "ping", Sequence: completed + 1, PingSent: sent}
+		t.Logf("PING #%d sent=%s; waiting for PONG", ping.Sequence, sent.Format(time.RFC3339Nano))
+		if err := encoder.Encode(ping); err != nil {
+			t.Fatalf("connection failed after %d exchanges: %v", completed, err)
 		}
-		var reply [4]byte
-		if _, err := io.ReadFull(conn, reply[:]); err != nil {
-			t.Fatalf("connection failed after %d echoes: %v", completed, err)
+		var pong message
+		if err := decoder.Decode(&pong); err != nil {
+			t.Fatalf("connection failed after %d exchanges: %v", completed, err)
 		}
-		if string(reply[:]) != "ping" {
-			t.Fatalf("unexpected echo: %q", reply)
+		received := time.Now()
+		if pong.Kind != "pong" || pong.Sequence != ping.Sequence || !pong.PingSent.Equal(sent) {
+			t.Fatalf("unexpected pong: %+v", pong)
 		}
-		rtt := time.Since(sent)
+		outbound := pong.PingReceived.Sub(sent)
+		inbound := received.Sub(pong.PongSent)
+		if outbound < minLatency || outbound > maxLatency || inbound < minLatency || inbound > maxLatency {
+			t.Fatalf("one-way latency outside [%s, %s]: ping=%s pong=%s", minLatency, maxLatency, outbound, inbound)
+		}
+		rtt := received.Sub(sent)
 		if rtt < 2*minLatency || rtt > 2*maxLatency {
 			t.Fatalf("round trip %s outside [%s, %s]", rtt, 2*minLatency, 2*maxLatency)
 		}
+		t.Logf("PING #%d sent=%s received=%s latency=%s",
+			ping.Sequence, sent.Format(time.RFC3339Nano), pong.PingReceived.Format(time.RFC3339Nano), outbound)
+		t.Logf("PONG #%d sent=%s received=%s latency=%s round-trip=%s",
+			pong.Sequence, pong.PongSent.Format(time.RFC3339Nano), received.Format(time.RFC3339Nano), inbound, rtt)
 		completed++
 		totalRTT += rtt
 		shortestRTT = min(shortestRTT, rtt)
 		longestRTT = max(longestRTT, rtt)
 		// Pace probes and keep one request in flight on the same connection.
-		time.Sleep(min(100*time.Millisecond, time.Until(end)))
+		time.Sleep(min(time.Second, time.Until(end)))
 	}
-	// Leave enough time for every started echo to finish, then keep the
+	// Leave enough time for every started exchange to finish, then keep the
 	// connection open for the remainder of the 15-second observation window.
 	time.Sleep(time.Until(end))
 	if completed == 0 || time.Since(started) != duration {
-		t.Fatalf("incomplete observation: echoes=%d elapsed=%s", completed, time.Since(started))
+		t.Fatalf("incomplete observation: exchanges=%d elapsed=%s", completed, time.Since(started))
 	}
-	t.Logf("one-way latency=%s..%s, simulated duration=%s, echoes=%d, RTT min/mean/max=%s/%s/%s, connection drops=0",
+	t.Logf("END one-way latency=%s..%s, simulated duration=%s, exchanges=%d, RTT min/mean/max=%s/%s/%s, connection drops=0",
 		minLatency, maxLatency, duration, completed, shortestRTT, totalRTT/time.Duration(completed), longestRTT)
 }
