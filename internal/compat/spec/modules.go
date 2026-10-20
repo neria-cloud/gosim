@@ -3,6 +3,7 @@ package spec
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -16,7 +17,7 @@ import (
 // version spelling in go.mod. Replacement modules cannot silently change ABI.
 func VerifyModules(tc buildspec.Toolchain, dir string, pins []ModulePin) error {
 	if len(pins) == 0 {
-		return fmt.Errorf("empty module ABI pins")
+		return errors.New("empty module ABI pins")
 	}
 	args := []string{"list", "-m", "-json"}
 	expected := make(map[string]ModulePin)
@@ -53,7 +54,7 @@ func VerifyModules(tc buildspec.Toolchain, dir string, pins []ModulePin) error {
 		delete(expected, module.Path)
 	}
 	if len(expected) != 0 {
-		return fmt.Errorf("missing pinned module records")
+		return errors.New("missing pinned module records")
 	}
 	return nil
 }

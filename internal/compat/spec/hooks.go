@@ -22,7 +22,7 @@ import (
 // a method symbol is "Receiver.Method" (including a leading * for pointer receivers).
 func VerifyHooks(tc buildspec.Toolchain, hooks []Hook) (result error) {
 	if len(hooks) == 0 {
-		return fmt.Errorf("empty hook manifest")
+		return errors.New("empty hook manifest")
 	}
 	var paths []string
 	for _, h := range hooks {

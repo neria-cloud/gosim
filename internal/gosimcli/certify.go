@@ -73,7 +73,7 @@ func runCertificationCommand(
 	}
 	if f.NArg() != 0 || suite.concurrency < 1 || suite.parallel < 0 || suite.packages < 0 ||
 		(ordinary && flags.Options.Race) {
-		return 2, fmt.Errorf("require no positional arguments, positive -concurrency, and one test mode")
+		return 2, errors.New("require no positional arguments, positive -concurrency, and one test mode")
 	}
 	var err error
 	if command == "verify" {
@@ -161,7 +161,7 @@ func certifyContext(
 // Only ARM64 builds without race instrumentation may produce manual certification.
 func validateCertificationSelection(hostArch string, race bool) error {
 	if hostArch != "arm64" || race {
-		return fmt.Errorf("AMD64 and race certification are disabled; use ARM64 without race")
+		return errors.New("AMD64 and race certification are disabled; use ARM64 without race")
 	}
 	return nil
 }
@@ -174,14 +174,14 @@ func verifyStep(flags BuildFlags, output string, suite suiteOptions) error {
 
 func verifyStepContext(ctx context.Context, flags BuildFlags, output string, suite suiteOptions) error {
 	if suite.large {
-		return fmt.Errorf("large suites are separate; use make test-large explicitly")
+		return errors.New("large suites are separate; use make test-large explicitly")
 	}
 	resolved, err := resolveBuildForContext(ctx, "internal-candidate", flags)
 	if err != nil {
 		return err
 	}
 	if len(resolved.Identity.Features) != 3 {
-		return fmt.Errorf("verify requires rt,fs,net")
+		return errors.New("verify requires rt,fs,net")
 	}
 	cfg, err := gosimtool.NewBuildConfig(ctx, resolved.Selection, resolved.Resolution)
 	if err != nil {
@@ -374,7 +374,7 @@ func runTestCommands(ctx context.Context, commands []*exec.Cmd, concurrency int,
 
 func runTestJobs(count, concurrency int, run func(int) ([]byte, error)) ([]byte, error) {
 	if concurrency < 1 {
-		return nil, fmt.Errorf("test concurrency must be positive")
+		return nil, errors.New("test concurrency must be positive")
 	}
 	outputs := make([][]byte, count)
 	errs := make([]error, count)

@@ -81,7 +81,7 @@ func NewWriter(out io.Writer) *Writer {
 }
 
 var writePool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return bytes.NewBuffer(make([]byte, 0, 1024))
 	},
 }
@@ -101,7 +101,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	prefix := p[:i]
 	p = p[i:]
 
-	var evt map[string]interface{}
+	var evt map[string]any
 	d := json.NewDecoder(bytes.NewReader(p))
 	d.UseNumber()
 	err = d.Decode(&evt)
@@ -159,7 +159,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	return len(p), err
 }
 
-func jsonMarshal(v interface{}, indent bool) ([]byte, error) {
+func jsonMarshal(v any, indent bool) ([]byte, error) {
 	var buf bytes.Buffer
 	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)
@@ -190,7 +190,7 @@ func needsQuote(s string) bool {
 const errorKey = "err"
 
 // writeFields appends formatted key-value pairs to buf.
-func (w Writer) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
+func (w Writer) writeFields(evt map[string]any, buf *bytes.Buffer) {
 	fields := make([]string, 0, len(evt))
 	for field := range evt {
 		// XXX: support skipping more?
@@ -267,7 +267,7 @@ func padRight(s string, n int) string {
 }
 
 // writePart appends a formatted part to buf.
-func (w Writer) writePart(buf *bytes.Buffer, evt map[string]interface{}, p string) {
+func (w Writer) writePart(buf *bytes.Buffer, evt map[string]any, p string) {
 	var s string
 	switch p {
 	case slog.LevelKey:
@@ -300,7 +300,7 @@ type formatter struct {
 }
 
 // colorize returns the string s wrapped in ANSI code c, unless disabled is true or c is 0.
-func (f *formatter) colorize(s interface{}, c ...int) string {
+func (f *formatter) colorize(s any, c ...int) string {
 	if len(c) == 0 || (len(c) == 1 && c[0] == 0) || f.noColor {
 		// XXX: %s or %v?
 		return fmt.Sprintf("%s", s)
@@ -313,7 +313,7 @@ func (f *formatter) colorize(s interface{}, c ...int) string {
 
 const timeFormat = "15:04:05.000"
 
-func (f *formatter) timestamp(i interface{}) string {
+func (f *formatter) timestamp(i any) string {
 	if s, ok := i.(string); ok {
 		ts, err := time.ParseInLocation(time.RFC3339Nano, s, time.UTC)
 		if err != nil {
@@ -341,7 +341,7 @@ var formattedLevels = map[slog.Level]string{
 	slog.LevelError: "ERR",
 }
 
-func (f *formatter) level(i interface{}) string {
+func (f *formatter) level(i any) string {
 	var l string
 	if ll, ok := i.(string); ok {
 		var level slog.Level
@@ -362,7 +362,7 @@ func (f *formatter) level(i interface{}) string {
 	return l
 }
 
-func (f *formatter) caller(i interface{}) string {
+func (f *formatter) caller(i any) string {
 	m, ok := i.(map[string]any)
 	if !ok {
 		return ""
@@ -390,7 +390,7 @@ func (f *formatter) caller(i interface{}) string {
 	return c
 }
 
-func (f *formatter) message(level interface{}, i interface{}) string {
+func (f *formatter) message(level any, i any) string {
 	if i == nil || i == "" {
 		return ""
 	}
@@ -402,11 +402,11 @@ func (f *formatter) message(level interface{}, i interface{}) string {
 	}
 }
 
-func (f *formatter) fieldName(i interface{}) string {
+func (f *formatter) fieldName(i any) string {
 	return f.colorize(fmt.Sprintf("%s=", i), colorCyan)
 }
 
-func (f *formatter) fieldValue(field string, i interface{}) string {
+func (f *formatter) fieldValue(field string, i any) string {
 	if field == errorKey {
 		return f.colorize(fmt.Sprintf("%s", i), colorBold, colorRed)
 	} else {

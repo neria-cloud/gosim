@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -64,7 +65,7 @@ func collectEmbeddedGlobals(pkg *packages.Package, files []*ast.File) ([]embedde
 					continue
 				}
 				if len(value.Names) != 1 || len(value.Values) != 0 {
-					return nil, fmt.Errorf("invalid embedded declaration")
+					return nil, errors.New("invalid embedded declaration")
 				}
 				name := value.Names[0].Name
 				variable, ok := pkg.TypesInfo.Defs[value.Names[0]].(*types.Var)
@@ -137,7 +138,7 @@ func embedPatterns(text string) ([]string, error) {
 			}
 			text = text[len(quoted):]
 			if text != "" && !unicode.IsSpace([]rune(text)[0]) {
-				return nil, fmt.Errorf("invalid embed pattern separator")
+				return nil, errors.New("invalid embed pattern separator")
 			}
 			result = append(result, value)
 		} else {

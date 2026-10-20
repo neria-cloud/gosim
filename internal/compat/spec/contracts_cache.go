@@ -64,11 +64,11 @@ func CheckContracts(
 	}
 	if support.Profile != p.ID || !slices.Contains([]string{"linux", "darwin"}, tc.HostOS) ||
 		(tc.HostOS == "darwin" && tc.HostArch != "arm64") {
-		return "", fmt.Errorf("contract profile/platform differs from selected compiler")
+		return "", errors.New("contract profile/platform differs from selected compiler")
 	}
 	if opts.Experiments != "" || !buildspec.ValidDigest(inputs.ToolchainDigest) ||
 		!buildspec.ValidDigest(inputs.StdlibDigest) {
-		return "", fmt.Errorf("invalid compatibility inputs/experiments")
+		return "", errors.New("invalid compatibility inputs/experiments")
 	}
 	for _, tag := range opts.Tags {
 		if tag != "sim" && tag != "linkname" {
@@ -178,7 +178,7 @@ func contractModuleInputs(
 
 func contractModuleDigest(ctx context.Context, root string) (string, error) {
 	if root == "" {
-		return "", fmt.Errorf("ABI module source is unavailable")
+		return "", errors.New("ABI module source is unavailable")
 	}
 	var files []buildspec.Revision
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {

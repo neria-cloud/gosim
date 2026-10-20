@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -14,7 +15,7 @@ import (
 // the reflect bridge; exported shim signatures still use the wrapped types.
 func VerifyShimBindings(root string, shims []Hook) error {
 	if len(shims) == 0 {
-		return fmt.Errorf("empty shim manifest")
+		return errors.New("empty shim manifest")
 	}
 	packages := make(map[string]map[string]string)
 	for _, shim := range shims {

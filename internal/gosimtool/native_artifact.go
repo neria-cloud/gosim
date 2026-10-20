@@ -4,7 +4,6 @@ import (
 	"debug/buildinfo"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
@@ -70,5 +69,5 @@ func VerifyNativeArtifact(path string, identity buildspec.Identity) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("native oracle lacks race instrumentation")
+	return errors.New("native oracle lacks race instrumentation")
 }

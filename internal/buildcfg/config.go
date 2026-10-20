@@ -4,6 +4,7 @@ package buildcfg
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -35,7 +36,7 @@ func Load(path string, overrides Overrides) (ConfigRequest, error) {
 			return request, fmt.Errorf("read config: %w", err)
 		}
 		if len(bytes.TrimSpace(data)) == 0 || bytes.TrimSpace(data)[0] != '{' {
-			return request, fmt.Errorf("config must be a JSON object")
+			return request, errors.New("config must be a JSON object")
 		}
 		var wire struct {
 			Schema       int      `json:"schema"`
@@ -49,7 +50,7 @@ func Load(path string, overrides Overrides) (ConfigRequest, error) {
 			return request, fmt.Errorf("decode config: %w", err)
 		}
 		if err := decoder.Decode(new(any)); err != io.EOF {
-			return request, fmt.Errorf("config must contain exactly one JSON object")
+			return request, errors.New("config must contain exactly one JSON object")
 		}
 		if wire.Schema != 1 && wire.Schema != 2 {
 			return request, fmt.Errorf("unsupported config schema %d", wire.Schema)

@@ -181,7 +181,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 	internal := command == "internal-candidate"
 	if internal {
 		if len(arguments) == 0 {
-			return 1, fmt.Errorf("internal-candidate requires an operation")
+			return 1, errors.New("internal-candidate requires an operation")
 		}
 		command, arguments = arguments[0], arguments[1:]
 	}
@@ -201,7 +201,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 			return 2, err
 		}
 		if *source == "" {
-			return 1, fmt.Errorf("viewer requires -source from the matching artifact")
+			return 1, errors.New("viewer requires -source from the matching artifact")
 		}
 		gosimviewer.Viewer(*logs, *source)
 		return 0, nil
@@ -267,14 +267,14 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 		return 0, nil
 	case "lookup-test":
 		if len(patterns) != 1 {
-			return 1, fmt.Errorf("lookup-test requires one package")
+			return 1, errors.New("lookup-test requires one package")
 		}
 		deps, err := translate.InspectDependencies(&translate.TranslateInput{Packages: patterns, Cfg: cfg})
 		if err != nil {
 			return 1, err
 		}
 		if len(deps) != 1 {
-			return 1, fmt.Errorf("lookup-test requires one test package")
+			return 1, errors.New("lookup-test requires one test package")
 		}
 		root, err := cfg.ProjectRoot()
 		if err != nil {
@@ -296,7 +296,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 		return 0, nil
 	case "debug":
 		if *pkg == "" || *test == "" {
-			return 1, fmt.Errorf("debug requires -package and -test")
+			return 1, errors.New("debug requires -package and -test")
 		}
 		patterns = []string{*pkg}
 	}
@@ -327,7 +327,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 		var child *exec.Cmd
 		if command == "debug" {
 			if len(result.Artifacts) != 1 {
-				return 1, fmt.Errorf("debug requires one test package")
+				return 1, errors.New("debug requires one test package")
 			}
 			dlv := []string{"exec", binary}
 			if *headless {

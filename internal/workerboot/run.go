@@ -70,12 +70,12 @@ func startupDirectory(args []string) (string, []string, error) {
 	rest := args[1:]
 	if args[0] == "-C" {
 		if len(rest) == 0 {
-			return "", nil, fmt.Errorf("missing directory for -C")
+			return "", nil, errors.New("missing directory for -C")
 		}
 		directory, rest = rest[0], rest[1:]
 	}
 	if directory == "" {
-		return "", nil, fmt.Errorf("empty directory for -C")
+		return "", nil, errors.New("empty directory for -C")
 	}
 	directory, err := filepath.Abs(directory)
 	if err != nil {
@@ -101,7 +101,7 @@ func startupOverrides(args []string) (config, version string, err error) {
 	if args[0] == "internal-candidate" {
 		start = 2
 		if len(args) < 2 {
-			return "", "", fmt.Errorf("internal-candidate requires an operation")
+			return "", "", errors.New("internal-candidate requires an operation")
 		}
 	}
 	booleans := map[string]bool{
@@ -122,10 +122,10 @@ func startupOverrides(args []string) (config, version string, err error) {
 			return "", "", flag.ErrHelp
 		}
 		if name == "resolution" || name == "worker-info" {
-			return "", "", fmt.Errorf("private worker flags are not launcher options")
+			return "", "", errors.New("private worker flags are not launcher options")
 		}
 		if name == "C" {
-			return "", "", fmt.Errorf("-C must precede the command")
+			return "", "", errors.New("-C must precede the command")
 		}
 		if !has && !booleans[name] {
 			i++

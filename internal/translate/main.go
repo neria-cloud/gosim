@@ -25,7 +25,7 @@ type TranslateInput struct {
 
 func Translate(input *TranslateInput) (output *gosimtool.TranslateOutput, err error) {
 	if input == nil || len(input.Packages) == 0 {
-		return nil, fmt.Errorf("translation requires explicit packages and build selection")
+		return nil, errors.New("translation requires explicit packages and build selection")
 	}
 	if err := input.Cfg.Validate(); err != nil {
 		return nil, err
@@ -391,7 +391,7 @@ func selectedModuleFiles(cfg gosimtool.BuildConfig, modulePath string) (map[stri
 
 func createSelectedDirectory(root, relative string) (string, error) {
 	if !filepath.IsAbs(root) {
-		return "", fmt.Errorf("source project must have an absolute path")
+		return "", errors.New("source project must have an absolute path")
 	}
 	if err := gosimtool.ValidateArtifactPath(filepath.ToSlash(relative)); err != nil {
 		return "", err

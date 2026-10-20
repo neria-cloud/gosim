@@ -254,7 +254,7 @@ func VerifyContracts(
 		return fmt.Errorf("contract family %s does not match %s", m.Family, tc.Version)
 	}
 	if opts.Experiments != "" {
-		return fmt.Errorf("nondefault contract experiments are unsupported")
+		return errors.New("nondefault contract experiments are unsupported")
 	}
 	linux, err := inspectSources(
 		ctx,

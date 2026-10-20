@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -86,7 +87,7 @@ func runRequests(
 	configs []simrt.RunConfig,
 ) ([]simrt.RunResult, error) {
 	if len(configs) == 0 {
-		return nil, fmt.Errorf("candidate run requires requests")
+		return nil, errors.New("candidate run requires requests")
 	}
 	manifest, err := gosimtool.VerifyArtifact(
 		artifact.Directory,
@@ -130,7 +131,7 @@ func runRequests(
 			return nil, fmt.Errorf("decode candidate result: %w\nstdout: %s\nstderr: %s", err, data, stderr.Bytes())
 		}
 		if results[i].BuildDigest != digest || results[i].ReplayRevision != simrt.ReplayRevision {
-			return nil, fmt.Errorf("candidate result identity mismatch")
+			return nil, errors.New("candidate result identity mismatch")
 		}
 	}
 	var trailing any

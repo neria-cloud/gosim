@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 )
@@ -21,7 +22,7 @@ func Features(names []string) ([]string, error) {
 	}
 	// TODO(not planned): fs/net under native scheduling without rt.
 	if !seen["rt"] {
-		return nil, fmt.Errorf("an explicit feature list including rt is required")
+		return nil, errors.New("an explicit feature list including rt is required")
 	}
 	ordered := []string{"rt"}
 	for _, name := range []string{"fs", "net"} {
@@ -72,7 +73,7 @@ func NormalizeIdentity(id Identity) (Identity, error) {
 		return Identity{}, err
 	}
 	if id.Experiments != "" {
-		return Identity{}, fmt.Errorf("nondefault GOEXPERIMENT is unsupported")
+		return Identity{}, errors.New("nondefault GOEXPERIMENT is unsupported")
 	}
 	version, _ := ParseGoVersion(id.Toolchain)
 	family, err := LookupFamily(version)
@@ -98,7 +99,7 @@ func NormalizeIdentity(id Identity) (Identity, error) {
 		return slices.Index([]string{"fs", "net"}, a.Name) - slices.Index([]string{"fs", "net"}, b.Name)
 	})
 	if len(id.ProviderRevisions) != len(id.Features)-1 {
-		return Identity{}, fmt.Errorf("provider revisions must match enabled optional features")
+		return Identity{}, errors.New("provider revisions must match enabled optional features")
 	}
 	for i, rev := range id.ProviderRevisions {
 		if rev.Name != id.Features[i+1] || !ValidDigest(rev.Digest) {
