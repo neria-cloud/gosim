@@ -33,11 +33,12 @@ func _() {
 	_ = x[depKeyWriteDir-3]
 	_ = x[depKeyResizeFile-4]
 	_ = x[depKeyWriteDirEntry-5]
+	_ = x[depKeyMetadata-6]
 }
 
-const _depKeyKind_name = "depKeyNonedepKeyAllocdepKeyWriteFiledepKeyWriteDirdepKeyResizeFiledepKeyWriteDirEntry"
+const _depKeyKind_name = "depKeyNonedepKeyAllocdepKeyWriteFiledepKeyWriteDirdepKeyResizeFiledepKeyWriteDirEntrydepKeyMetadata"
 
-var _depKeyKind_index = [...]uint8{0, 10, 21, 36, 50, 66, 85}
+var _depKeyKind_index = [...]uint8{0, 10, 21, 36, 50, 66, 85, 99}
 
 func (i depKeyKind) String() string {
 	if i >= depKeyKind(len(_depKeyKind_index)-1) {

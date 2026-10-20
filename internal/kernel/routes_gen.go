@@ -10,7 +10,7 @@ import (
 )
 
 const RouteSchema = 1
-const RouteSchemaDigest = "662687a24ea0d974d6f0c995a7e4bd66e92180110933d9395368fccb60c791a7"
+const RouteSchemaDigest = "aeb8e3cf402146a86b4bc4dc3ad0004a7b343e4f2972c698238d56ca8cd0c045"
 const (
 	RouteRead                RouteID = 1
 	RouteWrite               RouteID = 2
@@ -82,6 +82,14 @@ const (
 	RouteSetTimeout          RouteID = 68
 	RouteInfo                RouteID = 69
 	RouteRequire             RouteID = 70
+	RouteFSSetReadOnly       RouteID = 71
+	RouteFSStats             RouteID = 72
+	RouteStatFS              RouteID = 73
+	RouteFstatFS             RouteID = 74
+	RouteFchmod              RouteID = 75
+	RouteChmodat             RouteID = 76
+	RouteFchown              RouteID = 77
+	RouteChownat             RouteID = 78
 )
 
 func (r RouteID) String() string {
@@ -226,6 +234,22 @@ func (r RouteID) String() string {
 		return "Info"
 	case RouteRequire:
 		return "Require"
+	case RouteFSSetReadOnly:
+		return "FSSetReadOnly"
+	case RouteFSStats:
+		return "FSStats"
+	case RouteStatFS:
+		return "StatFS"
+	case RouteFstatFS:
+		return "FstatFS"
+	case RouteFchmod:
+		return "Fchmod"
+	case RouteChmodat:
+		return "Chmodat"
+	case RouteFchown:
+		return "Fchown"
+	case RouteChownat:
+		return "Chownat"
 	}
 	return fmt.Sprintf("unknown(%d)", r)
 }
@@ -1470,6 +1494,148 @@ func DecodeRequireResult(r Result) (RequireResult, error) {
 	return decodeRouteResult[RequireResult](r, RouteRequire)
 }
 
+type FSSetReadOnlyRequest struct {
+	Machine contracts.MachineRef
+	Enabled bool
+}
+type FSSetReadOnlyResult struct {
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p FSSetReadOnlyRequest) Invocation() Invocation {
+	return Invocation{Route: RouteFSSetReadOnly, Args: [5]any{p}}
+}
+
+func DecodeFSSetReadOnlyResult(r Result) (FSSetReadOnlyResult, error) {
+	return decodeRouteResult[FSSetReadOnlyResult](r, RouteFSSetReadOnly)
+}
+
+type FSStatsRequest struct {
+	Machine contracts.MachineRef
+}
+type FSStatsResult struct {
+	Stats contracts.FSStorageStats
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p FSStatsRequest) Invocation() Invocation {
+	return Invocation{Route: RouteFSStats, Args: [5]any{p}}
+}
+
+func DecodeFSStatsResult(r Result) (FSStatsResult, error) {
+	return decodeRouteResult[FSStatsResult](r, RouteFSStats)
+}
+
+type StatFSRequest struct {
+	Path string
+}
+type StatFSResult struct {
+	Stats contracts.FSStorageStats
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p StatFSRequest) Invocation() Invocation {
+	return Invocation{Route: RouteStatFS, Args: [5]any{p}}
+}
+
+func DecodeStatFSResult(r Result) (StatFSResult, error) {
+	return decodeRouteResult[StatFSResult](r, RouteStatFS)
+}
+
+type FstatFSRequest struct {
+	FD int
+}
+type FstatFSResult struct {
+	Stats contracts.FSStorageStats
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p FstatFSRequest) Invocation() Invocation {
+	return Invocation{Route: RouteFstatFS, Args: [5]any{p}}
+}
+
+func DecodeFstatFSResult(r Result) (FstatFSResult, error) {
+	return decodeRouteResult[FstatFSResult](r, RouteFstatFS)
+}
+
+type FchmodRequest struct {
+	FD   int
+	Mode uint32
+}
+type FchmodResult struct {
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p FchmodRequest) Invocation() Invocation {
+	return Invocation{Route: RouteFchmod, Args: [5]any{p}}
+}
+
+func DecodeFchmodResult(r Result) (FchmodResult, error) {
+	return decodeRouteResult[FchmodResult](r, RouteFchmod)
+}
+
+type ChmodatRequest struct {
+	DirFD int
+	Path  string
+	Mode  uint32
+	Flags int
+}
+type ChmodatResult struct {
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p ChmodatRequest) Invocation() Invocation {
+	return Invocation{Route: RouteChmodat, Args: [5]any{p}}
+}
+
+func DecodeChmodatResult(r Result) (ChmodatResult, error) {
+	return decodeRouteResult[ChmodatResult](r, RouteChmodat)
+}
+
+type FchownRequest struct {
+	FD  int
+	UID int
+	GID int
+}
+type FchownResult struct {
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p FchownRequest) Invocation() Invocation {
+	return Invocation{Route: RouteFchown, Args: [5]any{p}}
+}
+
+func DecodeFchownResult(r Result) (FchownResult, error) {
+	return decodeRouteResult[FchownResult](r, RouteFchown)
+}
+
+type ChownatRequest struct {
+	DirFD int
+	Path  string
+	UID   int
+	GID   int
+	Flags int
+}
+type ChownatResult struct {
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p ChownatRequest) Invocation() Invocation {
+	return Invocation{Route: RouteChownat, Args: [5]any{p}}
+}
+
+func DecodeChownatResult(r Result) (ChownatResult, error) {
+	return decodeRouteResult[ChownatResult](r, RouteChownat)
+}
+
 func decodeRouteResult[T any](r Result, route RouteID) (T, error) {
 	var zero T
 	if r.R0 != 0 || r.R1 != 0 {
@@ -1800,6 +1966,38 @@ func validateRoutePayload(inv *Invocation) error {
 		}
 	case RouteRequire:
 		if _, ok := inv.Args[0].(RequireRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteFSSetReadOnly:
+		if _, ok := inv.Args[0].(FSSetReadOnlyRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteFSStats:
+		if _, ok := inv.Args[0].(FSStatsRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteStatFS:
+		if _, ok := inv.Args[0].(StatFSRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteFstatFS:
+		if _, ok := inv.Args[0].(FstatFSRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteFchmod:
+		if _, ok := inv.Args[0].(FchmodRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteChmodat:
+		if _, ok := inv.Args[0].(ChmodatRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteFchown:
+		if _, ok := inv.Args[0].(FchownRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteChownat:
+		if _, ok := inv.Args[0].(ChownatRequest); !ok {
 			return invalidRoutePayload(inv)
 		}
 	default:

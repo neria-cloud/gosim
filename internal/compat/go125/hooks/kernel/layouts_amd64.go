@@ -24,6 +24,21 @@ type Stat_t struct {
 	Ctim      Timespec
 	X__unused [3]int64
 }
+type Statfs_t struct {
+	Type    int64
+	Bsize   int64
+	Blocks  uint64
+	Bfree   uint64
+	Bavail  uint64
+	Files   uint64
+	Ffree   uint64
+	Fsid    Fsid
+	Namelen int64
+	Frsize  int64
+	Flags   int64
+	Spare   [4]int64
+}
+type Fsid struct{ X__val [2]int32 }
 type Dirent struct {
 	Ino       uint64
 	Off       int64
@@ -88,6 +103,21 @@ type XStat_t struct {
 	Ctim    XTimespec
 	_       [3]int64
 }
+type XStatfs_t struct {
+	Type    int64
+	Bsize   int64
+	Blocks  uint64
+	Bfree   uint64
+	Bavail  uint64
+	Files   uint64
+	Ffree   uint64
+	XFsid   XFsid
+	Namelen int64
+	Frsize  int64
+	Flags   int64
+	Spare   [4]int64
+}
+type XFsid struct{ Val [2]int32 }
 type XDirent struct {
 	Ino    uint64
 	Off    int64

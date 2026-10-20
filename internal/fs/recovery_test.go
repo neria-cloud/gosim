@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
+	"github.com/neria-cloud/gosim/internal/fs/model"
 )
 
 func crashWithPending(t *testing.T, s *Session) {
@@ -66,10 +67,14 @@ func TestEnumerationBudgetAndLookahead(t *testing.T) {
 		t.Fatal("closed iterator retained resources")
 	}
 	target := contracts.MachineRef{RunID: 1, ID: 2}
+	must(t, s.SetReadOnly(target, true))
 	must(t, s.Restore(target, snapshot))
 	must(t, s.CloseSnapshot(snapshot))
 	must(t, s.CloseSnapshot(snapshot))
 	i := start(t, s, target, 1, false)
+	if stats, err := s.Stats(target); err != nil || !stats.ReadOnly {
+		t.Fatalf("restore changed target storage policy: %+v, %v", stats, err)
+	}
 	if read(t, i.model, "/app/recover") != "retained" {
 		t.Fatal("closing handles invalidated restored disk")
 	}
@@ -278,8 +283,8 @@ func TestPrepareMissingRestoredWorkingDirectoryIsAtomic(t *testing.T) {
 	target := contracts.MachineRef{RunID: 1, ID: 2}
 	must(t, s.ConfigureMachine(target, contracts.FSConfig{WorkingDir: "/etc"}))
 	i := start(t, s, ref1, 1, false)
-	must(t, i.model.Remove(1, "/etc/hosts", false))
-	must(t, i.model.Remove(1, "/etc", true))
+	must(t, i.model.Remove(1, "/etc/hosts", false, model.Identity{}))
+	must(t, i.model.Remove(1, "/etc", true, model.Identity{}))
 	stop(t, i, contracts.StopCrash)
 	id := enumerate(t, s, ref1, 100)
 	snapshot := next(t, s, id)

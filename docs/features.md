@@ -46,10 +46,11 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `fs` | Crash injection during sync | ✅ | `SetSyncFault` configures bounded crash probabilities around sync, including the probability of crashing before the sync completes. |
 | `fs` | Directory sync | ✅ | The filesystem models directory operations and their synchronization for persistence testing. |
 | `fs` | Direct-I/O and alignment controls | not supported | There is no public direct-I/O mode or alignment configuration. |
-| `fs` | Storage capacity limits | not supported | There is no public disk-capacity or out-of-space fault configuration. |
+| `fs` | Storage capacity limits | ✅ | `fs.Config.CapacityBytes` sets a pre-start limit (default 128 MiB); `fs.Stats` reports total, used, and free space in allocated 1 KiB file-data blocks. Sparse holes use no blocks. Writes and reservations that need unavailable blocks fail atomically with `ENOSPC`, leaving file contents, size, and write offset unchanged. Capacity cannot be resized after start. |
+| `fs` | Read-only storage mode | ✅ | `fs.SetReadOnly` can turn writes off and back on while a machine runs, including for already-open writable files. A write attempted while read-only returns `EROFS` without advancing its offset or changing data. The mode persists across restarts. |
 | `fs` | Random storage fault injection | not supported | General random I/O errors, silent corruption, and injected short reads are not exposed as controls. Sync-specific crash injection is supported separately. |
-| `fs` | Storage latency and page-cache tuning | not supported | There are no public controls for simulated storage latency or configurable page-cache behavior. |
+| `fs` | Storage latency and page-cache tuning | partially | `fs.Config.Latency` adds a fixed simulated delay to data I/O and filesystem mutations; metadata queries remain immediate. Variable delays and page-cache tuning are not supported. |
 | `fs` | Read-only memory mapping | partially | The implemented path supports shared, read-only file mappings from offset zero, up to 16 MiB. Writable, private, anonymous, and larger mappings are unsupported. |
 | `fs` | File locking | not supported | Existing `flock` and record-lock stubs do not model ownership, contention, or exclusion. |
-| `fs` | POSIX permissions | partially | File metadata is modeled, but complete chmod and permission-enforcement semantics are not implemented. |
+| `fs` | POSIX permissions | partially | Mode, UID, and GID metadata and owner/group/other access checks are modeled. The default identity is root; `fs.Config` can set a machine's effective UID/GID. Chmod requires the owner or root; chown requires root. Supplemental groups, ACLs, and special permission-bit behavior are not modeled. |
 | `fs` | `io_uring` | not supported | There is no simulated ring API for asynchronous read, write, fsync, or cancellation. |

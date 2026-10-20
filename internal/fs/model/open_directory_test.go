@@ -11,12 +11,12 @@ func TestOpenResolvedDirectory(t *testing.T) {
 	t.Parallel()
 	fs := NewLinuxFilesystem()
 	defer fs.Release()
-	app, err := fs.Getdirinode(RootInode, "/app")
+	app, err := fs.Getdirinode(RootInode, "/app", Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, path := range []string{"/", "///", "/app/", "/app///", "./"} {
-		inode, err := fs.OpenFile(app, path, os.O_RDONLY)
+		inode, err := fs.OpenFile(app, path, os.O_RDONLY, 0o644, Identity{})
 		if err != nil {
 			t.Fatalf("open %q: %v", path, err)
 		}
@@ -32,18 +32,18 @@ func TestOpenResolvedDirectory(t *testing.T) {
 		}
 	}
 	for _, flags := range []int{os.O_RDONLY, os.O_CREATE | os.O_RDWR} {
-		if _, err := fs.OpenFile(app, "", flags); !errors.Is(err, syscall.ENOENT) {
+		if _, err := fs.OpenFile(app, "", flags, 0o644, Identity{}); !errors.Is(err, syscall.ENOENT) {
 			t.Fatalf("empty pathname: %v", err)
 		}
 	}
-	inode, err := fs.OpenFile(app, "file", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(app, "file", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := fs.CloseFile(inode); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := fs.OpenFile(app, "file/", os.O_RDONLY); !errors.Is(err, syscall.ENOTDIR) {
+	if _, err := fs.OpenFile(app, "file/", os.O_RDONLY, 0o644, Identity{}); !errors.Is(err, syscall.ENOTDIR) {
 		t.Fatalf("file with trailing slash: %v", err)
 	}
 }

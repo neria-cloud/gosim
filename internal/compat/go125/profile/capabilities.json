@@ -231,5 +231,19 @@
 {"package":"hash/maphash","symbol":"WriteComparable","status":"rejected","reason":"Generic runtime type hashing can include native pointer identities."},
 {"package":"crypto","symbol":"RegisterHash","status":"rejected","reason":"Would modify host-global algorithm registration or obtain host entropy; use deterministic explicit inputs."},
 {"package":"crypto/cipher","symbol":"NewGCMWithRandomNonce","status":"rejected","reason":"Would modify host-global algorithm registration or obtain host entropy; use deterministic explicit inputs."},
-{"package":"crypto/subtle","symbol":"WithDataIndependentTiming","status":"rejected","reason":"Native OS-thread state cannot surround a translated callback. Primitive constant-time operations remain available."}
+{"package":"crypto/subtle","symbol":"WithDataIndependentTiming","status":"rejected","reason":"Native OS-thread state cannot surround a translated callback. Primitive constant-time operations remain available."},
+{"package":"syscall","symbol":"Statfs","status":"implemented","reason":"Typed filesystem route reports allocated 1 KiB blocks for the bounded in-memory volume."},
+{"package":"syscall","symbol":"Fstatfs","status":"implemented","reason":"Typed filesystem route reports allocated 1 KiB blocks for the bounded in-memory volume."},
+{"package":"golang.org/x/sys/unix","symbol":"Statfs","status":"implemented","reason":"Typed filesystem route reports allocated 1 KiB blocks for the bounded in-memory volume."},
+{"package":"golang.org/x/sys/unix","symbol":"Fstatfs","status":"implemented","reason":"Typed filesystem route reports allocated 1 KiB blocks for the bounded in-memory volume."},
+{"package":"syscall","symbol":"Fchmod","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"syscall","symbol":"Fchmodat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"syscall","symbol":"Fchown","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"syscall","symbol":"Fchownat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"golang.org/x/sys/unix","symbol":"Fchmod","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"golang.org/x/sys/unix","symbol":"Fchmodat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"golang.org/x/sys/unix","symbol":"Fchown","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"golang.org/x/sys/unix","symbol":"Fchownat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"internal/syscall/unix","symbol":"Fchmodat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."},
+{"package":"internal/syscall/unix","symbol":"Fchownat","status":"limited","reason":"Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."}
 ]

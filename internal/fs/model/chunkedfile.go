@@ -46,6 +46,44 @@ type chunkedFile struct {
 
 const chunkSize = 1024
 
+func (w *chunkedFile) AllocatedBlocks() uint64 {
+	var count uint64
+	for _, chunk := range w.chunks {
+		if chunk != nil {
+			count++
+		}
+	}
+	return count
+}
+
+func (w *chunkedFile) NewBlocksForWrite(pos, size int) uint64 {
+	if size == 0 {
+		return 0
+	}
+	first, last := pos/chunkSize, (pos+size-1)/chunkSize
+	var count uint64
+	for i := first; i <= last; i++ {
+		if i >= len(w.chunks) || w.chunks[i] == nil {
+			count++
+		}
+	}
+	return count
+}
+
+// Reserve materializes zero-filled blocks while preserving existing data.
+// The caller grows the logical file first when the range extends beyond it.
+func (w *chunkedFile) Reserve(offset, length int) {
+	if length == 0 {
+		return
+	}
+	first, last := offset/chunkSize, (offset+length-1)/chunkSize
+	for i := first; i <= last; i++ {
+		if w.chunks[i] == nil {
+			w.chunks[i] = allocRefCountedChunk()
+		}
+	}
+}
+
 type refCountedChunk struct {
 	// XXX: inline data to skip an object?
 	refs int

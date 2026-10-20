@@ -16,6 +16,7 @@ type Lock struct {
 	PID          int32
 }
 type FileOps interface {
+	StorageDelayNS(CallContext) int64
 	Openat(CallContext, int, string, int, uint32) (int, error)
 	Renameat(CallContext, int, string, int, string) error
 	Getdents64(CallContext, int, abi.ByteView) (int, error)
@@ -26,6 +27,12 @@ type FileOps interface {
 	Sync(CallContext, int, bool) error // bool=dataOnly; current semantics may coincide
 	Fstat(CallContext, int) (Stat, error)
 	Statat(CallContext, int, string, int) (Stat, error)
+	StatFS(CallContext, string) (FSStorageStats, error)
+	FstatFS(CallContext, int) (FSStorageStats, error)
+	Fchmod(CallContext, int, uint32) error
+	Chmodat(CallContext, int, string, uint32, int) error
+	Fchown(CallContext, int, int, int) error
+	Chownat(CallContext, int, string, int, int, int) error
 	Unlinkat(CallContext, int, string, int) error
 	Truncate(CallContext, int, int64) error
 	Chdir(CallContext, string) error

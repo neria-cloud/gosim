@@ -74,11 +74,11 @@ func start(t *testing.T, s *Session, ref contracts.MachineRef, epoch uint64, res
 
 func write(t *testing.T, fs *model.Filesystem, name, value string) int {
 	t.Helper()
-	inode, err := fs.OpenFile(model.RootInode, name, os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(model.RootInode, name, os.O_CREATE|os.O_RDWR, 0o644, model.Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := fs.Write(inode, 0, abi.ByteView{Ptr: []byte(value)}); n != len(value) {
+	if n, err := fs.Write(inode, 0, abi.ByteView{Ptr: []byte(value)}, model.DefaultCapacityBytes); err != nil || n != len(value) {
 		t.Fatal("short write")
 	}
 	if err := fs.CloseFile(inode); err != nil {
@@ -89,7 +89,7 @@ func write(t *testing.T, fs *model.Filesystem, name, value string) int {
 
 func read(t *testing.T, fs *model.Filesystem, name string) string {
 	t.Helper()
-	inode, err := fs.OpenFile(model.RootInode, name, os.O_RDONLY)
+	inode, err := fs.OpenFile(model.RootInode, name, os.O_RDONLY, 0o644, model.Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestPrepareAbortPreservesDiskAndRandom(t *testing.T) {
 		t.Fatal("abort published or retained staged state")
 	}
 	i := start(t, s, ref1, 2, false)
-	if _, err := i.model.Stat(model.RootInode, "/app/tentative"); !errors.Is(err, syscall.ENOENT) {
+	if _, err := i.model.Stat(model.RootInode, "/app/tentative", model.Identity{}); !errors.Is(err, syscall.ENOENT) {
 		t.Fatal("tentative write survived", err)
 	}
 	inode := write(t, i.model, "/app/stable", "kept")
@@ -235,7 +235,7 @@ func TestCrashVersusGracefulAndSettleOnce(t *testing.T) {
 			if image == nil {
 				t.Fatal("crash image missing")
 			}
-			if _, err := disk.Stat(model.RootInode, "/app/file"); !errors.Is(err, syscall.ENOENT) {
+			if _, err := disk.Stat(model.RootInode, "/app/file", model.Identity{}); !errors.Is(err, syscall.ENOENT) {
 				t.Fatal("durable-only crash persisted write", err)
 			}
 		}

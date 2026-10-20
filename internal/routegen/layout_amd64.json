@@ -9,7 +9,9 @@
       "Rlimit": "struct {\n\tCur uint64\n\tMax uint64\n}",
       "Stat_t": "struct {\n\tDev     uint64\n\tIno     uint64\n\tNlink   uint64\n\tMode    uint32\n\tUid     uint32\n\tGid     uint32\n\t_       int32\n\tRdev    uint64\n\tSize    int64\n\tBlksize int64\n\tBlocks  int64\n\tAtim    Timespec\n\tMtim    Timespec\n\tCtim    Timespec\n\t_       [3]int64\n}",
       "Timespec": "struct {\n\tSec  int64\n\tNsec int64\n}",
-      "Utsname": "struct {\n\tSysname    [65]byte\n\tNodename   [65]byte\n\tRelease    [65]byte\n\tVersion    [65]byte\n\tMachine    [65]byte\n\tDomainname [65]byte\n}"
+      "Utsname": "struct {\n\tSysname    [65]byte\n\tNodename   [65]byte\n\tRelease    [65]byte\n\tVersion    [65]byte\n\tMachine    [65]byte\n\tDomainname [65]byte\n}",
+      "Fsid": "struct{ Val [2]int32 }",
+      "Statfs_t": "struct {\n\tType    int64\n\tBsize   int64\n\tBlocks  uint64\n\tBfree   uint64\n\tBavail  uint64\n\tFiles   uint64\n\tFfree   uint64\n\tFsid    Fsid\n\tNamelen int64\n\tFrsize  int64\n\tFlags   int64\n\tSpare   [4]int64\n}"
     },
     "syscall": {
       "Dirent": "struct {\n\tIno       uint64\n\tOff       int64\n\tReclen    uint16\n\tType      uint8\n\tName      [256]int8\n\tPad_cgo_0 [5]byte\n}",
@@ -20,7 +22,9 @@
       "Rlimit": "struct {\n\tCur uint64\n\tMax uint64\n}",
       "Stat_t": "struct {\n\tDev       uint64\n\tIno       uint64\n\tNlink     uint64\n\tMode      uint32\n\tUid       uint32\n\tGid       uint32\n\tX__pad0   int32\n\tRdev      uint64\n\tSize      int64\n\tBlksize   int64\n\tBlocks    int64\n\tAtim      Timespec\n\tMtim      Timespec\n\tCtim      Timespec\n\tX__unused [3]int64\n}",
       "Timespec": "struct {\n\tSec  int64\n\tNsec int64\n}",
-      "Utsname": "struct {\n\tSysname    [65]int8\n\tNodename   [65]int8\n\tRelease    [65]int8\n\tVersion    [65]int8\n\tMachine    [65]int8\n\tDomainname [65]int8\n}"
+      "Utsname": "struct {\n\tSysname    [65]int8\n\tNodename   [65]int8\n\tRelease    [65]int8\n\tVersion    [65]int8\n\tMachine    [65]int8\n\tDomainname [65]int8\n}",
+      "Fsid": "struct{ X__val [2]int32 }",
+      "Statfs_t": "struct {\n\tType    int64\n\tBsize   int64\n\tBlocks  uint64\n\tBfree   uint64\n\tBavail  uint64\n\tFiles   uint64\n\tFfree   uint64\n\tFsid    Fsid\n\tNamelen int64\n\tFrsize  int64\n\tFlags   int64\n\tSpare   [4]int64\n}"
     }
   },
   "numbers": {

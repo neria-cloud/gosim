@@ -10,6 +10,14 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+func mustWriteModel(t *testing.T, fs *Filesystem, inode int, offset int64, data []byte) {
+	t.Helper()
+	n, err := fs.Write(inode, offset, abi.ByteView{Ptr: data}, DefaultCapacityBytes)
+	if err != nil || n != len(data) {
+		t.Fatalf("write %d bytes at %d: n=%d err=%v", len(data), offset, n, err)
+	}
+}
+
 // This test oracle keeps the former recursive traversal over live dependency
 // nodes, independent of the snapshot representation and explicit stack.
 func compareCrashOrder(t *testing.T, pending *pendingOps) {
@@ -138,7 +146,7 @@ func TestCrashImageEmptyPlan(t *testing.T) {
 func TestCrashImageRetention(t *testing.T) {
 	t.Parallel()
 	fs := NewEmptyFilesystem()
-	inode, err := fs.OpenFile(RootInode, "a", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "a", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +154,7 @@ func TestCrashImageRetention(t *testing.T) {
 	for i := range original {
 		original[i] = byte(i % 251)
 	}
-	fs.Write(inode, 0, abi.ByteView{Ptr: original})
+	mustWriteModel(t, fs, inode, 0, original)
 	fs.FlushEverything()
 	durableChunk := fs.persisted.getFile(inode).file.chunks[0]
 	// A full chunk write is retained by the pending op and the volatile state.
@@ -154,7 +162,7 @@ func TestCrashImageRetention(t *testing.T) {
 	for i := range changed {
 		changed[i] = 'x'
 	}
-	fs.Write(inode, 0, abi.ByteView{Ptr: changed})
+	mustWriteModel(t, fs, inode, 0, changed)
 	pendingChunk := fs.mem.getFile(inode).file.chunks[0]
 	image := fs.FreezeCrash()
 	data := image.data
@@ -162,7 +170,7 @@ func TestCrashImageRetention(t *testing.T) {
 	// Flush releases the live pending write and replaces the disk. Subsequent
 	// writes also exercise copy-on-write against the retained operation payload.
 	fs.FlushEverything()
-	fs.Write(inode, 0, abi.ByteView{Ptr: []byte("later")})
+	mustWriteModel(t, fs, inode, 0, []byte("later"))
 	fs.Release()
 	fs.Release()
 	disk := image.Clone(false, nil)
@@ -275,14 +283,14 @@ func TestChunkCopyOnWriteReleasesOldReference(t *testing.T) {
 func TestCrashImageOwnsDirectoryOperations(t *testing.T) {
 	t.Parallel()
 	fs := NewEmptyFilesystem()
-	inode, err := fs.OpenFile(RootInode, "before", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "before", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	fs.Write(inode, 0, abi.ByteView{Ptr: []byte("pending")})
+	mustWriteModel(t, fs, inode, 0, []byte("pending"))
 	image := fs.FreezeCrash()
 	it := image.IterCrashes()
-	if err := fs.Rename(RootInode, "before", RootInode, "after"); err != nil {
+	if err := fs.Rename(RootInode, "before", RootInode, "after", Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	fs.FlushEverything()
@@ -294,10 +302,10 @@ func TestCrashImageOwnsDirectoryOperations(t *testing.T) {
 	}
 	it.Close()
 	defer recovered.Release()
-	if _, err := recovered.Stat(RootInode, "before"); err != nil {
+	if _, err := recovered.Stat(RootInode, "before", Identity{}); err != nil {
 		t.Fatal("frozen directory changed", err)
 	}
-	if _, err := recovered.Stat(RootInode, "after"); err == nil {
+	if _, err := recovered.Stat(RootInode, "after", Identity{}); err == nil {
 		t.Fatal("later rename entered snapshot")
 	}
 	got := make([]byte, 7)
@@ -310,28 +318,30 @@ func TestCrashImageOwnsDirectoryOperations(t *testing.T) {
 func TestCrashCloneDoesNotRetainMappings(t *testing.T) {
 	t.Parallel()
 	fs := NewEmptyFilesystem()
-	inode, err := fs.OpenFile(RootInode, "mapped", os.O_CREATE|os.O_RDWR)
+	inode, err := fs.OpenFile(RootInode, "mapped", os.O_CREATE|os.O_RDWR, 0o644, Identity{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	fs.Write(inode, 0, abi.ByteView{Ptr: []byte("abcd")})
+	mustWriteModel(t, fs, inode, 0, []byte("abcd"))
 	fs.FlushEverything()
 	mapping := fs.Mmap(inode, 4)
 	image := fs.FreezeCrash()
 	clone := image.Clone(false, nil)
 	image.Release()
 	defer clone.Release()
-	fs.Write(inode, 1, abi.ByteView{Ptr: []byte("X")})
+	mustWriteModel(t, fs, inode, 1, []byte("X"))
 	if string(mapping.Data.Ptr) != "aXcd" {
 		t.Fatal("write no longer updates mapping")
 	}
-	fs.Truncate(inode, 2)
+	if err := fs.Truncate(inode, 2, DefaultCapacityBytes); err != nil {
+		t.Fatal(err)
+	}
 	if string(mapping.Data.Ptr) != "aX\x00\x00" {
 		t.Fatal("truncate no longer zeroes mapping")
 	}
 	fs.Munmap(mapping)
 	fs.Release()
-	clone.Write(inode, 0, abi.ByteView{Ptr: []byte("new!")})
+	mustWriteModel(t, clone, inode, 0, []byte("new!"))
 	if string(mapping.Data.Ptr) != "aX\x00\x00" {
 		t.Fatal("clone retained source mapping")
 	}

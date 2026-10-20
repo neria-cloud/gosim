@@ -3343,7 +3343,21 @@
       "signature": "func(int, []syscall.Iovec) (uintptr, error)",
       "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.InternalPoll_writev",
       "owner": "kernel"
-    }
+    },
+    {"package": "syscall", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Statfs", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fstatfs", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Statfs", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fstatfs", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchmod", "signature": "func(int, uint32) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fchmod", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fchmodat", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchown", "signature": "func(int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fchown", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.Syscall_Fchownat", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchmod", "signature": "func(int, uint32) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fchmod", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fchmodat", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchown", "signature": "func(int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fchown", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.GolangOrgXSysUnix_Fchownat", "owner": "fs"},
+    {"package": "internal/syscall/unix", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.InternalSyscallUnix_Fchmodat", "owner": "fs"},
+    {"package": "internal/syscall/unix", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs.InternalSyscallUnix_Fchownat", "owner": "fs"}
   ],
   "layouts": [
     {
@@ -3990,7 +4004,11 @@
           "offset": 8
         }
       ]
-    }
+    },
+    {"package": "syscall", "type": "Fsid", "size": 8, "align": 4, "fields": [{"name": "X__val", "type": "[2]int32", "offset": 0}]},
+    {"package": "syscall", "type": "Statfs_t", "size": 120, "align": 8, "fields": [{"name": "Type", "type": "int64", "offset": 0}, {"name": "Bsize", "type": "int64", "offset": 8}, {"name": "Blocks", "type": "uint64", "offset": 16}, {"name": "Bfree", "type": "uint64", "offset": 24}, {"name": "Bavail", "type": "uint64", "offset": 32}, {"name": "Files", "type": "uint64", "offset": 40}, {"name": "Ffree", "type": "uint64", "offset": 48}, {"name": "Fsid", "type": "syscall.Fsid", "offset": 56}, {"name": "Namelen", "type": "int64", "offset": 64}, {"name": "Frsize", "type": "int64", "offset": 72}, {"name": "Flags", "type": "int64", "offset": 80}, {"name": "Spare", "type": "[4]int64", "offset": 88}]},
+    {"package": "golang.org/x/sys/unix", "type": "Fsid", "size": 8, "align": 4, "fields": [{"name": "Val", "type": "[2]int32", "offset": 0}]},
+    {"package": "golang.org/x/sys/unix", "type": "Statfs_t", "size": 120, "align": 8, "fields": [{"name": "Type", "type": "int64", "offset": 0}, {"name": "Bsize", "type": "int64", "offset": 8}, {"name": "Blocks", "type": "uint64", "offset": 16}, {"name": "Bfree", "type": "uint64", "offset": 24}, {"name": "Bavail", "type": "uint64", "offset": 32}, {"name": "Files", "type": "uint64", "offset": 40}, {"name": "Ffree", "type": "uint64", "offset": 48}, {"name": "Fsid", "type": "golang.org/x/sys/unix.Fsid", "offset": 56}, {"name": "Namelen", "type": "int64", "offset": 64}, {"name": "Frsize", "type": "int64", "offset": 72}, {"name": "Flags", "type": "int64", "offset": 80}, {"name": "Spare", "type": "[4]int64", "offset": 88}]}
   ],
   "constants": [
     {

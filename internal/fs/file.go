@@ -78,7 +78,10 @@ func (f *File) writeAt(ctx contracts.CallContext, buffer abi.ByteView, offset in
 	if stat.IsDir {
 		return 0, syscall.EISDIR
 	}
-	return f.instance.model.Write(f.inode, offset, buffer), nil
+	if err := f.instance.checkMutation(); err != nil {
+		return 0, err
+	}
+	return f.instance.model.Write(f.inode, offset, buffer, f.instance.machine.config.CapacityBytes)
 }
 
 func (f *File) Read(ctx contracts.CallContext, buffer abi.ByteView) (int, error) {

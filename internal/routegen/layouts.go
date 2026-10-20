@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-var layoutNames = strings.Fields("Timespec Stat_t Dirent Flock_t RawSockaddr RawSockaddrInet4 RawSockaddrAny Utsname Rlimit")
+var layoutNames = strings.Fields("Timespec Stat_t Statfs_t Fsid Dirent Flock_t RawSockaddr RawSockaddrInet4 RawSockaddrAny Utsname Rlimit")
 
 //go:embed layout_amd64.json
 var amd64Layout []byte

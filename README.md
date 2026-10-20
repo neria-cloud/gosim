@@ -136,11 +136,15 @@ Returning self-targeted `Stop`, `Crash` and `Wait` calls report `ErrSelfTransiti
 
 ## Filesystem recovery
 
-The filesystem starts at `/app`. Configure it before startup with `fs.ConfigureMachine`. `fs.SetCrashMode` selects `DurableOnly` or `SamplePending`; `fs.SetSyncFault` configures bounded sync-failure probabilities.
+The in-memory filesystem is rooted at `/`; processes start in `/app`. Configure each machine before its first start with `fs.ConfigureMachine`. Capacity defaults to 128 MiB and must be a multiple of 1 KiB. `fs.Stats` reports total, used and free bytes in allocated 1 KiB file-data blocks, plus block size and read-only status. Sparse holes consume no blocks; `/etc/hosts` initially consumes one. A write or `fallocate` reservation that would exceed capacity fails atomically with `ENOSPC`. Capacity cannot be resized after configuration. A restored image above the target capacity remains readable, reports zero free space and rejects new allocation until usage falls.
+
+`fs.Config` also sets the machine's effective UID/GID (root/root by default) and a fixed per-operation `Latency`. Files and directories store mode and ownership; creation applies a fixed `0022` umask. Owner/group/other checks cover file opens, directory traversal and mutations; chmod requires the owner or root, and chown requires root. `fs.SetReadOnly(machine, true)` immediately rejects data and metadata mutation with `EROFS`, including writes through existing descriptors. Set it to `false` to resume writes. The policy survives stop, crash, restart and snapshot restore. Configured latency delays completion of data I/O and mutating filesystem calls, including `ENOSPC` and `EROFS`; metadata reads such as stat and statfs remain immediate.
+
+`fs.SetCrashMode` selects `DurableOnly` or `SamplePending`; `fs.SetSyncFault` configures bounded sync-failure probabilities.
 
 After a crash, `fs.CrashStates(machine, fs.EnumerateOptions{MaxStates: n})` owns a synchronous iterator over immutable crash outcomes. A positive budget is required. `Next` returns a snapshot and availability flag; exceeding the budget while more outcomes exist returns `fs.ErrEnumerationLimit`. Close the iterator when finished, and close each returned snapshot separately. Closing the iterator does not invalidate snapshots already returned. `fs.Restore` accepts a retained snapshot from the same simulation for an unstarted or stopped/crashed target; configure its next main function and start/restart it explicitly. Destroying a machine does not invalidate separately owned snapshots.
 
-Graceful stop flushes modeled writes. Crash behavior preserves the existing persistence model, including uncertainty in non-fsynced operations; it does not add missing POSIX locking or permission semantics.
+Graceful stop flushes modeled writes and metadata. Crash behavior preserves uncertainty in non-fsynced operations, including block reservations and mode/ownership changes. Supplemental groups, ACLs, sticky bits, symlinks, special files and real POSIX locking remain outside the model.
 
 ## Network policy
 
@@ -193,8 +197,8 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 
 | Area | Current boundary |
 | --- | --- |
-| Files and persistence | Existing file/directory, sync and crash semantics; limits remain in mappings and syscall options |
-| Locks and permissions | `flock`/record-lock stubs do not establish ownership or contention; chmod/permission completeness is not claimed |
+| Files and persistence | Bounded in-memory file/directory volume, 1 KiB allocated-block accounting, sync/crash semantics; no live resize or special files |
+| Locks and permissions | Owner/group/other mode and ownership checks; no supplemental groups, ACLs or sticky bits; `flock`/record-lock stubs do not establish ownership or contention |
 | Networking | Simulated IPv4/TCP; UDP, IPv6 and hostname resolution are outside the supported model |
 | HTTP/gRPC/TLS | Plaintext gRPC unary and bidirectional streaming over IPv4/TCP are exercised by the [standalone gRPC example](examples/network/grpc/). Full HTTP support is not established; TLS/certificate operations abort. The [NATS example](examples/network/nats/) exercises plain TCP only. |
 | Linux process services | Deterministic getrandom, historical fixed PID and limited uname; full signals/procfs/process behavior is absent |

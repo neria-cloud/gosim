@@ -35,6 +35,7 @@ type Mmap struct {
 type backingFile struct {
 	inode int
 	file  *chunkedFile
+	meta  inodeMetadata
 
 	linkCount int
 
@@ -92,6 +93,7 @@ func (f *backingFile) clone() *backingFile {
 	return &backingFile{
 		inode:     f.inode,
 		file:      f.file.Clone(),
+		meta:      f.meta,
 		linkCount: f.linkCount, // XXX: test that link count is maintained
 	}
 }
@@ -101,6 +103,45 @@ type backingDir struct {
 	parent  int
 	name    string // name in parent
 	entries map[string]int
+	meta    inodeMetadata
+}
+
+type inodeMetadata struct {
+	Mode uint32
+	UID  uint32
+	GID  uint32
+}
+
+type Identity struct{ UID, GID uint32 }
+
+type Access uint8
+
+const (
+	AccessExecute Access = 1
+	AccessWrite   Access = 2
+	AccessRead    Access = 4
+)
+
+func (fs *Filesystem) CheckAccess(inode int, who Identity, need Access) error {
+	// TODO(not planned): supplemental groups, ACLs and sticky-directory rules.
+	meta, err := fs.metadata(inode)
+	if err != nil {
+		return err
+	}
+	if who.UID == 0 {
+		return nil
+	}
+	bits := meta.Mode & 7
+	if who.GID == meta.GID {
+		bits = meta.Mode >> 3 & 7
+	}
+	if who.UID == meta.UID {
+		bits = meta.Mode >> 6 & 7
+	}
+	if bits&uint32(need) != uint32(need) {
+		return syscall.EACCES
+	}
+	return nil
 }
 
 const RootInode = 1
@@ -122,6 +163,7 @@ func (fss *filesystemState) clone() *filesystemState {
 				parent:  obj.parent,
 				name:    obj.name,
 				entries: maps.Clone(obj.entries),
+				meta:    obj.meta,
 			}
 		}
 	}
@@ -150,6 +192,42 @@ type Filesystem struct {
 	// XXX: make a different, higher-level type?
 	mem       *filesystemState
 	persisted *filesystemState // XXX: rename to "disk"?
+}
+
+const (
+	StorageBlockSize     uint64 = chunkSize
+	DefaultCapacityBytes uint64 = 128 << 20
+)
+
+type StorageStats struct {
+	TotalBytes uint64
+	FreeBytes  uint64
+	UsedBytes  uint64
+	BlockSize  uint64
+}
+
+func (fs *Filesystem) UsedBlocks() uint64 {
+	var used uint64
+	for inode, obj := range fs.mem.objects {
+		file, ok := obj.(*backingFile)
+		if !ok || file.linkCount == 0 && fs.openCountByInode[inode] == 0 {
+			continue
+		}
+		used += file.file.AllocatedBlocks()
+	}
+	return used
+}
+
+func (fs *Filesystem) Stats(capacityBytes uint64) StorageStats {
+	if capacityBytes == 0 {
+		capacityBytes = DefaultCapacityBytes
+	}
+	used := fs.UsedBlocks() * StorageBlockSize
+	free := uint64(0)
+	if used < capacityBytes {
+		free = capacityBytes - used
+	}
+	return StorageStats{TotalBytes: capacityBytes, FreeBytes: free, UsedBytes: used, BlockSize: StorageBlockSize}
 }
 
 func (fs *Filesystem) apply(op fsOp) {
@@ -223,6 +301,7 @@ func emptyState() *filesystemState {
 				inode:   RootInode,
 				parent:  RootInode,
 				entries: make(map[string]int),
+				meta:    inodeMetadata{Mode: 0o755},
 			},
 		},
 		next: RootInode + 1,
@@ -236,6 +315,7 @@ func linuxState() *filesystemState {
 			RootInode: &backingDir{
 				inode:  RootInode,
 				parent: RootInode,
+				meta:   inodeMetadata{Mode: 0o755},
 				entries: map[string]int{
 					"etc": 2,
 					"app": 4,
@@ -245,6 +325,7 @@ func linuxState() *filesystemState {
 				inode:  2,
 				parent: RootInode,
 				name:   "etc",
+				meta:   inodeMetadata{Mode: 0o755},
 				entries: map[string]int{
 					"hosts": 3,
 				},
@@ -254,6 +335,7 @@ func linuxState() *filesystemState {
 				file: chunkedFileFromBytes([]byte(`# hosts
 127.0.0.1 localhost
 `)),
+				meta:      inodeMetadata{Mode: 0o644},
 				linkCount: 1,
 			},
 			4: &backingDir{
@@ -261,6 +343,7 @@ func linuxState() *filesystemState {
 				parent:  RootInode,
 				name:    "app",
 				entries: make(map[string]int),
+				meta:    inodeMetadata{Mode: 0o777},
 			},
 		},
 		next: 5,
@@ -326,6 +409,41 @@ func (o *writeOp) String() string {
 type resizeOp struct {
 	inode int
 	size  int
+}
+
+type reserveOp struct {
+	inode          int
+	offset, length int
+}
+
+type metadataOp struct {
+	inode int
+	value inodeMetadata
+}
+
+func (o *metadataOp) apply(state *filesystemState, _ gcer) {
+	switch obj := state.objects[o.inode].(type) {
+	case *backingFile:
+		obj.meta = o.value
+	case *backingDir:
+		obj.meta = o.value
+	default:
+		panic("metadata operation on missing inode")
+	}
+}
+
+func (o *metadataOp) touchedInodesIter(iter func(inode int) bool) { iter(o.inode) }
+func (o *metadataOp) String() string {
+	return fmt.Sprintf("metadata inode:%d mode:%o uid:%d gid:%d", o.inode, o.value.Mode, o.value.UID, o.value.GID)
+}
+
+func (o *reserveOp) apply(state *filesystemState, _ gcer) {
+	state.getFile(o.inode).file.Reserve(o.offset, o.length)
+}
+
+func (o *reserveOp) touchedInodesIter(iter func(inode int) bool) { iter(o.inode) }
+func (o *reserveOp) String() string {
+	return fmt.Sprintf("reserve file:%d offset:%d length:%d", o.inode, o.offset, o.length)
 }
 
 func (o *resizeOp) apply(fs *filesystemState, gcer gcer) {
@@ -405,6 +523,7 @@ type allocOp struct {
 	dir bool
 
 	inode int
+	meta  inodeMetadata
 }
 
 func (o *allocOp) apply(fs *filesystemState, gcer gcer) {
@@ -415,11 +534,13 @@ func (o *allocOp) apply(fs *filesystemState, gcer gcer) {
 		fs.objects[o.inode] = &backingDir{
 			inode:   o.inode,
 			entries: make(map[string]int),
+			meta:    o.meta,
 		}
 	} else {
 		fs.objects[o.inode] = &backingFile{
 			inode: o.inode,
 			file:  &chunkedFile{},
+			meta:  o.meta,
 		}
 	}
 	if o.inode >= fs.next {
@@ -449,6 +570,16 @@ func (o *writeOp) addDeps(p *pendingOps, op *pendingOp) {
 func (o *resizeOp) addDeps(p *pendingOps, op *pendingOp) {
 	// p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(o.inode)}, depDependsOn) // optimization?
 	p.addDep(op, depKey{kind: depKeyResizeFile, inode: int32(o.inode)}, depStoreAsAndDependsOn)
+}
+
+func (o *reserveOp) addDeps(p *pendingOps, op *pendingOp) {
+	p.addDep(op, depKey{kind: depKeyWriteFile, inode: int32(o.inode)}, depStoreAs)
+	p.addDep(op, depKey{kind: depKeyResizeFile, inode: int32(o.inode)}, depDependsOn)
+}
+
+func (o *metadataOp) addDeps(p *pendingOps, op *pendingOp) {
+	p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(o.inode)}, depDependsOn)
+	p.addDep(op, depKey{kind: depKeyMetadata, inode: int32(o.inode)}, depStoreAsAndDependsOn)
 }
 
 func (o *dirOp) addDeps(p *pendingOps, op *pendingOp) {
@@ -536,8 +667,23 @@ func (fs *Filesystem) Read(inode int, pos int64, buffer abi.ByteView) int {
 	return file.read(pos, buffer)
 }
 
-func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView) int {
+func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView, capacityBytes uint64) (int, error) {
+	maxInt := int64(^uint(0) >> 1)
+	if pos < 0 || pos > maxInt-int64(buffer.Len()) {
+		return 0, syscall.EINVAL
+	}
 	file := fs.mem.getFile(inode)
+	if buffer.Len() == 0 {
+		return 0, nil
+	}
+	if capacityBytes == 0 {
+		capacityBytes = DefaultCapacityBytes
+	}
+	limit := capacityBytes / StorageBlockSize
+	needed := file.file.NewBlocksForWrite(int(pos), buffer.Len())
+	if needed != 0 && (needed > limit || fs.UsedBlocks() > limit-needed) {
+		return 0, syscall.ENOSPC
+	}
 
 	if int(pos)+buffer.Len() > file.len() {
 		op := &resizeOp{
@@ -560,28 +706,55 @@ func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView) int {
 	}
 	fs.apply(op)
 
-	return len
+	return len, nil
 }
 
-func (fs *Filesystem) Truncate(inode, pos int) {
+func (fs *Filesystem) Truncate(inode int, pos int64, capacityBytes uint64) error {
+	if pos < 0 || pos > int64(^uint(0)>>1) {
+		return syscall.EINVAL
+	}
 	file := fs.mem.getFile(inode)
 
-	if pos != file.len() {
+	if int(pos) != file.len() {
 		op := &resizeOp{
 			inode: inode,
-			size:  pos,
+			size:  int(pos),
 		}
 		fs.apply(op)
 	}
+	return nil
+}
+
+func (fs *Filesystem) Fallocate(inode int, offset, length int64, capacityBytes uint64) error {
+	maxInt := int64(^uint(0) >> 1)
+	if offset < 0 || length <= 0 || offset > maxInt-length {
+		return syscall.EINVAL
+	}
+	file := fs.mem.getFile(inode)
+	if capacityBytes == 0 {
+		capacityBytes = DefaultCapacityBytes
+	}
+	limit := capacityBytes / StorageBlockSize
+	needed := file.file.NewBlocksForWrite(int(offset), int(length))
+	if needed != 0 && (needed > limit || fs.UsedBlocks() > limit-needed) {
+		return syscall.ENOSPC
+	}
+	if end := int(offset + length); end > file.len() {
+		fs.apply(&resizeOp{inode: inode, size: end})
+	}
+	if needed != 0 {
+		fs.apply(&reserveOp{inode: inode, offset: int(offset), length: int(length)})
+	}
+	return nil
 }
 
 func (fs *Filesystem) Sync(inode int) {
 	fs.flushInode(inode)
 }
 
-func (fs *Filesystem) Getdirinode(dirInode int, path string) (int, error) {
+func (fs *Filesystem) Getdirinode(dirInode int, path string, who Identity) (int, error) {
 	// For chdir
-	dirInode, _, err := fs.walkpath(dirInode, path, false)
+	dirInode, _, err := fs.walkpath(dirInode, path, false, who)
 	if err != nil {
 		return 0, err
 	}
@@ -590,12 +763,15 @@ func (fs *Filesystem) Getdirinode(dirInode int, path string) (int, error) {
 	if !ok {
 		return 0, syscall.ENOTDIR
 	}
+	if err := fs.CheckAccess(dirInode, who, AccessExecute); err != nil {
+		return 0, err
+	}
 
 	return dirInode, nil
 }
 
-func (fs *Filesystem) Mkdir(dirInode int, path string) error {
-	dirInode, name, err := fs.walkpath(dirInode, path, true)
+func (fs *Filesystem) Mkdir(dirInode int, path string, mode uint32, who Identity) error {
+	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
 	if err != nil {
 		return err
 	}
@@ -603,6 +779,9 @@ func (fs *Filesystem) Mkdir(dirInode int, path string) error {
 	dir, ok := fs.mem.getDir(dirInode)
 	if !ok {
 		return syscall.ENOTDIR
+	}
+	if err := fs.CheckAccess(dirInode, who, AccessWrite|AccessExecute); err != nil {
+		return err
 	}
 
 	if _, ok := dir.entries[name]; ok {
@@ -613,6 +792,7 @@ func (fs *Filesystem) Mkdir(dirInode int, path string) error {
 	op := &allocOp{
 		dir:   true,
 		inode: inode,
+		meta:  inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID},
 	}
 	fs.apply(op)
 
@@ -634,6 +814,10 @@ type StatResp struct {
 	Inode int
 	IsDir bool
 	Size  int64
+	Mode  uint32
+	UID   uint32
+	GID   uint32
+	Nlink uint64
 }
 
 func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
@@ -643,6 +827,10 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 		return StatResp{
 			Inode: inode,
 			IsDir: true,
+			Mode:  obj.meta.Mode,
+			UID:   obj.meta.UID,
+			GID:   obj.meta.GID,
+			Nlink: 1,
 		}, nil
 
 	case *backingFile:
@@ -650,6 +838,10 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 			Inode: inode,
 			IsDir: false,
 			Size:  int64(obj.file.size),
+			Mode:  obj.meta.Mode,
+			UID:   obj.meta.UID,
+			GID:   obj.meta.GID,
+			Nlink: uint64(obj.linkCount),
 		}, nil
 
 	default:
@@ -657,8 +849,8 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 	}
 }
 
-func (fs *Filesystem) Stat(dirInode int, path string) (StatResp, error) {
-	dirInode, name, err := fs.walkpath(dirInode, path, true)
+func (fs *Filesystem) Stat(dirInode int, path string, who Identity) (StatResp, error) {
+	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
 	if err != nil {
 		return StatResp{}, err
 	}
@@ -669,7 +861,10 @@ func (fs *Filesystem) Stat(dirInode int, path string) (StatResp, error) {
 	}
 
 	var inode int
-	if name == "." {
+	if name == "" && path == "" {
+		return StatResp{}, syscall.ENOENT
+	}
+	if name == "." || name == "" {
 		// TODO: clean up...
 		inode = dirInode
 	} else {
@@ -683,6 +878,59 @@ func (fs *Filesystem) Stat(dirInode int, path string) (StatResp, error) {
 
 func (fs *Filesystem) Statfd(inode int) (StatResp, error) {
 	return fs.statLocked(inode)
+}
+
+func (fs *Filesystem) metadata(inode int) (inodeMetadata, error) {
+	switch obj := fs.mem.objects[inode].(type) {
+	case *backingFile:
+		return obj.meta, nil
+	case *backingDir:
+		return obj.meta, nil
+	default:
+		return inodeMetadata{}, syscall.ENOENT
+	}
+}
+
+func (fs *Filesystem) Chmod(inode int, mode uint32, who Identity) error {
+	meta, err := fs.metadata(inode)
+	if err != nil {
+		return err
+	}
+	if who.UID != 0 && who.UID != meta.UID {
+		return syscall.EPERM
+	}
+	mode &= 0o7777
+	if meta.Mode == mode {
+		return nil
+	}
+	meta.Mode = mode
+	fs.apply(&metadataOp{inode: inode, value: meta})
+	return nil
+}
+
+func (fs *Filesystem) Chown(inode, uid, gid int, who Identity) error {
+	meta, err := fs.metadata(inode)
+	if err != nil {
+		return err
+	}
+	if who.UID != 0 {
+		return syscall.EPERM
+	}
+	if uid < -1 || gid < -1 || uint64(uid) > uint64(^uint32(0)) && uid != -1 || uint64(gid) > uint64(^uint32(0)) && gid != -1 {
+		return syscall.EINVAL
+	}
+	next := meta
+	if uid != -1 {
+		next.UID = uint32(uid)
+	}
+	if gid != -1 {
+		next.GID = uint32(gid)
+	}
+	if next == meta {
+		return nil
+	}
+	fs.apply(&metadataOp{inode: inode, value: next})
+	return nil
 }
 
 // for getcwd
@@ -708,8 +956,8 @@ func (fs *Filesystem) Getpath(dirInode int) (string, error) {
 	return strings.Join(s, "/"), nil
 }
 
-func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool) error {
-	dirInode, name, err := fs.walkpath(dirInode, path, true)
+func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool, who Identity) error {
+	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
 	if err != nil {
 		return err
 	}
@@ -717,6 +965,9 @@ func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool) error {
 	dir, ok := fs.mem.getDir(dirInode)
 	if !ok {
 		return syscall.ENOTDIR
+	}
+	if err := fs.CheckAccess(dirInode, who, AccessWrite|AccessExecute); err != nil {
+		return err
 	}
 
 	entry, ok := dir.entries[name]
@@ -756,8 +1007,8 @@ func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool) error {
 	return nil
 }
 
-func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath string) error {
-	fromInode, fromName, err := fs.walkpath(fromInode, fromPath, true)
+func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath string, who Identity) error {
+	fromInode, fromName, err := fs.walkpath(fromInode, fromPath, true, who)
 	if err != nil {
 		return err
 	}
@@ -766,19 +1017,25 @@ func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath
 	if !ok {
 		return syscall.ENOTDIR
 	}
+	if err := fs.CheckAccess(fromInode, who, AccessWrite|AccessExecute); err != nil {
+		return err
+	}
 
 	inode, ok := fromDir.entries[fromName]
 	if !ok {
 		return syscall.ENOENT
 	}
 
-	toInode, toName, err := fs.walkpath(toInode, toPath, true)
+	toInode, toName, err := fs.walkpath(toInode, toPath, true, who)
 	if err != nil {
 		return err
 	}
 
 	if _, ok := fs.mem.getDir(toInode); !ok {
 		return syscall.ENOTDIR
+	}
+	if err := fs.CheckAccess(toInode, who, AccessWrite|AccessExecute); err != nil {
+		return err
 	}
 
 	// TODO: prevent cycles?
@@ -804,8 +1061,8 @@ func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath
 	return nil
 }
 
-func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error) {
-	dirInode, name, err := fs.walkpath(dirInode, path, true)
+func (fs *Filesystem) OpenFile(dirInode int, path string, flag int, mode uint32, who Identity) (int, error) {
+	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
 	if err != nil {
 		return 0, err
 	}
@@ -825,17 +1082,22 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 	}
 
 	var inode int
+	created := false
 	if name != "." {
 		inode, ok = dir.entries[name]
 		if !ok {
 			if flag&os.O_CREATE == 0 {
 				return 0, syscall.ENOENT
 			}
+			if err := fs.CheckAccess(dirInode, who, AccessWrite|AccessExecute); err != nil {
+				return 0, err
+			}
 
 			inode = fs.mem.next
 			op := &allocOp{
 				dir:   false,
 				inode: inode,
+				meta:  inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID},
 			}
 			fs.apply(op)
 
@@ -849,6 +1111,7 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 				},
 			}
 			fs.apply(dOp)
+			created = true
 
 			// slog.Info("fs create", "path", args.Path, "inode", inode)
 		}
@@ -860,8 +1123,24 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int) (int, error)
 		ok = true
 	}
 
-	if ok && flag&os.O_EXCL != 0 {
+	if ok && flag&os.O_EXCL != 0 && flag&os.O_CREATE != 0 {
 		return 0, syscall.EEXIST
+	}
+	if _, isDir := fs.mem.getDir(inode); !isDir {
+		var need Access
+		if flag&3 != os.O_WRONLY {
+			need |= AccessRead
+		}
+		if flag&3 != os.O_RDONLY {
+			need |= AccessWrite
+		}
+		if !created {
+			if err := fs.CheckAccess(inode, who, need); err != nil {
+				return 0, err
+			}
+		}
+	} else if flag&3 != os.O_RDONLY {
+		return 0, syscall.EISDIR
 	}
 	if ok && flag&os.O_TRUNC != 0 {
 		file := fs.mem.getFile(inode)
@@ -896,10 +1175,13 @@ type ReadDirEntry struct {
 	IsDir bool
 }
 
-func (fs *Filesystem) ReadDir(inode int) ([]ReadDirEntry, error) {
+func (fs *Filesystem) ReadDir(inode int, who Identity) ([]ReadDirEntry, error) {
 	dir, ok := fs.mem.getDir(inode)
 	if !ok {
 		return nil, syscall.ENOTDIR
+	}
+	if err := fs.CheckAccess(inode, who, AccessRead); err != nil {
+		return nil, err
 	}
 
 	var entries []ReadDirEntry
@@ -937,7 +1219,8 @@ func (fs *Filesystem) GetInodeInfo(inode int) InodeInfo {
 	return fs.getInodeInfo(inode)
 }
 
-func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool) (inode int, entry string, err error) {
+func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool, who Identity) (inode int, entry string, err error) {
+	// TODO(not planned): symlink traversal; the model contains only files and directories.
 	// TODO: harden and test; this function and its callers are not not well
 	// tested and brittle
 
@@ -960,11 +1243,20 @@ func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool) (inode
 		}
 
 		if len(name) == len(path) && keepLast {
+			if _, ok := fs.mem.getDir(inode); !ok {
+				return 0, "", syscall.ENOTDIR
+			}
+			if err := fs.CheckAccess(inode, who, AccessExecute); err != nil {
+				return 0, "", err
+			}
 			return inode, name, nil
 		}
 
 		if name == "" {
 			// entire path is empty? assume current dir
+			if err := fs.CheckAccess(inode, who, AccessExecute); err != nil {
+				return 0, "", err
+			}
 			return inode, "", nil
 		}
 
@@ -972,6 +1264,9 @@ func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool) (inode
 		dir, ok := fs.mem.getDir(inode)
 		if !ok {
 			return 0, "", syscall.ENOTDIR
+		}
+		if err := fs.CheckAccess(inode, who, AccessExecute); err != nil {
+			return 0, "", err
 		}
 
 		if name == "." {

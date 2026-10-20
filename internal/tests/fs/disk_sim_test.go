@@ -9,9 +9,67 @@ import (
 	"syscall"
 	"testing"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/internal/tests/testsupport"
 )
+
+func TestStorageStatfsRoutes(t *testing.T) {
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs("/app", &stat); err != nil {
+		t.Fatal(err)
+	}
+	if stat.Bsize != 1024 || stat.Blocks != 128*1024 || stat.Bfree != stat.Blocks-1 {
+		t.Fatalf("initial statfs: %+v", stat)
+	}
+	f, err := os.OpenFile("statfs-file", os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if _, err := f.Write([]byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	var byFD unix.Statfs_t
+	if err := unix.Fstatfs(int(f.Fd()), &byFD); err != nil {
+		t.Fatal(err)
+	}
+	if byFD.Blocks != stat.Blocks || byFD.Bfree != stat.Bfree-1 || byFD.Bavail != byFD.Bfree {
+		t.Fatalf("fstatfs: %+v", byFD)
+	}
+	if err := syscall.Statfs("missing-statfs", &stat); !errors.Is(err, syscall.ENOENT) {
+		t.Fatalf("missing statfs path: %v", err)
+	}
+}
+
+func TestMetadataSyscallRoutes(t *testing.T) {
+	f, err := os.OpenFile("metadata-syscalls", os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := os.Chmod("metadata-syscalls", 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Fchmod(int(f.Fd()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chown("metadata-syscalls", 111, 222); err != nil {
+		t.Fatal(err)
+	}
+	if err := unix.Fchownat(unix.AT_FDCWD, "metadata-syscalls", -1, 223, 0); err != nil {
+		t.Fatal(err)
+	}
+	info, err := f.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || stat.Mode != 0o100600 || stat.Uid != 111 || stat.Gid != 223 {
+		t.Fatalf("syscall metadata: %#v", info.Sys())
+	}
+}
 
 // TODO: more scenarios for either triggering or not triggering GC (pending ops, rename, delete, etc.)
 

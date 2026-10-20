@@ -18,3 +18,10 @@ The test fails if another compiler version is used. The `go` directive in
 The launcher can be built with another supported Go version; it selects a
 Go 1.25.2 worker for this command. The test is simulation-only, and this nested
 module is not included in the root `make test` suite.
+
+The simulated volume is rooted at `/` and defaults to 128 MiB with 1 KiB
+allocated-block accounting. Programs start in `/app`; this example uses an
+absolute path under `/tmp` as part of its own fixture. Machine controllers can
+set capacity, effective UID/GID and fixed storage latency before startup with
+`fs.ConfigureMachine`, inspect free space with `fs.Stats`, and toggle mutation
+policy with `fs.SetReadOnly`.

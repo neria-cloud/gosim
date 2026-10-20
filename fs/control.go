@@ -8,7 +8,14 @@ const (
 )
 
 type (
-	SyncFault struct{ Probability, BeforeProbability float64 }
+	SyncFault    struct{ Probability, BeforeProbability float64 }
+	StorageStats struct {
+		TotalBytes uint64
+		FreeBytes  uint64
+		UsedBytes  uint64
+		BlockSize  uint64
+		ReadOnly   bool
+	}
 	InodeInfo struct {
 		MemLinks     int
 		MemExists    bool

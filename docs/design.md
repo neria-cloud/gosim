@@ -106,9 +106,13 @@ A session owns per-machine configuration, persistent disk state, retained snapsh
 
 Model algorithms live in `internal/fs/model`. Mutable state is supervisor-owned; provider randomness and clocks come through injected ports. Descriptor and mapping lifetimes follow the shared kernel cleanup protocol.
 
+The inode tree stores files and directories under `/`, while `/app` remains the default process working directory. File content uses copy-on-write 1 KiB chunks. Capacity defaults to 128 MiB; live quota counts allocated chunks of linked or open files, not sparse holes or retained snapshot copies. Writes and fallocate reservations admit all needed blocks before applying operations and fail atomically with `ENOSPC`. Truncation and final unlink/close release the charge. `fs.Stats`, `statfs` and `fstatfs` report the live volume; a recovered image over the configured limit reports zero free and remains readable. Live resizing is out of scope.
+
+Files and directories retain mode, UID and GID through allocation, metadata pending operations, flush and crash selection. A fixed `0022` umask applies on creation; owner/group/other access uses the machine's primary UID/GID, with root bypass. Directory execute gates traversal and write plus execute gates mutations. Chmod requires owner or root; chown requires root. Read-only is a per-machine policy retained across epochs and restore, immediately rejecting mutations through existing descriptors until toggled off. Configured fixed latency delays scalar completion of filesystem data I/O and mutations after synchronous provider effects; dispatcher epoch events hold no borrowed memory and are canceled with the epoch. Stat and statfs queries are immediate.
+
 `FreezeCrash` retains an immutable crash image. Cloning uses the fs-owned random stream; enumeration uses a deterministic explicit depth-first stack, not a parked iterator goroutine. Closing an iterator releases its state but not snapshots already returned. Snapshots own retained references until close/session teardown and survive destruction of their source machine. Restore validates simulation ownership and target state. A positive public enumeration budget is enforced with lookahead and `ErrEnumerationLimit`.
 
-This preserves existing storage semantics. It does not implement real flock/OFD contention, complete chmod/permission behavior, larger mapping support or other unmodeled syscall options. Stub/limited operations remain classified in the version manifests and cannot stand in for correctness evidence for applications that need those semantics.
+The provider still omits symlinks, links, special files, supplemental groups, ACLs, sticky bits, real flock/OFD contention, larger mapping support and directory-relative descriptors other than `AT_FDCWD`. Stub/limited operations remain classified in the version manifests and cannot stand in for correctness evidence for applications that need those semantics.
 
 ## Network provider
 

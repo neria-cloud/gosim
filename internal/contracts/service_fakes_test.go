@@ -7,6 +7,8 @@ type fakeFiles struct{}
 
 var _ FileOps = (*fakeFiles)(nil)
 
+func (*fakeFiles) StorageDelayNS(CallContext) int64 { return 0 }
+
 func (*fakeFiles) Openat(CallContext, int, string, int, uint32) (int, error) { return 0, errInjected }
 func (*fakeFiles) Renameat(CallContext, int, string, int, string) error      { return errInjected }
 func (*fakeFiles) Getdents64(CallContext, int, abi.ByteView) (int, error)    { return 0, errInjected }
@@ -17,14 +19,25 @@ func (*fakeFiles) Pread(CallContext, int, abi.ByteView, int64) (int, error)  { r
 func (*fakeFiles) Sync(CallContext, int, bool) error                         { return errInjected }
 func (*fakeFiles) Fstat(CallContext, int) (Stat, error)                      { return Stat{}, errInjected }
 func (*fakeFiles) Statat(CallContext, int, string, int) (Stat, error)        { return Stat{}, errInjected }
-func (*fakeFiles) Unlinkat(CallContext, int, string, int) error              { return errInjected }
-func (*fakeFiles) Truncate(CallContext, int, int64) error                    { return errInjected }
-func (*fakeFiles) Chdir(CallContext, string) error                           { return errInjected }
-func (*fakeFiles) Getcwd(CallContext, abi.ByteView) (int, error)             { return 0, errInjected }
-func (*fakeFiles) Mkdirat(CallContext, int, string, uint32) error            { return errInjected }
-func (*fakeFiles) Flock(CallContext, int, int) error                         { return errInjected }
-func (*fakeFiles) FcntlInt(CallContext, int, int, int) (int, error)          { return 0, errInjected }
-func (*fakeFiles) FcntlLock(CallContext, int, int, *Lock) error              { return errInjected }
+func (*fakeFiles) StatFS(CallContext, string) (FSStorageStats, error) {
+	return FSStorageStats{}, errInjected
+}
+
+func (*fakeFiles) FstatFS(CallContext, int) (FSStorageStats, error) {
+	return FSStorageStats{}, errInjected
+}
+func (*fakeFiles) Fchmod(CallContext, int, uint32) error                 { return errInjected }
+func (*fakeFiles) Chmodat(CallContext, int, string, uint32, int) error   { return errInjected }
+func (*fakeFiles) Fchown(CallContext, int, int, int) error               { return errInjected }
+func (*fakeFiles) Chownat(CallContext, int, string, int, int, int) error { return errInjected }
+func (*fakeFiles) Unlinkat(CallContext, int, string, int) error          { return errInjected }
+func (*fakeFiles) Truncate(CallContext, int, int64) error                { return errInjected }
+func (*fakeFiles) Chdir(CallContext, string) error                       { return errInjected }
+func (*fakeFiles) Getcwd(CallContext, abi.ByteView) (int, error)         { return 0, errInjected }
+func (*fakeFiles) Mkdirat(CallContext, int, string, uint32) error        { return errInjected }
+func (*fakeFiles) Flock(CallContext, int, int) error                     { return errInjected }
+func (*fakeFiles) FcntlInt(CallContext, int, int, int) (int, error)      { return 0, errInjected }
+func (*fakeFiles) FcntlLock(CallContext, int, int, *Lock) error          { return errInjected }
 func (*fakeFiles) Map(CallContext, uintptr, uintptr, int, int, int, int64) (uintptr, error) {
 	return 0, errInjected
 }
@@ -59,6 +72,8 @@ var _ FSControl = (*fakeFSControl)(nil)
 func (*fakeFSControl) ConfigureMachine(MachineRef, FSConfig) error  { return errInjected }
 func (*fakeFSControl) SetCrashMode(MachineRef, uint8) error         { return errInjected }
 func (*fakeFSControl) SetSyncFault(MachineRef, FSFaultConfig) error { return errInjected }
+func (*fakeFSControl) SetReadOnly(MachineRef, bool) error           { return errInjected }
+func (*fakeFSControl) Stats(MachineRef) (FSStorageStats, error)     { return FSStorageStats{}, errInjected }
 func (*fakeFSControl) InspectInode(MachineRef, int) (InodeInfo, error) {
 	return InodeInfo{}, errInjected
 }

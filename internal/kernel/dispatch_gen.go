@@ -625,6 +625,86 @@ func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
 		}
 		k.Require(ctx, p.Feature, p.Operation)
 		return controlRouteResult(out, nil)
+	case RouteFSSetReadOnly:
+		p := inv.Args[0].(FSSetReadOnlyRequest)
+		var out FSSetReadOnlyResult
+		service, serviceErr := k.FilesystemControl(ctx, p.Machine.RunID)
+		if serviceErr != nil {
+			return controlRouteResult(out, serviceErr)
+		}
+		var err error
+		err = service.SetReadOnly(p.Machine, p.Enabled)
+		return controlRouteResult(out, err)
+	case RouteFSStats:
+		p := inv.Args[0].(FSStatsRequest)
+		var out FSStatsResult
+		service, serviceErr := k.FilesystemControl(ctx, p.Machine.RunID)
+		if serviceErr != nil {
+			return controlRouteResult(out, serviceErr)
+		}
+		var err error
+		out.Stats, err = service.Stats(p.Machine)
+		return controlRouteResult(out, err)
+	case RouteStatFS:
+		p := inv.Args[0].(StatFSRequest)
+		var out StatFSResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		out.Stats, err = service.StatFS(ctx, p.Path)
+		return syscallRouteResult(out, err)
+	case RouteFstatFS:
+		p := inv.Args[0].(FstatFSRequest)
+		var out FstatFSResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		out.Stats, err = service.FstatFS(ctx, p.FD)
+		return syscallRouteResult(out, err)
+	case RouteFchmod:
+		p := inv.Args[0].(FchmodRequest)
+		var out FchmodResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		err = service.Fchmod(ctx, p.FD, p.Mode)
+		return syscallRouteResult(out, err)
+	case RouteChmodat:
+		p := inv.Args[0].(ChmodatRequest)
+		var out ChmodatResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		err = service.Chmodat(ctx, p.DirFD, p.Path, p.Mode, p.Flags)
+		return syscallRouteResult(out, err)
+	case RouteFchown:
+		p := inv.Args[0].(FchownRequest)
+		var out FchownResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		err = service.Fchown(ctx, p.FD, p.UID, p.GID)
+		return syscallRouteResult(out, err)
+	case RouteChownat:
+		p := inv.Args[0].(ChownatRequest)
+		var out ChownatResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		err = service.Chownat(ctx, p.DirFD, p.Path, p.UID, p.GID, p.Flags)
+		return syscallRouteResult(out, err)
 	}
 	return Result{}, false, invalidPayload(ctx, "unreachable route")
 }
