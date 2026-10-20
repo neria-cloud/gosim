@@ -232,7 +232,7 @@ func reloadSelectedPackages(project, inputDir string, appRoots []*packages.Packa
 	}
 	typed := make(map[string]*packages.Package)
 	for _, tests := range []bool{false, true} {
-		var patterns []string
+		patterns := make([]string, 0, len(groups[tests]))
 		for path := range groups[tests] {
 			patterns = append(patterns, path)
 		}

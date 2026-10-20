@@ -666,7 +666,7 @@ func (t *packageTranslator) translateFile(dstFile *dst.File) (*dst.File, error) 
 
 func makeTypeAliasFile(pkgName string, names []string) (*dst.File, error) {
 	slices.Sort(names)
-	var specs []dst.Spec
+	specs := make([]dst.Spec, 0, len(names))
 	for _, name := range names {
 		specs = append(specs, &dst.TypeSpec{
 			Name:   dst.NewIdent("GosimTypeAlias" + name),

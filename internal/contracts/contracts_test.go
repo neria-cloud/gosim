@@ -19,11 +19,11 @@ func TestFeatureSets(t *testing.T) {
 		if err != nil || !features.Has(RT) {
 			t.Fatalf("features %v: %v", names, err)
 		}
-		copy := features.Names()
-		if copy[0] != "rt" {
+		copied := features.Names()
+		if copied[0] != "rt" {
 			t.Fatal("features are not canonical")
 		}
-		copy[0] = "mutated"
+		copied[0] = "mutated"
 		if features.Names()[0] != "rt" {
 			t.Fatal("feature names retain caller memory")
 		}

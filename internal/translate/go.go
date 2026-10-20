@@ -207,7 +207,7 @@ func makeBindFunc(bs bindspec) *dst.FuncDecl {
 }
 
 func makeBindFuncs(bindspecs map[bindspec]struct{}) []dst.Decl {
-	var bss []bindspec
+	bss := make([]bindspec, 0, len(bindspecs))
 	for bs := range bindspecs {
 		bss = append(bss, bs)
 	}
@@ -225,7 +225,7 @@ func makeBindFuncs(bindspecs map[bindspec]struct{}) []dst.Decl {
 		return cmp.Compare(a.ret, b.ret)
 	})
 
-	var decls []dst.Decl
+	decls := make([]dst.Decl, 0, len(bss))
 	for _, bs := range bss {
 		decls = append(decls, makeBindFunc(bs))
 	}

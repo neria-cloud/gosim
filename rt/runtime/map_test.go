@@ -17,8 +17,7 @@ func TestClearNilMap(t *testing.T) {
 }
 
 func TestMapIterDeleteDuplicatesHappen(t *testing.T) {
-	success := false
-	for !success {
+	for {
 		m := make(map[int]struct{})
 		m[0] = struct{}{}
 		m[1] = struct{}{}
@@ -32,15 +31,13 @@ func TestMapIterDeleteDuplicatesHappen(t *testing.T) {
 			m[1] = struct{}{}
 		}
 		if count > 0 {
-			success = true
 			break
 		}
 	}
 }
 
 func TestMapIterClearDuplicatesHappen(t *testing.T) {
-	success := false
-	for !success {
+	for {
 		m := make(map[int]struct{})
 		m[0] = struct{}{}
 		m[1] = struct{}{}
@@ -53,7 +50,6 @@ func TestMapIterClearDuplicatesHappen(t *testing.T) {
 			m[1] = struct{}{}
 		}
 		if count > 0 {
-			success = true
 			break
 		}
 	}

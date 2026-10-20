@@ -54,11 +54,9 @@ func TestResolveArchitectureAndOwnedMetadata(t *testing.T) {
 			if again.Hooks[0].Target == "mutated" || againManifest.Bridges[0].Package == "mutated" || !slices.Equal(again.RuntimePackages, p.RuntimePackages) {
 				t.Fatal("metadata ownership leaked")
 			}
-			other := arch
+			other := "arm64"
 			if arch == "arm64" {
 				other = "amd64"
-			} else {
-				other = "arm64"
 			}
 			s.Identity.HostArch = other
 			s.Identity.SimulationArch = other
