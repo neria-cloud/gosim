@@ -59,7 +59,7 @@ The generated `Driver` creates one engine for the seed, enters its supervisor, o
 
 ## Runtime and replay
 
-The engine uses cooperative coroutine scheduling, deterministic channels/maps, a seeded scheduler and simulated time. When no goroutine is runnable, simulated time can advance to the next scheduled event. Machine termination cancels its goroutines without executing their pending defers.
+The engine uses cooperative coroutine scheduling, deterministic channels/maps, a seeded scheduler and simulated time. Translated atomic operations, including uncontended mutex fast paths, provide scheduling points so synchronized polling loops permit peer progress. These implicit scheduling points respect nested procPin sections and non-yielding supervisor transactions; explicit yields and waits remain prohibited inside transactions. When no goroutine is runnable, simulated time can advance to the next scheduled event. Machine termination cancels its goroutines without executing their pending defers.
 
 Machine IDs and epochs increase monotonically; failed starts consume their reserved epoch. Run IDs prevent stale handles from a previous simulation from being accepted. Run IDs are excluded from seed derivation and deterministic trace checksums. Overflow is a run failure, not ID reuse.
 

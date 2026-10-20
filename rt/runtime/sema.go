@@ -163,7 +163,42 @@ func Semrelease(addr *uint32) {
 	}
 }
 
-const AtomicYield = false
+// Atomic operations are scheduling points, including uncontended mutex fast
+// paths. Otherwise polling/retry loops can starve the goroutine that would
+// change their state, despite using correctly synchronized shared memory.
+func AtomicYield() {
+	// Trusted provider/lifecycle callbacks run as non-yielding supervisor
+	// transitions. Implicit atomic preemption cannot split their transactions;
+	// explicit yields and waits still fail checkTransition.
+	if gs.get().transitionDepth != 0 {
+		return
+	}
+	g := getg()
+	if g != nil && g.procPinDepth == 0 {
+		g.yield()
+	}
+}
+
+// ProcPin preserves the non-preemptible sections used by sync.Pool and
+// atomic.Value. The simulation has one logical processor.
+func ProcPin() int {
+	// Event callbacks execute directly on the non-preemptible supervisor stack.
+	if g := getg(); g != nil {
+		g.procPinDepth++
+	}
+	return 0
+}
+
+func ProcUnpin() {
+	g := getg()
+	if g == nil {
+		return
+	}
+	if g.procPinDepth == 0 {
+		panic("unbalanced simulated procUnpin")
+	}
+	g.procPinDepth--
+}
 
 type NotifyList struct {
 	wait, notify uint32

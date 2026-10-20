@@ -10,9 +10,7 @@ import (
 )
 
 func maybeAtomicYield() {
-	if gosimruntime.AtomicYield {
-		gosimruntime.Yield()
-	}
+	gosimruntime.AtomicYield()
 }
 
 func SyncAtomic_SwapInt32(addr *int32, new int32) (old int32) {
@@ -395,11 +393,9 @@ func SyncAtomic_StorePointer(addr *unsafe.Pointer, val unsafe.Pointer) {
 }
 
 func SyncAtomic_runtime_procPin() int {
-	// noop
-	// TODO: randomize?
-	return 0
+	return gosimruntime.ProcPin()
 }
 
 func SyncAtomic_runtime_procUnpin() {
-	// noop
+	gosimruntime.ProcUnpin()
 }

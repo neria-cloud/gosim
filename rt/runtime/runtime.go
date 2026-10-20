@@ -375,6 +375,7 @@ type goroutine struct {
 	machine       *Machine
 	parent        *goroutine
 	profileLabels string
+	procPinDepth  int
 
 	finished bool
 
@@ -458,6 +459,7 @@ func freeGoroutine(g *goroutine) {
 	g.machine = nil
 	g.parent = nil
 	g.profileLabels = ""
+	g.procPinDepth = 0
 	g.finished = false
 	g.coro = hostabi.Upcallcoro{}
 	g.corotask = corotaskNone
