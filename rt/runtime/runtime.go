@@ -371,9 +371,10 @@ type goroutine struct {
 	allIdx      intrusiveIndex // idx in scheduler.goroutines, or -1
 	runnableIdx intrusiveIndex // idx in scheduler.runnable, or -1
 
-	spawnEventID int
-	machine      *Machine
-	parent       *goroutine
+	spawnEventID  int
+	machine       *Machine
+	parent        *goroutine
+	profileLabels string
 
 	finished bool
 
@@ -411,6 +412,9 @@ func newGoroutine(id int, parent *goroutine, spawnEventID int, fun func(), machi
 	g := allocGoroutine()
 	g.ID = id
 	g.parent = parent
+	if parent != nil && parent.machine == machine {
+		g.profileLabels = parent.profileLabels
+	}
 	g.spawnEventID = spawnEventID
 	g.allIdx.idx = -1
 	g.runnableIdx.idx = -1
@@ -453,6 +457,7 @@ func freeGoroutine(g *goroutine) {
 	g.spawnEventID = 0
 	g.machine = nil
 	g.parent = nil
+	g.profileLabels = ""
 	g.finished = false
 	g.coro = hostabi.Upcallcoro{}
 	g.corotask = corotaskNone

@@ -3335,6 +3335,13 @@
       "target": "github.com/neria-cloud/gosim/internal/compat/go126/host.newcoro",
       "owner": "rt",
       "context": "host"
+    },
+    {
+      "package": "internal/poll",
+      "symbol": "writev",
+      "signature": "func(int, []syscall.Iovec) (uintptr, error)",
+      "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.InternalPoll_writev",
+      "owner": "kernel"
     }
   ],
   "layouts": [
@@ -3955,7 +3962,7 @@
       "fields": [
         {
           "name": "C",
-          "type": "\u003c-chan time.Time",
+          "type": "<-chan time.Time",
           "offset": 0
         },
         {
@@ -3973,7 +3980,7 @@
       "fields": [
         {
           "name": "C",
-          "type": "\u003c-chan time.Time",
+          "type": "<-chan time.Time",
           "offset": 0
         },
         {

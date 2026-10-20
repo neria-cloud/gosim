@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1248" height="610" viewBox="0 0 1248 610" role="img" aria-labelledby="title description">
+  <title id="title">Gosim architecture</title>
+  <desc id="description">Static architecture diagram. Translated application and dependency Go code uses runtime hooks or syscall hooks and the kernel. The translated TCP and filesystem models share the native runtime engine. Reviewed computation bypasses translation through a native symbol allowlist.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1 8 5 1 9" fill="none" stroke="#566777" stroke-width="1.5"/></marker></defs>
+  <style>
+    text { font-family: "Helvetica Neue", Helvetica, sans-serif; font-size: 16px; fill: #243444; }
+    .label { font-size: 20px; font-weight: 600; }
+    .layer { font-size: 16px; font-weight: 600; }
+    .layer-note { font-size: 12px; fill: #526373; }
+    .small { font-size: 14px; fill: #526373; }
+    .code { font-family: Menlo, Consolas, monospace; font-size: 14px; }
+    .node { fill: #fff; stroke: #b7c4cf; stroke-width: 1.25; }
+    .wire { fill: none; stroke: #566777; stroke-width: 1.5; marker-end: url(#arrow); }
+  </style>
+  <rect width="1248" height="610" fill="#fff"/>
+  <g transform="translate(-72 0)">
+  <rect x="200" y="16" width="1048" height="42" rx="4" class="node"/>
+  <text x="724" y="43" text-anchor="middle" class="label">Application + dependency Go code</text>
+  <path d="M724 58v14" class="wire"/>
+  <text x="724" y="88" text-anchor="middle" class="small">Load composition → rewrite AST → compile</text>
+  <text x="220" y="119" font-weight="600">Runtime</text>
+  <text x="576" y="119" font-weight="600">Network</text>
+  <text x="932" y="119" font-weight="600">Filesystem</text>
+  <text x="88" y="162" class="layer">Translation</text>
+  <rect x="200" y="132" width="336" height="72" rx="4" class="node"/>
+  <rect x="556" y="132" width="336" height="72" rx="4" class="node"/>
+  <rect x="912" y="132" width="336" height="72" rx="4" class="node"/>
+  <text x="220" y="161" class="code">go / chan / select / sync / time</text>
+  <text x="220" y="188" class="small">Rewrite scheduling + globals</text>
+  <text x="576" y="161" class="code">net / internal/poll</text>
+  <text x="576" y="188" class="small">Translate socket-facing Go code</text>
+  <text x="932" y="161" class="code">os / io / syscall</text>
+  <text x="932" y="188" class="small">Translate file-facing Go code</text>
+  <rect x="190" y="236" width="1068" height="190" rx="6" fill="#f5f8fa"/>
+  <path d="M368 204v38" class="wire"/>
+  <path d="M724 204v38" class="wire"/>
+  <path d="M1080 204v38" class="wire"/>
+  <text x="88" y="276" class="layer">Bridges</text>
+  <text x="88" y="302" class="layer-note">+ service models</text>
+  <rect x="200" y="248" width="336" height="60" rx="4" class="node"/>
+  <text x="220" y="273" font-weight="600">Runtime hooks + primitive calls</text>
+  <text x="220" y="296" class="small">clock · timers · synchronization</text>
+  <rect x="556" y="248" width="692" height="60" rx="4" class="node"/>
+  <text x="902" y="273" text-anchor="middle" font-weight="600">Go-family syscall hooks → kernel</text>
+  <text x="902" y="296" text-anchor="middle" class="small">dispatch · descriptors · poll</text>
+  <path d="M724 308v26" class="wire"/>
+  <path d="M1080 308v26" class="wire"/>
+  <rect x="556" y="340" width="336" height="76" rx="4" class="node"/>
+  <text x="576" y="369" font-weight="600">TCP model</text>
+  <text x="576" y="398" class="small">packets · latency · partitions</text>
+  <rect x="912" y="340" width="336" height="76" rx="4" class="node"/>
+  <text x="932" y="369" font-weight="600">Filesystem model</text>
+  <text x="932" y="398" class="small">files · durability · crash state</text>
+  <path d="M368 308v172" class="wire"/>
+  <text x="386" y="379" class="small">primitive ABI</text>
+  <path d="M724 416v64" class="wire"/>
+  <path d="M1080 416v16H864v48" class="wire"/>
+  <path d="M200 456H924" stroke="#9baab8" stroke-dasharray="5 5"/>
+  <text x="1248" y="461" text-anchor="end" class="small">translated / native boundary</text>
+  <text x="558" y="441" class="small">clock / events / RNG</text>
+  <text x="88" y="517" class="layer">Native</text>
+  <rect x="200" y="486" width="692" height="88" rx="4" fill="#edf3f6" stroke="#8fa3b3"/>
+  <text x="220" y="514" class="label">rt/runtime + ABI</text>
+  <text x="220" y="540" class="small">scheduler · virtual time · machine globals · seeded streams</text>
+  <text x="220" y="561" class="small">coroutine host ABI</text>
+  <rect x="912" y="486" width="336" height="88" rx="4" class="node"/>
+  <text x="932" y="514" font-weight="600">Native Go computation</text>
+  <text x="932" y="540" class="small">hashes · checksums · crypto</text>
+  <text x="932" y="561" class="small">explicit inputs for deterministic replay</text>
+  <path d="M1248 37h36v493h-30" class="wire"/>
+  <text transform="translate(1306 280) rotate(-90)" text-anchor="middle" class="small">reviewed symbols bypass translation</text>
+  <text x="200" y="598" class="small">Kernel and service models remain translated. Arrows show call paths and dependencies.</text>
+  </g>
+</svg>

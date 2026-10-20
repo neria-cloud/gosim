@@ -14,6 +14,7 @@ import (
 	"unsafe"
 
 	"github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 type wrapKind byte
@@ -467,11 +468,13 @@ func (v Value) Pointer() uintptr {
 }
 
 func (v Value) Recv() (x Value, ok bool) {
-	panic("gosim go126 reflect: unsupported operation")
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "reflect.Value.Recv", Message: "reflected channel scheduling is not modeled"})
+	panic("abort returned")
 }
 
 func (v Value) Send(x Value) {
-	panic("gosim go126 reflect: unsupported operation")
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "reflect.Value.Send", Message: "reflected channel scheduling is not modeled"})
+	panic("abort returned")
 }
 
 func (v Value) Set(x Value) {

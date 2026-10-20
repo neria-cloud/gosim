@@ -182,10 +182,10 @@ func TestSelectedGraphDropsOnlyHookBodies(t *testing.T) {
 		}
 	}
 	pkg := &packages.Package{ID: "example.com/app", PkgPath: "example.com/app", Name: "app", Module: &packages.Module{Path: "example.com/app"}, CompiledGoFiles: []string{source}, Imports: map[string]*packages.Package{
-		"net/http": {ID: "net/http", PkgPath: "net/http", Name: "http"},
+		"net/http/httptest": {ID: "net/http/httptest", PkgPath: "net/http/httptest", Name: "http"},
 	}}
 	p.hooks[PackageSelector{Pkg: pkg.PkgPath, Selector: "replaced"}] = PackageSelector{Pkg: "owned", Selector: "hook"}
-	write("package app; import h \"net/http\";func replaced(){h.Get(\"url\")}")
+	write("package app; import h \"net/http/httptest\";func replaced(){h.NewServer(nil)}")
 	graph, err := selectGraph([]*packages.Package{pkg}, p)
 	if err != nil {
 		t.Fatal(err)
@@ -194,10 +194,10 @@ func TestSelectedGraphDropsOnlyHookBodies(t *testing.T) {
 		t.Fatal(graph.order)
 	}
 	for _, text := range []string{
-		"package app; import h \"net/http\";func retained(){h.Get(\"url\")}",
-		"package app; import h \"net/http\";func replaced() *h.Client{return nil}",
-		"package app; import _ \"net/http\";func replaced(){}",
-		"package app; import . \"net/http\";func replaced(){Get(\"url\")}",
+		"package app; import h \"net/http/httptest\";func retained(){h.NewServer(nil)}",
+		"package app; import h \"net/http/httptest\";func replaced() *h.Server{return nil}",
+		"package app; import _ \"net/http/httptest\";func replaced(){}",
+		"package app; import . \"net/http/httptest\";func replaced(){NewServer(nil)}",
 	} {
 		write(text)
 		if _, err := selectGraph([]*packages.Package{pkg}, p); err == nil {

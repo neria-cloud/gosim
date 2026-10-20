@@ -1,5 +1,5 @@
 package fixture
 
-import "net/http"
+import "net/http/httptest"
 
-var _ = http.DefaultClient
+var _ = httptest.NewServer

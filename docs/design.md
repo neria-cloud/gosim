@@ -1,5 +1,9 @@
 # Gosim architecture
 
+[Architecture diagram](diagrams/gosim-architecture.svg) shows translation,
+bridges, and native execution. [Animated test workflows](diagrams/gosim-test-workflows.svg)
+show network and filesystem scenarios and their assertions.
+
 Gosim translates application Go code into a deterministic simulation. A binary explicitly selects `rt`, `rt,fs`, `rt,net`, or `rt,fs,net`. Filesystem and network providers require the runtime. The selection is immutable before application initialization and shared by all machines in that binary.
 
 The root API owns machine lifecycle. `fs`, `net`, and `rt` own their public controls. Their simulation implementations use typed control transport; native implementations return `ErrNotSim`, or the documented zero-value diagnostic result. There are no root network/timeout forwarding APIs or retained monolithic simulation package.
@@ -120,7 +124,13 @@ Each family owns hooks split by rt/kernel/fs/net, replacement shims, native ABI,
 
 Package policies distinguish translated code, reviewed native-pure helpers, explicit bridges and rejected packages. Host compiler/runner networking is separate from simulated application imports. Disabled-feature wrappers remain linkable but enter the fatal feature gate and import no disabled model. Application recovery cannot convert that abort into success.
 
-Unmodified HTTP/gRPC/crypto stacks with known translation gaps remain explicitly unsupported. Named initialization probes are implemented, limited/stubbed or rejected individually; there is no blanket successful NotImplemented response. The immutable declaration and route ledgers account for replaced legacy entry points.
+Existing application and dependency code is translated automatically when it needs simulated scheduling, globals, timers or I/O. Reviewed computation can stay native without traversing or copying its implementation dependencies. Symbol-level bridges admit Ed25519 and CRC32 operations directly, without translated adapters. CRC32 standard tables are shared and must remain read-only under the Go API contract. Ed25519 `GenerateKey` uses its supplied reader; passing the translated `crypto/rand.Reader` preserves deterministic replay. As an explicit exception, `GenerateKey(nil)` uses native host randomness and is not replay-deterministic. Native hash/cipher state belongs to its caller and contains no simulated descriptors or scheduler objects. Native imports inside owned adapters bypass symbol rewrites only after the profile authorizes that exact import; application directives cannot bypass a symbol allowlist.
+
+Native boundary nodes depend on their selected symbol adapters, so those adapters participate in initialization, content hashing and global isolation. Legacy `runtime.fastrand`, `fastrandn` and `fastrand64` linknames require exact primitive signatures and resolve to deterministic adapters for any caller, without application-specific profiles.
+
+Optional TLS/X509/OCSP interfaces have guarded declaration facades; no TLS or certificate algorithms are implemented in Gosim. Their operations abort, as do host subprocess, signal and profiling operations. Diagnostic profiling labels are simulated goroutine state. HTTP dependencies can be translated, but full HTTP/HTTPS compatibility is not established; gRPC remains rejected. The separate `examples/network/nats` module owns its NATS dependencies and exercises plain TCP Core messaging. Kernel-owned scatter/gather writes submit one ordered write and preserve partial-write results for the upstream polling loop.
+
+ Named initialization probes are implemented, limited/stubbed or rejected individually; there is no blanket successful NotImplemented response. The immutable declaration and route ledgers account for replaced legacy entry points.
 
 ## Build, cache and artifact identities
 

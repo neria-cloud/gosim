@@ -27,10 +27,12 @@ The three latency ranges share the latency case's ping/pong helper.
 | Package | Case | Required features |
 | --- | --- | --- |
 | [simple](simple/simple_test.go) | Deterministic execution and randomness | `rt` |
+| [filesystem](filesystem/README.md) | Read simulated `/tmp/testfile.txt` and compare `Hello World!`; separate module, Go 1.25.2 only | `rt,fs` |
 | [bolt](bolt/bolt_test.go) | Write, read, and reopen a Bolt database | `rt,fs` |
 | [network/machines](network/machines/machines_test.go) | TCP requests, machine crash/restart, and link latency | `rt,net` |
 | [network/latency](network/latency/latency_test.go) | Three latency ranges without connection drops | `rt,net` |
-| [etcd](etcd/README.md) | Retained etcd cluster, snapshot, and WAL fixtures | Unsupported HTTP/gRPC integration |
+| [network/nats](network/nats/README.md) | Embedded NATS publisher/receiver with delayed links; separate module | `rt,fs,net` |
+| [etcd](etcd/README.md) | Retained etcd cluster, snapshot, and WAL fixtures | Unsupported gRPC integration |
 
 Run the supported cases individually:
 
@@ -41,10 +43,21 @@ Run the supported cases individually:
 ./.gosim/gosimtool test -features rt,net ./examples/network/latency
 ```
 
-Supported cases are included in the feature suites according to the table above.
+The in-module supported cases are included in the feature suites according to the table above.
+The NATS application has its own `go.mod` and is run separately:
+
+```sh
+./.gosim/gosimtool -C examples/network/nats test -features rt,fs,net -v -run '^TestPublisherReceiver' .
+```
 The `examples/` directory itself contains documentation only.
 Machine creation returns an unstarted handle: configure services, call `Start`,
 and observe termination through `Wait`.
+
+The standalone filesystem example requires exactly Go 1.25.2:
+
+```sh
+GOTOOLCHAIN=go1.25.2 ./.gosim/gosimtool -C examples/filesystem test -features rt,fs -v .
+```
 
 ## Network latency
 

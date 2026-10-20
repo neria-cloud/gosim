@@ -1734,5 +1734,12 @@
     "signature": "func()",
     "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_restoreSIGSYS",
     "owner": "kernel"
+  },
+  {
+    "package": "internal/poll",
+    "symbol": "writev",
+    "signature": "func(int, []syscall.Iovec) (uintptr, error)",
+    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_writev",
+    "owner": "kernel"
   }
 ]

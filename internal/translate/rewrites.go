@@ -53,6 +53,9 @@ func (t *packageTranslator) rewriteImport(c *dstutil.Cursor) {
 }
 
 func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
+	if t.nativeImports[ident.Path] {
+		return
+	}
 	lookupPath := ident.Path
 	if lookupPath == "" {
 		lookupPath = t.pkgPath
@@ -123,6 +126,34 @@ func (t *packageTranslator) rewriteIdent(c *dstutil.Cursor) {
 	}
 }
 
+// A directive can document a method while naming a separate bodyless alias
+// (net/url.badSetPath). Move it to the named declaration before function-level
+// rewriting; adjacency in the original source does not establish ownership.
+func attachNamedLinknames(file *dst.File) {
+	functions := make(map[string]*dst.FuncDecl)
+	for _, decl := range file.Decls {
+		if fn, ok := decl.(*dst.FuncDecl); ok && fn.Recv == nil {
+			functions[fn.Name.Name] = fn
+		}
+	}
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*dst.FuncDecl)
+		if !ok {
+			continue
+		}
+		for i, line := range fn.Decs.Start {
+			parts := strings.Fields(line)
+			if len(parts) != 3 || parts[0] != "//go:linkname" {
+				continue
+			}
+			if target := functions[parts[1]]; target != nil && target != fn {
+				target.Decs.Start.Append(line)
+				fn.Decs.Start[i] = "// gosim: linkname belongs to " + parts[1]
+			}
+		}
+	}
+}
+
 func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 	node := c.Node()
 
@@ -152,11 +183,16 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 			parts := strings.Split(val, " ")
 
 			if len(parts) == 2 && decl.Body == nil {
-				// TODO: make this fail the build?
 				if t.profile != nil {
-					panic(fmt.Errorf("unknown bodyless linkname %s.%s", t.pkgPath, decl.Name.Name))
+					if !t.profile.definitions[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] {
+						panic(fmt.Errorf("unknown bodyless linkname %s.%s", t.pkgPath, decl.Name.Name))
+					}
+					// The selected translated graph contains the implementation
+					// pushed by another package; no native symbol is admitted.
+					t.needsUnsafe = true
+				} else {
+					slog.Error("unknown linkname with no body", "pkg", t.pkgPath, "name", decl.Name.Name)
 				}
-				slog.Error("unknown linkname with no body", "pkg", t.pkgPath, "name", decl.Name.Name)
 			}
 
 			if len(parts) == 3 {
@@ -166,6 +202,15 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 				if idx2 != -1 {
 					idx := idx1 + idx2
 					pkg, name := dest[:idx], dest[idx+1:]
+					target := PackageSelector{Pkg: pkg, Selector: name}
+					if runtimeRandomLink(target) && t.profile != nil {
+						replacement := t.profile.replacements[target]
+						parts[2] = t.replacedPkgs[replacement.Pkg] + "." + replacement.Selector
+						decl.Decs.Start[i] = strings.Join(parts, " ")
+						t.needsUnsafe = true
+						continue
+					}
+
 					// A pushed definition can name a translated package that this
 					// feature graph never imports (os defines net.newUnixFile).
 					// It defines a translated symbol, not a native escape/import.

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -36,6 +37,8 @@ func TestStartupOverrides(t *testing.T) {
 		{name: "help", args: []string{"test", "-h"}, help: true},
 		{name: "missing", args: []string{"test", "-go"}, fail: true},
 		{name: "private", args: []string{"test", "--resolution", "file"}, fail: true},
+		{name: "late directory", args: []string{"test", "-C", "module"}, fail: true},
+		{name: "directory pattern", args: []string{"test", "-run", "-C"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -53,10 +56,61 @@ func TestStartupOverrides(t *testing.T) {
 	}
 }
 
+func TestStartupDirectory(t *testing.T) {
+	t.Parallel()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	directory := filepath.Join(t.TempDir(), "module with spaces")
+	if err := os.Mkdir(directory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(directory, "go.mod")
+	if err := os.WriteFile(file, []byte("module example.org/app\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	relative, err := filepath.Rel(cwd, directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		args []string
+		want string
+		rest []string
+		fail bool
+	}{
+		{name: "none"},
+		{name: "unchanged", args: []string{"test", "-run", "-C"}, rest: []string{"test", "-run", "-C"}},
+		{name: "absolute", args: []string{"-C", directory, "test", "."}, want: directory, rest: []string{"test", "."}},
+		{name: "relative", args: []string{"-C", relative, "test"}, want: directory, rest: []string{"test"}},
+		{name: "equals", args: []string{"-C=" + relative, "test", "-config", "gosim.json"}, want: directory, rest: []string{"test", "-config", "gosim.json"}},
+		{name: "help", args: []string{"-C", directory}, want: directory},
+		{name: "missing value", args: []string{"-C"}, fail: true},
+		{name: "empty value", args: []string{"-C", ""}, fail: true},
+		{name: "empty equals", args: []string{"-C="}, fail: true},
+		{name: "missing directory", args: []string{"-C", filepath.Join(directory, "missing"), "test"}, fail: true},
+		{name: "file", args: []string{"-C", file, "test"}, fail: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, rest, err := startupDirectory(tc.args)
+			if (err != nil) != tc.fail || !tc.fail && (got != tc.want || !slices.Equal(rest, tc.rest)) {
+				t.Fatalf("directory=%q args=%v err=%v", got, rest, err)
+			}
+			if after, err := os.Getwd(); err != nil || after != cwd {
+				t.Fatalf("process working directory changed: %q %v", after, err)
+			}
+		})
+	}
+}
+
 func TestLauncherHelpDoesNotResolveGo(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	t.Setenv("GOSIM_CONFIG", filepath.Join(t.TempDir(), "missing"))
-	for _, args := range [][]string{nil, {"help"}, {"version"}, {"--help"}, {"test", "-h"}, {"internal-candidate", "verify", "--help"}} {
+	directory := t.TempDir()
+	for _, args := range [][]string{nil, {"help"}, {"version"}, {"--help"}, {"test", "-h"}, {"internal-candidate", "verify", "--help"}, {"-C", directory, "help"}, {"-C=" + directory, "version"}} {
 		var out, diagnostics bytes.Buffer
 		if code := Main(t.Context(), args, Streams{Out: &out, Err: &diagnostics}); code != 0 || out.Len() == 0 || diagnostics.Len() != 0 {
 			t.Fatalf("%v: code=%d stdout=%s stderr=%s", args, code, &out, &diagnostics)

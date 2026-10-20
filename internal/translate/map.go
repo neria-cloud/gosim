@@ -296,7 +296,7 @@ func (t *packageTranslator) rewriteMapType(c *dstutil.Cursor) {
 		c.Replace(&dst.IndexListExpr{
 			X: t.newRuntimeSelector("Map"),
 			Indices: []dst.Expr{
-				mapType.Key,
+				t.apply(mapType.Key).(dst.Expr),
 				t.apply(mapType.Value).(dst.Expr),
 			},
 		})
@@ -312,7 +312,7 @@ func (t *packageTranslator) rewriteMapType(c *dstutil.Cursor) {
 			c.Replace(&dst.IndexListExpr{
 				X: t.newRuntimeSelector("AnyMap"),
 				Indices: []dst.Expr{
-					mapType.Key,
+					t.apply(mapType.Key).(dst.Expr),
 					t.apply(mapType.Value).(dst.Expr),
 				},
 			})

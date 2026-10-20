@@ -74,9 +74,9 @@ func loadSelectedPackages(dir string, patterns []string, cfg gosimtool.BuildConf
 	if err != nil {
 		return nil, err
 	}
-	// math/big supplies complete Go arithmetic for both reviewed families. This
-	// owned source tag avoids copying private assembly into translated packages;
-	// the actually selected files participate in package content hashes.
+	// Select available Go fallbacks for translated third-party assembly packages.
+	// Reviewed native computational packages retain their normal implementations;
+	// selected source files participate in package content hashes.
 	tags := buildspec.TranslatedSourceTags(cfg.Identity.Race)
 	mode |= packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedModule | packages.NeedImports | packages.NeedEmbedFiles
 	flags := []string{"-mod=readonly"}

@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="800" viewBox="0 0 1320 700" role="img" aria-labelledby="title description" tabindex="0">
+  <title id="title">Gosim test workflows</title>
+  <desc id="description">Run application code under controlled faults and check application behavior. Four animated scenarios show bounded retries during latency spikes, cluster consistency during connection drops affecting two of five nodes, recovery of acknowledged operations after a crash, and application recovery from different persisted states. Latency range and distribution are configurable. The crash-state branches are illustrative, not exhaustive. Replay uses the same build identity, seed, and deterministic inputs. Hover or focus to pause. Reduced-motion mode retains static diagrams and assertions.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1 8 5 1 9" fill="none" stroke="#566777" stroke-width="1.5"/></marker></defs>
+  <style>
+    text { font-family: "Helvetica Neue", Helvetica, sans-serif; font-size: 16px; fill: #243444; }
+    .label { font-size: 20px; font-weight: 600; }
+    .small { font-size: 14px; fill: #526373; }
+    .code { font-family: Menlo, Consolas, monospace; font-size: 14px; }
+    .node { fill: #fff; stroke: #b7c4cf; stroke-width: 1.25; }
+    .wire { fill: none; stroke: #566777; stroke-width: 1.5; marker-end: url(#arrow); }
+
+    .case-title { font-size: 18px; font-weight: 600; }
+    .motion { animation-duration: 3.333333s; animation-iteration-count: infinite; animation-timing-function: linear; }
+    .delivery { animation-name: delivery; }
+    .healthy { animation-name: healthy; }
+    @keyframes healthy { 0%,5% { opacity:0; transform:translate(0,0); } 10% { opacity:1; transform:translate(0,0); } 80% { opacity:1; transform:translate(90px,43px); } 90%,100% { opacity:0; transform:translate(90px,43px); } }
+    .blocked { animation-name: blocked; }
+    .retry { animation-name: retry; }
+    .partition { animation-name: partition; }
+    .repaired { animation-name: repaired; }
+    .persist { animation-name: persist; }
+    .crash { animation-name: crash; }
+    .readback { animation-name: readback; }
+    .durable { animation-name: durable; }
+    .outcome-a { animation-name: outcomeA; }
+    .outcome-b { animation-name: outcomeB; }
+    @keyframes delivery { 0%,12% { opacity:0; transform:translateX(0); } 15% { opacity:1; transform:translateX(0); } 65%,86% { opacity:1; transform:translateX(320px); } 92%,100% { opacity:0; transform:translateX(320px); } }
+    @keyframes blocked { 0% { opacity:0; transform:translateX(0); } 4% { opacity:1; transform:translateX(0); } 23%,32% { opacity:1; transform:translateX(40px); } 35%,100% { opacity:0; transform:translateX(40px); } }
+    @keyframes retry { 0%,61% { opacity:0; transform:translateX(0); } 64% { opacity:1; transform:translateX(0); } 89% { opacity:1; transform:translateX(104px); } 95%,100% { opacity:0; transform:translateX(104px); } }
+    @keyframes partition { 0%,40% { opacity:1; } 46%,95% { opacity:0; } 100% { opacity:1; } }
+    @keyframes repaired { 0%,48% { opacity:0; } 55%,94% { opacity:1; } 100% { opacity:0; } }
+    @keyframes persist { 0%,10% { opacity:0; transform:translateX(0); } 13% { opacity:1; transform:translateX(0); } 34% { opacity:1; transform:translateX(56px); } 38%,100% { opacity:0; transform:translateX(56px); } }
+    @keyframes durable { 0%,32% { opacity:0; } 37%,94% { opacity:1; } 100% { opacity:0; } }
+    @keyframes crash { 0%,44% { opacity:0; } 48%,60% { opacity:1; } 65%,100% { opacity:0; } }
+    @keyframes readback { 0%,67% { opacity:0; transform:translateX(0); } 70% { opacity:1; transform:translateX(0); } 89% { opacity:1; transform:translateX(56px); } 95%,100% { opacity:0; transform:translateX(56px); } }
+    @keyframes outcomeA { 0%,12% { opacity:0; } 18%,42% { opacity:1; } 49%,100% { opacity:0; } }
+    @keyframes outcomeB { 0%,52% { opacity:0; } 58%,88% { opacity:1; } 95%,100% { opacity:0; } }
+    svg:hover .motion, svg:focus .motion { animation-play-state:paused; }
+    @media (prefers-reduced-motion:reduce) { .motion { animation:none; display:none; } }
+  </style>
+  <rect width="1320" height="800" fill="#fff"/>
+  <rect x="32" y="20" width="392" height="74" rx="4" class="node"/>
+  <text x="52" y="49" font-weight="600">Define scenario</text>
+  <text x="52" y="77" class="small">workload · seed · injected faults</text>
+  <path d="M424 57h34" class="wire"/>
+  <rect x="464" y="20" width="392" height="74" rx="4" class="node"/>
+  <text x="484" y="49" font-weight="600">Run application in simulation</text>
+  <text x="484" y="77" class="small">control scheduling, time, and I/O</text>
+  <path d="M856 57h34" class="wire"/>
+  <rect x="896" y="20" width="392" height="74" rx="4" fill="#edf3f6" stroke="#8fa3b3"/>
+  <text x="916" y="49" font-weight="600">Check application behavior</text>
+  <text x="916" y="77" class="small">application assertions · traces · replay</text>
+
+  <!-- Network: cluster stability during latency spikes. -->
+  <g id="delayed-delivery">
+    <rect x="32" y="124" width="616" height="290" rx="6" fill="#f5f8fa"/>
+    <text x="52" y="156" class="case-title">Network / latency spikes</text>
+    <text x="52" y="181" class="small">Test cluster stability when messages slow down.</text>
+    <text x="52" y="205" class="small">Choose the latency range and distribution.</text>
+    <rect x="64" y="226" width="104" height="60" rx="4" class="node"/>
+    <text x="116" y="262" text-anchor="middle">Host A</text>
+    <rect x="512" y="226" width="104" height="60" rx="4" class="node"/>
+    <text x="564" y="262" text-anchor="middle">Host B</text>
+    <path d="M168 256h338" class="wire"/>
+    <text x="340" y="243" text-anchor="middle" class="small">latency spikes</text>
+    <circle cx="180" cy="256" r="6" fill="#167365" opacity="0" class="delivery motion"/>
+    <rect x="288" y="300" width="104" height="40" rx="4" class="node"/>
+    <text x="340" y="325" text-anchor="middle">Host C</text>
+    <path d="M116 286v34h166" class="wire" stroke-dasharray="4 4"/>
+    <path d="M392 320h172v-28" class="wire" stroke-dasharray="4 4"/>
+    <text x="52" y="352" class="small">Apply delays between selected hosts.</text>
+    <rect x="48" y="360" width="584" height="38" rx="4" fill="#edf3f6"/>
+    <text x="64" y="384" class="small">Assert: requests finish or time out; retries stay bounded.</text>
+  </g>
+
+  <!-- Network: selected nodes lose connections while healthy links remain active. -->
+  <g id="partition-recovery">
+    <rect x="672" y="124" width="616" height="290" rx="6" fill="#f5f8fa"/>
+    <text x="692" y="156" class="case-title">Network / connection drops</text>
+    <text x="692" y="181" class="small">Test cluster stability when some nodes lose connections.</text>
+    <!-- Healthy links among A, B, and C. -->
+    <path d="M750 238v50 M790 220l90 43 M790 306l90-43" fill="none" stroke="#167365" stroke-width="1.5"/>
+    <!-- Only the links to D and E are disrupted. -->
+    <path d="M960 263h64v-43h140 M1024 263v43h140" fill="none" stroke="#b4483e" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <path d="M960 263h64v-43h140 M1024 263v43h140" fill="none" stroke="#167365" stroke-width="2" opacity="0" class="repaired motion"/>
+    <rect x="710" y="202" width="80" height="36" rx="4" class="node"/>
+    <text x="750" y="226" text-anchor="middle">Node A</text>
+    <rect x="710" y="288" width="80" height="36" rx="4" class="node"/>
+    <text x="750" y="312" text-anchor="middle">Node B</text>
+    <rect x="880" y="245" width="80" height="36" rx="4" class="node"/>
+    <text x="920" y="269" text-anchor="middle">Node C</text>
+    <rect x="1164" y="202" width="80" height="36" rx="4" class="node"/>
+    <text x="1204" y="226" text-anchor="middle">Node D</text>
+    <rect x="1164" y="288" width="80" height="36" rx="4" class="node"/>
+    <text x="1204" y="312" text-anchor="middle">Node E</text>
+    <circle cx="790" cy="220" r="5" fill="#167365" opacity="0" class="healthy motion"/>
+    <g class="partition motion" stroke="#b4483e" stroke-width="3">
+      <path d="M1080 212l16 16m0-16-16 16"/>
+      <path d="M1080 298l16 16m0-16-16 16"/>
+    </g>
+    <g fill="#b4483e" opacity="0" class="blocked motion">
+      <circle cx="1048" cy="220" r="5"/><circle cx="1048" cy="306" r="5"/>
+    </g>
+    <g fill="#167365" opacity="0" class="retry motion">
+      <circle cx="1048" cy="220" r="5"/><circle cx="1048" cy="306" r="5"/>
+    </g>
+    <text x="692" y="352" class="small">Drop connections → repair links → reconnect.</text>
+    <rect x="688" y="360" width="584" height="38" rx="4" fill="#edf3f6"/>
+    <text x="704" y="384" class="small">Assert: no conflicting commits; rejoined nodes catch up.</text>
+  </g>
+
+  <!-- Filesystem: application recovery preserves acknowledged operations. -->
+  <g id="durability">
+    <rect x="32" y="438" width="616" height="290" rx="6" fill="#f5f8fa"/>
+    <text x="52" y="470" class="case-title">Filesystem / application crash recovery</text>
+    <text x="52" y="497" class="small">Crash a node after a successful operation; restart the application.</text>
+    <rect x="64" y="548" width="136" height="60" rx="4" class="node"/>
+    <text x="132" y="584" text-anchor="middle">App writes</text>
+    <rect x="280" y="548" width="136" height="60" rx="4" class="node"/>
+    <text x="348" y="584" text-anchor="middle">App confirms</text>
+    <rect x="280" y="548" width="136" height="60" rx="4" fill="none" stroke="#3562aa" stroke-width="2" opacity="0" class="durable motion"/>
+    <rect x="496" y="548" width="136" height="60" rx="4" class="node"/>
+    <text x="564" y="584" text-anchor="middle">App recovers</text>
+    <path d="M200 578h74" class="wire"/>
+    <path d="M416 578h74" class="wire"/>
+    <text x="240" y="535" text-anchor="middle" class="small">persist</text>
+    <text x="456" y="535" text-anchor="middle" class="small">restart</text>
+    <circle cx="212" cy="578" r="6" fill="#3562aa" opacity="0" class="persist motion"/>
+    <circle cx="428" cy="578" r="6" fill="#3562aa" opacity="0" class="readback motion"/>
+    <g opacity="0" class="crash motion">
+      <path d="M445 565l22 26m0-26-22 26" stroke="#b4483e" stroke-width="3"/>
+      <text x="456" y="630" text-anchor="middle" class="small">crash</text>
+    </g>
+    <text x="340" y="650" text-anchor="middle" class="small">complete operation → crash → restart application</text>
+    <rect x="48" y="674" width="584" height="38" rx="4" fill="#edf3f6"/>
+    <text x="64" y="698" class="small">Assert: acknowledged operations survive application recovery.</text>
+  </g>
+
+  <!-- Filesystem: representative branches, not an exhaustive outcome list. -->
+  <g id="crash-enumeration">
+    <rect x="672" y="438" width="616" height="290" rx="6" fill="#f5f8fa"/>
+    <text x="692" y="470" class="case-title">Filesystem / interrupted writes</text>
+    <text x="692" y="497" class="small">Crash during an update; test application recovery from each state.</text>
+    <rect x="704" y="550" width="164" height="70" rx="4" class="node"/>
+    <text x="786" y="578" text-anchor="middle">App updating</text>
+    <text x="786" y="601" text-anchor="middle" class="small">writes pending</text>
+    <path d="M868 585h54v-35h48" class="wire"/>
+    <path d="M922 585v49h48" class="wire"/>
+    <rect x="976" y="526" width="280" height="50" rx="4" class="node"/>
+    <text x="1116" y="557" text-anchor="middle">Restart from durable data</text>
+    <rect x="976" y="610" width="280" height="50" rx="4" class="node"/>
+    <text x="1116" y="641" text-anchor="middle">Restart with partial writes</text>
+    <g opacity="0" class="outcome-a motion">
+      <path d="M868 585h54v-35h48" fill="none" stroke="#3562aa" stroke-width="2"/>
+      <rect x="976" y="526" width="280" height="50" rx="4" fill="none" stroke="#3562aa" stroke-width="2"/>
+    </g>
+    <g opacity="0" class="outcome-b motion">
+      <path d="M868 585h54v49h48" fill="none" stroke="#3562aa" stroke-width="2"/>
+      <rect x="976" y="610" width="280" height="50" rx="4" fill="none" stroke="#3562aa" stroke-width="2"/>
+    </g>
+    <rect x="688" y="674" width="584" height="38" rx="4" fill="#edf3f6"/>
+    <text x="704" y="698" class="small">Assert: recovery preserves application data consistency.</text>
+  </g>
+</svg>

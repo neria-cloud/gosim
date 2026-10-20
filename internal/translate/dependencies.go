@@ -58,7 +58,19 @@ func loadSourceGraph(project, inputDir string, patterns []string, cfg gosimtool.
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	graph, err := selectGraph(append(slices.Clone(appRoots), runtimeRoots...), policies)
+	var replacements []string
+	for _, path := range policies.packages {
+		replacements = append(replacements, path)
+	}
+	for _, target := range policies.replacements {
+		replacements = append(replacements, target.Pkg)
+	}
+	slices.Sort(replacements)
+	available, err := loadSelectedPackages(inputDir, slices.Compact(replacements), cfg, packages.NeedDeps, false)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	graph, err := selectGraph(append(slices.Clone(appRoots), runtimeRoots...), policies, available...)
 	return appRoots, runtimeRoots, graph, err
 }
 

@@ -2,4 +2,4 @@ package fixture
 
 import "runtime"
 
-var _ = runtime.ReadMemStats
+var _ = runtime.GC

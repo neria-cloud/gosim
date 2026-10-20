@@ -9,6 +9,18 @@ import (
 
 func Runtime_NumCPU() int { return 1 }
 
+func Runtime_SetBlockProfileRate(rate int) {
+	// Nonpositive rates disable profiling, which is already disabled here.
+	if rate <= 0 {
+		return
+	}
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.SetBlockProfileRate", Message: "native profiling is not modeled"})
+}
+
+func Runtime_ReadMemStats(stats any) {
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.ReadMemStats", Message: "native GC statistics are not modeled"})
+}
+
 func Runtime_GOMAXPROCS(n int) int {
 	if n > 1 {
 		gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.GOMAXPROCS", Message: "the deterministic scheduler supports one simulated processor"})
@@ -37,3 +49,8 @@ func Runtime_AddCleanup[T, S any](_ *T, _ func(S), _ S) RuntimeCleanup {
 func (RuntimeCleanup) Stop() {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.Cleanup.Stop", Message: "host GC cleanups are not modeled"})
 }
+
+// Legacy runtime random linknames are redirected for all translated callers.
+func Runtime_fastrand() uint32          { return uint32(gosimruntime.Fastrand64()) }
+func Runtime_fastrandn(n uint32) uint32 { return uint32(uint64(Runtime_fastrand()) * uint64(n) >> 32) }
+func Runtime_fastrand64() uint64        { return gosimruntime.Fastrand64() }

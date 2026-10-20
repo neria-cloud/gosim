@@ -127,9 +127,9 @@ func checkGoFlags(args []string) error {
 }
 
 // TranslatedSourceTags is shared by loading and contract inspection. The owned
-// math/big tag selects its Go implementation; race selects sources without cgo.
+// noasm and math/big tags select Go implementations; race selects sources without cgo.
 func TranslatedSourceTags(race bool) string {
-	tags := "linkname,sim,math_big_pure_go"
+	tags := "linkname,sim,math_big_pure_go,noasm"
 	if race {
 		tags += ",race"
 	}

@@ -425,6 +425,7 @@ type packageTranslator struct {
 	astMap         decorator.AstMap
 	dstMap         decorator.DstMap
 	replacedPkgs   map[string]string
+	nativeImports  map[string]bool
 	pkgPath        string
 
 	hooks map[PackageSelector]PackageSelector
@@ -600,16 +601,21 @@ func (t *packageTranslator) translateFile(dstFile *dst.File) (*dst.File, error) 
 	}
 	if len(keptPkgs) > 0 {
 		old := t.replacedPkgs
+		oldNative := t.nativeImports
+		t.nativeImports = make(map[string]bool)
 		defer func() {
 			t.replacedPkgs = old
+			t.nativeImports = oldNative
 		}()
 		t.replacedPkgs = maps.Clone(t.replacedPkgs)
 		for _, pkg := range keptPkgs {
 			delete(t.replacedPkgs, pkg)
+			t.nativeImports[pkg] = true
 		}
 	}
 
 	t.needsUnsafe = false
+	attachNamedLinknames(dstFile)
 
 	// in a first pass, rewrite all select stmts. unclear if this is necessary,
 	// but trying to do it preApply didn't translate inner nested selects.

@@ -160,7 +160,7 @@ func TestTypedProfileBoundaries(t *testing.T) {
 		{"raw-syscall", `package app; import "syscall"; func F(){syscall.RawSyscall(0,0,0,0)}`, "unsupported syscall.RawSyscall"},
 		{"raw-syscall-dot", `package app; import . "syscall"; var F=RawSyscall`, "unsupported syscall.RawSyscall"},
 		{"dynamic-reflection", `package app; import "reflect"; var F=reflect.StructOf`, "unsupported reflect.StructOf"},
-		{"http", `package app; import _ "net/http"`, "unsupported application package net/http"},
+		{"http", `package app; import _ "net/http"`, ""},
 		{"native-clock", `package app; import "time" //gosim:notranslate
 var X=time.Second`, "unreviewed native import time"},
 		{"native-pure-directive", `package app; import "math" //gosim:notranslate
@@ -175,6 +175,12 @@ func f() int64`, "unreviewed native linkname"},
 		{"pushed-link", `package app; import _ "unsafe"
 //go:linkname f
 func f() int64`, "unreviewed bodyless function"},
+		{"deterministic-runtime-random", `package app; import _ "unsafe"
+//go:linkname f runtime.fastrandn
+func f(n uint32) uint32`, ""},
+		{"invalid-runtime-random", `package app; import _ "unsafe"
+//go:linkname f runtime.fastrandn
+func f(n uint64) uint32`, "invalid runtime random link signature"},
 		{"local-export", `package app; import _ "unsafe"
 //go:linkname f
 func f() int64{return 1}`, ""},

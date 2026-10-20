@@ -52,12 +52,44 @@ func Run(ctx context.Context, w Worker, r buildspec.Resolution, args []string, s
 
 const Help = `Gosim translates Go tests and runs them in a deterministic simulation.
 
-Usage: gosim <command> [options] [packages]
+Usage: gosim [-C directory] <command> [options] [packages]
 Commands: test, translate, build-tests, prepare-selftest, debug, viewer
 Go tooling selects the compiler from the caller's module/workspace.
+-C directory runs in that directory and must precede the command.
 Optional overrides: -go go1.X.Y, -config path, -features rt[,fs][,net], -race
 Certification is a separate, explicitly invoked manual command.
 `
+
+// startupDirectory resolves the launch context without changing the process's
+// working directory. Discovery and the worker both use this directory.
+func startupDirectory(args []string) (string, []string, error) {
+	if len(args) == 0 || args[0] != "-C" && !strings.HasPrefix(args[0], "-C=") {
+		return "", args, nil
+	}
+	directory := strings.TrimPrefix(args[0], "-C=")
+	rest := args[1:]
+	if args[0] == "-C" {
+		if len(rest) == 0 {
+			return "", nil, fmt.Errorf("missing directory for -C")
+		}
+		directory, rest = rest[0], rest[1:]
+	}
+	if directory == "" {
+		return "", nil, fmt.Errorf("empty directory for -C")
+	}
+	directory, err := filepath.Abs(directory)
+	if err != nil {
+		return "", nil, fmt.Errorf("-C: %w", err)
+	}
+	info, err := os.Stat(directory)
+	if err != nil {
+		return "", nil, fmt.Errorf("-C: %w", err)
+	}
+	if !info.IsDir() {
+		return "", nil, fmt.Errorf("-C: %s is not a directory", directory)
+	}
+	return directory, rest, nil
+}
 
 // startupOverrides reads only startup options, respecting flag values and the
 // first positional package. Full command validation belongs to the worker.
@@ -84,6 +116,9 @@ func startupOverrides(args []string) (config, version string, err error) {
 		}
 		if name == "resolution" || name == "worker-info" {
 			return "", "", fmt.Errorf("private worker flags are not launcher options")
+		}
+		if name == "C" {
+			return "", "", fmt.Errorf("-C must precede the command")
 		}
 		if !has && !booleans[name] {
 			i++
@@ -133,6 +168,11 @@ func ConfigPath(directory, explicit string) (string, error) {
 }
 
 func Main(ctx context.Context, args []string, streams Streams) int {
+	fail := func(err error) int { fmt.Fprintln(streams.Err, "gosim:", err); return buildspec.ExitCode(err) }
+	cwd, args, err := startupDirectory(args)
+	if err != nil {
+		return fail(err)
+	}
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		fmt.Fprint(streams.Out, Help)
 		return 0
@@ -141,7 +181,6 @@ func Main(ctx context.Context, args []string, streams Streams) int {
 		fmt.Fprintln(streams.Out, "gosim launcher; worker protocol", Protocol)
 		return 0
 	}
-	fail := func(err error) int { fmt.Fprintln(streams.Err, "gosim:", err); return buildspec.ExitCode(err) }
 	path, version, err := startupOverrides(args)
 	if errors.Is(err, flag.ErrHelp) {
 		fmt.Fprint(streams.Out, Help)
@@ -150,9 +189,11 @@ func Main(ctx context.Context, args []string, streams Streams) int {
 	if err != nil {
 		return fail(err)
 	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fail(err)
+	if cwd == "" {
+		cwd, err = os.Getwd()
+		if err != nil {
+			return fail(err)
+		}
 	}
 	path, err = ConfigPath(cwd, path)
 	if err != nil {

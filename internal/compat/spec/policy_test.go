@@ -28,15 +28,35 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 			if err := m.Validate(p); err != nil {
 				t.Fatal(err)
 			}
-			for _, path := range []string{"context", "time", "net", "io", "io/fs", "math/big", "errors", "strconv", "sync", "os", "golang.org/x/sys/unix"} {
+			for _, path := range []string{"context", "time", "net", "io", "io/fs", "net/http", "errors", "strconv", "sync", "os", "golang.org/x/sys/unix"} {
 				policy, err := p.Policy(path, !strings.Contains(strings.Split(path, "/")[0], "."))
 				if err != nil || policy.Mode != "translate" {
 					t.Errorf("%s: %+v %v", path, policy, err)
 				}
 			}
-			for _, path := range []string{"crypto/tls", "crypto/internal/sysrand", "net/http", "net/http/httptest", "google.golang.org/grpc", "google.golang.org/grpc/internal/transport", "github.com/modern-go/reflect2", "os/exec", "os/signal", "C", "testing/synctest", "weak"} {
+			for _, path := range []string{"net/http/httptest", "google.golang.org/grpc", "google.golang.org/grpc/internal/transport", "github.com/modern-go/reflect2", "C", "testing/synctest", "crypto/internal/sysrand", "crypto/internal/fips140", "weak"} {
 				if _, err := p.Policy(path, true); err == nil {
 					t.Errorf("unsafe package %s admitted", path)
+				}
+			}
+			for _, path := range []string{"crypto/sha256", "crypto/aes", "math/big"} {
+				if policy, err := p.Policy(path, true); err != nil || policy.Mode != "native-pure" {
+					t.Fatalf("computation boundary %s: %+v %v", path, policy, err)
+				}
+			}
+			for _, item := range [][2]string{{"crypto", "RegisterHash"}, {"crypto/cipher", "NewGCMWithRandomNonce"}, {"crypto/subtle", "WithDataIndependentTiming"}} {
+				if _, err := m.ResolveSymbol(p, item[0], item[1], true); err == nil {
+					t.Errorf("host state/entropy escape admitted: %v", item)
+				}
+			}
+			for _, path := range []string{"crypto", "crypto/cipher", "crypto/ed25519", "hash/crc32"} {
+				if err := m.AllowNativeImport(p, "example.test/application", path, true); err == nil {
+					t.Errorf("native directive bypassed symbol checks: %s", path)
+				}
+			}
+			for _, item := range [][2]string{{"crypto/ed25519", "Sign"}, {"crypto/ed25519", "Verify"}, {"crypto/ed25519", "GenerateKey"}, {"hash/crc32", "Checksum"}, {"hash/crc32", "MakeTable"}, {"hash/crc32", "IEEETable"}, {"hash/crc32", "NewIEEE"}, {"hash/crc32", "ChecksumIEEE"}} {
+				if target, err := m.ResolveSymbol(p, item[0], item[1], true); err != nil || target.Package != item[0] {
+					t.Fatalf("computation did not stay native: %v %v", target, err)
 				}
 			}
 			if policy, err := p.Policy("crypto/rand", true); err != nil || policy.Mode != "bridge" {
@@ -68,7 +88,7 @@ func TestFamiliesNativeBridges(t *testing.T) {
 			if family == "go126" {
 				p, m = p126.Descriptor(), p126.PolicyManifest()
 			}
-			for _, symbol := range []string{"Gosched", "GOOS", "SetFinalizer", "NumCPU", "GOMAXPROCS"} {
+			for _, symbol := range []string{"Gosched", "GOOS", "SetFinalizer", "NumCPU", "GOMAXPROCS", "ReadMemStats", "AddCleanup", "SetBlockProfileRate"} {
 				target, err := m.ResolveSymbol(p, "runtime", symbol, true)
 				if err != nil || !strings.HasPrefix(target.Package, "github.com/neria-cloud/gosim/") {
 					t.Fatalf("runtime.%s did not use a model: %+v %v", symbol, target, err)
@@ -79,12 +99,12 @@ func TestFamiliesNativeBridges(t *testing.T) {
 					t.Fatalf("reviewed primitive bridge %s: %+v %v", symbol, target, err)
 				}
 			}
-			for _, symbol := range []string{"ReadMemStats", "AddCleanup", "newFutureRuntimeFunction"} {
+			for _, symbol := range []string{"newFutureRuntimeFunction"} {
 				if _, err := m.ResolveSymbol(p, "runtime", symbol, true); err == nil {
 					t.Errorf("native runtime.%s admitted", symbol)
 				}
 			}
-			for _, path := range []string{"reflect", "testing", "internal/synctest", "crypto/rand"} {
+			for _, path := range []string{"reflect", "testing", "internal/synctest", "crypto/rand", "crypto/tls", "crypto/x509", "os/exec", "os/signal", "runtime/pprof"} {
 				target, err := m.ResolveSymbol(p, path, "TypeFor", true)
 				if err != nil || !strings.Contains(target.Package, "/"+family+"/shims/") {
 					t.Fatalf("whole shim %s: %+v %v", path, target, err)

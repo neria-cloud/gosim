@@ -20,7 +20,7 @@ type selectedGraph struct {
 	order  []string
 }
 
-func selectGraph(roots []*packages.Package, p PackagePolicies) (*selectedGraph, error) {
+func selectGraph(roots []*packages.Package, p PackagePolicies, available ...*packages.Package) (*selectedGraph, error) {
 	g := &selectedGraph{all: make(map[string]*packages.Package), nodes: make(map[string]*packages.Package), deps: make(map[string][]string), native: make(map[string]bool)}
 	byPath := make(map[string]*packages.Package)
 	var gather func(*packages.Package)
@@ -37,6 +37,12 @@ func selectGraph(roots []*packages.Package, p PackagePolicies) (*selectedGraph, 
 		}
 	}
 	for _, root := range roots {
+		gather(root)
+	}
+	// Replacement packages are available for lookup, but only become selected
+	// when a reachable import uses them. Optional shims must not force their
+	// dependencies or initialization into every composition.
+	for _, root := range available {
 		gather(root)
 	}
 	visiting := make(map[string]bool)
@@ -65,6 +71,27 @@ func selectGraph(roots []*packages.Package, p PackagePolicies) (*selectedGraph, 
 					}
 					return visit(target)
 				}
+				// Symbol adapters are dependencies of the native boundary. Only
+				// their owned packages are traversed, never native internals.
+				visiting[pkg.ID] = true
+				var targets []string
+				for from, to := range p.replacements {
+					if from.Pkg == pkg.PkgPath {
+						targets = append(targets, to.Pkg)
+					}
+				}
+				slices.Sort(targets)
+				for _, path := range slices.Compact(targets) {
+					target := byPath[path]
+					if target == nil {
+						return fmt.Errorf("selected adapter %s is not loaded", path)
+					}
+					if err := visit(target); err != nil {
+						return err
+					}
+					g.deps[pkg.ID] = append(g.deps[pkg.ID], target.ID)
+				}
+				delete(visiting, pkg.ID)
 				g.nodes[pkg.ID] = pkg
 				g.native[pkg.ID] = true
 				g.order = append(g.order, pkg.ID)

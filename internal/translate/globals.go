@@ -121,8 +121,20 @@ func (t *packageTranslator) isGlobalUse(node dst.Node) (dst.Expr, bool) {
 		return nil, false
 	}
 
-	if pkgInfo, ok := t.globalInfo.ByPackage[pkg.Path()]; ok {
-		if container, ok := pkgInfo.Container[var_.Name()]; ok {
+	path := pkg.Path()
+	if t.nativeImports[path] {
+		return nil, false
+	}
+	name := var_.Name()
+	if t.profile != nil {
+		if replacement, ok := t.profile.replacements[PackageSelector{Pkg: path, Selector: name}]; ok {
+			path, name = replacement.Pkg, replacement.Selector
+		} else if replacement := t.profile.packages[path]; replacement != "" {
+			path = replacement
+		}
+	}
+	if pkgInfo, ok := t.globalInfo.ByPackage[path]; ok {
+		if container, ok := pkgInfo.Container[name]; ok {
 			return &dst.SelectorExpr{
 				X: &dst.CallExpr{
 					Fun: &dst.Ident{Name: container, Path: ident.Path},
