@@ -5,6 +5,8 @@ import (
 	"net/netip"
 	"syscall"
 	"time"
+
+	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
 type LatencyConfig struct {
@@ -17,6 +19,7 @@ type (
 		Latency           LatencyConfig
 		Loss              LossConfig
 		ConnectionTimeout time.Duration
+		TCPBufferSize     int
 	}
 )
 
@@ -78,7 +81,7 @@ type linkState struct {
 }
 
 func DefaultConfig() Config {
-	return Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second}
+	return Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second, TCPBufferSize: 1024}
 }
 
 func validateProbability(p float64) error {
@@ -103,7 +106,7 @@ func validateLoss(c LossConfig) error {
 }
 
 func ValidateConfig(c Config) error {
-	if c.ConnectionTimeout < 0 {
+	if c.ConnectionTimeout < 0 || c.TCPBufferSize < 0 || c.TCPBufferSize > contracts.MaxTCPBufferSize {
 		return syscall.EINVAL
 	}
 	if err := validateLatency(c.Latency); err != nil {
@@ -212,8 +215,11 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 		if c.ConnectionTimeout == 0 {
 			c.ConnectionTimeout = DefaultConfig().ConnectionTimeout
 		}
+		if c.TCPBufferSize == 0 {
+			c.TCPBufferSize = DefaultConfig().TCPBufferSize
+		}
 		n.config = c
-		n.traceNetwork("configure_global", "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "connectionTimeout", c.ConnectionTimeout, "scope", "global")
+		n.traceNetwork("configure_global", "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "connectionTimeout", c.ConnectionTimeout, "tcpBufferSize", c.TCPBufferSize, "scope", "global")
 		return nil
 	}
 	keys, err := selectedEdges(pair, r.Direction)

@@ -424,14 +424,16 @@ func (n *Stack) resetKeepaliveTimer(s *Stream) {
 			n.send(s, packet)
 
 			n.resetKeepaliveTimer(s)
-			n.resetAckFailedTimer(s)
+			n.startAckFailedTimer(s)
 		})
 	} else {
 		s.keepaliveTimer.Reset(15 * time.Second)
 	}
 }
 
-func (n *Stack) resetAckFailedTimer(s *Stream) {
+// New writes must not postpone failure detection for earlier unacknowledged
+// data. Only forward ACK progress renews an already running deadline.
+func (n *Stack) startAckFailedTimer(s *Stream) {
 	if s.ackFailedTimer == nil {
 		// TODO: this time is way too low, it breaks when latency goes to 2.5s?
 		s.ackFailedTimer = n.after(5*time.Second, func() {
@@ -439,19 +441,10 @@ func (n *Stack) resetAckFailedTimer(s *Stream) {
 				return
 			}
 
-			// fmt.Fprintf(gosimruntime.LogOut, "ack failed\n")
-
-			// fail no matter the ack pos; for keep alives we have ackpos ==
-			// sendpos. when we do get the data, this timer is stopped, so this
-			// if should only help in case of a race
-
-			// if s.ackPos != s.sendPos {
-			// stream.failureReason?
-			// stream.openFailed?
+			// A keepalive also requires an ACK, even when ackPos == sendPos.
 			n.closeStream(s, false)
-			// }
 		})
-	} else {
+	} else if s.ackFailedTimer.event == 0 {
 		s.ackFailedTimer.Reset(5 * time.Second)
 	}
 }
@@ -486,8 +479,8 @@ func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
 		},
 	}
 
-	inBuffer := newCircularBuffer(1024)
-	outBuffer := newCircularBuffer(1024)
+	inBuffer := newCircularBuffer(n.endpoint.net.config.TCPBufferSize)
+	outBuffer := newCircularBuffer(n.endpoint.net.config.TCPBufferSize)
 	stream := NewStream(id, inBuffer, outBuffer)
 	stream.owner = n
 	stream.generation = n.endpoint.net.connectionGeneration()
@@ -565,9 +558,14 @@ func (s *Stream) processIncomingPacket(b *Stack, packet *Packet) {
 			// XXX: reject
 			return
 		}
+		progress := packet.Offset > s.ackPos
 		s.ackPos = packet.Offset
-		if s.ackPos == s.sendPos && s.ackFailedTimer != nil {
-			s.ackFailedTimer.Stop()
+		if s.ackFailedTimer != nil {
+			if s.ackPos == s.sendPos {
+				s.ackFailedTimer.Stop()
+			} else if progress {
+				s.ackFailedTimer.Reset(5 * time.Second)
+			}
 		}
 
 	case PacketKindStreamWindow:
@@ -616,7 +614,7 @@ func (n *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
 
 	s.outgoingWindow -= written
 
-	n.resetAckFailedTimer(s)
+	n.startAckFailedTimer(s)
 	n.resetKeepaliveTimer(s)
 
 	n.updateStreamPollers(s)

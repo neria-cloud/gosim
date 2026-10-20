@@ -34,7 +34,7 @@ func localRequest(kind ControlKind) ControlRequest {
 
 func TestConfigDefaultsValidation(t *testing.T) {
 	t.Parallel()
-	want := Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second}
+	want := Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second, TCPBufferSize: 1024}
 	if DefaultConfig() != want {
 		t.Fatal(DefaultConfig())
 	}
@@ -61,6 +61,11 @@ func TestConfigDefaultsValidation(t *testing.T) {
 	c = want
 	c.ConnectionTimeout = -1
 	bad = append(bad, c)
+	for _, size := range []int{-1, contracts.MaxTCPBufferSize + 1} {
+		c := want
+		c.TCPBufferSize = size
+		bad = append(bad, c)
+	}
 	for _, c := range bad {
 		if ValidateConfig(c) != syscall.EINVAL {
 			t.Fatalf("accepted %+v", c)

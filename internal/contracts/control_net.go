@@ -1,9 +1,12 @@
 package contracts
 
+const MaxTCPBufferSize = 16 * 1024 * 1024
+
 type NetConfig struct {
 	MinNS, MaxNS         int64
 	Lambda, Fail, Repair float64
 	ConnectionTimeoutNS  int64
+	TCPBufferSize        int
 }
 type NetLink struct {
 	From, To  [4]byte

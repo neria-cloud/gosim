@@ -16,16 +16,17 @@ import (
 
 // Arguments describe simulated Linux, independently of the host running tests.
 const (
-	atFDCWD       = -100
-	atRemoveDir   = 0x200
-	openCreate    = 0x40
-	openExclusive = 0x80
-	openTruncate  = 0x200
-	openCloseExec = 0x80000
-	mapShared     = 1
-	mapPopulate   = 0x8000
-	protRead      = 1
-	maxMapping    = 16 * 1024 * 1024
+	atFDCWD           = -100
+	atRemoveDir       = 0x200
+	atSymlinkNoFollow = 0x100
+	openCreate        = 0x40
+	openExclusive     = 0x80
+	openTruncate      = 0x200
+	openCloseExec     = 0x80000
+	mapShared         = 1
+	mapPopulate       = 0x8000
+	protRead          = 1
+	maxMapping        = 16 * 1024 * 1024
 )
 
 func (i *Instance) dirInode(dirfd int) (int, error) {
@@ -258,7 +259,10 @@ func (i *Instance) Statat(ctx contracts.CallContext, dirfd int, path string, fla
 	if err != nil {
 		return contracts.Stat{}, err
 	}
-	if flags != 0 {
+	// The model contains files and directories only, so following and not
+	// following the final component have identical results. Accept lstat's
+	// Linux flag without implying support for symlink creation.
+	if flags&^atSymlinkNoFollow != 0 {
 		return contracts.Stat{}, syscall.EINVAL
 	}
 	stat, err := i.model.Stat(dir, path)

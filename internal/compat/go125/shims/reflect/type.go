@@ -13,6 +13,7 @@ import (
 	"sync"    //gosim:notranslate
 
 	"github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
 func makeMapType() reflect.Type {
@@ -416,6 +417,7 @@ func ChanOf(dir ChanDir, t Type) Type {
 }
 
 func MapOf(key, elem Type) Type {
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "reflect.MapOf", Message: "dynamic map type construction is not modeled"})
 	panic("gosim go125 reflect: unsupported operation")
 }
 

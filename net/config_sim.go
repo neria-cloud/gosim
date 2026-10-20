@@ -16,7 +16,7 @@ func ref(m gosim.Machine) contracts.MachineRef {
 }
 
 func Configure(c Config) error {
-	_, err := control.Call(kernel.NetConfigureRequest{Config: contracts.NetConfig{MinNS: int64(c.Latency.Min), MaxNS: int64(c.Latency.Max), Lambda: c.Latency.Lambda, Fail: c.Loss.FailProbability, Repair: c.Loss.RepairProbability, ConnectionTimeoutNS: int64(c.ConnectionTimeout)}}, kernel.DecodeNetConfigureResult)
+	_, err := control.Call(kernel.NetConfigureRequest{Config: contracts.NetConfig{MinNS: int64(c.Latency.Min), MaxNS: int64(c.Latency.Max), Lambda: c.Latency.Lambda, Fail: c.Loss.FailProbability, Repair: c.Loss.RepairProbability, ConnectionTimeoutNS: int64(c.ConnectionTimeout), TCPBufferSize: c.TCPBufferSize}}, kernel.DecodeNetConfigureResult)
 	return err
 }
 

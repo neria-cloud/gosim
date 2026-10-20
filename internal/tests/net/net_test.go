@@ -277,7 +277,7 @@ func TestNetTcpDisconnectBasic(t *testing.T) {
 }
 
 // TODO: test hosts crash?
-// TestNetTcpHttp and TestNetTcpGrpc moved to net_grpc_http_test.go (//go:build ignore)
+// Plaintext gRPC is exercised in net_grpc_test.go.
 // until crypto/tls can be translated in Go 1.25+.
 // TODO: port tests below to TCP?
 

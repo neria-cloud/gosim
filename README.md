@@ -156,10 +156,17 @@ the expected handshake round trip:
 ```go
 config := simnet.DefaultConfig()
 config.ConnectionTimeout = 10 * time.Second
+config.TCPBufferSize = 256 * 1024
 if err := simnet.Configure(config); err != nil {
     t.Fatal(err)
 }
 ```
+
+`net.Config.TCPBufferSize` sets each direction’s byte capacity for new TCP
+connections. Zero uses the historical 1024-byte default; positive values up to
+16 MiB are accepted. A larger window avoids an unintended throughput bottleneck
+on high-latency links. Reconfiguration leaves pending and established connections
+unchanged.
 
 A `net.Link` selects `From`, `To`, and `Forward` or `Both` directions. `SetLinkPolicy` copies each non-nil latency/loss group; nil leaves that override unchanged. `ResetLinkPolicy` restores global defaults. For fixed latency, set `LatencyConfig{Min: delay, Max: delay, Lambda: 1}`. Values are validated atomically; lambda must be positive and probabilities must lie in `[0,1]`.
 
@@ -189,7 +196,7 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 | Files and persistence | Existing file/directory, sync and crash semantics; limits remain in mappings and syscall options |
 | Locks and permissions | `flock`/record-lock stubs do not establish ownership or contention; chmod/permission completeness is not claimed |
 | Networking | Simulated IPv4/TCP; UDP, IPv6 and hostname resolution are outside the supported model |
-| HTTP/gRPC/TLS | HTTP dependencies can be translated; full HTTP support is not established. gRPC remains rejected, and optional TLS/certificate operations abort. The [NATS example](examples/network/nats/) exercises plain TCP only. |
+| HTTP/gRPC/TLS | Plaintext gRPC unary and bidirectional streaming over IPv4/TCP are exercised by the [standalone gRPC example](examples/network/grpc/). Full HTTP support is not established; TLS/certificate operations abort. The [NATS example](examples/network/nats/) exercises plain TCP only. |
 | Linux process services | Deterministic getrandom, historical fixed PID and limited uname; full signals/procfs/process behavior is absent |
 | Runtime modes | One active run per process; no native-scheduler virtual-I/O mode, mutable feature sets or runtime provider loading |
 | Additional platforms | Go families other than 1.25/1.26, Darwin AMD64, Windows and non-Linux simulated ABIs are unsupported |

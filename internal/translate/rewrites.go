@@ -203,7 +203,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 					idx := idx1 + idx2
 					pkg, name := dest[:idx], dest[idx+1:]
 					target := PackageSelector{Pkg: pkg, Selector: name}
-					if runtimeRandomLink(target) && t.profile != nil {
+					if (runtimeRandomLink(target) || runtimeAuxvLink(target)) && t.profile != nil {
 						replacement := t.profile.replacements[target]
 						parts[2] = t.replacedPkgs[replacement.Pkg] + "." + replacement.Selector
 						decl.Decs.Start[i] = strings.Join(parts, " ")

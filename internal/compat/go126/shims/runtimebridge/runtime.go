@@ -54,3 +54,17 @@ func (RuntimeCleanup) Stop() {
 func Runtime_fastrand() uint32          { return uint32(gosimruntime.Fastrand64()) }
 func Runtime_fastrandn(n uint32) uint32 { return uint32(uint64(Runtime_fastrand()) * uint64(n) >> 32) }
 func Runtime_fastrand64() uint64        { return gosimruntime.Fastrand64() }
+
+// Runtime_getAuxv exposes no host ELF vector or process addresses.
+// x/sys Auxv reports ENOENT for this explicitly unavailable process service.
+func Runtime_getAuxv() []uintptr { return nil }
+
+func Runtime_NumGoroutine() int {
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.NumGoroutine", Message: "runtime goroutine metrics are not modeled"})
+	panic("abort returned")
+}
+
+func Runtime_ThreadCreateProfile(p any) (int, bool) {
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.ThreadCreateProfile", Message: "host thread profiling is not modeled"})
+	panic("abort returned")
+}

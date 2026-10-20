@@ -125,7 +125,9 @@ func (m PolicyManifest) Validate(p Profile) error {
 	bridges := make(map[string]bool)
 	for _, bridge := range m.Bridges {
 		policy, err := p.Policy(bridge.Package, true)
-		if err != nil || policy.Mode != "bridge" || bridges[bridge.Package] || bridge.Reason == "" {
+		translatedRewrite := policy.Mode == "translate" && len(bridge.Rewrites) > 0 &&
+			bridge.Replacement == "" && !bridge.NativeIsland && len(bridge.NativeSymbols) == 0
+		if err != nil || (policy.Mode != "bridge" && !translatedRewrite) || bridges[bridge.Package] || bridge.Reason == "" {
 			return fmt.Errorf("invalid bridge %s", bridge.Package)
 		}
 		if bridge.NativeIsland && (bridge.Package != module+"/rt/runtime" && bridge.Package != module+"/rt/runtime/abi" || bridge.Replacement != "" || len(bridge.NativeSymbols) > 0 || len(bridge.Rewrites) > 0) {
@@ -212,6 +214,15 @@ func (m PolicyManifest) ResolveSymbol(p Profile, path, symbol string, standard b
 		}
 	}
 	if policy.Mode != "bridge" {
+		for _, bridge := range m.Bridges {
+			if bridge.Package == path {
+				for _, rewrite := range bridge.Rewrites {
+					if rewrite.Symbol == symbol {
+						return rewrite, nil
+					}
+				}
+			}
+		}
 		return SymbolRewrite{Symbol: symbol, Package: path, Target: symbol}, nil
 	}
 	for _, bridge := range m.Bridges {

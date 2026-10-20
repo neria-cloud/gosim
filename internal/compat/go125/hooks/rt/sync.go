@@ -30,29 +30,23 @@ func Sync_runtime_registerPoolCleanup(cleanup func()) {
 }
 
 func Sync_runtime_procPin() int {
-	// noop
-	// TODO: randomize?
-	return 0
+	return gosimruntime.ProcPin()
 }
 
 func Sync_runtime_procUnpin() {
-	// noop
+	gosimruntime.ProcUnpin()
 }
 
 //go:norace
 func Sync_runtime_LoadAcquintptr(ptr *uintptr) uintptr {
 	// XXX
-	if gosimruntime.AtomicYield {
-		gosimruntime.Yield()
-	}
+	gosimruntime.AtomicYield()
 	return *ptr
 }
 
 //go:norace
 func Sync_runtime_StoreReluintptr(ptr *uintptr, val uintptr) uintptr {
-	if gosimruntime.AtomicYield {
-		gosimruntime.Yield()
-	}
+	gosimruntime.AtomicYield()
 	*ptr = val
 	return 0 // sync.Pool ignores this result; only the modeled store is observable.
 }

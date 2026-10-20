@@ -162,6 +162,27 @@ func TestFileOpsDirectoriesAndCapabilities(t *testing.T) {
 	}
 }
 
+func TestStatatNoFollow(t *testing.T) {
+	t.Parallel()
+	i, ctx, _ := ioFixture(t)
+	open(t, i, ctx, "file", openCreate|2)
+	for _, path := range []string{"/app", "/app/file"} {
+		stat, err := i.Statat(ctx, atFDCWD, path, 0)
+		must(t, err)
+		lstat, err := i.Statat(ctx, atFDCWD, path, atSymlinkNoFollow)
+		must(t, err)
+		if lstat != stat {
+			t.Fatalf("%s: stat=%+v lstat=%+v", path, stat, lstat)
+		}
+	}
+	if _, err := i.Statat(ctx, atFDCWD, "/app/missing", atSymlinkNoFollow); !errors.Is(err, syscall.ENOENT) {
+		t.Fatal(err)
+	}
+	if _, err := i.Statat(ctx, atFDCWD, "/app", 0x1000); !errors.Is(err, syscall.EINVAL) {
+		t.Fatal("unmodeled flags accepted", err)
+	}
+}
+
 type wrongOwner struct{}
 
 func (wrongOwner) Owner() contracts.Feature            { return contracts.Net }

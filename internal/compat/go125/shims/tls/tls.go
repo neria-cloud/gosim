@@ -295,3 +295,14 @@ func NewLRUClientSessionCache(capacity int) ClientSessionCache {
 	panic("abort returned")
 }
 func VersionName(version uint16) string { unsupported(); panic("abort returned") }
+
+// Cipher suite discovery is part of the optional, unsupported TLS API.
+type CipherSuite struct {
+	ID                uint16
+	Name              string
+	SupportedVersions []uint16
+	Insecure          bool
+}
+
+func CipherSuites() []*CipherSuite         { unsupported(); panic("abort returned") }
+func InsecureCipherSuites() []*CipherSuite { unsupported(); panic("abort returned") }

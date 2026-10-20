@@ -28,13 +28,13 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 			if err := m.Validate(p); err != nil {
 				t.Fatal(err)
 			}
-			for _, path := range []string{"context", "time", "net", "io", "io/fs", "net/http", "errors", "strconv", "sync", "os", "golang.org/x/sys/unix"} {
+			for _, path := range []string{"google.golang.org/grpc", "google.golang.org/grpc/internal/transport", "context", "time", "net", "io", "io/fs", "net/http", "errors", "strconv", "sync", "os", "golang.org/x/sys/unix"} {
 				policy, err := p.Policy(path, !strings.Contains(strings.Split(path, "/")[0], "."))
 				if err != nil || policy.Mode != "translate" {
 					t.Errorf("%s: %+v %v", path, policy, err)
 				}
 			}
-			for _, path := range []string{"net/http/httptest", "google.golang.org/grpc", "google.golang.org/grpc/internal/transport", "github.com/modern-go/reflect2", "C", "testing/synctest", "crypto/internal/sysrand", "crypto/internal/fips140", "weak"} {
+			for _, path := range []string{"net/http/httptest", "github.com/modern-go/reflect2", "C", "testing/synctest", "crypto/internal/sysrand", "crypto/internal/fips140", "weak"} {
 				if _, err := p.Policy(path, true); err == nil {
 					t.Errorf("unsafe package %s admitted", path)
 				}
@@ -247,7 +247,7 @@ func TestPolicyFixtures(t *testing.T) {
 						}
 						return true
 					})
-					shouldPass := filepath.Base(filename) == "minimal.go"
+					shouldPass := (filepath.Base(filename) == "minimal.go" || filepath.Base(filename) == "grpc.go")
 					if shouldPass && rejected != nil {
 						t.Fatal(rejected)
 					}

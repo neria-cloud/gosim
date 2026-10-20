@@ -4,6 +4,7 @@ package kernel
 
 import (
 	"strings"
+	"syscall"
 	"unsafe"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
@@ -120,3 +121,7 @@ func Os_runtime_rand() uint64        { return simrt.Fastrand64() }
 func Os_checkClonePidfd() error      { Reject("os.checkClonePidfd"); return contracts.ErrInvalidState }
 func Os_sigpipe()                    { Reject("os.sigpipe") }
 func Os_runtime_beforeExit(code int) { Reject("os.Exit") }
+
+// Os_Executable reports the absence of an executable image in a simulated
+// process. In particular, protobuf must not hash the host executable at init.
+func Os_Executable() (string, error) { return "", syscall.ENOENT }

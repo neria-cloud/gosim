@@ -1,4 +1,13 @@
 [
+{"package":"crypto/tls","symbol":"CipherSuites","signature":"func() []*CipherSuite","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/tls.CipherSuites","owner":"net"},
+{"package":"crypto/tls","symbol":"InsecureCipherSuites","signature":"func() []*CipherSuite","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/tls.InsecureCipherSuites","owner":"net"},
+{"package":"runtime/metrics","symbol":"All","signature":"func() []Description","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/metrics.All","owner":"rt"},
+{"package":"runtime/metrics","symbol":"Read","signature":"func([]Sample)","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/metrics.Read","owner":"rt"},
+{"package":"runtime/metrics","symbol":"Value.Kind","signature":"func() ValueKind","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/metrics.Value.Kind","owner":"rt"},
+{"package":"runtime/metrics","symbol":"Value.Uint64","signature":"func() uint64","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/metrics.Value.Uint64","owner":"rt"},
+{"package":"runtime/metrics","symbol":"Value.Float64","signature":"func() float64","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/metrics.Value.Float64","owner":"rt"},
+{"package":"runtime/metrics","symbol":"Value.Float64Histogram","signature":"func() *Float64Histogram","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/metrics.Value.Float64Histogram","owner":"rt"},
+{"package":"runtime/debug","symbol":"ReadGCStats","signature":"func(*GCStats)","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/debug.ReadGCStats","owner":"rt"},
 {"package":"crypto/rand","symbol":"Int","signature":"func(io.Reader, *big.Int) (*big.Int, error)","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/cryptorand.Int","owner":"rt"},
 {"package":"crypto/rand","symbol":"Prime","signature":"func(io.Reader, int) (*big.Int, error)","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/cryptorand.Prime","owner":"rt"},
 {"package":"crypto/rand","symbol":"Read","signature":"func([]byte) (int, error)","target":"github.com/neria-cloud/gosim/internal/compat/go125/shims/cryptorand.Read","owner":"rt"},

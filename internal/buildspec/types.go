@@ -57,6 +57,9 @@ type Selection struct {
 // These records are transient; persisted artifacts use Identity instead.
 type Toolchain struct {
 	Executable, Version, GOROOT, HostOS, HostArch string
+	// ModuleCache is the location resolved by Go before GOENV is disabled.
+	// It is transient build context, not part of executable identity.
+	ModuleCache string `json:"-"`
 }
 
 type BuildOptions struct {
