@@ -18,6 +18,11 @@ import (
 	"github.com/neria-cloud/gosim"
 )
 
+const (
+	diskFileMode = 0o644
+	diskDirMode  = 0o755
+)
+
 func setupRealDisk(t *testing.T) {
 	if gosim.IsSim() {
 		return
@@ -56,7 +61,7 @@ func setupRealDisk(t *testing.T) {
 func TestDiskBasic(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -77,7 +82,7 @@ func TestDiskBasic(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("hello", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -97,7 +102,7 @@ func TestDiskBasic(t *testing.T) {
 func TestDiskTruncateGrow(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -118,7 +123,7 @@ func TestDiskTruncateGrow(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("hello", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -138,7 +143,7 @@ func TestDiskTruncateGrow(t *testing.T) {
 func TestDiskTruncateShrink(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -159,7 +164,7 @@ func TestDiskTruncateShrink(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("hello", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -179,7 +184,7 @@ func TestDiskTruncateShrink(t *testing.T) {
 func TestDiskOpenTruncate(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -193,7 +198,7 @@ func TestDiskOpenTruncate(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_WRONLY|os.O_TRUNC, 0o644)
+	f, err = os.OpenFile("hello", os.O_WRONLY|os.O_TRUNC, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -207,7 +212,7 @@ func TestDiskOpenTruncate(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("hello", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -227,7 +232,7 @@ func TestDiskOpenTruncate(t *testing.T) {
 func TestDiskSyncDir(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile(".", os.O_RDONLY, 0o644)
+	f, err := os.OpenFile(".", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -243,7 +248,7 @@ func TestDiskSyncDir(t *testing.T) {
 func TestDiskAfterClose(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -292,7 +297,7 @@ func TestDiskAfterClose(t *testing.T) {
 func TestDiskWriteAtEndOfFile(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -313,7 +318,7 @@ func TestDiskWriteAtEndOfFile(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("hello", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -333,7 +338,7 @@ func TestDiskWriteAtEndOfFile(t *testing.T) {
 func TestDiskWriteAtAfterEndOfFile(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -354,7 +359,7 @@ func TestDiskWriteAtAfterEndOfFile(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("hello", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -374,7 +379,7 @@ func TestDiskWriteAtAfterEndOfFile(t *testing.T) {
 func TestDiskReadAtBasic(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -390,7 +395,7 @@ func TestDiskReadAtBasic(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("hello", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -413,7 +418,7 @@ func TestDiskReadAtBasic(t *testing.T) {
 func TestDiskReadAtEndOfFile(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -429,7 +434,7 @@ func TestDiskReadAtEndOfFile(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("hello", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -465,7 +470,7 @@ func TestDiskReadAtEndOfFile(t *testing.T) {
 func TestDiskReadAtAfterEndOfFile(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -481,7 +486,7 @@ func TestDiskReadAtAfterEndOfFile(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("hello", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("hello", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -504,7 +509,7 @@ func TestDiskReadAtAfterEndOfFile(t *testing.T) {
 func TestDiskSeekBasic(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_RDWR, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_RDWR, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -638,7 +643,7 @@ func TestDiskSeekBasic(t *testing.T) {
 func TestDiskOpenMissingFile(t *testing.T) {
 	setupRealDisk(t)
 
-	_, err := os.OpenFile("foo", os.O_RDONLY, 0o644)
+	_, err := os.OpenFile("foo", os.O_RDONLY, diskFileMode)
 	if err == nil {
 		t.Error(err)
 		return
@@ -666,7 +671,7 @@ func TestDiskStatMissingFile(t *testing.T) {
 func TestDiskStatFile(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -703,7 +708,7 @@ func TestDiskStatFile(t *testing.T) {
 func TestDiskStatFd(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -760,7 +765,7 @@ func TestDiskDeleteMissingFile(t *testing.T) {
 func TestDiskDeleteFile(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -795,7 +800,7 @@ func TestDiskDeleteFile(t *testing.T) {
 func TestDiskRenameFile(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -826,7 +831,7 @@ func TestDiskRenameFile(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("bar", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("bar", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -860,7 +865,7 @@ func TestDiskRenameMissingFile(t *testing.T) {
 func TestDiskRenameFileReplace(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -876,7 +881,7 @@ func TestDiskRenameFileReplace(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("bar", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err = os.OpenFile("bar", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -912,7 +917,7 @@ func TestDiskRenameFileReplace(t *testing.T) {
 		return
 	}
 
-	f, err = os.OpenFile("bar", os.O_RDONLY, 0o644)
+	f, err = os.OpenFile("bar", os.O_RDONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -961,7 +966,7 @@ func TestDiskReadDir(t *testing.T) {
 
 	checkReadDir(t, ".", nil)
 
-	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile("foo", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -982,7 +987,7 @@ func TestDiskReadDir(t *testing.T) {
 		},
 	})
 
-	f, err = os.OpenFile("bar", os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err = os.OpenFile("bar", os.O_CREATE|os.O_WRONLY, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
@@ -1039,7 +1044,7 @@ func TestDiskReadDir(t *testing.T) {
 func TestMmapBasic(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_RDWR, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_RDWR, diskFileMode)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1098,11 +1103,11 @@ func TestMmapBasic(t *testing.T) {
 func TestDiskDirBasic(t *testing.T) {
 	setupRealDisk(t)
 
-	if err := os.Mkdir("foo", 0o755); err != nil {
+	if err := os.Mkdir("foo", diskDirMode); err != nil {
 		t.Error(err)
 	}
 
-	if err := os.WriteFile("foo/bar", []byte("baz"), 0o644); err != nil {
+	if err := os.WriteFile("foo/bar", []byte("baz"), diskFileMode); err != nil {
 		t.Error(err)
 	}
 
@@ -1277,7 +1282,7 @@ func (f *mmapTester) munmap(t *testing.T, name string) {
 func TestMmapComplex(t *testing.T) {
 	setupRealDisk(t)
 
-	f, err := os.OpenFile("hello", os.O_CREATE|os.O_RDWR, 0o644)
+	f, err := os.OpenFile("hello", os.O_CREATE|os.O_RDWR, diskFileMode)
 	if err != nil {
 		t.Error(err)
 		return
