@@ -1,31 +1,11 @@
 # Embedded NATS with delayed links
 
-This is a separate application module. Its `go.mod` owns the NATS server/client
-versions and replaces Gosim with the checkout at `../../..`. The Gosim module has
-no NATS dependency. Root `go test ./...` and the root example package patterns do
-not include this nested module.
-
-[Architecture diagram](../../../docs/diagrams/gosim-architecture.svg) shows the
-implementation layers. [Animated test workflows](../../../docs/diagrams/gosim-test-workflows.svg)
-illustrate network and filesystem capabilities. [Diagram notes](../../../docs/diagrams/README.md)
-map the components to source.
-
 From the repository root:
 
 ```sh
 make build
 ./.gosim/gosimtool -C examples/network/nats test -features rt,fs,net -v .
 ```
-
-Ordinary Go tooling selects the compiler. An optional `GOTOOLCHAIN=go1.26.9`
-prefix selects that compiler for the same command.
-`-C` must precede `test`; it selects this module without changing your shell's
-directory. To filter test names, add `-run '^TestPublisherReceiver'` before `.`.
-
-This runs both scenarios, which share the same server, clients, and message checks:
-
-- `TestPublisherReceiver`: 1–3 seconds of one-way latency per network leg.
-- `TestPublisherReceiverWithoutLatency`: zero injected network latency.
 
 Each test starts three simulated hosts:
 

@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help build test test-unit test-unit-race test-race test-large test-report-tools
+.PHONY: help build check-fmt fix-fmt go-generate certification-matrix certification-colima gosim-tool gosim-prepare-selftest go-test go-race-test test test-unit test-unit-race test-race test-large test-report-tools
 
 # Independent test cases and package binaries run concurrently on the local host.
 UNIT_PARALLEL ?= 4
@@ -10,8 +10,43 @@ TEST_REPORTS_DIR ?= test-reports
 GOSIM_TOOLCHAIN ?=
 export GOSIM_TOOLCHAIN
 
+# Defaults for explicitly invoked generation and manual certification.
+MATRIX_PLATFORM ?= darwin/arm64
+COLIMA_PLATFORM ?= linux/arm64
+MATRIX_TOOLCHAINS ?= go1.25.14,go1.26.9
+SIMPACKAGES ?= ./internal/tests/rt ./internal/tests/fs ./internal/tests/net ./internal/tests/integration ./nemesis ./examples/simple ./examples/bolt ./examples/network/machines ./examples/network/latency
+GOSIM ?= $(CURDIR)/.gosim/gosimtool
+
 help: ## List available targets
 	@awk 'BEGIN { FS = ":.*## "; print "Usage: make <target>\n\nTargets:" } /^[a-zA-Z0-9_-]+:.*## / { printf "  %-20s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+
+check-fmt: ## Check Go formatting
+	./.ci/gofmt check
+
+fix-fmt: ## Format Go sources
+	./.ci/gofmt fix
+
+go-generate: ## Generate Go adapters and filesystem model stringers
+	GOTOOLCHAIN=go1.25.14 go run ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=.
+	GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -arches=amd64,arm64 -output=.
+	go generate ./internal/fs/model
+
+certification-matrix: ## Run the manual native certification matrix
+	./.ci/crossarch-tests/run-matrix.sh --native --platform "$(MATRIX_PLATFORM)" --toolchains "$(MATRIX_TOOLCHAINS)" --output .gosim/certification
+
+certification-colima: ## Run the manual Colima certification matrix
+	./.ci/crossarch-tests/run-matrix.sh --context colima --platform "$(COLIMA_PLATFORM)" --toolchains "$(MATRIX_TOOLCHAINS)" --output .gosim/certification
+
+gosim-tool: ## Build the independent gosimtool launcher
+	@mkdir -p .gosim
+	$(if $(GOSIM_TOOLCHAIN),GOTOOLCHAIN="$(GOSIM_TOOLCHAIN)") go build -ldflags=-checklinkname=0 -tags=linkname -o .gosim/gosimtool ./cmd/gosim
+
+gosim-prepare-selftest: gosim-tool ## Prepare selftest artifacts with the launcher
+	"$(GOSIM)" prepare-selftest
+
+go-test: test ## Run ordinary local tests
+
+go-race-test: test-race ## Run the race suite when explicitly requested
 
 build: ## Build gosimtool, gosim-worker and gosim-gen in .gosim/
 	@mkdir -p .gosim

@@ -163,7 +163,7 @@ Certification is an optional manual operation, absent from CI and ordinary-comma
 
 `make test` resolves the compiler through Go tooling and runs ordinary tests in an isolated copy with identical executable inputs. `make test-race` and `make test-large` select their separate suites only when explicitly requested. The lower-level `verify` command runs one mode: ordinary by default or race with `-race`. It writes suite logs without producing a certification report. Snapshot metadata and source checks remain under `.gosim/verification`; user-facing reports, timelines, JSON and JUnit results remain under `test-reports/<suite>/`.
 
-CI runs `make test` and report-tool checks on native ARM64 Linux/Darwin workers with Go family selectors `1.25.x` and `1.26.x`. CI uploads test reports and never invokes the certification matrix, evidence promotion, race suites or large suites automatically.
+CI runs `make test` and report-tool checks on native ARM64 Linux workers with Go family selectors `1.25.x` and `1.26.x`. CI uploads test reports and never invokes the certification matrix, evidence promotion, race suites or large suites automatically.
 
 The explicit manual certification matrix defaults to 16 tuples: two representative patches, Linux ARM64 and Darwin ARM64, four feature sets, without race instrumentation. AMD64 and race certification remain disabled in matrix selection, the worker, and direct `certify -large` execution. Colima is an explicit manual route from Darwin ARM64 to Linux ARM64. Wrong architecture, incomplete/skipped suites, failed tests or stale source fail a manual report. Docker reports/artifacts are copied through the API; image digests and bounded concurrency remain recorded.
 
