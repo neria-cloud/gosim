@@ -177,19 +177,19 @@ func ConfigPath(directory, explicit string) (string, error) {
 
 func Main(ctx context.Context, args []string, streams Streams) int {
 	fail := func(err error) int { fmt.Fprintln(streams.Err, "gosim:", err); return buildspec.ExitCode(err) }
-	cwd, args, err := startupDirectory(args)
+	cwd, remainingArgs, err := startupDirectory(args)
 	if err != nil {
 		return fail(err)
 	}
-	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+	if len(remainingArgs) == 0 || remainingArgs[0] == "help" || remainingArgs[0] == "-h" || remainingArgs[0] == "--help" {
 		fmt.Fprint(streams.Out, Help)
 		return 0
 	}
-	if args[0] == "version" || args[0] == "--version" {
+	if remainingArgs[0] == "version" || remainingArgs[0] == "--version" {
 		fmt.Fprintln(streams.Out, "gosim launcher; worker protocol", Protocol)
 		return 0
 	}
-	path, version, err := startupOverrides(args)
+	path, version, err := startupOverrides(remainingArgs)
 	if errors.Is(err, flag.ErrHelp) {
 		fmt.Fprint(streams.Out, Help)
 		return 0
@@ -234,7 +234,7 @@ func Main(ctx context.Context, args []string, streams Streams) int {
 	if err != nil {
 		return fail(err)
 	}
-	code, err := Run(ctx, worker, r, args, streams)
+	code, err := Run(ctx, worker, r, remainingArgs, streams)
 	if err != nil {
 		return fail(err)
 	}

@@ -76,16 +76,17 @@ func (e *Engine) startCapture() (func(), error) {
 // error implementations must never run after their globals have been disposed.
 func (e *Engine) RunResult(buildDigest, failure string) RunResult {
 	result := RunResult{Seed: e.config.Seed, BuildDigest: buildDigest, ReplayRevision: e.config.ReplayRevision}
+	message := failure
 	if !e.closed || e.running || e.capture == nil {
 		result.Failed = true
 		result.Err = fmt.Sprintf("%v: result requested before configured engine cleanup", ErrEngineState)
 		return result
 	}
-	if failure == "" && e.result != nil {
-		failure = e.result.Error()
+	if message == "" && e.result != nil {
+		message = e.result.Error()
 	}
-	if failure == "" && !e.ran {
-		failure = ErrEngineState.Error()
+	if message == "" && !e.ran {
+		message = ErrEngineState.Error()
 	}
 	c := e.capture
 	if !c.finalized {
@@ -97,7 +98,7 @@ func (e *Engine) RunResult(buildDigest, failure string) RunResult {
 	}
 	result.Checksum = slices.Clone(c.checksum)
 	result.LogOutput = slices.Clone(c.log.Bytes())
-	result.Failed = failure != ""
-	result.Err = failure
+	result.Failed = message != ""
+	result.Err = message
 	return result
 }

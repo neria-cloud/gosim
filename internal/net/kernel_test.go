@@ -247,9 +247,9 @@ func TestSocketServicesOwnershipAndUnsupportedBoundaries(t *testing.T) {
 		if peer.Port != 8080 || peer.IPv4 != b.machine.address {
 			t.Fatal(peer)
 		}
-		client, err := a.socket(actx, fd)
+		client, err := a.lookupSocket(actx, fd)
 		must(t, err)
-		server, err := b.socket(bctx, accepted)
+		server, err := b.lookupSocket(bctx, accepted)
 		must(t, err)
 		if _, err := client.Read(bctx, abi.ByteView{}); !errors.Is(err, contracts.ErrInvalidState) {
 			t.Fatal("foreign epoch read", err)
@@ -305,7 +305,7 @@ func TestSocketServicesOwnershipAndUnsupportedBoundaries(t *testing.T) {
 		if _, err := server.Read(bctx, abi.ByteView{Ptr: output}); err != syscall.EPIPE {
 			t.Fatal("peer close", err)
 		}
-		if _, err := a.socket(actx, fd); err != syscall.EBADF {
+		if _, err := a.lookupSocket(actx, fd); err != syscall.EBADF {
 			t.Fatal("closed fd reused", err)
 		}
 	})
@@ -319,9 +319,9 @@ func TestReadinessLifecycleAndPeerStopModes(t *testing.T) {
 			actx, bctx := contextOf(a), contextOf(b)
 			listener := listen(t, b, 80)
 			fd, accepted := establish(t, a, b, listener)
-			client, err := a.socket(actx, fd)
+			client, err := a.lookupSocket(actx, fd)
 			must(t, err)
-			server, err := b.socket(bctx, accepted)
+			server, err := b.lookupSocket(bctx, accepted)
 			must(t, err)
 			id, err := k.PollOpen(actx, fd)
 			must(t, err)
@@ -400,7 +400,7 @@ func TestFailedDescriptorTransferAndControlCopies(t *testing.T) {
 		}
 		b.fds = original
 		// Abort is silent; failed fd transfer must not enqueue an explicit close.
-		client, err := a.socket(contextOf(a), fd)
+		client, err := a.lookupSocket(contextOf(a), fd)
 		must(t, err)
 		simrt.Sleep(1)
 		if a.stack.StreamStatus(client.stream).Closed {
@@ -526,17 +526,17 @@ func TestRestartReusesEndpointWithoutReusingConnection(t *testing.T) {
 		a, b := start(t, k, s), start(t, k, s)
 		listener := listen(t, b, 80)
 		fd, accepted := establish(t, a, b, listener)
-		client, err := a.socket(contextOf(a), fd)
+		client, err := a.lookupSocket(contextOf(a), fd)
 		must(t, err)
 		oldID := client.stream.ID()
-		oldServer, err := b.socket(contextOf(b), accepted)
+		oldServer, err := b.lookupSocket(contextOf(b), accepted)
 		must(t, err)
 		ref := a.machine.ref
 		must(t, k.Stop(ref, contracts.StopCrash))
 		must(t, k.Restart(ref))
 		fresh := s.machines[ref.ID].active
 		newFD, newAccepted := establish(t, fresh, b, listener)
-		newClient, err := fresh.socket(contextOf(fresh), newFD)
+		newClient, err := fresh.lookupSocket(contextOf(fresh), newFD)
 		must(t, err)
 		if newClient.stream.ID() != oldID {
 			t.Fatal("fixture did not recycle endpoint tuple")
@@ -548,7 +548,7 @@ func TestRestartReusesEndpointWithoutReusingConnection(t *testing.T) {
 		_, err = newClient.Write(contextOf(fresh), abi.ByteView{Ptr: []byte("fresh")})
 		must(t, err)
 		simrt.Sleep(1)
-		newServer, err := b.socket(contextOf(b), newAccepted)
+		newServer, err := b.lookupSocket(contextOf(b), newAccepted)
 		must(t, err)
 		buffer := make([]byte, 5)
 		n, err := newServer.Read(contextOf(b), abi.ByteView{Ptr: buffer})

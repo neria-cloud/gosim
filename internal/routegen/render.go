@@ -1,5 +1,8 @@
 package routegen
 
+// Route source is rendered from raw Go fragments and formatted afterward.
+//revive:disable:line-length-limit
+
 import (
 	"bytes"
 	"fmt"

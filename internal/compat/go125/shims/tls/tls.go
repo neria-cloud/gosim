@@ -20,6 +20,8 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+const abortReturnedMessage = "abort returned"
+
 func unsupported() {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "net", Operation: "crypto/tls", Message: "optional TLS/certificate operations are not modeled"})
 }
@@ -141,66 +143,73 @@ type (
 )
 type SignatureScheme uint16
 
-func (v *CertificateRequestInfo) Context() context.Context { unsupported(); panic("abort returned") }
+func (v *CertificateRequestInfo) Context() context.Context {
+	unsupported()
+	panic(abortReturnedMessage)
+}
+
 func (v *CertificateRequestInfo) SupportsCertificate(c *Certificate) error {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
-func (v ClientAuthType) String() string             { unsupported(); panic("abort returned") }
-func (v *ClientHelloInfo) Context() context.Context { unsupported(); panic("abort returned") }
+func (v ClientAuthType) String() string             { unsupported(); panic(abortReturnedMessage) }
+func (v *ClientHelloInfo) Context() context.Context { unsupported(); panic(abortReturnedMessage) }
 func (v *ClientHelloInfo) SupportsCertificate(c *Certificate) error {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func (v *ClientSessionState) ResumptionState() (ticket []byte, state *SessionState, err error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
-func (v *Config) Clone() *Config                       { unsupported(); panic("abort returned") }
-func (v *Config) SetSessionTicketKeys(keys [][32]byte) { unsupported(); panic("abort returned") }
-func (v *Config) BuildNameToCertificate()              { unsupported(); panic("abort returned") }
+func (v *Config) Clone() *Config                       { unsupported(); panic(abortReturnedMessage) }
+func (v *Config) SetSessionTicketKeys(keys [][32]byte) { unsupported(); panic(abortReturnedMessage) }
+func (v *Config) BuildNameToCertificate()              { unsupported(); panic(abortReturnedMessage) }
 func (v *Config) EncryptTicket(cs ConnectionState, ss *SessionState) ([]byte, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func (v *Config) DecryptTicket(identity []byte, cs ConnectionState) (*SessionState, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
-func (v *Conn) LocalAddr() net.Addr                        { unsupported(); panic("abort returned") }
-func (v *Conn) RemoteAddr() net.Addr                       { unsupported(); panic("abort returned") }
-func (v *Conn) SetDeadline(t time.Time) error              { unsupported(); panic("abort returned") }
-func (v *Conn) SetReadDeadline(t time.Time) error          { unsupported(); panic("abort returned") }
-func (v *Conn) SetWriteDeadline(t time.Time) error         { unsupported(); panic("abort returned") }
-func (v *Conn) NetConn() net.Conn                          { unsupported(); panic("abort returned") }
-func (v *Conn) Write(b []byte) (int, error)                { unsupported(); panic("abort returned") }
-func (v *Conn) Read(b []byte) (int, error)                 { unsupported(); panic("abort returned") }
-func (v *Conn) Close() error                               { unsupported(); panic("abort returned") }
-func (v *Conn) CloseWrite() error                          { unsupported(); panic("abort returned") }
-func (v *Conn) Handshake() error                           { unsupported(); panic("abort returned") }
-func (v *Conn) HandshakeContext(ctx context.Context) error { unsupported(); panic("abort returned") }
-func (v *Conn) ConnectionState() ConnectionState           { unsupported(); panic("abort returned") }
-func (v *Conn) OCSPResponse() []byte                       { unsupported(); panic("abort returned") }
-func (v *Conn) VerifyHostname(host string) error           { unsupported(); panic("abort returned") }
+func (v *Conn) LocalAddr() net.Addr                { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) RemoteAddr() net.Addr               { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) SetDeadline(t time.Time) error      { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) SetReadDeadline(t time.Time) error  { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) SetWriteDeadline(t time.Time) error { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) NetConn() net.Conn                  { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) Write(b []byte) (int, error)        { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) Read(b []byte) (int, error)         { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) Close() error                       { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) CloseWrite() error                  { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) Handshake() error                   { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) HandshakeContext(ctx context.Context) error {
+	unsupported()
+	panic(abortReturnedMessage)
+}
+func (v *Conn) ConnectionState() ConnectionState { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) OCSPResponse() []byte             { unsupported(); panic(abortReturnedMessage) }
+func (v *Conn) VerifyHostname(host string) error { unsupported(); panic(abortReturnedMessage) }
 func (v *ConnectionState) ExportKeyingMaterial(label string, context []byte, length int) ([]byte, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
-func (v CurveID) String() string { unsupported(); panic("abort returned") }
+func (v CurveID) String() string { unsupported(); panic(abortReturnedMessage) }
 func (v *Dialer) Dial(network string, addr string) (net.Conn, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func (v *Dialer) DialContext(ctx context.Context, network string, addr string) (net.Conn, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
-func (v RecordHeaderError) Error() string      { unsupported(); panic("abort returned") }
-func (v *SessionState) Bytes() ([]byte, error) { unsupported(); panic("abort returned") }
-func (v SignatureScheme) String() string       { unsupported(); panic("abort returned") }
+func (v RecordHeaderError) Error() string      { unsupported(); panic(abortReturnedMessage) }
+func (v *SessionState) Bytes() ([]byte, error) { unsupported(); panic(abortReturnedMessage) }
+func (v SignatureScheme) String() string       { unsupported(); panic(abortReturnedMessage) }
 
 const (
 	CurveP256                                     CurveID              = 23
@@ -263,38 +272,38 @@ const (
 	X25519MLKEM768                                CurveID              = 4588
 )
 
-func Client(conn net.Conn, config *Config) *Conn { unsupported(); panic("abort returned") }
-func Server(conn net.Conn, config *Config) *Conn { unsupported(); panic("abort returned") }
+func Client(conn net.Conn, config *Config) *Conn { unsupported(); panic(abortReturnedMessage) }
+func Server(conn net.Conn, config *Config) *Conn { unsupported(); panic(abortReturnedMessage) }
 func Dial(network string, addr string, config *Config) (*Conn, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func Listen(network string, laddr string, config *Config) (net.Listener, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func NewListener(inner net.Listener, config *Config) net.Listener {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func LoadX509KeyPair(certFile string, keyFile string) (Certificate, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func X509KeyPair(certPEMBlock []byte, keyPEMBlock []byte) (Certificate, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func NewLRUClientSessionCache(capacity int) ClientSessionCache {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
-func VersionName(version uint16) string { unsupported(); panic("abort returned") }
+func VersionName(version uint16) string { unsupported(); panic(abortReturnedMessage) }
 
 // Cipher suite discovery is part of the optional, unsupported TLS API.
 type CipherSuite struct {
@@ -304,5 +313,5 @@ type CipherSuite struct {
 	Insecure          bool
 }
 
-func CipherSuites() []*CipherSuite         { unsupported(); panic("abort returned") }
-func InsecureCipherSuites() []*CipherSuite { unsupported(); panic("abort returned") }
+func CipherSuites() []*CipherSuite         { unsupported(); panic(abortReturnedMessage) }
+func InsecureCipherSuites() []*CipherSuite { unsupported(); panic(abortReturnedMessage) }

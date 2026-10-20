@@ -61,7 +61,7 @@ func (c *clock) doadvance() {
 	// XXX: we allow adding at now/earlier to handle instant timers
 	c.now = t
 	if checksummer := gs.get().checksummer; checksummer != nil {
-		checksummer.recordIntInt(checksumKeyTimeNow, uint64(c.now), 0)
+		checksummer.recordIntInt(checksumKeyTimeNow, uint64(c.now), 0) // #nosec G115 -- checksum records the clock's bit pattern.
 	}
 }
 

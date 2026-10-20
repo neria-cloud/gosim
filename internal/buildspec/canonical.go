@@ -127,11 +127,11 @@ func NormalizeIdentity(id Identity) (Identity, error) {
 }
 
 func Canonical(id Identity) ([]byte, error) {
-	id, err := NormalizeIdentity(id)
+	normalized, err := NormalizeIdentity(id)
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(id)
+	return json.Marshal(normalized)
 }
 
 func Digest(id Identity) (string, error) {

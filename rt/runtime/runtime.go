@@ -293,7 +293,7 @@ func (s *scheduler) Run() (result error) {
 		pick := s.runnable[s.fastrander.fastrandn(uint32(len(s.runnable)))]
 
 		if s.checksummer != nil {
-			s.checksummer.recordIntInt(checksumKeyRunPick, uint64(pick.ID), uint64(s.fastrander.state))
+			s.checksummer.recordIntInt(checksumKeyRunPick, uint64(pick.ID), uint64(s.fastrander.state)) // #nosec G115 -- goroutine IDs are nonnegative.
 		}
 		s.current.set(pick)
 		pick.step()
@@ -425,6 +425,7 @@ func newGoroutine(id int, parent *goroutine, spawnEventID int, fun func(), machi
 	g.parksynctoken = MakeRaceToken()
 
 	if gs.checksummer != nil {
+		// #nosec G115 -- goroutine IDs start at one and increase monotonically.
 		gs.checksummer.recordIntInt(checksumKeyCreating, uint64(g.ID), uint64(relativeFuncAddr(fun))) // XXX: test this pointer
 	}
 
@@ -913,7 +914,7 @@ var logBuf []byte
 func WriteLog(b []byte) {
 	logBuf = NoraceAppend(logBuf[:0], b...)
 	getg().upcall(func() {
-		gs.get().logger.out.Write(logBuf)
+		_, _ = gs.get().logger.out.Write(logBuf)
 	})
 }
 

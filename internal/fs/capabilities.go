@@ -27,7 +27,10 @@ func Capabilities() []Capability {
 		{"ftruncate", statusSupported, "resize writable virtual file"},
 		{"flock", "stub", "success without locking, ownership, or contention"},
 		{"fstat", statusLimited, "inode/type/size/mode/owner/group/link count; timestamps remain zero"},
-		{"newfstatat", statusLimited, "AMD64 path stat; AT_FDCWD with flags=0 or AT_SYMLINK_NOFOLLOW; no symlink objects"},
+		{
+			"newfstatat", statusLimited,
+			"AMD64 path stat; AT_FDCWD with flags=0 or AT_SYMLINK_NOFOLLOW; no symlink objects",
+		},
 		{"fstatat", statusLimited, "ARM64 path stat; AT_FDCWD with flags=0 or AT_SYMLINK_NOFOLLOW; no symlink objects"},
 		{"getdents64", statusLimited, "one batch; dummy inode/offset fields; no resumable cursor"},
 		{"mkdirat", statusLimited, "AT_FDCWD only; owner/group/other checks with fixed 0022 umask"},

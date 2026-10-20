@@ -10,7 +10,6 @@ import (
 	"go/printer"
 	"go/token"
 	"io"
-	"io/fs"
 	"log"
 	"os"
 	stdpath "path"
@@ -142,92 +141,7 @@ func (w *outputWriter) extract() map[string][]byte {
 	return w.desired
 }
 
-func (w *outputWriter) merge(m map[string][]byte) error {
-	for path, contents := range m {
-		if err := w.stage(path, contents); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func maybeDeleteGeneratedFile(path string) error {
-	contents, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	if !bytes.HasPrefix(contents, []byte(header)) {
-		return nil
-	}
-	if *dryrun {
-		log.Println("deleting", path)
-	} else {
-		if err := os.Remove(path); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 var dryrun = flag.Bool("dryrun", false, "dryrun")
-
-func (w *outputWriter) maybeDeleteGeneratedFiles(rootOutputDir string) error {
-	desiredFinal := make(map[string]struct{})
-	for p := range w.desired {
-		desiredFinal[filepath.Join(rootOutputDir, p)] = struct{}{}
-	}
-
-	touchedDirs := make(map[string]struct{})
-	for path := range desiredFinal {
-		// mark this package
-		touchedDirs[filepath.Dir(path)] = struct{}{}
-	}
-
-	var dirs []string
-	if err := filepath.WalkDir(rootOutputDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			if path == rootOutputDir && errors.Is(err, os.ErrNotExist) {
-				return nil
-			}
-			return err
-		}
-
-		if d.IsDir() {
-			dirs = append(dirs, path)
-			return nil
-		}
-
-		if _, ok := desiredFinal[path]; !ok {
-			if _, ok := touchedDirs[filepath.Dir(path)]; !ok {
-				// skip directories that we are not writing to
-				return nil
-			}
-
-			return maybeDeleteGeneratedFile(path)
-		}
-
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	if !*dryrun {
-		for i := len(dirs) - 1; i >= 0; i-- {
-			dir := dirs[i]
-			contents, err := os.ReadDir(dir)
-			if err != nil {
-				return err
-			}
-			if len(contents) == 0 {
-				if err := os.Remove(dir); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
-}
 
 func (w *outputWriter) writeFiles(rootDir string) error {
 	for p, desired := range w.desired {

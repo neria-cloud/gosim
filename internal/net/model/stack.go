@@ -349,15 +349,16 @@ func (c *circularBuffer) free() int {
 }
 
 func (c *circularBuffer) Write(data abi.ByteView) int {
-	if free := c.free(); free < data.Len() {
-		data = data.Slice(0, free)
+	view := data
+	if free := c.free(); free < view.Len() {
+		view = view.Slice(0, free)
 	}
-	n := data.Read(c.data[c.write:])
+	n := view.Read(c.data[c.write:])
 	c.write += n
 	c.used += n
 	if c.write == len(c.data) {
 		c.write = 0
-		m := data.SliceFrom(n).Read(c.data[c.write:])
+		m := view.SliceFrom(n).Read(c.data[c.write:])
 		c.write += m
 		c.used += m
 		n += m
@@ -366,15 +367,16 @@ func (c *circularBuffer) Write(data abi.ByteView) int {
 }
 
 func (c *circularBuffer) Read(data abi.ByteView) int {
-	if c.used < data.Len() {
-		data = data.Slice(0, c.used)
+	view := data
+	if c.used < view.Len() {
+		view = view.Slice(0, c.used)
 	}
-	n := data.Write(c.data[c.read:])
+	n := view.Write(c.data[c.read:])
 	c.read += n
 	c.used -= n
 	if c.read == len(c.data) {
 		c.read = 0
-		m := data.SliceFrom(n).Write(c.data[c.read:])
+		m := view.SliceFrom(n).Write(c.data[c.read:])
 		c.read += m
 		c.used -= m
 		n += m

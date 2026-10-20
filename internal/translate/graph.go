@@ -149,11 +149,11 @@ func selectGraph(roots []*packages.Package, p PackagePolicies, available ...*pac
 			dependencies = append(dependencies, dep)
 		}
 		if kind == PackageKindForTest || kind == PackageKindTests {
-			if dep := byPath[base]; dep != nil {
-				dependencies = append(dependencies, dep)
-			} else {
+			dep := byPath[base]
+			if dep == nil {
 				return fmt.Errorf("test package %s lacks base %s", pkg.ID, base)
 			}
+			dependencies = append(dependencies, dep)
 		}
 		slices.SortFunc(dependencies, func(a, b *packages.Package) int {
 			if a.ID < b.ID {

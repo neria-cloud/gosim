@@ -23,28 +23,9 @@ type Invocation struct {
 const maxInvocationSizeMiB = 1
 
 func ValidateInvocation(ctx context.Context, path string) (Invocation, error) {
-	var in Invocation
-	stat, err := os.Lstat(path)
+	in, err := readInvocationFile(path)
 	if err != nil {
 		return in, err
-	}
-	if !stat.Mode().IsRegular() || stat.Size() > maxInvocationSizeMiB*bytesPerKiB*bytesPerKiB {
-		return in, fmt.Errorf("invalid worker invocation file")
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return in, err
-	}
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&in); err != nil {
-		return in, err
-	}
-	if err := dec.Decode(new(any)); err != io.EOF {
-		return in, fmt.Errorf("trailing worker invocation data")
-	}
-	if in.Schema != 1 || in.Resolution.Schema != 1 {
-		return in, fmt.Errorf("unsupported worker invocation schema")
 	}
 	if err := buildcfg.ValidateWorker(in.Resolution.Toolchain); err != nil {
 		return in, err
@@ -84,6 +65,33 @@ func ValidateInvocation(ctx context.Context, path string) (Invocation, error) {
 	}
 	if !reflect.DeepEqual(want, in.Manifest) {
 		return in, fmt.Errorf("worker/source inputs changed or invocation manifest is mismatched; rerun gosim")
+	}
+	return in, nil
+}
+
+func readInvocationFile(path string) (Invocation, error) {
+	var in Invocation
+	stat, err := os.Lstat(path)
+	if err != nil {
+		return in, err
+	}
+	if !stat.Mode().IsRegular() || stat.Size() > maxInvocationSizeMiB*bytesPerKiB*bytesPerKiB {
+		return in, fmt.Errorf("invalid worker invocation file")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return in, err
+	}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&in); err != nil {
+		return in, err
+	}
+	if err := dec.Decode(new(any)); err != io.EOF {
+		return in, fmt.Errorf("trailing worker invocation data")
+	}
+	if in.Schema != 1 || in.Resolution.Schema != 1 {
+		return in, fmt.Errorf("unsupported worker invocation schema")
 	}
 	return in, nil
 }

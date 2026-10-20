@@ -33,6 +33,8 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
+const testingMethodKey = "method"
+
 type writer struct{}
 
 func (w writer) Write(p []byte) (n int, err error) {
@@ -348,45 +350,45 @@ func (c *common) log(level slog.Level, msg string, attrs ...slog.Attr) {
 	// }
 	r := slog.NewRecord(time.Now(), level, msg, pc)
 	r.AddAttrs(attrs...)
-	l.Handler().Handle(ctx, r)
+	_ = l.Handler().Handle(ctx, r)
 }
 
 func (c *common) Log(a ...any) {
 	// XXX: important, use fmt.Sprintln, that will be translated, to handle eg. reflect
-	c.log(slog.LevelInfo, fmt.Sprint(a...), slog.String("method", "t.Log"))
+	c.log(slog.LevelInfo, fmt.Sprint(a...), slog.String(testingMethodKey, "t.Log"))
 }
 
 func (c *common) Logf(format string, a ...any) {
-	c.log(slog.LevelInfo, fmt.Sprintf(format, a...), slog.String("method", "t.Logf"))
+	c.log(slog.LevelInfo, fmt.Sprintf(format, a...), slog.String(testingMethodKey, "t.Logf"))
 }
 
 func (c *common) Error(a ...any) {
-	c.log(slog.LevelError, fmt.Sprint(a...), slog.String("method", "t.Error"))
+	c.log(slog.LevelError, fmt.Sprint(a...), slog.String(testingMethodKey, "t.Error"))
 	c.Fail()
 }
 
 func (c *common) Errorf(format string, a ...any) {
-	c.log(slog.LevelError, fmt.Sprintf(format, a...), slog.String("method", "t.Errorf"))
+	c.log(slog.LevelError, fmt.Sprintf(format, a...), slog.String(testingMethodKey, "t.Errorf"))
 	c.Fail()
 }
 
 func (c *common) Fatal(a ...any) {
-	c.log(slog.LevelError, fmt.Sprint(a...), slog.String("method", "t.Fatal"))
+	c.log(slog.LevelError, fmt.Sprint(a...), slog.String(testingMethodKey, "t.Fatal"))
 	c.FailNow()
 }
 
 func (c *common) Fatalf(format string, a ...any) {
-	c.log(slog.LevelError, fmt.Sprintf(format, a...), slog.String("method", "t.Fatalf"))
+	c.log(slog.LevelError, fmt.Sprintf(format, a...), slog.String(testingMethodKey, "t.Fatalf"))
 	c.FailNow()
 }
 
 func (c *common) Skip(a ...any) {
-	c.log(slog.LevelInfo, fmt.Sprint(a...), slog.String("method", "t.Skip"))
+	c.log(slog.LevelInfo, fmt.Sprint(a...), slog.String(testingMethodKey, "t.Skip"))
 	c.SkipNow()
 }
 
 func (c *common) Skipf(format string, a ...any) {
-	c.log(slog.LevelInfo, fmt.Sprintf(format, a...), slog.String("method", "t.Skipf"))
+	c.log(slog.LevelInfo, fmt.Sprintf(format, a...), slog.String(testingMethodKey, "t.Skipf"))
 	c.SkipNow()
 }
 
@@ -547,10 +549,6 @@ func (c *common) flushToParent(testName, format string, args ...any) {
 		// so that the json stream shows subtests as they finish.
 		// (See https://go.dev/issue/29811.)
 		c.chatty.Updatef(testName, format, args...)
-	} else {
-		// We're flushing to the output buffer of the parent test, which will
-		// itself follow a test-name header when it is finally flushed to stdout.
-		// fmt.Fprintf(p.w, c.chatty.prefix()+format, args...)
 	}
 }
 
@@ -747,12 +745,6 @@ func tRunner(t *T, fn func(t *T)) {
 	defer func() {
 		t.checkRaces()
 
-		// TODO(#61034): This is the wrong place for this check.
-		if t.Failed() {
-			// TODO: numFailed (numSkipped etc?)
-			// numFailed.Add(1)
-		}
-
 		err := recover()
 		signal := true
 
@@ -799,10 +791,7 @@ func tRunner(t *T, fn func(t *T)) {
 				d := root.duration
 				root.mu.Unlock()
 				root.flushToParent(root.name, "--- FAIL: %s (%s)\n", root.name, fmtDuration(d))
-				if r := root.parent.runCleanup(recoverAndReturnPanic); r != nil {
-					// TODO: huh
-					// fmt.Fprintf(root.parent.w, "cleanup panicked with %v", r)
-				}
+				_ = root.parent.runCleanup(recoverAndReturnPanic)
 			}
 			didPanic = true
 			panic(err)

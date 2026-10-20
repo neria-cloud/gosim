@@ -13,6 +13,8 @@ import (
 const (
 	pollNotPollable   = 3
 	pollReadMode      = 114
+	pollWriteMode     = 119
+	pollReadWriteMode = 233
 	simulatedPageSize = 4096
 	maxWritevVectors  = 1024
 )
@@ -64,8 +66,9 @@ func InternalPoll_runtime_pollWaitCanceled(ctx uintptr, mode int) {
 }
 
 func pollMode(mode int) uint8 {
-	if mode != pollReadMode && mode != 119 && mode != 233 {
+	if mode != pollReadMode && mode != pollWriteMode && mode != pollReadWriteMode {
 		Reject("invalid poll mode")
 	}
+	// #nosec G115 -- the accepted mode constants all fit in uint8.
 	return uint8(mode)
 }

@@ -29,7 +29,7 @@ func Identity(
 	contractDigest string,
 ) (buildspec.Identity, error) {
 	tc := resolution.Toolchain
-	cfg, err := Normalize(cfg)
+	normalizedConfig, err := Normalize(cfg)
 	if err != nil {
 		return buildspec.Identity{}, err
 	}
@@ -72,7 +72,7 @@ func Identity(
 	if err != nil {
 		return buildspec.Identity{}, err
 	}
-	return identityForSource(cfg, tc, profile, opts, inputs, framework.Effective().Dir, graph)
+	return identityForSource(normalizedConfig, tc, profile, opts, inputs, framework.Effective().Dir, graph)
 }
 
 func identityForSource(
@@ -95,7 +95,7 @@ func identityForSource(
 		Features: cfg.Features, Race: opts.Race, Experiments: opts.Experiments,
 		Tags: []string{"linkname", "sim"}, ModuleGraphDigest: graph,
 	}
-	id.RuntimeRevision, err = hashSources(
+	id.RuntimeRevision, err = hashSourcePaths(
 		root,
 		[]string{"rt/runtime", "internal/contracts", "internal/kernel", "internal/control"},
 	)
@@ -106,7 +106,7 @@ func identityForSource(
 		if feature == "rt" {
 			continue
 		}
-		digest, err := hashSources(root, []string{"internal/" + feature})
+		digest, err := hashSourcePaths(root, []string{"internal/" + feature})
 		if err != nil {
 			return id, err
 		}
@@ -114,7 +114,7 @@ func identityForSource(
 	}
 	// The complete tool/source tree is a conservative translator fingerprint.
 	// Evidence metadata and documentation never enter executable identities.
-	id.TranslatorDigest, err = hashSources(root, []string{"."})
+	id.TranslatorDigest, err = hashSourcePaths(root, []string{"."})
 	if err != nil {
 		return id, err
 	}
@@ -142,7 +142,7 @@ func evidenceMetadata(name string) bool {
 	return false
 }
 
-func hashSources(root string, paths []string) (string, error) {
+func hashSourcePaths(root string, paths []string) (string, error) {
 	if root == "" {
 		return "", fmt.Errorf("missing source root")
 	}
@@ -182,7 +182,7 @@ func hashSources(root string, paths []string) (string, error) {
 				if !entry.Type().IsRegular() {
 					return fmt.Errorf("source input must be a regular file: %s", rel)
 				}
-				digest, err := hashFile(filename)
+				digest, err := hashFileContents(filename)
 				if err != nil {
 					return err
 				}

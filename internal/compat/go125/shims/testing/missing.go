@@ -2,37 +2,39 @@
 
 package testing
 
+const unsupportedTestingMessage = "gosim go125 testing: unsupported operation"
+
 func AllocsPerRun(runs int, f func()) (avg float64) {
-	panic("gosim go125 testing: unsupported operation")
+	panic(unsupportedTestingMessage)
 }
 
 func CoverMode() string { return "" }
 
 func Coverage() float64 {
-	panic("gosim go125 testing: unsupported operation")
+	panic(unsupportedTestingMessage)
 }
 
 // Init is a modeled init probe: translated tests are registered by composition.
 func Init() {}
 
 func Main(matchString func(pat, str string) (bool, error), tests []InternalTest, benchmarks []InternalBenchmark, examples []InternalExample) {
-	panic("gosim go125 testing: unsupported operation")
+	panic(unsupportedTestingMessage)
 }
 
 func RegisterCover(c Cover) {
-	panic("gosim go125 testing: unsupported operation")
+	panic(unsupportedTestingMessage)
 }
 
 func RunBenchmarks(matchString func(pat, str string) (bool, error), benchmarks []InternalBenchmark) {
-	panic("gosim go125 testing: unsupported operation")
+	panic(unsupportedTestingMessage)
 }
 
 func RunExamples(matchString func(pat, str string) (bool, error), examples []InternalExample) (ok bool) {
-	panic("gosim go125 testing: unsupported operation")
+	panic(unsupportedTestingMessage)
 }
 
 func RunTests(matchString func(pat, str string) (bool, error), tests []InternalTest) (ok bool) {
-	panic("gosim go125 testing: unsupported operation")
+	panic(unsupportedTestingMessage)
 }
 
 func Testing() bool { return true }

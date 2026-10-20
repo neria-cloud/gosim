@@ -221,7 +221,7 @@ func (s *Session) NextSnapshot(id uint64) (uint64, bool, error) {
 	return snapshotID, true, nil
 }
 
-func (s *Session) closeIterator(h *recoveryHandle) {
+func (s *Session) releaseIteratorHandle(h *recoveryHandle) {
 	if h.iterator == nil {
 		return
 	}
@@ -240,7 +240,7 @@ func (s *Session) CloseIterator(id uint64) error {
 	if err != nil {
 		return err
 	}
-	s.closeIterator(h)
+	s.releaseIteratorHandle(h)
 	return nil
 }
 

@@ -18,6 +18,8 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+const abortReturnedMessage = "abort returned"
+
 func unsupported() {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "net", Operation: "golang.org/x/crypto/ocsp", Message: "optional TLS/certificate operations are not modeled"})
 }
@@ -51,10 +53,10 @@ type Response struct {
 	ExtraExtensions    []pkix.Extension
 }
 
-func (v *Request) Marshal() ([]byte, error) { unsupported(); panic("abort returned") }
+func (v *Request) Marshal() ([]byte, error) { unsupported(); panic(abortReturnedMessage) }
 func (v *Response) CheckSignatureFrom(issuer *x509.Certificate) error {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 const (
@@ -76,20 +78,20 @@ const (
 
 func CreateRequest(cert *x509.Certificate, issuer *x509.Certificate, opts *RequestOptions) ([]byte, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func CreateResponse(issuer *x509.Certificate, responderCert *x509.Certificate, template Response, priv crypto.Signer) ([]byte, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
-func ParseRequest(bytes []byte) (*Request, error) { unsupported(); panic("abort returned") }
+func ParseRequest(bytes []byte) (*Request, error) { unsupported(); panic(abortReturnedMessage) }
 func ParseResponse(bytes []byte, issuer *x509.Certificate) (*Response, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }
 
 func ParseResponseForCert(bytes []byte, cert *x509.Certificate, issuer *x509.Certificate) (*Response, error) {
 	unsupported()
-	panic("abort returned")
+	panic(abortReturnedMessage)
 }

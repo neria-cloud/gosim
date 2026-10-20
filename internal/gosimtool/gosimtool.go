@@ -97,17 +97,17 @@ func MakeGoModForTest(goSimModDir, testModDir string, requires []string) error {
 	}
 
 	newFile := &modfile.File{}
-	newFile.AddModuleStmt("test")
-	newFile.AddRequire(origFile.Module.Mod.Path, "v1.0.0")
-	newFile.AddGoStmt(origFile.Go.Version)
+	_ = newFile.AddModuleStmt("test")
+	_ = newFile.AddRequire(origFile.Module.Mod.Path, "v1.0.0")
+	_ = newFile.AddGoStmt(origFile.Go.Version)
 	for _, pkg := range requires {
 		require, ok := origRequires[pkg]
 		if !ok {
 			return fmt.Errorf("could not find pkg %s", pkg)
 		}
-		newFile.AddRequire(require.Mod.Path, require.Mod.Version)
+		_ = newFile.AddRequire(require.Mod.Path, require.Mod.Version)
 	}
-	newFile.AddReplace(origFile.Module.Mod.Path, "", goSimModDir, "")
+	_ = newFile.AddReplace(origFile.Module.Mod.Path, "", goSimModDir, "")
 	newModBytes, err := newFile.Format()
 	if err != nil {
 		return err

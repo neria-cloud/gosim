@@ -264,7 +264,7 @@ func statResult(stat model.StatResp) contracts.Stat {
 		mode = directoryFileMode
 	}
 	return contracts.Stat{
-		Inode: uint64(stat.Inode),
+		Inode: uint64(stat.Inode), // #nosec G115 -- allocated inode indexes are nonnegative.
 		Size:  stat.Size,
 		Mode:  mode | stat.Mode,
 		UID:   stat.UID,

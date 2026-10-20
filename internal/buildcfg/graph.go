@@ -82,6 +82,6 @@ func GraphDigest(modules []buildspec.Module) (string, error) {
 	return buildspec.Hash(data), nil
 }
 
-func HashSources(root string) (string, error) { return hashSources(root, []string{"."}) }
+func HashSources(root string) (string, error) { return hashSourcePaths(root, []string{"."}) }
 
-func HashFile(path string) (string, error) { return hashFile(path) }
+func HashFile(path string) (string, error) { return hashFileContents(path) }

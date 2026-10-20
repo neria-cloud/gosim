@@ -26,6 +26,9 @@ const (
 	compositionFileMode = 0o644
 )
 
+// Generated Go is formatted after rendering. Keep raw template lines intact.
+//revive:disable:line-length-limit
+
 type GeneratedComposition struct {
 	SourceDir, IdentityDigest string
 	Files                     []string
@@ -173,24 +176,11 @@ func ValidateImports(output GeneratedComposition, selection buildspec.Selection)
 		filepath.Clean(output.SourceDir) != output.SourceDir {
 		return fmt.Errorf("invalid generated composition record")
 	}
-	info, err := os.Lstat(output.SourceDir)
-	if err != nil {
+	if err := validateCompositionDir(output.SourceDir); err != nil {
 		return err
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("composition root is not a real directory")
-	}
-	entries, err := os.ReadDir(output.SourceDir)
-	if err != nil {
-		return err
-	}
-	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), ".go") && entry.Name() != compositionFileName {
-			return fmt.Errorf("unrecorded composition source %s", entry.Name())
-		}
 	}
 	path := filepath.Join(output.SourceDir, compositionFileName)
-	info, err = os.Lstat(path)
+	info, err := os.Lstat(path)
 	if err != nil {
 		return err
 	}
@@ -219,6 +209,26 @@ func ValidateImports(output GeneratedComposition, selection buildspec.Selection)
 	}
 	if !bytes.Equal(actual, source) {
 		return fmt.Errorf("generated composition source differs from selected driver")
+	}
+	return nil
+}
+
+func validateCompositionDir(sourceDir string) error {
+	info, err := os.Lstat(sourceDir)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("composition root is not a real directory")
+	}
+	entries, err := os.ReadDir(sourceDir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if strings.HasSuffix(entry.Name(), ".go") && entry.Name() != compositionFileName {
+			return fmt.Errorf("unrecorded composition source %s", entry.Name())
+		}
 	}
 	return nil
 }

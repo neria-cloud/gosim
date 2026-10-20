@@ -96,12 +96,6 @@ func runCertificationCommand(
 	return 0, nil
 }
 
-// certify is a manually invoked exact-build report. It never edits profile
-// metadata or controls ordinary use. Package applicability comes from one registry.
-func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (CertificationReport, error) {
-	return certifyContext(context.Background(), flags, options, suite)
-}
-
 func certifyContext(
 	ctx context.Context,
 	flags BuildFlags,
@@ -175,12 +169,6 @@ func validateCertificationSelection(hostArch string, race bool) error {
 		return fmt.Errorf("AMD64 and race certification are disabled; use ARM64 without race")
 	}
 	return nil
-}
-
-// verifyStep runs only the requested local test mode and writes suite logs.
-// It does not create a certification report or implicitly add race/large suites.
-func verifyStep(flags BuildFlags, output string, suite suiteOptions) error {
-	return verifyStepContext(context.Background(), flags, output, suite)
 }
 
 func verifyStepContext(ctx context.Context, flags BuildFlags, output string, suite suiteOptions) error {

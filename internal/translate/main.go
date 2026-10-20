@@ -19,8 +19,11 @@ import (
 )
 
 const (
-	translatedDirectoryMode = 0o755
-	translatedFileMode      = 0o644
+	translatedDirectoryMode  = 0o755
+	translatedFileMode       = 0o644
+	testPackageSuffix        = "_test"
+	logNameKey               = "name"
+	unimplementedTypeMessage = "help"
 )
 
 type TranslateInput struct {

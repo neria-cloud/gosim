@@ -93,5 +93,5 @@ func (k *Kernel) exitSelf(ctx contracts.CallContext, kind contracts.StopKind) er
 		k.closeKind = kind
 		return k.Close()
 	}
-	return k.stop(k.machineByID[ctx.Epoch.Machine.ID], kind)
+	return k.stopMachine(k.machineByID[ctx.Epoch.Machine.ID], kind)
 }

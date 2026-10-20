@@ -107,7 +107,7 @@ type SelectCase struct {
 }
 
 func Select(cases []SelectCase) (chosen int, recv Value, recvOK bool) {
-	panic("gosim go125 reflect: unsupported operation")
+	panic(reflectUnsupportedMessage)
 }
 
 func MakeSlice(typ Type, len, cap int) Value {
@@ -115,7 +115,7 @@ func MakeSlice(typ Type, len, cap int) Value {
 }
 
 func MakeChan(typ Type, buffer int) Value {
-	panic("gosim go125 reflect: unsupported operation")
+	panic(reflectUnsupportedMessage)
 }
 
 func getDecriptor(typ Type) gosimruntime.ReflectMapType {
@@ -212,21 +212,21 @@ func (v Value) Elem() Value {
 
 func (v Value) Field(i int) Value {
 	if v.kind == wrappedMap {
-		panic("reflect: struct field operation on map Value")
+		panic(reflectMapValueMessage)
 	}
 	return wrapValue(v.inner.Field(i))
 }
 
 func (v Value) FieldByIndex(index []int) Value {
 	if v.kind == wrappedMap {
-		panic("reflect: struct field operation on map Value")
+		panic(reflectMapValueMessage)
 	}
 	return wrapValue(v.inner.FieldByIndex(index))
 }
 
 func (v Value) FieldByIndexErr(index []int) (Value, error) {
 	if v.kind == wrappedMap {
-		panic("reflect: struct field operation on map Value")
+		panic(reflectMapValueMessage)
 	}
 	inner, err := v.inner.FieldByIndexErr(index)
 	return wrapValue(inner), err
@@ -234,14 +234,14 @@ func (v Value) FieldByIndexErr(index []int) (Value, error) {
 
 func (v Value) FieldByName(name string) Value {
 	if v.kind == wrappedMap {
-		panic("reflect: struct field operation on map Value")
+		panic(reflectMapValueMessage)
 	}
 	return wrapValue(v.inner.FieldByName(name))
 }
 
 func (v Value) FieldByNameFunc(match func(string) bool) Value {
 	if v.kind == wrappedMap {
-		panic("reflect: struct field operation on map Value")
+		panic(reflectMapValueMessage)
 	}
 	return wrapValue(v.inner.FieldByNameFunc(match))
 }
@@ -374,11 +374,11 @@ func (iter *MapIter) Next() bool {
 type zeroIter struct{}
 
 func (z zeroIter) Value() reflect.Value {
-	panic("gosim go125 reflect: unsupported operation")
+	panic(reflectUnsupportedMessage)
 }
 
 func (z zeroIter) Key() reflect.Value {
-	panic("gosim go125 reflect: unsupported operation")
+	panic(reflectUnsupportedMessage)
 }
 
 func (z zeroIter) Next() bool {
@@ -432,7 +432,7 @@ func (v Value) MethodByName(name string) Value {
 
 func (v Value) NumField() int {
 	if v.kind == wrappedMap {
-		panic("reflect: struct field operation on map Value")
+		panic(reflectMapValueMessage)
 	}
 	return v.inner.NumField()
 }
@@ -538,11 +538,11 @@ func (v Value) String() string {
 }
 
 func (v Value) TryRecv() (x Value, ok bool) {
-	panic("gosim go125 reflect: unsupported operation")
+	panic(reflectUnsupportedMessage)
 }
 
 func (v Value) TrySend(x Value) bool {
-	panic("gosim go125 reflect: unsupported operation")
+	panic(reflectUnsupportedMessage)
 }
 
 func (v Value) Type() Type {

@@ -18,6 +18,7 @@ func InternalChacha8rand_block(seed *[4]uint64, buf *[32]uint64, counter uint32)
 	for lane := 0; lane < 4; lane++ {
 		x := [16]uint32{0x61707865, 0x3320646e, 0x79622d32, 0x6b206574}
 		for i := 0; i < 4; i++ {
+			// #nosec G115 -- ChaCha seeds are intentionally packed into 32-bit words.
 			x[4+2*i] = uint32(seed[i])
 			x[5+2*i] = uint32(seed[i] >> 32)
 		}

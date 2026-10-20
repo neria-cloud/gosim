@@ -99,11 +99,11 @@ func (w *indentedWriter) Write(p []byte) (n int, err error) {
 		if err := json.Unmarshal(p, &x); err == nil {
 			o := json.NewEncoder(w.out)
 			o.SetIndent("", "  ")
-			o.Encode(x)
+			_ = o.Encode(x)
 			return len(p), nil
 		}
 	}
-	w.out.Write(p)
+	_, _ = w.out.Write(p)
 	return len(p), nil
 }
 

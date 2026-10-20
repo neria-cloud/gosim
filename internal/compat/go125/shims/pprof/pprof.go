@@ -64,9 +64,9 @@ func SetGoroutineLabels(ctx context.Context) {
 func Do(ctx context.Context, labels LabelSet, f func(context.Context)) {
 	previous := gosimruntime.ProfileLabels()
 	defer gosimruntime.SetProfileLabels(previous)
-	ctx = WithLabels(ctx, labels)
-	SetGoroutineLabels(ctx)
-	f(ctx)
+	labeledContext := WithLabels(ctx, labels)
+	SetGoroutineLabels(labeledContext)
+	f(labeledContext)
 }
 
 func unsupported() {

@@ -21,8 +21,8 @@ import (
 // In most cases its preferable to reuse AST expressions instead of building new
 // ones from types, but sometimes translated codes needs a type when no
 // convenient AST expression exists. See the callers of makeTypeExpr.
-func (t *packageTranslator) makeTypeExpr(typ types.Type) dst.Expr {
-	if typ == nil {
+func (t *packageTranslator) makeTypeExpr(inputType types.Type) dst.Expr {
+	if inputType == nil {
 		return nil
 	}
 
@@ -32,7 +32,7 @@ func (t *packageTranslator) makeTypeExpr(typ types.Type) dst.Expr {
 	// - anonymous interfaces
 	// - ???
 
-	switch typ := typ.(type) {
+	switch typ := inputType.(type) {
 	case *types.Alias:
 		// helpp, copy pasted from Named below
 
@@ -387,7 +387,7 @@ func (b *implicitConversionsBuilder) before(c *astutil.Cursor) bool {
 			y := b.typesInfo.Types[node.Args[0]]
 			if y.IsNil() {
 				if x == nil {
-					panic("help")
+					panic(unimplementedTypeMessage)
 				}
 				b.conversions[node.Args[0]] = x
 			}
@@ -414,7 +414,7 @@ func (b *implicitConversionsBuilder) before(c *astutil.Cursor) bool {
 				yType := b.typesInfo.Types[y]
 				if !types.Identical(yType.Type, x) {
 					if x == nil {
-						panic("help")
+						panic(unimplementedTypeMessage)
 					}
 					b.conversions[y] = x
 				}
@@ -432,10 +432,8 @@ func (b *implicitConversionsBuilder) before(c *astutil.Cursor) bool {
 			y := b.typesInfo.Types[node.Rhs[i]]
 			if !types.Identical(x.Type, y.Type) {
 				if x.Type == nil {
+					// A short declaration has no existing left-hand type.
 					continue
-					// happens for :=, var ... =
-					log.Println(node.Lhs, node.Rhs[i])
-					panic("help")
 				}
 				b.conversions[node.Rhs[i]] = x.Type
 			}
@@ -461,12 +459,12 @@ func (b *implicitConversionsBuilder) before(c *astutil.Cursor) bool {
 		if !types.Identical(x.Type, y.Type) {
 			if x.IsNil() {
 				if y.Type == nil {
-					panic("help")
+					panic(unimplementedTypeMessage)
 				}
 				b.conversions[node.X] = y.Type
 			} else {
 				if x.Type == nil {
-					panic("help")
+					panic(unimplementedTypeMessage)
 				}
 				b.conversions[node.Y] = x.Type
 			}
@@ -480,7 +478,7 @@ func (b *implicitConversionsBuilder) before(c *astutil.Cursor) bool {
 				y := b.cursig.Results().At(i).Type()
 				if !types.Identical(x.Type, y) {
 					if y == nil {
-						panic("help")
+						panic(unimplementedTypeMessage)
 					}
 					b.conversions[expr] = y
 				}

@@ -127,7 +127,7 @@ func (s *Session) Destroy(ref contracts.MachineRef) {
 	for _, id := range s.handleIDs() {
 		h := s.handles[id]
 		if h.iterator != nil && h.iterator.owner == ref {
-			s.closeIterator(h)
+			s.releaseIteratorHandle(h)
 		}
 	}
 	delete(s.machines, ref.ID)
@@ -148,7 +148,7 @@ func (s *Session) Close() {
 	}
 	for _, id := range s.handleIDs() {
 		h := s.handles[id]
-		s.closeIterator(h)
+		s.releaseIteratorHandle(h)
 		if h.snapshot != nil {
 			h.snapshot.Release()
 			h.snapshot = nil

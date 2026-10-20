@@ -119,30 +119,6 @@ func copyFileIfChanged(src, dst string, perm fs.FileMode) error {
 	return copyFile(src, dst, perm)
 }
 
-func writeFileIfDifferent(b []byte, dst string, perm fs.FileMode) error {
-	// skip unchanged so we keep the old modified timestamp
-	dstBytes, err := os.ReadFile(dst)
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-
-	if bytes.Equal(b, dstBytes) {
-		// skip because unchanged, maybe log?
-		return nil
-	}
-
-	return os.WriteFile(dst, b, perm)
-}
-
-const toolsgoTemplate = `//go:build never
-
-package main
-
-import (
-	_ "` + gosimtool.Module + `"
-)
-`
-
 // Run is the direct worker entry. It never bootstraps another worker.
 func Run(ctx context.Context, args []string, streams workerboot.Streams) int {
 	runCtx, runArgs := ctx, args

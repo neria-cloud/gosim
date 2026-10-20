@@ -81,20 +81,21 @@ type prefixer struct {
 
 func (w prefixer) Write(b []byte) (n int, err error) {
 	n = len(b)
-	for len(b) > 0 {
-		end := bytes.IndexByte(b, '\n')
+	remaining := b
+	for len(remaining) > 0 {
+		end := bytes.IndexByte(remaining, '\n')
 		if end == -1 {
-			end = len(b)
+			end = len(remaining)
 		} else {
 			end++
 		}
-		line := b[:end]
+		line := remaining[:end]
 		_, _ = w.out.WriteString(w.prefix)
 		_, _ = w.out.Write(line)
 		if line[len(line)-1] != '\n' {
 			_, _ = w.out.WriteString("\n")
 		}
-		b = b[end:]
+		remaining = remaining[end:]
 	}
 	return
 }

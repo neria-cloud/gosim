@@ -51,9 +51,9 @@ func (t *checksummer) recordIntInt(key checksumKey, a, b uint64) {
 		t.logger.LogAttrs(context.TODO(), level, "checksummer",
 			slog.Int("step", t.step),
 			slog.String("key", key.String()),
-			slog.Int("a", int(a)),
-			slog.Int("b", int(b)),
-			slog.Int64("sum", int64(t.hash)))
+			slog.Int("a", int(a)),            // #nosec G115 -- diagnostic display only.
+			slog.Int("b", int(b)),            // #nosec G115 -- diagnostic display only.
+			slog.Int64("sum", int64(t.hash))) // #nosec G115 -- diagnostic display only.
 	}
 	t.step++
 }
@@ -75,7 +75,7 @@ func (t *checksummer) recordBytes(key checksumKey, a []byte) {
 			slog.Int("step", t.step),
 			slog.String("key", key.String()),
 			slog.String("a", string(a)),
-			slog.Int64("sum", int64(t.hash)))
+			slog.Int64("sum", int64(t.hash))) // #nosec G115 -- diagnostic display only.
 	}
 	t.step++
 }

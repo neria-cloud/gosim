@@ -224,6 +224,7 @@ func (l *NotifyList) Add() uint32 {
 // less checks if a < b, considering a & b running counts that may overflow the
 // 32-bit range, and that their "unwrapped" difference is always less than 2^31.
 func less(a, b uint32) bool {
+	// #nosec G115 -- signed wraparound is the intended modular-order comparison.
 	return int32(a-b) < 0
 }
 
@@ -249,6 +250,7 @@ func (l *NotifyList) NotifyAll() {
 	g.yield()
 
 	l.notify = l.wait
+	//nolint:revive // Dequeue performs the required drain side effect.
 	for l.q.dequeue() != nil {
 	}
 }
@@ -338,7 +340,7 @@ func (w *Uint32Futex) WaitNonzero() uint32 {
 	sudog := g.allocWaiter()
 	w.q.enqueue(sudog)
 	g.wait()
-	ret := uint32(sudog.index)
+	ret := uint32(sudog.index) // #nosec G115 -- waiter indexes originate from uint32 notification counters.
 	g.releaseWaiters()
 	return ret
 }

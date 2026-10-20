@@ -2,7 +2,7 @@ package gosimlog
 
 import (
 	"bytes"
-	"fmt"
+	"strconv"
 )
 
 const bitflagSeparator = "|"
@@ -24,36 +24,30 @@ type BitflagFormatter struct {
 
 func (f *BitflagFormatter) Format(value int) string {
 	var buf bytes.Buffer
+	appendPart := func(part string) {
+		if buf.Len() > 0 {
+			buf.WriteString(bitflagSeparator)
+		}
+		buf.WriteString(part)
+	}
 	remaining := value
 	for _, choice := range f.Choices {
 		masked := remaining & choice.Mask
 		remaining ^= masked
 		if got, ok := choice.Values[masked]; ok {
-			if buf.Len() > 0 {
-				buf.WriteString(bitflagSeparator)
-			}
-			buf.WriteString(got)
+			appendPart(got)
 		} else {
-			if buf.Len() > 0 {
-				buf.WriteString(bitflagSeparator)
-			}
-			fmt.Fprintf(&buf, "%d", masked)
+			appendPart(strconv.Itoa(masked))
 		}
 	}
 	for _, choice := range f.Flags {
 		if remaining&choice.Value == choice.Value {
 			remaining ^= choice.Value
-			if buf.Len() > 0 {
-				buf.WriteString(bitflagSeparator)
-			}
-			buf.WriteString(choice.Name)
+			appendPart(choice.Name)
 		}
 	}
 	if remaining != 0 {
-		if buf.Len() > 0 {
-			buf.WriteString(bitflagSeparator)
-		}
-		fmt.Fprintf(&buf, "%d", remaining)
+		appendPart(strconv.Itoa(remaining))
 	}
 	return buf.String()
 }

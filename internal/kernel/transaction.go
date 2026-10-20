@@ -97,7 +97,7 @@ func (k *Kernel) BeginStart(ref contracts.MachineRef, restart bool) (*StartTxn, 
 		return nil
 	})
 	if err != nil {
-		if cleanupErr := tx.abort(); cleanupErr != nil {
+		if cleanupErr := tx.abortStart(); cleanupErr != nil {
 			k.cleanupFailure("startup rollback", errors.Join(err, cleanupErr))
 		}
 		return nil, err
@@ -166,7 +166,7 @@ func (tx *StartTxn) Commit() error {
 	return nil
 }
 
-func (tx *StartTxn) abort() error {
+func (tx *StartTxn) abortStart() error {
 	if tx.state == Aborted {
 		return nil
 	}
@@ -191,7 +191,7 @@ func (tx *StartTxn) abort() error {
 }
 
 func (tx *StartTxn) Abort() {
-	if err := tx.abort(); err != nil {
+	if err := tx.abortStart(); err != nil {
 		tx.kernel.cleanupFailure("startup rollback", fmt.Errorf("%w", err))
 	}
 }

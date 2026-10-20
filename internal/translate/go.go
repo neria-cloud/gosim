@@ -218,9 +218,8 @@ func makeBindFuncs(bindspecs map[bindspec]struct{}) []dst.Decl {
 		if a.variable != b.variable {
 			if a.variable {
 				return +1
-			} else {
-				return -1
 			}
+			return -1
 		}
 		return cmp.Compare(a.ret, b.ret)
 	})

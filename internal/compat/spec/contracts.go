@@ -13,6 +13,8 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
+const symbolSeparator = "."
+
 type FieldContract struct {
 	Name   string `json:"name"`
 	Type   string `json:"type"`
@@ -66,11 +68,11 @@ func (p Profile) validateContractHooks(m ContractManifest) error {
 	hooks := map[string]Hook{}
 	for _, h := range m.Hooks {
 		if h.Context == "" {
-			hooks[h.Package+"."+h.Symbol] = h
+			hooks[h.Package+symbolSeparator+h.Symbol] = h
 		}
 	}
 	for _, h := range p.Hooks {
-		if got := hooks[h.Package+"."+h.Symbol]; got != h {
+		if got := hooks[h.Package+symbolSeparator+h.Symbol]; got != h {
 			return fmt.Errorf("selected hook %s.%s differs from reviewed %s contracts", h.Package, h.Symbol, m.Architecture)
 		}
 	}
@@ -83,14 +85,14 @@ func (m ContractManifest) Validate() error {
 	}
 	seen := map[string]bool{}
 	for _, h := range m.Hooks {
-		key := "hook:" + h.Context + ":" + h.Package + "." + h.Symbol
+		key := "hook:" + h.Context + ":" + h.Package + symbolSeparator + h.Symbol
 		if !validContractPackage(h.Package) || h.Symbol == "" || h.Signature == "" || h.Target == "" || !slices.Contains([]string{"rt", "kernel", "fs", "net"}, h.Owner) || seen[key] || !slices.Contains([]string{"", "host", "host-race"}, h.Context) {
 			return fmt.Errorf("invalid/duplicate contract %s", key)
 		}
 		seen[key] = true
 	}
 	for _, l := range m.Layouts {
-		key := "layout:" + l.Package + "." + l.Type
+		key := "layout:" + l.Package + symbolSeparator + l.Type
 		if !validContractPackage(l.Package) || l.Type == "" || l.Size < 0 || l.Align < 1 || seen[key] || len(l.Fields) == 0 {
 			return fmt.Errorf("invalid/duplicate contract %s", key)
 		}
@@ -104,7 +106,7 @@ func (m ContractManifest) Validate() error {
 		}
 	}
 	for _, c := range m.Constants {
-		key := "constant:" + c.Package + "." + c.Symbol
+		key := "constant:" + c.Package + symbolSeparator + c.Symbol
 		if !validContractPackage(c.Package) || c.Symbol == "" || c.Value == "" || seen[key] {
 			return fmt.Errorf("invalid/duplicate contract %s", key)
 		}

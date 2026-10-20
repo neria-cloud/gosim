@@ -115,8 +115,8 @@ func renameFile(cfg gosimtool.BuildConfig, filePath string) string {
 
 	// for now, after translate all files should be included in the build
 	// modify the filename minimally to neuter any excluded files
-	if strings.HasSuffix(withoutDot, "_test") {
-		return strings.TrimSuffix(withoutDot, "_test") + "__test" + ext
+	if strings.HasSuffix(withoutDot, testPackageSuffix) {
+		return strings.TrimSuffix(withoutDot, testPackageSuffix) + "__test" + ext
 	}
 	return withoutDot + "_" + ext
 }
@@ -125,9 +125,9 @@ func pathForFile(pkg, file string) string {
 	if !strings.HasPrefix(pkg, "translated/") {
 		panic("bad path")
 	}
-	pkg = strings.TrimPrefix(pkg, "translated/")
-	pkg = strings.TrimSuffix(pkg, "_test")
-	return filepath.Join(pkg, file)
+	relativePackage := strings.TrimPrefix(pkg, "translated/")
+	relativePackage = strings.TrimSuffix(relativePackage, testPackageSuffix)
+	return filepath.Join(relativePackage, file)
 }
 
 func translatePackage(args *translatePackageArgs) (result *TranslatePackageResult, err error) {
@@ -182,7 +182,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 		if err != nil {
 			return nil, err
 		}
-		bytes, err := dstFileToBytes(file, args.packageNames, nil, args.replacedPkgs[extractedPath]+"_test")
+		bytes, err := dstFileToBytes(file, args.packageNames, nil, args.replacedPkgs[extractedPath]+testPackageSuffix)
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +193,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 	}
 
 	if kind != PackageKindBase && kind != PackageKindForTest && kind != PackageKindTests {
-		panic("help")
+		panic(unimplementedTypeMessage)
 	}
 
 	allGlobals := &GlobalInfo{
@@ -287,7 +287,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 		results.PackageName = args.pkg.Name
 	}
 	if kind == PackageKindTests {
-		results.PackageName = strings.TrimSuffix(args.pkg.Name, "_test")
+		results.PackageName = strings.TrimSuffix(args.pkg.Name, testPackageSuffix)
 	}
 	if kind == PackageKindForTest || kind == PackageKindTests {
 		for _, test := range globals.tests {
@@ -631,19 +631,19 @@ func (t *packageTranslator) translateFile(dstFile *dst.File) (*dst.File, error) 
 
 	// in a first pass, rewrite all select stmts. unclear if this is necessary,
 	// but trying to do it preApply didn't translate inner nested selects.
-	dstFile = dstutil.Apply(dstFile, nil, func(c *dstutil.Cursor) bool {
+	workingFile := dstutil.Apply(dstFile, nil, func(c *dstutil.Cursor) bool {
 		t.rewriteSelectStmt(c)
 		t.rewriteMapRange(c)
 		t.rewriteGlobalDef(c) // XXX: help. this is for var closedchan = make(chan struct{})
 		return true
 	}).(*dst.File)
 
-	dstFile = t.apply(dstFile).(*dst.File)
+	workingFile = t.apply(workingFile).(*dst.File)
 
 	if t.needsUnsafe {
 		var importDecl *dst.GenDecl
 
-		for _, decl := range dstFile.Decls {
+		for _, decl := range workingFile.Decls {
 			genDecl, ok := decl.(*dst.GenDecl)
 			if !ok {
 				continue
@@ -662,7 +662,7 @@ func (t *packageTranslator) translateFile(dstFile *dst.File) (*dst.File, error) 
 				importDecl = &dst.GenDecl{
 					Tok: token.IMPORT,
 				}
-				dstFile.Decls = append([]dst.Decl{importDecl}, dstFile.Decls...)
+				workingFile.Decls = append([]dst.Decl{importDecl}, workingFile.Decls...)
 			}
 			importDecl.Specs = append(importDecl.Specs,
 				&dst.ImportSpec{
@@ -673,7 +673,7 @@ func (t *packageTranslator) translateFile(dstFile *dst.File) (*dst.File, error) 
 		}
 	}
 
-	return dstFile, nil
+	return workingFile, nil
 }
 
 func makeTypeAliasFile(pkgName string, names []string) (*dst.File, error) {

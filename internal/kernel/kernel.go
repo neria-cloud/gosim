@@ -158,7 +158,7 @@ func (k *Kernel) Run(main func()) (result error) {
 			k.closeKind = kind
 			return nil
 		}
-		if err := k.stop(m, kind); err != nil {
+		if err := k.stopMachine(m, kind); err != nil {
 			return err
 		}
 	}
@@ -183,10 +183,10 @@ func (k *Kernel) Close() error {
 	for _, id := range ids {
 		m := k.machineByID[id]
 		if tx := k.transactions[id]; tx != nil {
-			failures = append(failures, tx.abort())
+			failures = append(failures, tx.abortStart())
 		}
 		if m.state == StateRunning {
-			failures = append(failures, k.stop(m, k.closeKind))
+			failures = append(failures, k.stopMachine(m, k.closeKind))
 		}
 		for i := len(k.providers) - 1; i >= 0; i-- {
 			failures = append(failures, k.protected(func() error { k.providers[i].Destroy(m.ref); return nil }))

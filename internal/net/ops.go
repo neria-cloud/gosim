@@ -37,7 +37,7 @@ const (
 	linuxInProgress = 115
 )
 
-func (i *Instance) socket(ctx contracts.CallContext, fd int) (*Socket, error) {
+func (i *Instance) lookupSocket(ctx contracts.CallContext, fd int) (*Socket, error) {
 	if err := i.validateCall(ctx); err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func validateAddress(addr contracts.Address) error {
 }
 
 func (i *Instance) Bind(ctx contracts.CallContext, fd int, addr contracts.Address) error {
-	s, err := i.socket(ctx, fd)
+	s, err := i.lookupSocket(ctx, fd)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (i *Instance) Bind(ctx contracts.CallContext, fd int, addr contracts.Addres
 }
 
 func (i *Instance) Listen(ctx contracts.CallContext, fd, backlog int) error {
-	s, err := i.socket(ctx, fd)
+	s, err := i.lookupSocket(ctx, fd)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func address(addr netip.AddrPort) contracts.Address {
 }
 
 func (i *Instance) Accept(ctx contracts.CallContext, fd, flags int) (int, contracts.Address, error) {
-	s, err := i.socket(ctx, fd)
+	s, err := i.lookupSocket(ctx, fd)
 	if err != nil {
 		return 0, contracts.Address{}, err
 	}
@@ -168,7 +168,7 @@ func (i *Instance) Accept(ctx contracts.CallContext, fd, flags int) (int, contra
 }
 
 func (i *Instance) Connect(ctx contracts.CallContext, fd int, addr contracts.Address) error {
-	s, err := i.socket(ctx, fd)
+	s, err := i.lookupSocket(ctx, fd)
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func (i *Instance) Connect(ctx contracts.CallContext, fd int, addr contracts.Add
 }
 
 func (i *Instance) LocalAddress(ctx contracts.CallContext, fd int) (contracts.Address, error) {
-	s, err := i.socket(ctx, fd)
+	s, err := i.lookupSocket(ctx, fd)
 	if err != nil {
 		return contracts.Address{}, err
 	}
@@ -211,7 +211,7 @@ func (i *Instance) LocalAddress(ctx contracts.CallContext, fd int) (contracts.Ad
 }
 
 func (i *Instance) PeerAddress(ctx contracts.CallContext, fd int) (contracts.Address, error) {
-	s, err := i.socket(ctx, fd)
+	s, err := i.lookupSocket(ctx, fd)
 	if err != nil {
 		return contracts.Address{}, err
 	}
@@ -222,7 +222,7 @@ func (i *Instance) PeerAddress(ctx contracts.CallContext, fd int) (contracts.Add
 }
 
 func (i *Instance) SetOption(ctx contracts.CallContext, fd, level, name int, value abi.ByteView) error {
-	if _, err := i.socket(ctx, fd); err != nil {
+	if _, err := i.lookupSocket(ctx, fd); err != nil {
 		return err
 	}
 	// Explicitly bounded stubs used by Go TCP setup. No real option semantics
@@ -252,7 +252,7 @@ func (i *Instance) SetOption(ctx contracts.CallContext, fd, level, name int, val
 }
 
 func (i *Instance) GetOption(ctx contracts.CallContext, fd, level, name int, value abi.ByteView) (int, error) {
-	s, err := i.socket(ctx, fd)
+	s, err := i.lookupSocket(ctx, fd)
 	if err != nil {
 		return 0, err
 	}
@@ -281,7 +281,7 @@ func (i *Instance) GetOption(ctx contracts.CallContext, fd, level, name int, val
 }
 
 func (i *Instance) FcntlInt(ctx contracts.CallContext, fd, command, argument int) (int, error) {
-	if _, err := i.socket(ctx, fd); err != nil {
+	if _, err := i.lookupSocket(ctx, fd); err != nil {
 		return 0, err
 	}
 	return 0, syscall.ENOSYS

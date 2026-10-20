@@ -98,6 +98,7 @@ func (d *Dispatcher) Submit(inv *Invocation) error {
 	}
 	simrt.SyscallEnter()
 	defer simrt.SyscallExit()
+	// #nosec G115 -- simulator goroutine IDs are nonnegative.
 	inv.Context.InvocationID, inv.Context.GoroutineID = 0, uint64(simrt.GetGoroutine())
 	inv.Sema, inv.Result = 0, Result{}
 	d.incoming.Send(inv)
@@ -196,7 +197,7 @@ func (d *Dispatcher) DispatchOne(inv *Invocation) {
 			k.closeKind = contracts.StopCrash
 			stopErr = k.Close()
 		} else {
-			stopErr = k.stop(k.machineByID[request.Epoch.Machine.ID], contracts.StopCrash)
+			stopErr = k.stopMachine(k.machineByID[request.Epoch.Machine.ID], contracts.StopCrash)
 		}
 		if stopErr != nil {
 			k.cleanupFailure("sync fault cleanup", stopErr)

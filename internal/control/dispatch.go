@@ -57,7 +57,7 @@ func CurrentRef() contracts.MachineRef {
 //
 //go:norace
 func Submit(route kernel.RouteID, inv *kernel.Invocation) error {
-	return submit(route, inv, submitCallerSkip)
+	return submitInvocation(route, inv, submitCallerSkip)
 }
 
 const (
@@ -71,7 +71,7 @@ func Call[T any](
 	request interface{ Invocation() kernel.Invocation }, decode func(kernel.Result) (T, error),
 ) (T, error) {
 	inv := request.Invocation()
-	if err := submit(inv.Route, &inv, callCallerSkip); err != nil {
+	if err := submitInvocation(inv.Route, &inv, callCallerSkip); err != nil {
 		var zero T
 		return zero, err
 	}
@@ -82,7 +82,7 @@ func Call[T any](
 // The dispatcher aborts disabled operations before returning to application code.
 func Require(feature contracts.Feature, operation string) error {
 	inv := (kernel.RequireRequest{Feature: feature, Operation: operation}).Invocation()
-	if err := submit(inv.Route, &inv, callCallerSkip); err != nil {
+	if err := submitInvocation(inv.Route, &inv, callCallerSkip); err != nil {
 		return err
 	}
 	_, err := kernel.DecodeRequireResult(inv.TakeResult())
@@ -90,7 +90,7 @@ func Require(feature contracts.Feature, operation string) error {
 }
 
 //go:norace
-func submit(route kernel.RouteID, inv *kernel.Invocation, callerSkip int) error {
+func submitInvocation(route kernel.RouteID, inv *kernel.Invocation, callerSkip int) error {
 	ref := CurrentRef()
 	if ref.ID == 0 {
 		return contracts.ErrNotSim

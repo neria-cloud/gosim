@@ -18,6 +18,8 @@ import (
 	"github.com/neria-cloud/gosim/internal/translate"
 )
 
+const filesystemFeature = "fs"
+
 type BuildResult struct {
 	Config       gosimtool.BuildConfig
 	Artifacts    []gosimtool.Artifact
@@ -152,7 +154,7 @@ func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
 			}
 		}
 		for _, imported := range pkg.Imports {
-			for _, provider := range []string{"fs", "net"} {
+			for _, provider := range []string{filesystemFeature, "net"} {
 				target := translatedRoot + "/internal_/" + provider
 				if imported != target && !strings.HasPrefix(imported, target+"/") {
 					continue
@@ -167,8 +169,8 @@ func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
 					prefix := translatedRoot + "/internal_/" + consumer
 					forbidden = forbidden || path == prefix || strings.HasPrefix(path, prefix+"/")
 				}
-				peer := "fs"
-				if provider == "fs" {
+				peer := filesystemFeature
+				if provider == filesystemFeature {
 					peer = "net"
 				}
 				prefix := translatedRoot + "/internal_/" + peer
@@ -178,7 +180,7 @@ func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
 				}
 			}
 		}
-		for _, feature := range []string{"fs", "net"} {
+		for _, feature := range []string{filesystemFeature, "net"} {
 			original := gosimtool.Module + "/internal/" + feature
 			translated := "translated/" + gosimtool.ReplaceSpecialPackages(original)
 			if path == original || strings.HasPrefix(path, original+"/") {

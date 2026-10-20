@@ -123,29 +123,29 @@ func releaseOp(op fsOp) {
 }
 
 func retainOp(op fsOp) fsOp {
-	switch op := op.(type) {
+	switch typedOp := op.(type) {
 	case *writeOp:
-		writeCopy := *op
-		writeCopy.chunks = slices.Clone(op.chunks)
+		writeCopy := *typedOp
+		writeCopy.chunks = slices.Clone(typedOp.chunks)
 		for _, chunk := range writeCopy.chunks {
 			chunk.incRef()
 		}
 		return &writeCopy
 	case *resizeOp:
-		resizeCopy := *op
+		resizeCopy := *typedOp
 		return &resizeCopy
 	case *reserveOp:
-		reserveCopy := *op
+		reserveCopy := *typedOp
 		return &reserveCopy
 	case *metadataOp:
-		metadataCopy := *op
+		metadataCopy := *typedOp
 		return &metadataCopy
 	case *allocOp:
-		allocCopy := *op
+		allocCopy := *typedOp
 		return &allocCopy
 	case *dirOp:
-		dirCopy := *op
-		dirCopy.parts = slices.Clone(op.parts)
+		dirCopy := *typedOp
+		dirCopy.parts = slices.Clone(typedOp.parts)
 		return &dirCopy
 	default:
 		panic("unknown filesystem operation")

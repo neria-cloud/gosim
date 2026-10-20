@@ -362,6 +362,57 @@ linters:
       - path: '^(internal/(compat/(go[0-9]+|selected|spec)|hostabi|buildspec)|rt/runtime)/'
         linters: [revive]
         text: '^(bare-return|line-length-limit):'
+      # These lines are literal Go source templates. Reflow changes generated
+      # adapter bytes and their versioned fingerprints.
+      - path: '^internal/routegen/(adapter_body|dispatch|render)\.go$'
+        linters: [lll]
+      # Callback results are captured in named return values by these control
+      # adapters; preserve their existing declarations and return shape.
+      - path: '^(internal/kernel/control_(fs|net)|metatesting/metatest)\.go$'
+        linters: [revive]
+        text: '^bare-return:'
+      # These packages define the public ABI and translated service contracts.
+      # Splitting declarations to satisfy a per-file struct quota only churns
+      # versioned source identities without changing the exposed API.
+      - path: '^(internal/(buildspec|compat|contracts)/|rt/runtime/)'
+        linters: [revive]
+        text: '^max-public-structs:'
+      # Public controls, model schemas and manifests legitimately declare more
+      # than three exported structs in a file. Preserve their API grouping.
+      - path: '^((fs|net|nemesis|metatesting)/|[^/]+\.go$|internal/(fs/model|net/model|kernel|translate|gosimtool|gosimlog)/)'
+        linters: [revive]
+        text: '^max-public-structs:'
+      # The runtime driver is the test-process entry point, even though its
+      # entry function is intentionally named differently from main.
+      - path: '^rt/runtime/driver_main\.go$'
+        linters: [revive]
+        text: '^deep-exit:'
+      # The profile generator is a CLI, and the testing shim retains Go's
+      # process-exit behavior for invalid test flags.
+      - path: '^internal/compat/(genprofile/main|go125/shims/testing/match)\.go$'
+        linters: [revive]
+        text: '^deep-exit:'
+      # Provider and control methods implement the contracts package's fixed
+      # interfaces. Grouping arguments or results would break dispatch.
+      - path: '^internal/(fs/ops|net/ops|kernel/control_[a-z]+)\.go$'
+        linters: [revive]
+        text: '^(argument-limit|function-result-limit):'
+      # Identity inputs are an explicit digest contract; collapsing them into
+      # an opaque argument bundle makes accidental omissions easier.
+      - path: '^internal/buildcfg/identity\.go$'
+        linters: [revive]
+        text: '^argument-limit:'
+      # These result and flag positions are part of existing public or provider
+      # method signatures, including the paired native/sim recovery API.
+      - path: '^(fs/recovery_native|internal/(fs/control|net/control|gosimtool/gosimtool))\.go$'
+        linters: [revive]
+        text: '^(function-result-limit|flag-parameter):'
+      # These array lengths encode Linux IPv4, the self-exit transport tuple,
+      # and the copied TLS ticket-key signature; naming a constant in a type
+      # would churn fixed ABI declarations without adding a useful check.
+      - path: '^internal/(kernel/(control_net|kernel|machine)|net/(control|model/net)|compat/go125/shims/tls/tls)\.go$'
+        linters: [revive]
+        text: '^add-constant:'
     paths:
       - '_test\.go$'
       - third_party$

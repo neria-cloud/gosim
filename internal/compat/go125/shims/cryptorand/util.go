@@ -39,6 +39,7 @@ func Prime(rand io.Reader, bits int) (*big.Int, error) {
 		}
 
 		// Clear bits in the first byte to make sure the candidate has a size <= bits.
+		// #nosec G115 -- b is in [1, 8], so the mask is at most 255.
 		bytes[0] &= uint8(int(1<<b) - 1)
 		// Don't let the value be too small, i.e, set the most significant two bits.
 		// Setting the top two bits, rather than just the top bit,
@@ -95,6 +96,7 @@ func Int(rand io.Reader, max *big.Int) (n *big.Int, err error) {
 
 		// Clear bits in the first byte to increase the probability
 		// that the candidate is < max.
+		// #nosec G115 -- b is in [1, 8], so the mask is at most 255.
 		bytes[0] &= uint8(int(1<<b) - 1)
 
 		n.SetBytes(bytes)

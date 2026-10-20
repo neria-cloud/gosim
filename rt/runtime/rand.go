@@ -24,6 +24,7 @@ func Fastrandn(n uint32) uint32 {
 	if inControlledNondeterminism() {
 		return 0
 	}
+	// #nosec G115 -- Uint64N(uint64(n)) is strictly less than uint32 n.
 	return uint32(gs.get().engine.RandomFor("application", CurrentMachineToken().ID).Uint64N(uint64(n)))
 }
 
@@ -43,6 +44,7 @@ func NewDomainRandom(seed int64, domain string, machineID uint64) *Random {
 		panic("unknown random domain: " + domain)
 	}
 	var seedBytes, machineBytes [8]byte
+	// #nosec G115 -- the seed's two's-complement bits are the digest input.
 	binary.LittleEndian.PutUint64(seedBytes[:], uint64(seed))
 	binary.LittleEndian.PutUint64(machineBytes[:], machineID)
 	h := sha256.New()
@@ -85,10 +87,12 @@ type fastrander struct {
 func (f *fastrander) fastrandn(n uint32) uint32 {
 	// This is similar to fastrand() % n, but faster.
 	// See https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+	// #nosec G115 -- the high half of a 32-bit product fits in uint32.
 	return uint32(uint64(f.fastrand32()) * uint64(n) >> 32)
 }
 
 func (f *fastrander) fastrand32() uint32 {
+	// #nosec G115 -- fastrand32 intentionally uses the low 32 random bits.
 	return uint32(f.fastrand64())
 }
 

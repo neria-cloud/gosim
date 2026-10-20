@@ -19,6 +19,11 @@ import (
 
 const defaultCreationUmask = 0o022
 
+const (
+	pathSeparator = "/"
+	currentEntry  = "."
+)
+
 // A Mmap tracks an open mmap for a given file. Mmaps are implemented by keeping
 // a slice around with the contents of the file.
 //
@@ -394,11 +399,6 @@ func (fss *filesystemState) getFile(idx int) *backingFile {
 	return fss.objects[idx].(*backingFile)
 }
 
-func (fss *filesystemState) getFileOk(idx int) (*backingFile, bool) {
-	f, ok := fss.objects[idx].(*backingFile)
-	return f, ok
-}
-
 func (fss *filesystemState) getDir(idx int) (*backingDir, bool) {
 	dir, ok := fss.objects[idx].(*backingDir)
 	return dir, ok
@@ -635,7 +635,7 @@ type InodeInfo struct {
 	Ops        int
 }
 
-func (fs *Filesystem) getInodeInfo(inode int) InodeInfo {
+func (fs *Filesystem) inspectInodeInfo(inode int) InodeInfo {
 	mem, memOk := tryGetLinkCount(fs.mem, inode)
 	disk, diskOk := tryGetLinkCount(fs.persisted, inode)
 	return InodeInfo{
@@ -883,7 +883,7 @@ func (fs *Filesystem) Stat(dirInode int, path string, who Identity) (StatResp, e
 	if name == "" && path == "" {
 		return StatResp{}, syscall.ENOENT
 	}
-	if name == "." || name == "" {
+	if name == currentEntry || name == "" {
 		// TODO: clean up...
 		inode = dirInode
 	} else {
@@ -968,12 +968,12 @@ func (fs *Filesystem) Getpath(dirInode int) (string, error) {
 	}
 
 	if len(s) == 0 {
-		return "/", nil
+		return pathSeparator, nil
 	}
 
 	s = append(s, "")
 	slices.Reverse(s)
-	return strings.Join(s, "/"), nil
+	return strings.Join(s, pathSeparator), nil
 }
 
 func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool, who Identity) error {
@@ -1093,7 +1093,7 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int, mode uint32,
 		if path == "" {
 			return 0, syscall.ENOENT
 		}
-		name = "."
+		name = currentEntry
 	}
 
 	dir, ok := fs.mem.getDir(dirInode)
@@ -1103,7 +1103,7 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int, mode uint32,
 
 	var inode int
 	created := false
-	if name != "." {
+	if name != currentEntry {
 		inode, ok = dir.entries[name]
 		if !ok {
 			if flag&os.O_CREATE == 0 {
@@ -1236,7 +1236,7 @@ func (fs *Filesystem) ReadDir(inode int, who Identity) ([]ReadDirEntry, error) {
 }
 
 func (fs *Filesystem) GetInodeInfo(inode int) InodeInfo {
-	return fs.getInodeInfo(inode)
+	return fs.inspectInodeInfo(inode)
 }
 
 func (fs *Filesystem) walkpath(
@@ -1249,17 +1249,17 @@ func (fs *Filesystem) walkpath(
 	// TODO: harden and test; this function and its callers are not not well
 	// tested and brittle
 
-	if len(path) > 0 && path[0:1] == "/" {
+	if len(path) > 0 && path[0:1] == pathSeparator {
 		baseInode = RootInode
 	}
 
 	inode = baseInode
 	for {
-		for len(path) > 0 && path[0:1] == "/" {
+		for len(path) > 0 && path[0:1] == pathSeparator {
 			path = path[1:]
 		}
 
-		nextSlash := strings.Index(path, "/")
+		nextSlash := strings.Index(path, pathSeparator)
 		var name string
 		if nextSlash == -1 {
 			name = path
@@ -1294,7 +1294,7 @@ func (fs *Filesystem) walkpath(
 			return 0, "", err
 		}
 
-		if name == "." {
+		if name == currentEntry {
 			// stay
 			inode = dir.inode
 		} else if name == ".." {

@@ -149,7 +149,7 @@ func (k *Kernel) Stop(ref contracts.MachineRef, kind contracts.StopKind) error {
 	case StateNew:
 		return contracts.ErrNotStarted
 	case StateRunning:
-		err := k.stop(m, kind)
+		err := k.stopMachine(m, kind)
 		if err != nil {
 			k.cleanupFailure("machine stop", err)
 		}
@@ -170,9 +170,9 @@ func closeReason(kind contracts.StopKind) contracts.CloseReason {
 	return contracts.CloseCrash
 }
 
-// stop is the trusted non-returning-self/teardown route. Its caller is always
+// stopMachine is the trusted non-returning-self/teardown route. Its caller is always
 // the surviving supervisor, never the application being canceled.
-func (k *Kernel) stop(m *Machine, kind contracts.StopKind) error {
+func (k *Kernel) stopMachine(m *Machine, kind contracts.StopKind) error {
 	effectiveKind := kind
 	run := m.current
 	m.state, run.accepting = StateStopping, false

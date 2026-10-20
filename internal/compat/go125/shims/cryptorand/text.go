@@ -13,7 +13,7 @@ const base32alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 func Text() string {
 	// ⌈log₃₂ 2¹²⁸⌉ = 26 chars
 	src := make([]byte, textChars)
-	Read(src)
+	_, _ = Read(src)
 	for i := range src {
 		src[i] = base32alphabet[src[i]%base32AlphabetSize]
 	}

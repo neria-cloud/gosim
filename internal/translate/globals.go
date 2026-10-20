@@ -11,6 +11,8 @@ import (
 	"github.com/dave/dst/dstutil"
 )
 
+const globalsSelectorName = "Globals"
+
 func (t *packageTranslator) rewriteJSONGlobalsHack(c *dstutil.Cursor) {
 	if decl, ok := c.Node().(*dst.FuncDecl); ok {
 		if t.pkgPath == "encoding/json" && (decl.Name.Name == "cachedTypeFields" || decl.Name.Name == "typeEncoder") {
@@ -236,10 +238,10 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 	// implementation detail.
 
 	funcName := "G"
-	typName := "Globals"
+	typName := globalsSelectorName
 	varName := "globals"
 	initFuncName := "initializers"
-	field := "Globals"
+	field := globalsSelectorName
 	if forTest {
 		funcName = "GForTest"
 		typName = "GlobalsForTest"
@@ -419,10 +421,10 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 	}
 
 	globals := &dst.CompositeLit{
-		Type: t.newRuntimeSelector("Globals"),
+		Type: t.newRuntimeSelector(globalsSelectorName),
 		Elts: []dst.Expr{
 			&dst.KeyValueExpr{
-				Key: dst.NewIdent("Globals"),
+				Key: dst.NewIdent(globalsSelectorName),
 				Value: &dst.UnaryExpr{
 					Op: token.AND,
 					X:  dst.NewIdent(varName),

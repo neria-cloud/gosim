@@ -63,29 +63,6 @@ func (t *packageTranslator) rewriteIdentImpl(ident *dst.Ident) {
 	if t.nativeImports[ident.Path] {
 		return
 	}
-	lookupPath := ident.Path
-	if lookupPath == "" {
-		lookupPath = t.pkgPath
-	}
-
-	// special case new plan
-	/*
-		if info, ok := t.globalInfo.ByPackage[lookupPath]; ok {
-			if newName, ok := info.Rewritten[ident.Name]; ok {
-				if _, ok := t.astMap.Nodes[ident]; !ok {
-					// XXX: hack job to skip newly created idents
-					return
-				}
-
-				ident.Name = newName
-				if ident.Path != "" {
-					ident.Path = t.replacedPkgs[ident.Path] // XXX: how do we know this?
-				}
-				return
-			}
-		}
-	*/
-
 	// rewrite specific selectors
 	selector := PackageSelector{Pkg: ident.Path, Selector: ident.Name}
 	selectedReplacements := t.profile.replacements
@@ -198,7 +175,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 					// pushed by another package; no native symbol is admitted.
 					t.needsUnsafe = true
 				} else {
-					slog.Error("unknown linkname with no body", logPackageKey, t.pkgPath, "name", decl.Name.Name)
+					slog.Error("unknown linkname with no body", logPackageKey, t.pkgPath, logNameKey, decl.Name.Name)
 				}
 			}
 
@@ -232,7 +209,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 						}
 					}
 					if newPkg, ok := t.replacedPkgs[pkg]; ok {
-						slog.Debug("rewriting linkname", logPackageKey, t.pkgPath, "name", decl.Name.Name)
+						slog.Debug("rewriting linkname", logPackageKey, t.pkgPath, logNameKey, decl.Name.Name)
 
 						parts[2] = fmt.Sprintf("%s.%s", newPkg, name)
 						decl.Decs.Start[i] = strings.Join(parts, linknameFieldSeparator)
@@ -245,7 +222,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 							panic(fmt.Errorf("unknown linkname %s.%s -> %s.%s", t.pkgPath, decl.Name.Name, pkg, name))
 						}
 						slog.Error(
-							"unknown linkname", logPackageKey, t.pkgPath, "name", decl.Name.Name,
+							"unknown linkname", logPackageKey, t.pkgPath, logNameKey, decl.Name.Name,
 							"targetPkg", pkg, "targetName", name,
 						)
 					}
@@ -290,7 +267,7 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 				decl.Name.Name))
 			t.needsUnsafe = true
 		} else {
-			slog.Error("missing function body", logPackageKey, t.pkgPath, "name", decl.Name.Name)
+			slog.Error("missing function body", logPackageKey, t.pkgPath, logNameKey, decl.Name.Name)
 			panic(fmt.Errorf("missing function body %s.%s", t.pkgPath, decl.Name.Name))
 		}
 	}

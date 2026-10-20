@@ -103,6 +103,7 @@ func InternalGodebug_write(fd uintptr, p unsafe.Pointer, n int32) int32 {
 	if err != nil {
 		return -1
 	}
+	// #nosec G115 -- WriteResult.Count cannot exceed the int32 input length n.
 	return int32(result.Count)
 }
 func Syscall_Getpagesize() int       { return simulatedPageSize }

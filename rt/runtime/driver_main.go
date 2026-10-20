@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+const metatestProtocol = 3
+
 // TestMain runs each request directly through the generated Driver. It
 // calls Driver.Run inside its owned engine.
 func TestMain(driver Driver) {
@@ -44,7 +46,7 @@ func TestMain(driver Driver) {
 			fatal(fmt.Errorf("metatest binary runtime identity mismatch"))
 			return
 		}
-		hello := MetatestHandshake{Protocol: 3, IdentityDigest: digest, Toolchain: runtime.Version()}
+		hello := MetatestHandshake{Protocol: metatestProtocol, IdentityDigest: digest, Toolchain: runtime.Version()}
 		if err := output.Encode(hello); err != nil {
 			fatal(err)
 			return

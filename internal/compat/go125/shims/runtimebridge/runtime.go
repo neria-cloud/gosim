@@ -51,7 +51,10 @@ func (RuntimeCleanup) Stop() {
 }
 
 // Legacy runtime random linknames are redirected for all translated callers.
-func Runtime_fastrand() uint32          { return uint32(gosimruntime.Fastrand64()) }
+func Runtime_fastrand() uint32 {
+	// #nosec G115 -- fastrand intentionally returns the low 32 random bits.
+	return uint32(gosimruntime.Fastrand64())
+}
 func Runtime_fastrandn(n uint32) uint32 { return uint32(uint64(Runtime_fastrand()) * uint64(n) >> 32) }
 func Runtime_fastrand64() uint64        { return gosimruntime.Fastrand64() }
 

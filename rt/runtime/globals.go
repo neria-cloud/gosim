@@ -139,8 +139,8 @@ func InitGlobals(benchmark, initializeShared bool) {
 				stats = append(stats, stat{
 					path:     pkg.Path,
 					duration: duration,
-					allocs:   int64(memStats.TotalAlloc - prev),
-					size:     int64(pkg.Globals.Globals.typ().Size()),
+					allocs:   int64(memStats.TotalAlloc - prev),       // #nosec G115 -- diagnostic allocation count only.
+					size:     int64(pkg.Globals.Globals.typ().Size()), // #nosec G115 -- diagnostic size only.
 				})
 				prev = memStats.TotalAlloc
 			}
@@ -152,8 +152,8 @@ func InitGlobals(benchmark, initializeShared bool) {
 				stats = append(stats, stat{
 					path:     pkg.Path + " (for test)",
 					duration: duration,
-					allocs:   int64(memStats.TotalAlloc - prev),
-					size:     int64(pkg.Globals.Globals.typ().Size()),
+					allocs:   int64(memStats.TotalAlloc - prev),       // #nosec G115 -- diagnostic allocation count only.
+					size:     int64(pkg.Globals.Globals.typ().Size()), // #nosec G115 -- diagnostic size only.
 				})
 				prev = memStats.TotalAlloc
 			}

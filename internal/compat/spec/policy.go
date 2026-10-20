@@ -10,7 +10,7 @@ import (
 // packages are translated; unknown standard-library packages require review.
 // No missing rule ever selects native execution.
 func (p Profile) Policy(path string, standard bool) (PackagePolicy, error) {
-	if path == "" || strings.ContainsAny(path, "\\ \t\n") || strings.HasPrefix(path, ".") {
+	if path == "" || strings.ContainsAny(path, "\\ \t\n") || strings.HasPrefix(path, symbolSeparator) {
 		return PackagePolicy{}, fmt.Errorf("invalid package path %q", path)
 	}
 	var found PackagePolicy
@@ -107,7 +107,7 @@ type PolicyManifest struct {
 func (m PolicyManifest) Validate(p Profile) error {
 	shared := make(map[string]bool)
 	for _, global := range m.SharedGlobals {
-		key := global.Package + "." + global.Symbol
+		key := global.Package + symbolSeparator + global.Symbol
 		if global.Package != module+"/internal/control" || global.Symbol != "binding" || global.Reason == "" || shared[key] {
 			return fmt.Errorf("invalid shared translated global %s", key)
 		}
@@ -161,7 +161,7 @@ func (m PolicyManifest) Validate(p Profile) error {
 	}
 	probes := make(map[string]bool)
 	for _, probe := range m.Probes {
-		key := probe.Package + "." + probe.Symbol
+		key := probe.Package + symbolSeparator + probe.Symbol
 		if probe.Package == "" || probe.Symbol == "" || probes[key] || !slices.Contains([]string{"init", "first-use", "operation"}, probe.Phase) || !slices.Contains([]string{"modeled", "guarded", "reject"}, probe.Disposition) || !slices.Contains([]string{"rt", "fs", "net"}, probe.Feature) || probe.Operation == "" || probe.Response == "" || !strings.HasPrefix(probe.Source, "src/") {
 			return fmt.Errorf("invalid init probe %s", key)
 		}
@@ -191,7 +191,7 @@ func (m PolicyManifest) Validate(p Profile) error {
 	}
 	capabilities := make(map[string]bool)
 	for _, c := range m.Capabilities {
-		key := c.Package + "." + c.Symbol
+		key := c.Package + symbolSeparator + c.Symbol
 		if c.Package == "" || c.Symbol == "" || !slices.Contains([]string{"implemented", "limited", "stub", "rejected"}, c.Status) || c.Reason == "" || capabilities[key] {
 			return fmt.Errorf("invalid capability %s", key)
 		}

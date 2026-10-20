@@ -312,23 +312,21 @@ func (c Chan[V]) recvOk() (V, bool) {
 			c.impl.start = (c.impl.start + 1) % len(c.impl.buf)
 			c.impl.end = c.impl.start
 			return v, true
-		} else {
-			if hostabi.RaceEnabled {
-				racesynccross(other.goroutine, &c.impl.race[0])
-			}
-			v := chanCast[V](other.item)
-			other.success = true
-			return v, true
 		}
-	} else {
 		if hostabi.RaceEnabled {
-			racesyncsingle(&c.impl.race[c.impl.start])
+			racesynccross(other.goroutine, &c.impl.race[0])
 		}
-		v := c.impl.buf[c.impl.start]
-		c.impl.len--
-		c.impl.start = (c.impl.start + 1) % len(c.impl.buf)
+		v := chanCast[V](other.item)
+		other.success = true
 		return v, true
 	}
+	if hostabi.RaceEnabled {
+		racesyncsingle(&c.impl.race[c.impl.start])
+	}
+	v := c.impl.buf[c.impl.start]
+	c.impl.len--
+	c.impl.start = (c.impl.start + 1) % len(c.impl.buf)
+	return v, true
 }
 
 //go:norace
@@ -597,10 +595,10 @@ func racesyncsingle(addr *racesynchelper) {
 
 //go:norace
 func racesyncdouble(g *goroutine, addr *racesynchelper) {
-	if g := addr.pending; g != nil {
-		g.parksynctoken.Acquire()
+	if pending := addr.pending; pending != nil {
+		pending.parksynctoken.Acquire()
 		addr.pending = nil
-		g.shouldrelease = nil
+		pending.shouldrelease = nil
 	}
 
 	hostabi.RaceAcquire(unsafe.Pointer(addr))

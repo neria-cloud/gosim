@@ -17,6 +17,7 @@ func Time_now() (sec int64, nsec int32, mono int64) {
 	// TODO: somehow avoid this division?
 	sec = now / nanosPerSecond
 	mono = now
+	// #nosec G115 -- a remainder after division by 1e9 fits in int32.
 	nsec = int32(mono - sec*nanosPerSecond)
 
 	return

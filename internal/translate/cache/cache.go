@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // Register the SQLite driver used by sql.Open.
 )
 
 type DB struct {

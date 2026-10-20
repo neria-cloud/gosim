@@ -206,21 +206,21 @@ func (t *typeImpl) Elem() Type {
 
 func (t *typeImpl) Field(i int) StructField {
 	if t.kind == wrappedMap {
-		panic("reflect: struct field operation on map Type")
+		panic(reflectMapTypeMessage)
 	}
 	return wrapStructField(t.inner.Field(i))
 }
 
 func (t *typeImpl) FieldByIndex(index []int) StructField {
 	if t.kind == wrappedMap {
-		panic("reflect: struct field operation on map Type")
+		panic(reflectMapTypeMessage)
 	}
 	return wrapStructField(t.inner.FieldByIndex(index))
 }
 
 func (t *typeImpl) FieldByName(name string) (StructField, bool) {
 	if t.kind == wrappedMap {
-		panic("reflect: struct field operation on map Type")
+		panic(reflectMapTypeMessage)
 	}
 	field, ok := t.inner.FieldByName(name)
 	return wrapStructField(field), ok
@@ -228,7 +228,7 @@ func (t *typeImpl) FieldByName(name string) (StructField, bool) {
 
 func (t *typeImpl) FieldByNameFunc(match func(string) bool) (StructField, bool) {
 	if t.kind == wrappedMap {
-		panic("reflect: struct field operation on map Type")
+		panic(reflectMapTypeMessage)
 	}
 	field, ok := t.inner.FieldByNameFunc(match)
 	return wrapStructField(field), ok
@@ -254,7 +254,7 @@ func (t *typeImpl) Len() int {
 
 func (t *typeImpl) NumField() int {
 	if t.kind == wrappedMap {
-		panic("reflect: struct field operation on map Type")
+		panic(reflectMapTypeMessage)
 	}
 	return t.inner.NumField()
 }
@@ -412,13 +412,13 @@ func PointerTo(t Type) Type {
 }
 
 func ChanOf(dir ChanDir, t Type) Type {
-	panic("gosim go125 reflect: unsupported operation")
+	panic(reflectUnsupportedMessage)
 	// return wrapType(reflect.ChanOf(dir, t.(*typeImpl).inner))
 }
 
 func MapOf(key, elem Type) Type {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "reflect.MapOf", Message: "dynamic map type construction is not modeled"})
-	panic("gosim go125 reflect: unsupported operation")
+	panic(reflectUnsupportedMessage)
 }
 
 func FuncOf(in, out []Type, variadic bool) Type {
@@ -430,7 +430,7 @@ func SliceOf(t Type) Type {
 }
 
 func StructOf(fields []StructField) Type {
-	panic("gosim go125 reflect: unsupported operation")
+	panic(reflectUnsupportedMessage)
 }
 
 func ArrayOf(length int, elem Type) Type {

@@ -48,7 +48,7 @@ func fingerprintInstalled(root string) (buildspec.Fingerprints, error) {
 		if !entry.Type().IsRegular() {
 			return fmt.Errorf("nonregular GOROOT input %s", name)
 		}
-		digest, err := hashFile(filename)
+		digest, err := hashFileContents(filename)
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func fingerprintInstalled(root string) (buildspec.Fingerprints, error) {
 	}, nil
 }
 
-func hashFile(path string) (string, error) {
+func hashFileContents(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err
