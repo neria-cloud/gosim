@@ -109,3 +109,14 @@ Implemented
 Verified
 - Focused dispatcher/kernel tests, `./.ci/gofmt check`, and `make build` passed.
 - `make test` passed: 1,825 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T142420.758365Z-2obk3e90/report.md`).
+
+## Task 9 — Complete integration tests and architecture docs
+
+Implemented
+- Added public simulation tests for capacity and sparse allocation at two sizes, atomic `ENOSPC`, live read-only transitions, UID/GID access, fixed latency and immediate metadata, and an over-capacity restored image.
+- Updated README, design, and filesystem example documentation to match the new storage API, crash behavior, and supported limits.
+- Reviewed capability records and generated/profile declarations from the route tasks; retained explicit unsupported-operation descriptions.
+
+Verified
+- Focused translated tests passed with `rt,fs` and `rt,fs,net` for seeds 1–2; `./.ci/gofmt check` and `make build` passed.
+- `make test` passed: 1,841 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T143134.733406Z-142kf_bw/report.md`).

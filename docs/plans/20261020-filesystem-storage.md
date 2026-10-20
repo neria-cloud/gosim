@@ -203,15 +203,15 @@ The public `Config` converts explicitly to `contracts.FSConfig{WorkingDir,Capaci
 **References**: target §Validation and documentation, §Data flows 1–8, failure table, §NOT CONSIDERED & TODO; brainstorm log §Repository observations and §User choices.  
 **Goal**: Demonstrate the new behavior through public and Go syscall entry points, and make documentation match the implementation.
 
-- [ ] Add or consolidate positive simulation tests for two machine capacities, stats before/after sparse and allocated writes, atomic full-volume failure, free space after truncate/unlink, read-only transition through an existing fd, restart/restore policy and metadata behavior, root/non-root access, and delayed I/O versus immediate metadata queries.
-- [ ] Test ordinary `os` and selected syscall adapters on both supported families/architectures where the existing ordinary test harness covers them. Do not mark compile-only or skipped cases as passed. Verify disabled FS still aborts on attempted use.
-- [ ] Update capability records for modeled operations and retain precise limitation descriptions for missing symlinks/links/special files, directory-relative descriptors, unsupported permission extras and no resize. Add `// TODO(not planned): ...` comments at relevant rejection branches; do not introduce logging-only or successful fallback stubs.
-- [ ] Update README and `docs/design.md` for capacity units/default, `fs.Stats`, read-only toggle, identity/mode rules, latency timing, recovery over-capacity behavior and preserved `/app` cwd. Correct the former statement that chmod and permission handling are absent.
-- [ ] Review generated/profile files and docs for accidental claims that ordinary `make test` certifies excluded tuples. Keep certification optional and manual.
+- [x] Add or consolidate positive simulation tests for two machine capacities, stats before/after sparse and allocated writes, atomic full-volume failure, free space after truncate/unlink, read-only transition through an existing fd, restart/restore policy and metadata behavior, root/non-root access, and delayed I/O versus immediate metadata queries.
+- [x] Test ordinary `os` and selected syscall adapters on both supported families/architectures where the existing ordinary test harness covers them. Do not mark compile-only or skipped cases as passed. Verify disabled FS still aborts on attempted use.
+- [x] Update capability records for modeled operations and retain precise limitation descriptions for missing symlinks/links/special files, directory-relative descriptors, unsupported permission extras and no resize. Add `// TODO(not planned): ...` comments at relevant rejection branches; do not introduce logging-only or successful fallback stubs.
+- [x] Update README and `docs/design.md` for capacity units/default, `fs.Stats`, read-only toggle, identity/mode rules, latency timing, recovery over-capacity behavior and preserved `/app` cwd. Correct the former statement that chmod and permission handling are absent.
+- [x] Review generated/profile files and docs for accidental claims that ordinary `make test` certifies excluded tuples. Keep certification optional and manual.
 
 #### Verification
 
-- [ ] Run focused translated tests through `./.gosim/gosimtool` for `rt,fs` and relevant `rt,fs,net` cases, then `./.ci/gofmt check`, `make build`, `make test`; read `test-reports/unit/latest/report.md`, timeline and failing logs, and fix all failures.
+- [x] Run focused translated tests through `./.gosim/gosimtool` for `rt,fs` and relevant `rt,fs,net` cases, then `./.ci/gofmt check`, `make build`, `make test`; read `test-reports/unit/latest/report.md`, timeline and failing logs, and fix all failures.
 
 ---
 
