@@ -20,13 +20,15 @@ type Invocation struct {
 	Fingerprints buildspec.Fingerprints `json:"-"`
 }
 
+const maxInvocationSizeMiB = 1
+
 func ValidateInvocation(ctx context.Context, path string) (Invocation, error) {
 	var in Invocation
 	stat, err := os.Lstat(path)
 	if err != nil {
 		return in, err
 	}
-	if !stat.Mode().IsRegular() || stat.Size() > 1024*1024 {
+	if !stat.Mode().IsRegular() || stat.Size() > maxInvocationSizeMiB*bytesPerKiB*bytesPerKiB {
 		return in, fmt.Errorf("invalid worker invocation file")
 	}
 	data, err := os.ReadFile(path)

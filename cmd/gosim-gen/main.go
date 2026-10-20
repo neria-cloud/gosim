@@ -12,7 +12,9 @@ import (
 	"github.com/neria-cloud/gosim/internal/routegen"
 )
 
-func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, output string, options routegen.GenerateOptions) error {
+func GenerateProfile(
+	tc buildspec.Toolchain, profileID string, arches []string, output string, options routegen.GenerateOptions,
+) error {
 	return routegen.GenerateProfile(tc, profileID, arches, output, options)
 }
 

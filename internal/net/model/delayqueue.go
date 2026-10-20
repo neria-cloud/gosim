@@ -7,6 +7,8 @@ import (
 	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
+const initialDelayQueueCapacity = 16
+
 type timeIndex struct {
 	// XXX: can we pack these together somehow?
 	time  int64
@@ -52,7 +54,10 @@ type delayQueue struct {
 }
 
 func newDelayQueue(clock contracts.Clock, events contracts.Events, deliver func(*Packet)) *delayQueue {
-	return &delayQueue{clock: clock, events: events, deliver: deliver, items: make(timedHeap, 0, 16)}
+	return &delayQueue{
+		clock: clock, events: events, deliver: deliver,
+		items: make(timedHeap, 0, initialDelayQueueCapacity),
+	}
 }
 
 func (q *delayQueue) updateTimer() {

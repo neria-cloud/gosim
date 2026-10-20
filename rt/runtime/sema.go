@@ -20,6 +20,8 @@ type sema struct {
 
 const semasSize = 251 // prime just like in runtime
 
+const semaHashShift = 3
+
 var semas [semasSize]*sema
 
 // TODO: store these structs on g instead or something?
@@ -61,7 +63,7 @@ func maybefree(semaPtr **sema) {
 
 //go:norace
 func getsema(addr *uint32, alloc bool) *sema {
-	idx := (uintptr(unsafe.Pointer(addr)) >> 3) % semasSize
+	idx := (uintptr(unsafe.Pointer(addr)) >> semaHashShift) % semasSize
 
 	maybefree(&semas[idx])
 	cur := semas[idx]
@@ -92,7 +94,7 @@ func getsema(addr *uint32, alloc bool) *sema {
 
 //go:norace
 func freesema(addr *uint32) {
-	idx := (uintptr(unsafe.Pointer(addr)) >> 3) % semasSize
+	idx := (uintptr(unsafe.Pointer(addr)) >> semaHashShift) % semasSize
 
 	if semas[idx].ptr == addr {
 		freeing := semas[idx]

@@ -12,6 +12,11 @@ import (
 	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
+const (
+	closedChannelMessage = "closed"
+	maxSelectCases       = 128
+)
+
 type waitq struct {
 	first, last *sudog
 }
@@ -181,7 +186,7 @@ func (c Chan[V]) canSend() bool {
 //go:norace
 func (c Chan[V]) send(v V) {
 	if c.impl.closed {
-		panic("closed")
+		panic(closedChannelMessage)
 	}
 
 	if other := c.impl.recvQ.dequeue(); other != nil {
@@ -231,7 +236,7 @@ func (c Chan[V]) Send(v V) {
 	if !sudog.success {
 		hostabi.RaceAcquire(unsafe.Pointer(c.impl))
 		g.releaseWaiters()
-		panic("closed")
+		panic(closedChannelMessage)
 	}
 	g.releaseWaiters()
 }
@@ -239,7 +244,7 @@ func (c Chan[V]) Send(v V) {
 func (c Chan[V]) completeSend(ok bool) {
 	if !ok {
 		hostabi.RaceAcquire(unsafe.Pointer(c.impl))
-		panic("closed")
+		panic(closedChannelMessage)
 	}
 }
 
@@ -250,7 +255,7 @@ func ChanCast[V any](v interface{}) V {
 //go:norace
 func (c Chan[V]) close() {
 	if c.impl.closed {
-		panic("closed")
+		panic(closedChannelMessage)
 	}
 	c.impl.closed = true
 
@@ -494,7 +499,7 @@ func Select(selectors ...ChanSelector) (int, any, bool) {
 	g := getg()
 	g.yield()
 
-	if len(selectors) >= 128 {
+	if len(selectors) >= maxSelectCases {
 		panic("bad")
 	}
 	var readybuf [8]byte

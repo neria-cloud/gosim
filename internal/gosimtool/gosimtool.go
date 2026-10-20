@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	Module          = "github.com/neria-cloud/gosim"
-	OutputDirectory = ".gosim"
+	Module           = "github.com/neria-cloud/gosim"
+	OutputDirectory  = ".gosim"
+	goModSearchLimit = 20
 )
 
 func FindGoMod() (string, *modfile.File, error) {
@@ -32,7 +33,7 @@ func FindGoMod() (string, *modfile.File, error) {
 		return "", nil, err
 	}
 
-	for i := 0; i < 20; i++ {
+	for i := 0; i < goModSearchLimit; i++ {
 		p := path.Join(baseDir, "go.mod")
 		bytes, err := os.ReadFile(p)
 		if err != nil {
@@ -212,11 +213,11 @@ func ResolveTestIdentity(t *testing.T, configPath string) buildspec.Identity {
 	if err != nil {
 		t.Fatal(err)
 	}
-	configPath, err = workerboot.ConfigPath(cwd, configPath)
+	resolvedConfigPath, err := workerboot.ConfigPath(cwd, configPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := buildcfg.Load(configPath, buildcfg.Overrides{})
+	cfg, err := buildcfg.Load(resolvedConfigPath, buildcfg.Overrides{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,8 +229,8 @@ func ResolveTestIdentity(t *testing.T, configPath string) buildspec.Identity {
 		t.Fatal("configured compiler differs from running Go test; migrate config to schema 2")
 	}
 	var args []string
-	if configPath != "" {
-		args = []string{"-config", configPath}
+	if resolvedConfigPath != "" {
+		args = []string{"-config", resolvedConfigPath}
 	}
 	if hostabi.RaceEnabled {
 		args = append(args, "-race")

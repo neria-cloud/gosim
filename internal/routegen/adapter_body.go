@@ -31,30 +31,60 @@ func adapterBody(h spec.Hook, m Manifest) (string, error) {
 	case "FcntlInt":
 		body = "value,err:=fcntlInt(int(p0),int(p1),int(p2)); return value,err"
 		if h.Package == "internal/syscall/unix" {
-			body = "value,err:=fcntlInt(int(p0),int(p1),int(p2));if err!=nil {errno,ok:=err.(syscall.Errno);if !ok{Reject(\"fcntl error\")};return -1,int32(errno)};return int32(value),0"
+			body = "value,err:=fcntlInt(int(p0),int(p1),int(p2));" +
+				"if err!=nil {errno,ok:=err.(syscall.Errno);if !ok{Reject(\"fcntl error\")};" +
+				"return -1,int32(errno)};return int32(value),0"
 		}
 	case "FcntlLock":
 		body = "return fcntlLock(int(p0),p1,unsafe.Pointer(p2))"
 	case "Fstat":
-		body = "if p1==nil{return syscall.EFAULT}; out,err:=" + call + "(k.FstatRequest{FD:p0},k.DecodeFstatResult);if err==nil{writeStat(unsafe.Pointer(p1),out.Stat)};return err"
+		body = "if p1==nil{return syscall.EFAULT}; out,err:=" + call +
+			"(k.FstatRequest{FD:p0},k.DecodeFstatResult);" +
+			"if err==nil{writeStat(unsafe.Pointer(p1),out.Stat)};return err"
 	case "FstatFS":
-		body = "if p1==nil{return syscall.EFAULT}; out,err:=" + call + "(k.FstatFSRequest{FD:p0},k.DecodeFstatFSResult);if err==nil{writeStatFS(unsafe.Pointer(p1),out.Stats)};return err"
+		body = "if p1==nil{return syscall.EFAULT}; out,err:=" + call +
+			"(k.FstatFSRequest{FD:p0},k.DecodeFstatFSResult);" +
+			"if err==nil{writeStatFS(unsafe.Pointer(p1),out.Stats)};return err"
 	case "StatFS":
-		body = "if strings.IndexByte(p0,0)>=0{return syscall.EINVAL};if p1==nil{return syscall.EFAULT};out,err:=" + call + "(k.StatFSRequest{Path:p0},k.DecodeStatFSResult);if err==nil{writeStatFS(unsafe.Pointer(p1),out.Stats)};return err"
+		body = "if strings.IndexByte(p0,0)>=0{return syscall.EINVAL};" +
+			"if p1==nil{return syscall.EFAULT};out,err:=" + call +
+			"(k.StatFSRequest{Path:p0},k.DecodeStatFSResult);" +
+			"if err==nil{writeStatFS(unsafe.Pointer(p1),out.Stats)};return err"
 	case "Statat":
-		body = "if strings.IndexByte(p1,0)>=0{return syscall.EINVAL};if p2==nil{return syscall.EFAULT};out,err:=" + call + "(k.StatatRequest{DirFD:p0,Path:p1,Flags:p3},k.DecodeStatatResult);if err==nil{writeStat(unsafe.Pointer(p2),out.Stat)};return err"
+		body = "if strings.IndexByte(p1,0)>=0{return syscall.EINVAL};" +
+			"if p2==nil{return syscall.EFAULT};out,err:=" + call +
+			"(k.StatatRequest{DirFD:p0,Path:p1,Flags:p3},k.DecodeStatatResult);" +
+			"if err==nil{writeStat(unsafe.Pointer(p2),out.Stat)};return err"
 	case "Uname":
-		body = "if p0==nil{return syscall.EFAULT};out,err:=Call(k.UnameRequest{},k.DecodeUnameResult);if err==nil{writeUname(unsafe.Pointer(p0),out.Info)};return err"
+		body = "if p0==nil{return syscall.EFAULT};" +
+			"out,err:=Call(k.UnameRequest{},k.DecodeUnameResult);" +
+			"if err==nil{writeUname(unsafe.Pointer(p0),out.Info)};return err"
 	case "Bind", "Connect":
-		body = "address,err:=readAddress(p1,p2);if err!=nil{return err};_,err=" + call + "(k." + op + "Request{FD:p0,Address:address},k.Decode" + op + "Result);return err"
+		body = "address,err:=readAddress(p1,p2);if err!=nil{return err};_,err=" +
+			call + "(k." + op + "Request{FD:p0,Address:address},k.Decode" +
+			op + "Result);return err"
 	case "Accept":
-		body = "if err:=checkAddressOutput(unsafe.Pointer(p1),p2);err!=nil{return 0,err};out,err:=" + call + "(k.AcceptRequest{FD:p0,Flags:p3},k.DecodeAcceptResult);if err==nil{writeAddress(unsafe.Pointer(p1),p2,out.Address)};return out.FD,err"
+		body = "if err:=checkAddressOutput(unsafe.Pointer(p1),p2);err!=nil{return 0,err};" +
+			"out,err:=" + call + "(k.AcceptRequest{FD:p0,Flags:p3},k.DecodeAcceptResult);" +
+			"if err==nil{writeAddress(unsafe.Pointer(p1),p2,out.Address)};return out.FD,err"
 	case "LocalAddress", "PeerAddress":
-		body = "if err:=checkAddressOutput(unsafe.Pointer(p1),p2);err!=nil{return err};out,err:=" + call + "(k." + op + "Request{FD:p0},k.Decode" + op + "Result);if err==nil{writeAddress(unsafe.Pointer(p1),p2,out.Address)};return err"
+		body = "if err:=checkAddressOutput(unsafe.Pointer(p1),p2);err!=nil{return err};" +
+			"out,err:=" + call + "(k." + op + "Request{FD:p0},k.Decode" + op +
+			"Result);if err==nil{writeAddress(unsafe.Pointer(p1),p2,out.Address)};return err"
 	case "SetOption":
-		body = "if p4>uintptr(^uint32(0)){return syscall.EINVAL};if p3==nil && p4!=0{return syscall.EFAULT};simrt.RaceReadRange(p3,int(p4));_,err:=" + call + "(k.SetOptionRequest{FD:p0,Level:p1,Name:p2,Value:abi.NewSliceView((*byte)(p3),p4)},k.DecodeSetOptionResult);return err"
+		body = "if p4>uintptr(^uint32(0)){return syscall.EINVAL};" +
+			"if p3==nil && p4!=0{return syscall.EFAULT};" +
+			"simrt.RaceReadRange(p3,int(p4));_,err:=" + call +
+			"(k.SetOptionRequest{FD:p0,Level:p1,Name:p2,Value:abi.NewSliceView((*byte)(p3),p4)}," +
+			"k.DecodeSetOptionResult);return err"
 	case "GetOption":
-		body = "if p4==nil{return syscall.EFAULT};simrt.RaceReadRange(unsafe.Pointer(p4),4);size:=abi.NewValueView(p4).Get();if p3==nil && size!=0{return syscall.EFAULT};out,err:=" + call + "(k.GetOptionRequest{FD:p0,Level:p1,Name:p2,Into:abi.NewSliceView((*byte)(p3),uintptr(size))},k.DecodeGetOptionResult);if err==nil{simrt.RaceWriteRange(p3,out.Count);simrt.RaceWriteRange(unsafe.Pointer(p4),4);abi.NewValueView(p4).Set(uint32(out.Count))};return err"
+		body = "if p4==nil{return syscall.EFAULT};simrt.RaceReadRange(unsafe.Pointer(p4),4);" +
+			"size:=abi.NewValueView(p4).Get();if p3==nil && size!=0{return syscall.EFAULT};" +
+			"out,err:=" + call +
+			"(k.GetOptionRequest{FD:p0,Level:p1,Name:p2,Into:abi.NewSliceView((*byte)(p3),uintptr(size))}," +
+			"k.DecodeGetOptionResult);if err==nil{simrt.RaceWriteRange(p3,out.Count);" +
+			"simrt.RaceWriteRange(unsafe.Pointer(p4),4);" +
+			"abi.NewValueView(p4).Set(uint32(out.Count))};return err"
 	default:
 		routeName := op
 		if op == "DataSync" {

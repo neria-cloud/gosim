@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+const (
+	defaultLatencyMilliseconds = 100
+	defaultTCPBufferBytes      = 1024
+	defaultLatencyLambda       = 5
+)
+
 type LatencyConfig struct {
 	Min, Max time.Duration
 	Lambda   float64
@@ -29,5 +35,12 @@ type (
 type MachineConfig struct{ Addr netip.Addr }
 
 func DefaultConfig() Config {
-	return Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second, TCPBufferSize: 1024}
+	return Config{
+		Latency: LatencyConfig{
+			Max: defaultLatencyMilliseconds * time.Millisecond, Lambda: defaultLatencyLambda,
+		},
+		Loss:              LossConfig{RepairProbability: 1},
+		ConnectionTimeout: time.Second,
+		TCPBufferSize:     defaultTCPBufferBytes,
+	}
 }

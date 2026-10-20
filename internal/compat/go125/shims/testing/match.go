@@ -17,6 +17,11 @@ import (
 	"sync"
 )
 
+// Preserve the selected Go testing matcher: its delimiter, decimal, and Unicode
+// literals describe the upstream format, and rebinding s mirrors that parser.
+//revive:disable:add-constant
+//revive:disable:modifies-parameter
+
 // matcher sanitizes, uniques, and filters names of subtests and subbenchmarks.
 type matcher struct {
 	filter    filterMatch

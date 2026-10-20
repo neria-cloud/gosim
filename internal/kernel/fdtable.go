@@ -10,6 +10,11 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+const (
+	firstAssignableFD       = 3
+	linuxGetFileStatusFlags = 3
+)
+
 // FDTable owns every resource transferred to it, regardless of provider.
 type FDTable struct {
 	epoch   contracts.EpochRef
@@ -19,7 +24,7 @@ type FDTable struct {
 }
 
 func NewFDTable(epoch contracts.EpochRef) *FDTable {
-	return &FDTable{epoch: epoch, entries: make(map[int]contracts.Resource), next: 3}
+	return &FDTable{epoch: epoch, entries: make(map[int]contracts.Resource), next: firstAssignableFD}
 }
 
 func (t *FDTable) Allocate(resource contracts.Resource) (int, error) {
@@ -110,7 +115,7 @@ func (t *FDTable) installDiagnostics(kernel *Kernel) error {
 	if t.closed || len(t.entries) != 0 {
 		return contracts.ErrInvalidState
 	}
-	for fd := 0; fd < 3; fd++ {
+	for fd := 0; fd < firstAssignableFD; fd++ {
 		t.entries[fd] = &diagnosticResource{kernel: kernel, epoch: t.epoch, fd: fd}
 	}
 	return nil
@@ -192,7 +197,7 @@ func (k *Kernel) FcntlInt(ctx contracts.CallContext, fd, command, argument int) 
 	switch resource.Owner() {
 	case contracts.RT:
 		// Linux F_GETFL during os standard-file initialization. No native poller.
-		if fd >= 0 && fd <= 2 && command == 3 && argument == 0 {
+		if fd >= 0 && fd <= 2 && command == linuxGetFileStatusFlags && argument == 0 {
 			if fd == 0 {
 				return 0, nil
 			}

@@ -13,6 +13,8 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+const buildDigestHexLength = 64
+
 type Config struct {
 	RuntimeRevision string
 	// Composition supplies the normalized runtime identity and the digest of
@@ -55,7 +57,7 @@ func New(config Config, engine *simrt.Engine, providers []contracts.Provider) (*
 	if err != nil {
 		return nil, err
 	}
-	if len(config.BuildDigest) != 64 ||
+	if len(config.BuildDigest) != buildDigestHexLength ||
 		strings.Trim(config.BuildDigest, "0123456789abcdef") != "" ||
 		config.TimeoutNS <= 0 || engine == nil {
 		return nil, fmt.Errorf("%w: invalid kernel identity, timeout or engine", contracts.ErrInvalidConfig)

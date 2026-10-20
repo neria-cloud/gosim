@@ -24,8 +24,10 @@ import (
 
 type BuildResult = buildrun.BuildResult
 
+const metatestProtocol = 3
+
 func Resolve(config buildspec.Config, options buildspec.BuildOptions) (gosimtool.BuildConfig, error) {
-	config, err := buildcfg.Normalize(config)
+	normalizedConfig, err := buildcfg.Normalize(config)
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
@@ -46,7 +48,7 @@ func Resolve(config buildspec.Config, options buildspec.BuildOptions) (gosimtool
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
-	id, err := buildcfg.Identity(context.Background(), config, resolution, profile, options, inputs, contract)
+	id, err := buildcfg.Identity(context.Background(), normalizedConfig, resolution, profile, options, inputs, contract)
 	if err != nil {
 		return gosimtool.BuildConfig{}, err
 	}
@@ -80,7 +82,9 @@ func Run(ctx context.Context, artifact gosimtool.Artifact, config simrt.RunConfi
 	return results[0], nil
 }
 
-func runRequests(ctx context.Context, artifact gosimtool.Artifact, configs []simrt.RunConfig) ([]simrt.RunResult, error) {
+func runRequests(
+	ctx context.Context, artifact gosimtool.Artifact, configs []simrt.RunConfig,
+) ([]simrt.RunResult, error) {
 	if len(configs) == 0 {
 		return nil, fmt.Errorf("candidate run requires requests")
 	}
@@ -95,7 +99,9 @@ func runRequests(ctx context.Context, artifact gosimtool.Artifact, configs []sim
 	if err != nil {
 		return nil, err
 	}
-	hello := simrt.MetatestHandshake{Protocol: 3, IdentityDigest: digest, Toolchain: manifest.Identity.Toolchain}
+	hello := simrt.MetatestHandshake{
+		Protocol: metatestProtocol, IdentityDigest: digest, Toolchain: manifest.Identity.Toolchain,
+	}
 	if err := json.NewEncoder(&requests).Encode(hello); err != nil {
 		return nil, err
 	}

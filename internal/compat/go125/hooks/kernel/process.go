@@ -105,7 +105,7 @@ func InternalGodebug_write(fd uintptr, p unsafe.Pointer, n int32) int32 {
 	}
 	return int32(result.Count)
 }
-func Syscall_Getpagesize() int       { return 4096 }
+func Syscall_Getpagesize() int       { return simulatedPageSize }
 func Os_runtime_rand() uint64        { return simrt.Fastrand64() }
 func Os_checkClonePidfd() error      { Reject("os.checkClonePidfd"); return contracts.ErrInvalidState }
 func Os_sigpipe()                    { Reject("os.sigpipe") }

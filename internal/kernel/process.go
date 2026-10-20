@@ -9,6 +9,11 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+const (
+	simulatedProcessID    = 42
+	unameNodeNameMaxBytes = 64
+)
+
 type (
 	ProcessInfo       struct{ Sysname, Nodename, Release, Version, Machine string }
 	ProcessCapability struct{ Operation, Status, Detail string }
@@ -38,11 +43,12 @@ func (k *Kernel) Getrandom(ctx contracts.CallContext, into abi.ByteView, flags i
 	}
 	random := k.engine.RandomFor("application", ctx.Epoch.Machine.ID)
 	n := into.Len()
-	for into.Len() != 0 {
+	remaining := into
+	for remaining.Len() != 0 {
 		var block [8]byte
 		binary.LittleEndian.PutUint64(block[:], random.Uint64())
-		written := into.Write(block[:])
-		into = into.SliceFrom(written)
+		written := remaining.Write(block[:])
+		remaining = remaining.SliceFrom(written)
 	}
 	return n, nil
 }
@@ -52,7 +58,7 @@ func (k *Kernel) Getpid(ctx contracts.CallContext) int {
 		k.invariant("getpid on inactive epoch")
 		return 0
 	}
-	return 42
+	return simulatedProcessID
 }
 
 func (k *Kernel) Uname(ctx contracts.CallContext) (ProcessInfo, error) {
@@ -60,5 +66,5 @@ func (k *Kernel) Uname(ctx contracts.CallContext) (ProcessInfo, error) {
 		return ProcessInfo{}, err
 	}
 	label := k.machineByID[ctx.Epoch.Machine.ID].label
-	return ProcessInfo{Nodename: label[:min(len(label), 64)]}, nil
+	return ProcessInfo{Nodename: label[:min(len(label), unameNodeNameMaxBytes)]}, nil
 }

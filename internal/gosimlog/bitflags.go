@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+const bitflagSeparator = "|"
+
 type BitflagChoice struct {
 	Mask   int
 	Values map[int]string
@@ -22,35 +24,36 @@ type BitflagFormatter struct {
 
 func (f *BitflagFormatter) Format(value int) string {
 	var buf bytes.Buffer
+	remaining := value
 	for _, choice := range f.Choices {
-		masked := value & choice.Mask
-		value ^= masked
+		masked := remaining & choice.Mask
+		remaining ^= masked
 		if got, ok := choice.Values[masked]; ok {
 			if buf.Len() > 0 {
-				buf.WriteString("|")
+				buf.WriteString(bitflagSeparator)
 			}
 			buf.WriteString(got)
 		} else {
 			if buf.Len() > 0 {
-				buf.WriteString("|")
+				buf.WriteString(bitflagSeparator)
 			}
 			fmt.Fprintf(&buf, "%d", masked)
 		}
 	}
 	for _, choice := range f.Flags {
-		if value&choice.Value == choice.Value {
-			value ^= choice.Value
+		if remaining&choice.Value == choice.Value {
+			remaining ^= choice.Value
 			if buf.Len() > 0 {
-				buf.WriteString("|")
+				buf.WriteString(bitflagSeparator)
 			}
 			buf.WriteString(choice.Name)
 		}
 	}
-	if value != 0 {
+	if remaining != 0 {
 		if buf.Len() > 0 {
-			buf.WriteString("|")
+			buf.WriteString(bitflagSeparator)
 		}
-		fmt.Fprintf(&buf, "%d", value)
+		fmt.Fprintf(&buf, "%d", remaining)
 	}
 	return buf.String()
 }

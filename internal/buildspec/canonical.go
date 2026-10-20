@@ -149,6 +149,7 @@ func SourceDigest(id Identity) (string, error) {
 	if _, err := NormalizeIdentity(id); err != nil {
 		return "", err
 	}
-	id.ModuleGraphDigest = Hash([]byte("gosim-framework-application-graph-v2"))
-	return Digest(id)
+	frameworkID := id
+	frameworkID.ModuleGraphDigest = Hash([]byte("gosim-framework-application-graph-v2"))
+	return Digest(frameworkID)
 }

@@ -33,6 +33,11 @@ type Random struct{ state uint64 }
 
 const RandomRevision = "gosim-rng-v2"
 
+const (
+	randomStateIncrement = 0xa0761d6478bd642f
+	randomFloatBits      = 53
+)
+
 func NewDomainRandom(seed int64, domain string, machineID uint64) *Random {
 	if domain != "scheduler" && domain != "application" && domain != "fs" && domain != "net" {
 		panic("unknown random domain: " + domain)
@@ -52,7 +57,7 @@ func NewDomainRandom(seed int64, domain string, machineID uint64) *Random {
 
 //go:norace
 func (r *Random) Uint64() uint64 {
-	r.state += 0xa0761d6478bd642f
+	r.state += randomStateIncrement
 	hi, lo := bits.Mul64(r.state, r.state^0xe7037ed1a0b428db)
 	return hi ^ lo
 }
@@ -70,7 +75,7 @@ func (r *Random) Uint64N(n uint64) uint64 {
 	}
 }
 
-func (r *Random) Float64() float64    { return float64(r.Uint64()>>11) / (1 << 53) }
+func (r *Random) Float64() float64    { return float64(r.Uint64()>>11) / (1 << randomFloatBits) }
 func (r *Random) ExpFloat64() float64 { return -math.Log1p(-r.Float64()) }
 
 type fastrander struct {
@@ -95,7 +100,7 @@ func (f *fastrander) fastrand64() uint64 {
 		// TODO: return an actually random value?
 		return 0
 	}
-	f.state += 0xa0761d6478bd642f
+	f.state += randomStateIncrement
 	hi, lo := bits.Mul64(f.state, f.state^0xe7037ed1a0b428db)
 	return hi ^ lo
 }

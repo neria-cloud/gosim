@@ -360,7 +360,9 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 		if err != nil {
 			return nil, err
 		}
-		if err := writer.stage(pathForFile(outputPackage, renameFile(args.cfg, filepath.Base(filePath))), bytes); err != nil {
+		if err := writer.stage(
+			pathForFile(outputPackage, renameFile(args.cfg, filepath.Base(filePath))), bytes,
+		); err != nil {
 			return nil, err
 		}
 	}

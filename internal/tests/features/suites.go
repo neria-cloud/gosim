@@ -14,28 +14,36 @@ type Suite struct {
 	Requires []string
 }
 
+const (
+	runtimeFeature    = "rt"
+	filesystemFeature = "fs"
+	networkFeature    = "net"
+)
+
 func Registry() []Suite {
 	return []Suite{
-		{"./internal/tests/rt", []string{"rt"}},
-		{"./internal/tests/fs", []string{"rt", "fs"}},
-		{"./internal/tests/net", []string{"rt", "net"}},
-		{"./internal/tests/integration", []string{"rt", "fs", "net"}},
-		{"./nemesis", []string{"rt", "fs", "net"}},
-		{"./examples/simple", []string{"rt"}},
-		{"./examples/bolt", []string{"rt", "fs"}},
-		{"./examples/network/machines", []string{"rt", "net"}},
-		{"./examples/network/latency", []string{"rt", "net"}},
+		{"./internal/tests/rt", []string{runtimeFeature}},
+		{"./internal/tests/fs", []string{runtimeFeature, filesystemFeature}},
+		{"./internal/tests/net", []string{runtimeFeature, networkFeature}},
+		{"./internal/tests/integration", []string{runtimeFeature, filesystemFeature, networkFeature}},
+		{"./nemesis", []string{runtimeFeature, filesystemFeature, networkFeature}},
+		{"./examples/simple", []string{runtimeFeature}},
+		{"./examples/bolt", []string{runtimeFeature, filesystemFeature}},
+		{"./examples/network/machines", []string{runtimeFeature, networkFeature}},
+		{"./examples/network/latency", []string{runtimeFeature, networkFeature}},
 	}
 }
 
 func Packages(names []string) ([]string, error) {
-	names, err := buildspec.Features(names)
+	selectedNames, err := buildspec.Features(names)
 	if err != nil {
 		return nil, err
 	}
 	var packages []string
 	for _, suite := range Registry() {
-		if slices.ContainsFunc(suite.Requires, func(name string) bool { return !slices.Contains(names, name) }) {
+		if slices.ContainsFunc(suite.Requires, func(name string) bool {
+			return !slices.Contains(selectedNames, name)
+		}) {
 			continue
 		}
 		packages = append(packages, suite.Package)
@@ -47,15 +55,15 @@ func Packages(names []string) ([]string, error) {
 // provider into reduced-feature jobs through provider integration test imports.
 // Full-feature certification runs ./..., including those integration tests.
 func NativePackages(names []string) ([]string, error) {
-	names, err := buildspec.Features(names)
+	selectedNames, err := buildspec.Features(names)
 	if err != nil {
 		return nil, err
 	}
 	packages := []string{"./rt/runtime/...", "./internal/hostabi", "./internal/contracts"}
-	if slices.Contains(names, "fs") {
+	if slices.Contains(selectedNames, filesystemFeature) {
 		packages = append(packages, "./internal/fs/model")
 	}
-	if slices.Contains(names, "net") {
+	if slices.Contains(selectedNames, networkFeature) {
 		packages = append(packages, "./internal/net/model")
 	}
 	return packages, nil

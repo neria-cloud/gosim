@@ -13,6 +13,12 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+// Directory, path, mode, and capacity parameters are local traversal state.
+// Keep their in-place normalization beside the operations that consume them.
+//revive:disable:modifies-parameter
+
+const defaultCreationUmask = 0o022
+
 // A Mmap tracks an open mmap for a given file. Mmaps are implemented by keeping
 // a slice around with the contents of the file.
 //
@@ -659,7 +665,7 @@ func (fs *Filesystem) maybeGC(inode int) {
 			file.file.Free()
 			file.file = nil
 			delete(fs.mem.objects, inode)
-			// delete? but what about persisted????????????????????????????????????? (must be zero also or we are in a strange situation)
+			// The persisted entry must also be cleared to avoid inconsistent state.
 			// slog.Info("fs freeing mem", "inode", inode)
 		}
 	}
@@ -669,7 +675,7 @@ func (fs *Filesystem) maybeGC(inode int) {
 			file.file.Free()
 			file.file = nil
 			delete(fs.persisted.objects, inode)
-			// delete? but what about persisted????????????????????????????????????? (must be zero also or we are in a strange situation)
+			// Both copies must be cleared to avoid inconsistent state.
 			// slog.Info("fs freeing persisted", "inode", inode)
 		}
 	}
@@ -805,7 +811,7 @@ func (fs *Filesystem) Mkdir(dirInode int, path string, mode uint32, who Identity
 	op := &allocOp{
 		dir:   true,
 		inode: inode,
-		meta:  inodeMetadata{Mode: mode & modeBitsMask &^ 0o022, UID: who.UID, GID: who.GID},
+		meta:  inodeMetadata{Mode: mode & modeBitsMask &^ defaultCreationUmask, UID: who.UID, GID: who.GID},
 	}
 	fs.apply(op)
 
@@ -1111,7 +1117,7 @@ func (fs *Filesystem) OpenFile(dirInode int, path string, flag int, mode uint32,
 			op := &allocOp{
 				dir:   false,
 				inode: inode,
-				meta:  inodeMetadata{Mode: mode & modeBitsMask &^ 0o022, UID: who.UID, GID: who.GID},
+				meta:  inodeMetadata{Mode: mode & modeBitsMask &^ defaultCreationUmask, UID: who.UID, GID: who.GID},
 			}
 			fs.apply(op)
 

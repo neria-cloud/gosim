@@ -56,6 +56,15 @@ const (
 	colorDarkGray = 90
 )
 
+const (
+	asciiSpace        = 0x20
+	asciiTilde        = 0x7e
+	machineLabelWidth = 10
+	stepLabelWidth    = 5
+	levelAbbrevLength = 3
+	stringFormat      = "%s"
+)
+
 // algorithm:
 // - print well known fields in fixed order with standard formatters
 // - print other fields in input order (XXX: sorted for now)
@@ -99,16 +108,16 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 		i++
 	}
 	prefix := p[:i]
-	p = p[i:]
+	payload := p[i:]
 
 	var evt map[string]interface{}
-	d := json.NewDecoder(byteutil.NewReader(p))
+	d := json.NewDecoder(byteutil.NewReader(payload))
 	d.UseNumber()
 	err = d.Decode(&evt)
 	if err != nil {
 		// XXX: test that this is output
 		_, _ = w.out.Write(prefix)
-		_, _ = w.out.Write(p)
+		_, _ = w.out.Write(payload)
 		return n, fmt.Errorf("cannot decode event: %s", err)
 	}
 	// XXX: what happens with stuff after the message? fix and test
@@ -156,7 +165,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 		_, _ = w.out.Write(buffer)
 	}
 
-	return len(p), err
+	return len(payload), err
 }
 
 func jsonMarshal(v interface{}, indent bool) ([]byte, error) {
@@ -180,7 +189,7 @@ func jsonMarshal(v interface{}, indent bool) ([]byte, error) {
 // needsQuote returns true when the string s should be quoted in output.
 func needsQuote(s string) bool {
 	for i := range s {
-		if s[i] < 0x20 || s[i] > 0x7e || s[i] == ' ' || s[i] == '\\' || s[i] == '"' {
+		if s[i] < asciiSpace || s[i] > asciiTilde || s[i] == ' ' || s[i] == '\\' || s[i] == '"' {
 			return true
 		}
 	}
@@ -280,9 +289,9 @@ func (w Writer) writePart(buf *byteutil.Buffer, evt map[string]interface{}, p st
 	case slog.SourceKey:
 		s = w.formatter.caller(evt[p])
 	case "machine":
-		s = padRight(fmt.Sprintf("%s/%s", evt["machine"], evt["goroutine"]), 10)
+		s = padRight(fmt.Sprintf("%s/%s", evt["machine"], evt["goroutine"]), machineLabelWidth)
 	case "step":
-		s = padLeft(fmt.Sprint(evt[p]), 5)
+		s = padLeft(fmt.Sprint(evt[p]), stepLabelWidth)
 	default:
 		s = w.formatter.fieldValue(p, evt[p])
 	}
@@ -301,26 +310,28 @@ type formatter struct {
 
 // colorize returns the string s wrapped in ANSI code c, unless disabled is true or c is 0.
 func (f *formatter) colorize(s interface{}, c ...int) string {
+	value := s
 	if len(c) == 0 || (len(c) == 1 && c[0] == 0) || f.noColor {
 		// XXX: %s or %v?
-		return fmt.Sprintf("%s", s)
+		return fmt.Sprintf(stringFormat, value)
 	}
 	for _, c := range c {
-		s = fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, s)
+		value = fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, value)
 	}
-	return s.(string)
+	return value.(string)
 }
 
 const timeFormat = "15:04:05.000"
 
 func (f *formatter) timestamp(i interface{}) string {
+	value := i
 	if s, ok := i.(string); ok {
 		ts, err := time.ParseInLocation(time.RFC3339Nano, s, time.UTC)
 		if err == nil {
-			i = ts.In(time.UTC).Format(timeFormat)
+			value = ts.In(time.UTC).Format(timeFormat)
 		}
 	}
-	return f.colorize(i, colorDarkGray)
+	return f.colorize(value, colorDarkGray)
 }
 
 var levelColors = map[slog.Level]int{
@@ -348,13 +359,13 @@ func (f *formatter) level(i interface{}) string {
 		if ok {
 			l = f.colorize(fl, levelColors[level])
 		} else {
-			l = strings.ToUpper(ll)[0:3]
+			l = strings.ToUpper(ll)[0:levelAbbrevLength]
 		}
 	} else {
 		if i == nil {
 			l = "???"
 		} else {
-			l = strings.ToUpper(fmt.Sprintf("%s", i))[0:3]
+			l = strings.ToUpper(fmt.Sprintf(stringFormat, i))[0:levelAbbrevLength]
 		}
 	}
 	return l
@@ -394,9 +405,9 @@ func (f *formatter) message(level interface{}, i interface{}) string {
 	}
 	switch level {
 	case slog.LevelInfo, slog.LevelWarn, slog.LevelError:
-		return f.colorize(fmt.Sprintf("%s", i), colorBold)
+		return f.colorize(fmt.Sprintf(stringFormat, i), colorBold)
 	default:
-		return fmt.Sprintf("%s", i)
+		return fmt.Sprintf(stringFormat, i)
 	}
 }
 
@@ -406,8 +417,7 @@ func (f *formatter) fieldName(i interface{}) string {
 
 func (f *formatter) fieldValue(field string, i interface{}) string {
 	if field == errorKey {
-		return f.colorize(fmt.Sprintf("%s", i), colorBold, colorRed)
-	} else {
-		return fmt.Sprintf("%s", i)
+		return f.colorize(fmt.Sprintf(stringFormat, i), colorBold, colorRed)
 	}
+	return fmt.Sprintf(stringFormat, i)
 }

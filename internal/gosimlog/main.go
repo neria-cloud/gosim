@@ -162,18 +162,19 @@ func Stack(skip int, base uintptr) slog.Attr {
 
 // StackFor returns a stackframes attr for a stack captured with runtime.Callers.
 func StackFor(stack []uintptr, base uintptr) slog.Attr {
+	selectedStack := stack
 	var frames []Stackframe
 	found := false
 	if base == 0 {
 		found = true
 	} else {
-		if idx := slices.Index(stack, base); idx != -1 {
-			stack = stack[idx:]
+		if idx := slices.Index(selectedStack, base); idx != -1 {
+			selectedStack = selectedStack[idx:]
 			found = true
 		}
 	}
-	if len(stack) > 0 {
-		framesIter := runtime.CallersFrames(stack)
+	if len(selectedStack) > 0 {
+		framesIter := runtime.CallersFrames(selectedStack)
 		for {
 			frame, more := framesIter.Next()
 			if !found && frame.PC == base {

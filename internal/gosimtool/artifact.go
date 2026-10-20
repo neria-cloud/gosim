@@ -12,6 +12,10 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
+const artifactFileMode = 0o644
+
+const artifactDirectoryMode = 0o755
+
 // mkdirArtifactParents creates only real directories below a caller-owned root.
 // Build locks and staging cannot be redirected through cached symlinks.
 func mkdirArtifactParents(root, relative string) error {
@@ -31,7 +35,7 @@ func mkdirArtifactParents(root, relative string) error {
 	}
 	for _, part := range strings.Split(filepath.ToSlash(relative), "/") {
 		current = filepath.Join(current, part)
-		if err := os.Mkdir(current, 0o755); err != nil && !errors.Is(err, os.ErrExist) {
+		if err := os.Mkdir(current, artifactDirectoryMode); err != nil && !errors.Is(err, os.ErrExist) {
 			return err
 		}
 		info, err := os.Lstat(current)
@@ -71,7 +75,7 @@ func MaterializeFiles(directory string, files map[string][]byte) error {
 		f, err := os.OpenFile(
 			filepath.Join(directory, filepath.FromSlash(name)),
 			os.O_WRONLY|os.O_CREATE|os.O_EXCL,
-			0o644,
+			artifactFileMode,
 		)
 		if err != nil {
 			return err
@@ -96,15 +100,15 @@ func BuildArtifact(
 	packages []PackageDigest,
 	builder func(string) (Manifest, error),
 ) (artifact Artifact, err error) {
-	identity, err = buildspec.NormalizeIdentity(identity)
+	normalizedIdentity, err := buildspec.NormalizeIdentity(identity)
 	if err != nil {
 		return artifact, err
 	}
-	packages, err = normalizePackages(packages)
+	normalizedPackages, err := normalizePackages(packages)
 	if err != nil {
 		return artifact, err
 	}
-	directory, err := ArtifactDirectory(project, identity, packages)
+	directory, err := ArtifactDirectory(project, normalizedIdentity, normalizedPackages)
 	if err != nil {
 		return artifact, err
 	}
@@ -120,7 +124,7 @@ func BuildArtifact(
 		return artifact, fmt.Errorf("lock artifact: %w", err)
 	}
 	defer func() { err = errors.Join(err, unlock()) }()
-	previous, verifyErr := VerifyArtifact(directory, identity, packages)
+	previous, verifyErr := VerifyArtifact(directory, normalizedIdentity, normalizedPackages)
 	if verifyErr == nil {
 		return Artifact{directory, previous}, nil
 	}
@@ -149,7 +153,7 @@ func BuildArtifact(
 	if err != nil {
 		return artifact, err
 	}
-	if err := verifyManifestInputs(m, identity, packages); err != nil {
+	if err := verifyManifestInputs(m, normalizedIdentity, normalizedPackages); err != nil {
 		return artifact, err
 	}
 	if err := verifyManifestFiles(staging, m); err != nil {
@@ -159,7 +163,9 @@ func BuildArtifact(
 	if err != nil {
 		return artifact, err
 	}
-	manifest, err := os.OpenFile(filepath.Join(staging, "manifest.json"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	manifest, err := os.OpenFile(
+		filepath.Join(staging, "manifest.json"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, artifactFileMode,
+	)
 	if err != nil {
 		return artifact, err
 	}

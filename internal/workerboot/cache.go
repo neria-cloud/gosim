@@ -19,6 +19,8 @@ import (
 
 const Protocol = 1
 
+const workerManifestMode = 0o600
+
 type WorkerManifest struct {
 	Schema          int    `json:"schema"`
 	Protocol        int    `json:"protocol"`
@@ -136,11 +138,11 @@ func OpenOverride(
 	source Source,
 	inputs buildspec.Fingerprints,
 ) (Worker, error) {
-	path, err := exec.LookPath(path)
+	workerPath, err := exec.LookPath(path)
 	if err != nil {
 		return Worker{}, err
 	}
-	path, err = filepath.Abs(path)
+	workerPath, err = filepath.Abs(workerPath)
 	if err != nil {
 		return Worker{}, err
 	}
@@ -148,7 +150,7 @@ func OpenOverride(
 	if err != nil {
 		return Worker{}, err
 	}
-	w, err := readWorkerFile(path, want)
+	w, err := readWorkerFile(workerPath, want)
 	if err != nil {
 		return Worker{}, fmt.Errorf(
 			"invalid GOSIMTOOL worker or missing matching manifest; unset GOSIMTOOL for automatic startup: %w",
@@ -178,13 +180,14 @@ func Ensure(
 	if err != nil {
 		return Worker{}, err
 	}
-	if cacheRoot == "" {
-		cacheRoot, err = buildspec.CacheRoot()
+	resolvedCacheRoot := cacheRoot
+	if resolvedCacheRoot == "" {
+		resolvedCacheRoot, err = buildspec.CacheRoot()
 		if err != nil {
 			return Worker{}, err
 		}
 	}
-	dir := filepath.Join(cacheRoot, "workers", "v1", want.Key)
+	dir := filepath.Join(resolvedCacheRoot, "workers", "v1", want.Key)
 	reuse := func() (Worker, error) {
 		w, err := readWorker(dir, want)
 		if err == nil {
@@ -238,7 +241,7 @@ func Ensure(
 	if err != nil {
 		return Worker{}, err
 	}
-	if err := os.WriteFile(filepath.Join(stage, "manifest.json"), append(data, '\n'), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(stage, "manifest.json"), append(data, '\n'), workerManifestMode); err != nil {
 		return Worker{}, err
 	}
 	staged, err := readWorker(stage, want)

@@ -87,7 +87,8 @@ func (t *packageTranslator) isGlobalUse(node dst.Node) (dst.Expr, bool) {
 		return nil, false
 	}
 
-	astExpr, ok := t.astMap.Nodes[ident].(ast.Expr) // XXX: use expr here because a dst ident might be an ast selector; happens in other places also?
+	// A dst identifier may correspond to an AST selector.
+	astExpr, ok := t.astMap.Nodes[ident].(ast.Expr)
 	if !ok {
 		return nil, false
 	}

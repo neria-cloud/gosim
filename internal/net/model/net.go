@@ -9,6 +9,12 @@ import (
 	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
+const (
+	traceFromKey       = "from"
+	traceToKey         = "to"
+	traceGenerationKey = "generation"
+)
+
 type HostPair struct {
 	SourceHost, DestHost netip.Addr
 }
@@ -75,9 +81,9 @@ func (e *Endpoint) Send(packet *Packet) {
 	drop := func(reason string) {
 		n.traceNetwork(
 			"drop",
-			"from",
+			traceFromKey,
 			e.addr,
-			"to",
+			traceToKey,
 			packet.ConnId.Hosts.DestHost,
 			"kind",
 			packet.Kind,
@@ -122,9 +128,9 @@ func (e *Endpoint) Send(packet *Packet) {
 	e.last[dst] = packet.ArrivalTime
 	n.traceNetwork(
 		"enqueue",
-		"from",
+		traceFromKey,
 		e.addr,
-		"to",
+		traceToKey,
 		dst,
 		"kind",
 		packet.Kind,
@@ -134,7 +140,7 @@ func (e *Endpoint) Send(packet *Packet) {
 		arrival,
 		"sequence",
 		n.nextSequence,
-		"generation",
+		traceGenerationKey,
 		state.Generation,
 		"saturated",
 		saturated,
@@ -337,7 +343,7 @@ func (n *Network) SetConnectivity(p HostPair, connected bool, direction Connecti
 			n.partition(key, state, linkExplicitPartition)
 		} else {
 			state.Explicit = false
-			n.traceNetwork("manual_repair", "a", key.A, "b", key.B, "generation", state.Generation)
+			n.traceNetwork("manual_repair", "a", key.A, "b", key.B, traceGenerationKey, state.Generation)
 		}
 	}
 	return nil
@@ -356,32 +362,32 @@ func (n *Network) getStack(packet *Packet) *Stack {
 			"drop",
 			"reason",
 			"stale_or_partitioned",
-			"from",
+			traceFromKey,
 			packet.ConnId.Hosts.SourceHost,
-			"to",
+			traceToKey,
 			packet.ConnId.Hosts.DestHost,
-			"generation",
+			traceGenerationKey,
 			packet.Generation,
 		)
 		return nil
 	}
 	endpoint := n.endpoints[packet.ConnId.Hosts.DestHost]
 	if endpoint == nil || endpoint.closed || endpoint.stack == nil || endpoint.ref != packet.DestinationEpoch {
-		n.traceNetwork("drop", "reason", "destination_absent", "to", packet.ConnId.Hosts.DestHost)
+		n.traceNetwork("drop", "reason", "destination_absent", traceToKey, packet.ConnId.Hosts.DestHost)
 		return nil
 	}
 	// Delivery is serialized with topology mutation by the event owner.
 	n.traceNetwork(
 		"deliver_admitted",
-		"from",
+		traceFromKey,
 		packet.ConnId.Hosts.SourceHost,
-		"to",
+		traceToKey,
 		packet.ConnId.Hosts.DestHost,
 		"kind",
 		packet.Kind,
 		"sequence",
 		packet.ArrivalTime.index,
-		"generation",
+		traceGenerationKey,
 		packet.Generation,
 	)
 

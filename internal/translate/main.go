@@ -18,6 +18,11 @@ import (
 	"github.com/neria-cloud/gosim/internal/translate/cache"
 )
 
+const (
+	translatedDirectoryMode = 0o755
+	translatedFileMode      = 0o644
+)
+
 type TranslateInput struct {
 	Packages []string
 	Cfg      gosimtool.BuildConfig
@@ -371,7 +376,7 @@ func publishInputFile(path string, data []byte, mutable bool) error {
 		return err
 	}
 	defer os.Remove(temp.Name())
-	writeErr := temp.Chmod(0o644)
+	writeErr := temp.Chmod(translatedFileMode)
 	if writeErr == nil {
 		_, writeErr = temp.Write(data)
 	}
@@ -402,7 +407,7 @@ func createSelectedDirectory(root, relative string) (string, error) {
 	current := root
 	for _, part := range strings.Split(filepath.ToSlash(relative), "/") {
 		current = filepath.Join(current, part)
-		if err := os.Mkdir(current, 0o755); err != nil && !errors.Is(err, os.ErrExist) {
+		if err := os.Mkdir(current, translatedDirectoryMode); err != nil && !errors.Is(err, os.ErrExist) {
 			return "", err
 		}
 		info, err := os.Lstat(current)

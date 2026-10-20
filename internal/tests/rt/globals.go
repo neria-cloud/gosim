@@ -1,10 +1,15 @@
 package behavior
 
+const (
+	initialPublicGlobal  = 20
+	initialPrivateGlobal = 10
+)
+
 var privateGlobal int
 
 var PublicGlobal int
 
 func init() {
-	PublicGlobal = 20
-	privateGlobal = 10
+	PublicGlobal = initialPublicGlobal
+	privateGlobal = initialPrivateGlobal
 }

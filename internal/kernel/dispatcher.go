@@ -220,8 +220,15 @@ func (d *Dispatcher) DispatchOne(inv *Invocation) {
 
 //go:norace
 func clearInvocation(inv *Invocation) {
-	inv.Args, inv.Scalars, inv.Result = [5]any{}, [6]uintptr{}, Result{}
+	inv.Args, inv.Scalars, inv.Result = [invocationArgCount]any{}, [invocationScalarCount]uintptr{}, Result{}
 }
+
+const (
+	invocationArgCount    = 5
+	invocationScalarCount = 6
+	linuxOpenTruncate     = 0x200
+	linuxOpenCreate       = 0x40
+)
 
 // fsDelay classifies the completed operation. Descriptor read/write is delayed
 // only when the descriptor belongs to the filesystem provider.
@@ -233,10 +240,10 @@ func (d *Dispatcher) openatMutates(inv *Invocation) bool {
 	if !ok {
 		return false // decode reports malformed payload
 	}
-	if p.Flags&0x200 != 0 { // Linux O_TRUNC
+	if p.Flags&linuxOpenTruncate != 0 { // Linux O_TRUNC
 		return true
 	}
-	if p.Flags&0x40 == 0 { // Linux O_CREAT
+	if p.Flags&linuxOpenCreate == 0 { // Linux O_CREAT
 		return false
 	}
 	files, err := d.kernel.Filesystem(inv.Context)

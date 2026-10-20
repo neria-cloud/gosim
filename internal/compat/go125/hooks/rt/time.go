@@ -9,13 +9,15 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
+const nanosPerSecond = 1e9
+
 func Time_now() (sec int64, nsec int32, mono int64) {
 	now := gosimruntime.Nanotime()
 
 	// TODO: somehow avoid this division?
-	sec = now / 1e9
+	sec = now / nanosPerSecond
 	mono = now
-	nsec = int32(mono - sec*1e9)
+	nsec = int32(mono - sec*nanosPerSecond)
 
 	return
 }

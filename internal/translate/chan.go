@@ -86,11 +86,11 @@ func (t *packageTranslator) chanForRewrite(x dst.Expr) (dst.Expr, bool) {
 	if !ok {
 		return nil, false
 	}
-	x = t.apply(x).(dst.Expr)
+	rewritten := t.apply(x).(dst.Expr)
 	if typ.Named != typ.Type {
-		x = &dst.CallExpr{Fun: t.newRuntimeSelector("ExtractChan"), Args: []dst.Expr{x}}
+		rewritten = &dst.CallExpr{Fun: t.newRuntimeSelector("ExtractChan"), Args: []dst.Expr{rewritten}}
 	}
-	return x, true
+	return rewritten, true
 }
 
 func (t *packageTranslator) rewriteChanLen(c *dstutil.Cursor) {

@@ -248,10 +248,10 @@ func (w *outputWriter) writeFiles(rootDir string) error {
 		if *dryrun {
 			log.Println("writing", finalP)
 		} else {
-			if err := os.MkdirAll(stdpath.Dir(finalP), 0o755); err != nil {
+			if err := os.MkdirAll(stdpath.Dir(finalP), translatedDirectoryMode); err != nil {
 				return err
 			}
-			if err := os.WriteFile(finalP, desired, 0o644); err != nil {
+			if err := os.WriteFile(finalP, desired, translatedFileMode); err != nil {
 				return err
 			}
 		}

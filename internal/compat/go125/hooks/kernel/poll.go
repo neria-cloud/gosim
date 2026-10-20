@@ -10,6 +10,13 @@ import (
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 )
 
+const (
+	pollNotPollable   = 3
+	pollReadMode      = 114
+	simulatedPageSize = 4096
+	maxWritevVectors  = 1024
+)
+
 func InternalPoll_runtimeNano() int64              { return simrt.Nanotime() }
 func InternalPoll_runtime_Semacquire(addr *uint32) { simrt.Semacquire(addr, false) }
 func InternalPoll_runtime_Semrelease(addr *uint32) { simrt.Semrelease(addr) }
@@ -26,7 +33,7 @@ func InternalPoll_runtime_pollOpen(fd uintptr) (uintptr, int) {
 	if err != nil {
 		Reject("poll-open")
 	}
-	if result.Code == 3 {
+	if result.Code == pollNotPollable {
 		return 0, int(syscall.EPERM)
 	}
 	return uintptr(result.Handle), result.Code
@@ -57,7 +64,7 @@ func InternalPoll_runtime_pollWaitCanceled(ctx uintptr, mode int) {
 }
 
 func pollMode(mode int) uint8 {
-	if mode != 114 && mode != 119 && mode != 233 {
+	if mode != pollReadMode && mode != 119 && mode != 233 {
 		Reject("invalid poll mode")
 	}
 	return uint8(mode)

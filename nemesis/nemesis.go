@@ -61,7 +61,9 @@ func (p PartitionMachines) Run() {
 
 	for _, a := range a {
 		for _, b := range b {
-			if err := simnet.Partition(simnet.Link{From: netip.MustParseAddr(a), To: netip.MustParseAddr(b)}); err != nil {
+			if err := simnet.Partition(simnet.Link{
+				From: netip.MustParseAddr(a), To: netip.MustParseAddr(b),
+			}); err != nil {
 				panic(err)
 			}
 		}

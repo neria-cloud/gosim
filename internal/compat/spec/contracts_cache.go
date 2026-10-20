@@ -87,13 +87,16 @@ func CheckContracts(ctx context.Context, r buildspec.Resolution, p Profile, opts
 		return "", err
 	}
 	keyInputs := compatibilityInputs{Schema: 1, Family: support.Family, ContractDigest: digest, CheckerRevision: p.Revision, Toolchain: tc.Version, Fingerprints: inputs, HostOS: tc.HostOS, Architecture: tc.HostArch, Race: opts.Race, Experiments: opts.Experiments, SourceTags: buildspec.TranslatedSourceTags(opts.Race), Modules: modules}
-	if cacheRoot == "" {
-		cacheRoot, err = buildspec.CacheRoot()
+	resolvedCacheRoot := cacheRoot
+	if resolvedCacheRoot == "" {
+		resolvedCacheRoot, err = buildspec.CacheRoot()
 		if err != nil {
 			return "", err
 		}
 	}
-	err = checkCachedContracts(ctx, cacheRoot, keyInputs, func() error { return VerifyContracts(ctx, tc, dir, manifest, opts) })
+	err = checkCachedContracts(ctx, resolvedCacheRoot, keyInputs, func() error {
+		return VerifyContracts(ctx, tc, dir, manifest, opts)
+	})
 	if err != nil {
 		return "", err
 	}

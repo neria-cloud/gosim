@@ -66,7 +66,7 @@ func inspectSources(ctx context.Context, tc buildspec.Toolchain, dir string, sel
 	} else {
 		tags = buildspec.TranslatedSourceTags(selection.Race)
 	}
-	cmd.Args[4] = "-tags=" + tags
+	cmd.Args[buildTagsArgIndex] = "-tags=" + tags
 	cgo := "0"
 	if selection.Native && selection.Race {
 		cgo = "1"
@@ -164,13 +164,14 @@ func (s *sourceInspection) Import(path string) (*types.Package, error) {
 }
 
 func (s *sourceInspection) ImportFrom(path, dir string, mode types.ImportMode) (*types.Package, error) {
+	resolvedPath := path
 	for _, pkg := range s.packages {
-		if pkg.Dir == dir && pkg.ImportMap[path] != "" {
-			path = pkg.ImportMap[path]
+		if pkg.Dir == dir && pkg.ImportMap[resolvedPath] != "" {
+			resolvedPath = pkg.ImportMap[resolvedPath]
 			break
 		}
 	}
-	return s.Import(path)
+	return s.Import(resolvedPath)
 }
 
 func (s *sourceInspection) verifyHooks(hooks []Hook) error {

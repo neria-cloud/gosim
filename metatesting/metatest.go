@@ -25,6 +25,8 @@ import (
 	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 )
 
+const metatestProtocol = 3
+
 // The structs below are copied from gosimruntime.runConfig and
 // gosimruntime.runResult. Keep in sync.
 // They are copied to give a nice documentation view without refering to
@@ -129,7 +131,13 @@ func startRunner(path string, expected Manifest, startupTimeout time.Duration) (
 		stdout.Close()
 		return nil, err
 	}
-	runner := &MetaT{cmd: cmd, stdin: stdin, stdout: stdout, w: json.NewEncoder(stdin), r: json.NewDecoder(stdout), expected: gosimruntime.MetatestHandshake{Protocol: 3, IdentityDigest: digest, Toolchain: expected.Identity.Toolchain}}
+	runner := &MetaT{
+		cmd: cmd, stdin: stdin, stdout: stdout,
+		w: json.NewEncoder(stdin), r: json.NewDecoder(stdout),
+		expected: gosimruntime.MetatestHandshake{
+			Protocol: metatestProtocol, IdentityDigest: digest, Toolchain: expected.Identity.Toolchain,
+		},
+	}
 	ready := make(chan error, 1)
 	go func() {
 		var hello gosimruntime.MetatestHandshake
@@ -480,7 +488,10 @@ func RunNestedTest(t *testing.T, config SimConfig, test Test) []gosimruntime.Run
 			maybeRunInSubtest(t, config.SeedSubtests, fmt.Sprintf("seed-%d", seed), func(t *testing.T) {
 				for run := 0; run < 1+config.CheckDeterminismRuns; run++ {
 					maybeRunInSubtest(t, config.RunSubtests, fmt.Sprintf("run-%d", run), func(t *testing.T) {
-						result := RunInner(test.Test, seed, config.EnableTracer, config.CaptureLog, config.LogLevelOverride, dontReportFail, t)
+						result := RunInner(
+							test.Test, seed, config.EnableTracer, config.CaptureLog,
+							config.LogLevelOverride, dontReportFail, t,
+						)
 
 						if run == 0 {
 							results = append(results, result)
@@ -492,7 +503,10 @@ func RunNestedTest(t *testing.T, config SimConfig, test Test) []gosimruntime.Run
 								// XXX debug view?
 							}
 							if !bytes.Equal(result.LogOutput, prevResult.LogOutput) {
-								slog.Error("logs differ: non-determinism found", "diff", cmp.Diff(result.LogOutput, prevResult.LogOutput))
+								slog.Error(
+									"logs differ: non-determinism found",
+									"diff", cmp.Diff(result.LogOutput, prevResult.LogOutput),
+								)
 								t.Fail()
 							}
 							results = append(results, result)

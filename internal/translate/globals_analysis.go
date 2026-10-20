@@ -22,7 +22,10 @@ type globalsCollector struct {
 	dontTranslate map[PackageSelector]bool
 }
 
-func collectGlobalsAndTests(files []*dst.File, astMap decorator.AstMap, pkgPath string, typesInfo *types.Info, dontTranslate map[PackageSelector]bool) *globalsCollector {
+func collectGlobalsAndTests(
+	files []*dst.File, astMap decorator.AstMap, pkgPath string,
+	typesInfo *types.Info, dontTranslate map[PackageSelector]bool,
+) *globalsCollector {
 	c := &globalsCollector{
 		typesInfo: typesInfo,
 		astMap:    astMap,

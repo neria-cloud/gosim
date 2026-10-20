@@ -21,6 +21,11 @@ import (
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
+const (
+	compositionFileName = "composition.go"
+	compositionFileMode = 0o644
+)
+
 type GeneratedComposition struct {
 	SourceDir, IdentityDigest string
 	Files                     []string
@@ -64,9 +69,12 @@ func render(selection buildspec.Selection) ([]byte, []string, error) {
 		Features:        "contracts.RT",
 	}
 	imports := map[string]string{
-		gosimtool.Module + "/internal/logging":   "logging",
-		gosimtool.Module + "/internal/contracts": "contracts", gosimtool.Module + "/internal/control": "control",
-		gosimtool.Module + "/internal/kernel": "kernel", gosimtool.Module + "/rt/runtime": "simrt", gosimtool.Module + "/rt/runtime/abi": "abi",
+		gosimtool.Module + "/internal/logging":                                 "logging",
+		gosimtool.Module + "/internal/contracts":                               "contracts",
+		gosimtool.Module + "/internal/control":                                 "control",
+		gosimtool.Module + "/internal/kernel":                                  "kernel",
+		gosimtool.Module + "/rt/runtime":                                       "simrt",
+		gosimtool.Module + "/rt/runtime/abi":                                   "abi",
 		gosimtool.Module + "/internal/compat/" + id.Profile + "/shims/testing": "simtesting",
 		gosimtool.Module + "/internal/compat/" + id.Profile + "/hooks/kernel":  "processhooks",
 	}
@@ -123,8 +131,8 @@ func Generate(selection buildspec.Selection, dir string) (GeneratedComposition, 
 		return GeneratedComposition{}, fmt.Errorf("composition staging root is not a real directory")
 	}
 	digest, _ := buildspec.Digest(selection.Identity)
-	output := GeneratedComposition{SourceDir: dir, IdentityDigest: digest, Files: []string{"composition.go"}}
-	path := filepath.Join(dir, "composition.go")
+	output := GeneratedComposition{SourceDir: dir, IdentityDigest: digest, Files: []string{compositionFileName}}
+	path := filepath.Join(dir, compositionFileName)
 	if _, err := os.Lstat(path); err == nil {
 		return output, ValidateImports(output, selection)
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -135,7 +143,7 @@ func Generate(selection buildspec.Selection, dir string) (GeneratedComposition, 
 		return GeneratedComposition{}, err
 	}
 	defer os.Remove(temp.Name())
-	writeErr := temp.Chmod(0o644)
+	writeErr := temp.Chmod(compositionFileMode)
 	if writeErr == nil {
 		_, writeErr = temp.Write(source)
 	}
@@ -160,7 +168,7 @@ func ValidateImports(output GeneratedComposition, selection buildspec.Selection)
 		return err
 	}
 	digest, _ := buildspec.Digest(selection.Identity)
-	if output.IdentityDigest != digest || !slices.Equal(output.Files, []string{"composition.go"}) ||
+	if output.IdentityDigest != digest || !slices.Equal(output.Files, []string{compositionFileName}) ||
 		!filepath.IsAbs(output.SourceDir) ||
 		filepath.Clean(output.SourceDir) != output.SourceDir {
 		return fmt.Errorf("invalid generated composition record")
@@ -177,11 +185,11 @@ func ValidateImports(output GeneratedComposition, selection buildspec.Selection)
 		return err
 	}
 	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), ".go") && entry.Name() != "composition.go" {
+		if strings.HasSuffix(entry.Name(), ".go") && entry.Name() != compositionFileName {
 			return fmt.Errorf("unrecorded composition source %s", entry.Name())
 		}
 	}
-	path := filepath.Join(output.SourceDir, "composition.go")
+	path := filepath.Join(output.SourceDir, compositionFileName)
 	info, err = os.Lstat(path)
 	if err != nil {
 		return err

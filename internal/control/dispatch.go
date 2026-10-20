@@ -57,8 +57,13 @@ func CurrentRef() contracts.MachineRef {
 //
 //go:norace
 func Submit(route kernel.RouteID, inv *kernel.Invocation) error {
-	return submit(route, inv, 3)
+	return submit(route, inv, submitCallerSkip)
 }
+
+const (
+	submitCallerSkip = 3
+	callCallerSkip   = 4
+)
 
 // Call submits a copied, generated request for a public control method. Capture
 // that method's caller rather than the generic transport frame in diagnostics.
@@ -66,7 +71,7 @@ func Call[T any](
 	request interface{ Invocation() kernel.Invocation }, decode func(kernel.Result) (T, error),
 ) (T, error) {
 	inv := request.Invocation()
-	if err := submit(inv.Route, &inv, 4); err != nil {
+	if err := submit(inv.Route, &inv, callCallerSkip); err != nil {
 		var zero T
 		return zero, err
 	}
@@ -77,7 +82,7 @@ func Call[T any](
 // The dispatcher aborts disabled operations before returning to application code.
 func Require(feature contracts.Feature, operation string) error {
 	inv := (kernel.RequireRequest{Feature: feature, Operation: operation}).Invocation()
-	if err := submit(inv.Route, &inv, 4); err != nil {
+	if err := submit(inv.Route, &inv, callCallerSkip); err != nil {
 		return err
 	}
 	_, err := kernel.DecodeRequireResult(inv.TakeResult())

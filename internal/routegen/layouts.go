@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+const syscallPackageName = "syscall"
+
 var layoutNames = strings.Fields(
 	"Timespec Stat_t Statfs_t Fsid Dirent Flock_t RawSockaddr " +
 		"RawSockaddrInet4 RawSockaddrAny Utsname Rlimit",
@@ -47,9 +49,9 @@ func renderLayouts(sources map[string]sourcePackage, arch, profileID string) ([]
 			"//go:build %s && %s\n\npackage kernel\n",
 		familyBounds(profileID), arch,
 	)
-	for _, pkg := range []string{"syscall", "golang.org/x/sys/unix"} {
+	for _, pkg := range []string{syscallPackageName, "golang.org/x/sys/unix"} {
 		prefix := ""
-		if pkg != "syscall" {
+		if pkg != syscallPackageName {
 			prefix = "X"
 		}
 		for _, name := range layoutNames {
@@ -89,13 +91,13 @@ func renderLayouts(sources map[string]sourcePackage, arch, profileID string) ([]
 	}
 	slices.Sort(names)
 	for _, name := range names {
-		for _, pkg := range []string{"syscall", "golang.org/x/sys/unix"} {
+		for _, pkg := range []string{syscallPackageName, "golang.org/x/sys/unix"} {
 			expr := sources[pkg].Constants[name]
 			// Go names arm64 syscall 79 FSTATAT; x/sys calls it NEWFSTATAT.
 			if arch == "arm64" && pkg == "golang.org/x/sys/unix" && name == "SYS_FSTATAT" {
 				expr = sources[pkg].Constants["SYS_NEWFSTATAT"]
 			}
-			if pkg == "syscall" && name == "SYS_GETRANDOM" {
+			if pkg == syscallPackageName && name == "SYS_GETRANDOM" {
 				expr = sources["internal/syscall/unix"].Constants["getrandomTrap"]
 			}
 			if expr == nil ||

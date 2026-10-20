@@ -146,14 +146,15 @@ func startupOverrides(args []string) (config, version string, err error) {
 
 // ConfigPath locates optional caller configuration without requiring a nearest module.
 func ConfigPath(directory, explicit string) (string, error) {
-	if explicit == "" {
-		explicit = os.Getenv("GOSIM_CONFIG")
+	configPath := explicit
+	if configPath == "" {
+		configPath = os.Getenv("GOSIM_CONFIG")
 	}
-	if explicit != "" {
-		if filepath.IsAbs(explicit) {
-			return explicit, nil
+	if configPath != "" {
+		if filepath.IsAbs(configPath) {
+			return configPath, nil
 		}
-		return filepath.Join(directory, explicit), nil
+		return filepath.Join(directory, configPath), nil
 	}
 	// Configuration follows the nearest caller module; Go itself resolves workspaces.
 	for dir := directory; ; dir = filepath.Dir(dir) {

@@ -90,7 +90,7 @@ func loadSelectedPackages(
 	// Reviewed native computational packages retain their normal implementations;
 	// selected source files participate in package content hashes.
 	tags := buildspec.TranslatedSourceTags(cfg.Identity.Race)
-	mode |= packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles |
+	loadMode := mode | packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles |
 		packages.NeedModule | packages.NeedImports | packages.NeedEmbedFiles
 	flags := []string{"-mod=readonly"}
 	if application {
@@ -101,7 +101,7 @@ func loadSelectedPackages(
 		&packages.Config{
 			Context:    cfg.Context,
 			Dir:        dir,
-			Mode:       mode,
+			Mode:       loadMode,
 			Tests:      tests,
 			Fset:       token.NewFileSet(),
 			Env:        env,

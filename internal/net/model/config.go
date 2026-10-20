@@ -83,13 +83,14 @@ type linkState struct {
 const (
 	defaultMaxLatencyMS = 100
 	defaultTCPBuffer    = 1024
+	defaultLatencyCurve = 5
 	traceLatencyKey     = "latency"
 	traceLossKey        = "loss"
 )
 
 func DefaultConfig() Config {
 	return Config{
-		Latency:           LatencyConfig{Max: defaultMaxLatencyMS * time.Millisecond, Lambda: 5},
+		Latency:           LatencyConfig{Max: defaultMaxLatencyMS * time.Millisecond, Lambda: defaultLatencyCurve},
 		Loss:              LossConfig{RepairProbability: 1},
 		ConnectionTimeout: time.Second,
 		TCPBufferSize:     defaultTCPBuffer,

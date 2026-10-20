@@ -6,6 +6,10 @@
 
 package rt
 
+// ChaCha's word positions, lane count, and rotation distances are specified by
+// the algorithm. Naming each literal would obscure the quarter-round schedule.
+//revive:disable:add-constant
+
 // InternalChacha8rand_block follows the selected Go source's generic ChaCha8
 // algorithm. Four blocks are interlaced; only key words receive feed-forward.
 // Explicit packing avoids native assembly and unsafe host endian assumptions.
@@ -56,3 +60,5 @@ func chachaQuarter(x *[16]uint32, a, b, c, d int) {
 	x[b] ^= x[c]
 	x[b] = x[b]<<7 | x[b]>>25
 }
+
+//revive:enable:add-constant

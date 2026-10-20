@@ -16,23 +16,25 @@ import (
 
 // Arguments describe simulated Linux, independently of the host running tests.
 const (
-	atFDCWD           = -100
-	atRemoveDir       = 0x200
-	atSymlinkNoFollow = 0x100
-	openCreate        = 0x40
-	openExclusive     = 0x80
-	openTruncate      = 0x200
-	openCloseExec     = 0x80000
-	mapShared         = 1
-	mapPopulate       = 0x8000
-	protRead          = 1
-	maxMapping        = 16 * 1024 * 1024
-	openAccessMask    = 3
-	direntHeaderSize  = 19
-	direntTypeOffset  = 18
-	direntMaxRecord   = 4096
-	regularFileMode   = 0o100000
-	directoryFileMode = 0o040000
+	atFDCWD             = -100
+	atRemoveDir         = 0x200
+	atSymlinkNoFollow   = 0x100
+	openCreate          = 0x40
+	openExclusive       = 0x80
+	openTruncate        = 0x200
+	openCloseExec       = 0x80000
+	mapShared           = 1
+	mapPopulate         = 0x8000
+	protRead            = 1
+	maxMapping          = 16 * 1024 * 1024
+	openAccessMask      = 3
+	direntHeaderSize    = 19
+	direntTypeOffset    = 18
+	direntRegularType   = 8
+	direntDirectoryType = 4
+	direntMaxRecord     = 4096
+	regularFileMode     = 0o100000
+	directoryFileMode   = 0o040000
 )
 
 func (i *Instance) dirInode(dirfd int) (int, error) {
@@ -62,22 +64,22 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 	if err != nil {
 		return 0, err
 	}
-	flags &^= openCloseExec
+	openFlags := flags &^ openCloseExec
 	const supported = openAccessMask | openCreate | openExclusive | openTruncate | openDirectory
-	if flags&^supported != 0 || flags&openAccessMask == openAccessMask {
+	if openFlags&^supported != 0 || openFlags&openAccessMask == openAccessMask {
 		return 0, syscall.EINVAL
 	}
-	if flags&(openCreate|openTruncate) != 0 {
+	if openFlags&(openCreate|openTruncate) != 0 {
 		if err := i.checkMutation(); err != nil {
 			return 0, err
 		}
 	}
 	// TODO(not planned): O_APPEND and strict O_DIRECTORY semantics.
-	modelFlags := flags & openAccessMask
+	modelFlags := openFlags & openAccessMask
 	for _, flag := range []struct{ linux, host int }{
 		{openCreate, os.O_CREATE}, {openExclusive, os.O_EXCL}, {openTruncate, os.O_TRUNC},
 	} {
-		if flags&flag.linux != 0 {
+		if openFlags&flag.linux != 0 {
 			modelFlags |= flag.host
 		}
 	}
@@ -85,7 +87,10 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 	if err != nil {
 		return 0, err
 	}
-	f := &File{instance: i, inode: inode, read: flags&openAccessMask != 1, write: flags&openAccessMask != 0}
+	f := &File{
+		instance: i, inode: inode,
+		read: openFlags&openAccessMask != 1, write: openFlags&openAccessMask != 0,
+	}
 	fd, err := i.fds.Allocate(f)
 	if err != nil {
 		_ = f.Release(contracts.CloseAbort)
@@ -142,9 +147,9 @@ func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteVi
 		binary.LittleEndian.PutUint64(record[0:8], 1)
 		binary.LittleEndian.PutUint64(record[8:16], 1)
 		binary.LittleEndian.PutUint16(record[16:18], uint16(length))
-		record[direntTypeOffset] = 8 // DT_REG
+		record[direntTypeOffset] = direntRegularType // DT_REG
 		if entry.IsDir {
-			record[direntTypeOffset] = 4
+			record[direntTypeOffset] = direntDirectoryType
 		}
 		copy(record[direntHeaderSize:], entry.Name)
 		data.Slice(n, n+length).Write(record)

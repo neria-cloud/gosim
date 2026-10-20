@@ -109,7 +109,9 @@ func collectEmbeddedGlobals(pkg *packages.Package, files []*ast.File) ([]embedde
 					if err != nil {
 						return nil, err
 					}
-					result = append(result, embeddedGlobal{name: name, data: string(data), bytes: isBytes, typ: variable.Type()})
+					result = append(result, embeddedGlobal{
+						name: name, data: string(data), bytes: isBytes, typ: variable.Type(),
+					})
 				}
 			}
 		}
@@ -192,5 +194,12 @@ func (e embeddedGlobal) initializer(t *packageTranslator, container string) dst.
 			value = literal
 		}
 	}
-	return &dst.AssignStmt{Tok: token.ASSIGN, Lhs: []dst.Expr{&dst.SelectorExpr{X: &dst.CallExpr{Fun: dst.NewIdent(container)}, Sel: dst.NewIdent(e.name)}}, Rhs: []dst.Expr{value}}
+	return &dst.AssignStmt{
+		Tok: token.ASSIGN,
+		Lhs: []dst.Expr{&dst.SelectorExpr{
+			X:   &dst.CallExpr{Fun: dst.NewIdent(container)},
+			Sel: dst.NewIdent(e.name),
+		}},
+		Rhs: []dst.Expr{value},
+	}
 }

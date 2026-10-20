@@ -15,6 +15,11 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
+const (
+	generatedDirectoryMode = 0o755
+	generatedFileMode      = 0o644
+)
+
 type GenerationRecord struct {
 	AdapterDigest   string           `json:"adapter_digest,omitempty"`
 	TransportDigest string           `json:"transport_digest"`
@@ -223,7 +228,7 @@ func writeFile(path string, data []byte) error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), generatedDirectoryMode); err != nil {
 		return err
 	}
 	file, err := os.CreateTemp(filepath.Dir(path), ".gosim-gen-*")
@@ -235,7 +240,7 @@ func writeFile(path string, data []byte) error {
 		file.Close()
 		return err
 	}
-	if err := file.Chmod(0o644); err != nil {
+	if err := file.Chmod(generatedFileMode); err != nil {
 		file.Close()
 		return err
 	}

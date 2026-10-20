@@ -16,6 +16,10 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
+const workerHandshakeLimitKiB = 64
+
+const bytesPerKiB = 1024
+
 type Info struct {
 	Protocol  int                  `json:"protocol"`
 	Toolchain string               `json:"toolchain"`
@@ -90,15 +94,15 @@ func (b *boundedOutput) Bytes() []byte  { return b.buffer.Bytes() }
 func (b *boundedOutput) String() string { return b.buffer.String() }
 
 func Probe(ctx context.Context, path string, r buildspec.Resolution) (Info, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	probeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, path, "--worker-info")
-	cmd.Env = buildspec.ApplicationCommand(ctx, r, "env").Env
+	cmd := exec.CommandContext(probeCtx, path, "--worker-info")
+	cmd.Env = buildspec.ApplicationCommand(probeCtx, r, "env").Env
 	cmd.Dir = r.Context.Directory
-	output := &boundedOutput{max: 64 * 1024}
-	diagnostics := &boundedOutput{max: 64 * 1024}
+	output := &boundedOutput{max: workerHandshakeLimitKiB * bytesPerKiB}
+	diagnostics := &boundedOutput{max: workerHandshakeLimitKiB * bytesPerKiB}
 	cmd.Stdout, cmd.Stderr = output, diagnostics
-	if err := buildspec.RunProcess(ctx, cmd); err != nil {
+	if err := buildspec.RunProcess(probeCtx, cmd); err != nil {
 		return Info{}, fmt.Errorf("worker handshake: %w\n%s", err, diagnostics.String())
 	}
 	var info Info

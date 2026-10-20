@@ -3,6 +3,10 @@ package fs
 
 import "time"
 
+const defaultCapacityMiB = 128
+
+const bytesPerMiBShift = 20
+
 type Config struct {
 	WorkingDir    string
 	CapacityBytes uint64
@@ -10,4 +14,6 @@ type Config struct {
 	Latency       time.Duration
 }
 
-func DefaultConfig() Config { return Config{WorkingDir: "/app", CapacityBytes: 128 << 20} }
+func DefaultConfig() Config {
+	return Config{WorkingDir: "/app", CapacityBytes: defaultCapacityMiB << bytesPerMiBShift}
+}

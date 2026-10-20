@@ -12,6 +12,10 @@ import (
 	"math/big"
 )
 
+// These byte widths, masks, and primality rounds follow the selected Go
+// crypto/rand implementation; retain the upstream arithmetic verbatim.
+//revive:disable:add-constant
+
 // Prime returns a number of the given bit length that is prime with high probability.
 // Prime will return error for any error returned by rand.Read or if bits < 2.
 func Prime(rand io.Reader, bits int) (*big.Int, error) {

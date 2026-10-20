@@ -8,6 +8,8 @@ import (
 	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
+const pollNotPollableCode = 3
+
 var (
 	ErrPollClosing error = contracts.Sentinel("poll descriptor is closing")
 	ErrPollTimeout error = contracts.Sentinel("poll deadline exceeded")
@@ -325,7 +327,7 @@ func pollCode(err error) (int, error) {
 	case ErrPollTimeout:
 		return 2, nil
 	case ErrNotPollable:
-		return 3, nil
+		return pollNotPollableCode, nil
 	}
 	return 0, err
 }

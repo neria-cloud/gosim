@@ -13,6 +13,8 @@ import (
 	"github.com/neria-cloud/gosim/internal/contracts"
 )
 
+const foreignStreamMessage = "foreign stream"
+
 type PacketKind byte
 
 const (
@@ -36,7 +38,13 @@ type Packet struct {
 }
 
 func allocPacket(kind PacketKind, id ConnId) *Packet { return &Packet{Kind: kind, ConnId: id} }
-func freePacket(p *Packet)                           { *p = Packet{Kind: 255, Offset: -1, Count: -1} }
+
+const (
+	freedPacketKind = 255
+	firstClientPort = 10000
+)
+
+func freePacket(p *Packet) { *p = Packet{Kind: freedPacketKind, Offset: -1, Count: -1} }
 
 type Stack struct {
 	ref      contracts.EpochRef
@@ -136,7 +144,7 @@ func NewStack(ref contracts.EpochRef, ports contracts.Ports) *Stack {
 		seen:      make(map[ConnId]uint64),
 		listeners: make(map[uint16]*Listener),
 
-		nextPort: 10000,
+		nextPort: firstClientPort,
 	}
 	return b
 }
@@ -512,7 +520,7 @@ var ErrStreamClosed = errors.New("stream closed")
 
 func (s *Stack) StreamClose(stream *Stream) error {
 	if stream.owner != s {
-		panic("foreign stream")
+		panic(foreignStreamMessage)
 	}
 
 	if stream.closed {
@@ -582,7 +590,7 @@ func (s *Stack) updateStreamPollers(stream *Stream) {
 
 func (s *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
 	if stream.owner != s {
-		panic("foreign stream")
+		panic(foreignStreamMessage)
 	}
 	if stream.closed || s.quiesced {
 		return 0, ErrStreamClosed
@@ -622,7 +630,7 @@ func (s *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
 
 func (s *Stack) StreamRecv(stream *Stream, data abi.ByteView) (int, error) {
 	if stream.owner != s {
-		panic("foreign stream")
+		panic(foreignStreamMessage)
 	}
 	if s.quiesced {
 		return 0, ErrStreamClosed
@@ -681,7 +689,7 @@ func (s *Stack) DeregisterListenerPoller(poller contracts.ReadinessSink, listene
 
 func (s *Stack) ReleaseStream(stream *Stream, reason contracts.CloseReason) error {
 	if stream.owner != s {
-		panic("foreign stream")
+		panic(foreignStreamMessage)
 	}
 	if stream.closed {
 		return nil

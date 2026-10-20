@@ -19,6 +19,10 @@ import (
 	"github.com/neria-cloud/gosim/internal/gosimlog"
 )
 
+const viewerLogLimit = 1000
+
+const writingTemplateFormat = "writing template: %s"
+
 type Server struct {
 	Base string
 
@@ -184,7 +188,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	truncated := false
-	if limit := 1000; len(logs) > limit {
+	if limit := viewerLogLimit; len(logs) > limit {
 		logs = logs[:limit]
 		truncated = true
 	}
@@ -197,7 +201,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 		"Syscalls":  syscalls,
 		"Truncated": truncated,
 	}); err != nil {
-		http.Error(w, fmt.Sprintf("writing template: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(writingTemplateFormat, err.Error()), http.StatusInternalServerError)
 		return
 	}
 }
@@ -219,7 +223,7 @@ func (s *Server) Stack(w http.ResponseWriter, r *http.Request) {
 	if err := templates.ExecuteTemplate(w, "stack.html.tmpl", map[string]any{
 		"Log": foundLog,
 	}); err != nil {
-		http.Error(w, fmt.Sprintf("writing template: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(writingTemplateFormat, err.Error()), http.StatusInternalServerError)
 		return
 	}
 }
@@ -250,7 +254,7 @@ func (s *Server) Related(w http.ResponseWriter, r *http.Request) {
 	if err := templates.ExecuteTemplate(w, "related.html.tmpl", map[string]any{
 		"Logs": logs,
 	}); err != nil {
-		http.Error(w, fmt.Sprintf("writing template: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(writingTemplateFormat, err.Error()), http.StatusInternalServerError)
 		return
 	}
 }
@@ -292,7 +296,7 @@ func (s *Server) Viewer(w http.ResponseWriter, r *http.Request) {
 		"Line":  lineIdx,
 		"Lines": lines,
 	}); err != nil {
-		http.Error(w, fmt.Sprintf("writing template: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(writingTemplateFormat, err.Error()), http.StatusInternalServerError)
 		return
 	}
 }

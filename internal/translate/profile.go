@@ -16,6 +16,8 @@ import (
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
+const linknameDirectiveFields = 3
+
 // PackagePolicies owns a validated snapshot. Maps are private so a caller cannot
 // turn an unreviewed package into a native island after selection validation.
 type PackagePolicies struct {
@@ -43,8 +45,11 @@ func Policies(selection buildspec.Selection) (PackagePolicies, error) {
 	result := PackagePolicies{
 		profile: p, manifest: m, features: slices.Clone(selection.Identity.Features),
 		compositionPackage: gosimtool.Module + "/.gosim/v2/" + digest + "/input/gosimcomposition",
-		hooks:              make(map[PackageSelector]PackageSelector), replacements: make(map[PackageSelector]PackageSelector),
-		packages: make(map[string]string), native: make(map[string]bool), shared: make(map[PackageSelector]bool),
+		hooks:              make(map[PackageSelector]PackageSelector),
+		replacements:       make(map[PackageSelector]PackageSelector),
+		packages:           make(map[string]string),
+		native:             make(map[string]bool),
+		shared:             make(map[PackageSelector]bool),
 	}
 	for _, h := range p.Hooks {
 		target, err := splitSymbol(h.Target)
@@ -294,7 +299,7 @@ func (p PackagePolicies) validateDeclarations(pkg *packages.Package, file *ast.F
 			if len(fields) == 0 || fields[0] != "//go:linkname" {
 				continue
 			}
-			if len(fields) != 2 && len(fields) != 3 {
+			if len(fields) != 2 && len(fields) != linknameDirectiveFields {
 				return fmt.Errorf("malformed linkname in %s", pkg.PkgPath)
 			}
 			local := PackageSelector{Pkg: pkg.PkgPath, Selector: fields[1]}

@@ -17,6 +17,11 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
+const (
+	hookSourceFileMode = 0o600
+	buildTagsArgIndex  = 4
+)
+
 // VerifyHooks checks declarations from the exact executable's selected Linux
 // sources. Signature is go/printer's function type with parameter names removed;
 // a method symbol is "Receiver.Method" (including a leading * for pointer receivers).
@@ -78,7 +83,7 @@ func hookInspectionContext(ctx context.Context, r buildspec.Resolution) (string,
 	}
 	cleanup := func() error { return os.RemoveAll(dir) }
 	for name, data := range files {
-		if err := os.WriteFile(filepath.Join(dir, name), data, 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), data, hookSourceFileMode); err != nil {
 			return "", nil, errors.Join(err, cleanup())
 		}
 	}

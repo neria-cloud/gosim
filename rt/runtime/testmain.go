@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const seedDecimalBase = 10
+
 type Test struct {
 	Name string
 	Test any // func()
@@ -84,11 +86,11 @@ func parseSeeds(seedsStr string) ([]seedRange, error) {
 			endStr = startStr
 		}
 
-		start, err := strconv.ParseInt(startStr, 10, 64)
+		start, err := strconv.ParseInt(startStr, seedDecimalBase, 64)
 		if err != nil {
 			return nil, fmt.Errorf("bad start of seed range %q: %v", startStr, err)
 		}
-		end, err := strconv.ParseInt(endStr, 10, 64)
+		end, err := strconv.ParseInt(endStr, seedDecimalBase, 64)
 		if err != nil {
 			return nil, fmt.Errorf("bad end of seed range %q: %v", endStr, err)
 		}

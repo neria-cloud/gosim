@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const minimumFullFeatureCount = 3
+
 type MatrixOptions struct {
 	OutputDir            string
 	ExecutionMode        string
@@ -88,7 +90,7 @@ func ValidateReport(report CertificationReport) error {
 	if !seen["large"] {
 		return fmt.Errorf("missing required large suite; ordinary validation cannot certify a tuple")
 	}
-	if len(id.Features) < 3 {
+	if len(id.Features) < minimumFullFeatureCount {
 		for _, name := range []string{"native-units"} {
 			if !seen[name] {
 				return fmt.Errorf("missing reduced-feature suite %s", name)

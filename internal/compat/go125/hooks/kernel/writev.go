@@ -15,7 +15,7 @@ import (
 // Flattening keeps all application views borrowed only for this invocation and
 // preserves partial-write reporting for internal/poll's existing retry loop.
 func InternalPoll_writev(fd int, vectors []syscall.Iovec) (uintptr, error) {
-	if len(vectors) > 1024 {
+	if len(vectors) > maxWritevVectors {
 		return 0, syscall.EINVAL
 	}
 	total := uint64(0)

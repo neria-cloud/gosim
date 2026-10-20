@@ -14,6 +14,10 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
+const executablePermissionMask = 0o111
+
+const manifestFileName = "manifest.json"
+
 type PackageDigest struct {
 	Path   string `json:"path"`
 	Digest string `json:"digest"`
@@ -44,7 +48,7 @@ func ValidateArtifactPath(name string) error {
 
 // ValidateGeneratedFiles validates a complete materialization set before I/O.
 func ValidateGeneratedFiles(files map[string][]byte) error {
-	names := map[string]bool{"manifest.json": true}
+	names := map[string]bool{manifestFileName: true}
 	for name := range files {
 		if err := ValidateArtifactPath(name); err != nil {
 			return err
@@ -109,7 +113,7 @@ func normalizeManifest(m Manifest) (Manifest, error) {
 		m.GeneratedFiles = []ArtifactFile{}
 	}
 	slices.SortFunc(m.GeneratedFiles, func(a, b ArtifactFile) int { return strings.Compare(a.Path, b.Path) })
-	names := map[string]bool{"manifest.json": true}
+	names := map[string]bool{manifestFileName: true}
 	for _, f := range append([]ArtifactFile{m.Binary}, m.GeneratedFiles...) {
 		if err := ValidateArtifactPath(f.Path); err != nil {
 			return Manifest{}, err
@@ -130,11 +134,11 @@ func normalizeManifest(m Manifest) (Manifest, error) {
 }
 
 func CanonicalManifest(m Manifest) ([]byte, error) {
-	m, err := normalizeManifest(m)
+	normalized, err := normalizeManifest(m)
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(m)
+	return json.Marshal(normalized)
 }
 
 func decodeManifest(data []byte) (Manifest, error) {
@@ -224,7 +228,7 @@ func verifyManifestInputs(m Manifest, identity buildspec.Identity, packages []Pa
 }
 
 func verifyManifestFiles(directory string, m Manifest) error {
-	expected := map[string]bool{"manifest.json": true}
+	expected := map[string]bool{manifestFileName: true}
 	for _, f := range append([]ArtifactFile{m.Binary}, m.GeneratedFiles...) {
 		file, err := regularArtifactFile(directory, f.Path)
 		if err != nil {
@@ -235,7 +239,7 @@ func verifyManifestFiles(directory string, m Manifest) error {
 			if err != nil {
 				return err
 			}
-			if info.Mode().Perm()&0o111 == 0 {
+			if info.Mode().Perm()&executablePermissionMask == 0 {
 				return fmt.Errorf("artifact binary is not executable: %s", f.Path)
 			}
 		}
@@ -269,7 +273,7 @@ func verifyManifestFiles(directory string, m Manifest) error {
 }
 
 func VerifyArtifact(directory string, identity buildspec.Identity, packages []PackageDigest) (Manifest, error) {
-	file, err := regularArtifactFile(directory, "manifest.json")
+	file, err := regularArtifactFile(directory, manifestFileName)
 	if err != nil {
 		return Manifest{}, err
 	}

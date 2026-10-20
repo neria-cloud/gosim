@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+const (
+	canceledExitCode   = 130
+	signalExitCodeBase = 128
+)
+
 // RunProcess owns the process group, forwards cancellation, then reaps the
 // leader. A bounded grace period lets workers clean up private build directories.
 func RunProcess(ctx context.Context, cmd *exec.Cmd) error {
@@ -54,12 +59,12 @@ func ExitCode(err error) int {
 		return 0
 	}
 	if errors.Is(err, context.Canceled) {
-		return 130
+		return canceledExitCode
 	}
 	var exit *exec.ExitError
 	if errors.As(err, &exit) {
 		if status, ok := exit.Sys().(syscall.WaitStatus); ok && status.Signaled() {
-			return 128 + int(status.Signal())
+			return signalExitCodeBase + int(status.Signal())
 		}
 		return exit.ExitCode()
 	}

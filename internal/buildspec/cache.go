@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	cacheDirectoryMode = 0o700
+	cacheLockMode      = 0o600
+)
+
 func CacheRoot() (string, error) {
 	if root := os.Getenv("GOSIMCACHE"); root != "" {
 		return filepath.Abs(root)
@@ -28,10 +33,10 @@ func LockCache(ctx context.Context, path string) (unlock func() error, err error
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), cacheDirectoryMode); err != nil {
 		return nil, err
 	}
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|syscall.O_NOFOLLOW, 0o600)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|syscall.O_NOFOLLOW, cacheLockMode)
 	if err != nil {
 		return nil, err
 	}

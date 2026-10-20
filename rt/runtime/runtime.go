@@ -17,6 +17,8 @@ import (
 	"github.com/neria-cloud/gosim/internal/hostabi"
 )
 
+const schedulerInitialCapacity = 1024
+
 type constErr struct {
 	error
 }
@@ -135,8 +137,8 @@ func newScheduler(seed int64, logger logger, checksummer *checksummer, extraenv 
 
 	s := &scheduler{
 		seed:            seed,
-		goroutines:      make([]*goroutine, 0, 1024),
-		runnable:        make([]*goroutine, 0, 1024),
+		goroutines:      make([]*goroutine, 0, schedulerInitialCapacity),
+		runnable:        make([]*goroutine, 0, schedulerInitialCapacity),
 		nextGoroutineID: 1,
 		fastrander:      fastrander{state: rand.Uint64()},
 		goroutinesById:  make(map[int]*goroutine),

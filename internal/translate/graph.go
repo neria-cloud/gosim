@@ -296,7 +296,7 @@ func pushedDefinitions(graph *selectedGraph, policies PackagePolicies) (map[Pack
 			for _, group := range file.Comments {
 				for _, comment := range group.List {
 					fields := strings.Fields(comment.Text)
-					if len(fields) != 3 || fields[0] != "//go:linkname" || !bodies[fields[1]] {
+					if len(fields) != linknameDirectiveFields || fields[0] != "//go:linkname" || !bodies[fields[1]] {
 						continue
 					}
 					target, err := splitSymbol(fields[2])

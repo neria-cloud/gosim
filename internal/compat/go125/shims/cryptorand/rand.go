@@ -15,14 +15,20 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+const (
+	randomWordBytes    = 8
+	textChars          = 26
+	base32AlphabetSize = 32
+)
+
 type deterministicReader struct{}
 
 func (r *deterministicReader) Read(b []byte) (int, error) {
 	for i := 0; i < len(b); {
 		v := gosimruntime.Fastrand64()
-		for j := 0; j < 8 && i < len(b); j++ {
+		for j := 0; j < randomWordBytes && i < len(b); j++ {
 			b[i] = byte(v)
-			v >>= 8
+			v >>= randomWordBytes
 			i++
 		}
 	}
