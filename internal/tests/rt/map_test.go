@@ -736,6 +736,14 @@ func TestMapIterDeleteRestore(t *testing.T) {
 	}
 }
 
+func TestMapNilClear(t *testing.T) {
+	var m map[string]int
+	clear(m)
+	if m != nil || len(m) != 0 {
+		t.Fatal("clear changed a nil map")
+	}
+}
+
 func TestMapSmallClear(t *testing.T) {
 	m := make(map[int]int)
 	m[1] = 3

@@ -101,6 +101,10 @@ func validateLatency(min, max int64, lambda float64) bool {
 }
 
 func ValidateNetConfig(config NetConfig) error {
+	if config.TCPBufferSize < 0 || config.TCPBufferSize > MaxTCPBufferSize {
+		return fmt.Errorf("%w: TCP buffer size must be between 0 and %d", ErrInvalidConfig, MaxTCPBufferSize)
+	}
+
 	if config.ConnectionTimeoutNS < 0 {
 		return fmt.Errorf("%w: connection timeout must be non-negative", ErrInvalidConfig)
 	}

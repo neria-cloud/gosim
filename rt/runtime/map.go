@@ -92,6 +92,9 @@ func MapLiteral[K comparable, V any](pairs []KV[K, V]) Map[K, V] {
 }
 
 func (m Map[K, V]) Clear() {
+	if m.Impl == nil {
+		return
+	}
 	clear(m.Impl.underlying)
 	for i := range m.Impl.small {
 		m.Impl.small[i] = mapElem[K, V]{}

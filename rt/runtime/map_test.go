@@ -8,6 +8,14 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
+func TestClearNilMap(t *testing.T) {
+	var m gosimruntime.Map[string, int]
+	m.Clear()
+	if m.Impl != nil {
+		t.Fatal("clear allocated a nil map")
+	}
+}
+
 func TestMapIterDeleteDuplicatesHappen(t *testing.T) {
 	success := false
 	for !success {

@@ -297,13 +297,13 @@ func (p PackagePolicies) validateDeclarations(pkg *packages.Package, file *ast.F
 			if err != nil {
 				return err
 			}
-			if runtimeRandomLink(target) {
+			if runtimeRandomLink(target) || runtimeAuxvLink(target) {
 				obj, _ := pkg.Types.Scope().Lookup(fields[1]).(*types.Func)
-				if obj == nil || !validRuntimeRandomSignature(target, obj.Type().(*types.Signature)) {
-					return fmt.Errorf("invalid runtime random link signature: %s", fields[1])
+				if obj == nil || !validRuntimeLinkSignature(target, obj.Type().(*types.Signature)) {
+					return fmt.Errorf("invalid runtime link signature: %s", fields[1])
 				}
 				if _, ok := p.replacements[target]; !ok {
-					return fmt.Errorf("missing deterministic runtime random adapter")
+					return fmt.Errorf("missing modeled runtime link adapter")
 				}
 				linked[fields[1]] = true
 				continue
@@ -365,4 +365,15 @@ func validRuntimeRandomSignature(target PackageSelector, sig *types.Signature) b
 		return sig.Params().Len() == 1 && types.Identical(sig.Params().At(0).Type(), types.Typ[types.Uint32])
 	}
 	return sig.Params().Len() == 0
+}
+
+func runtimeAuxvLink(target PackageSelector) bool {
+	return target.Pkg == "runtime" && target.Selector == "getAuxv"
+}
+
+func validRuntimeLinkSignature(target PackageSelector, sig *types.Signature) bool {
+	if runtimeAuxvLink(target) {
+		return !sig.Variadic() && sig.Recv() == nil && sig.Params().Len() == 0 && sig.Results().Len() == 1 && types.Identical(sig.Results().At(0).Type(), types.NewSlice(types.Typ[types.Uintptr]))
+	}
+	return validRuntimeRandomSignature(target, sig)
 }

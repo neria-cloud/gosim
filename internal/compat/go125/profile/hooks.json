@@ -1,4 +1,5 @@
 [
+{"package": "os", "symbol": "Executable", "signature": "func() (string, error)", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_Executable", "owner": "rt"},
   {
     "package": "internal/poll",
     "symbol": "SendFile",

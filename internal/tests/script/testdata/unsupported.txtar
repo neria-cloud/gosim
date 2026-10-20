@@ -1,17 +1,16 @@
-# Unsupported application networking is rejected during translation.
+# Unsupported host boundaries are rejected during translation.
 exec go mod tidy
 ! exec gosim translate ./httpapp
-stderr 'unsupported application package net/http'
-! exec gosim translate ./grpcapp
-stderr 'unsupported application package google.golang.org/grpc'
+stderr 'unsupported application package net/http/httptest'
+exec gosim translate ./grpcapp
 
 ! exec gosim translate ./gcapp
 stderr 'unsupported runtime.GC'
 
 -- httpapp/app_test.go --
 package httpapp
-import ("net/http"; "testing"; _ "github.com/neria-cloud/gosim")
-func TestHTTP(t *testing.T) { _ = http.NewServeMux() }
+import ("net/http/httptest"; "testing"; _ "github.com/neria-cloud/gosim")
+func TestHTTP(t *testing.T) { _ = httptest.NewRecorder() }
 
 -- grpcapp/app_test.go --
 package grpcapp

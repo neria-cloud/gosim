@@ -71,11 +71,11 @@ func TestCandidateWorker(t *testing.T) {
 	t.Chdir(root)
 	tuple := os.Getenv("GOSIM_LARGE_TUPLE")
 	if tuple == "" || tuple == "rt,fs,net" {
-		t.Run("unsupported-etcd", func(t *testing.T) {
+		t.Run("plaintext-grpc", func(t *testing.T) {
 			cfg := buildspec.Config{Schema: 2, Features: []string{"rt", "fs", "net"}, SimulationOS: "linux"}
-			_, err := Build(cfg, buildspec.BuildOptions{}, []string{"./examples/etcd"})
-			if err == nil || (!strings.Contains(err.Error(), "net/http") && !strings.Contains(err.Error(), "google.golang.org/grpc")) {
-				t.Fatalf("expected explicit HTTP/gRPC rejection for etcd: %v", err)
+			_, err := Build(cfg, buildspec.BuildOptions{}, []string{"./internal/tests/net"})
+			if err != nil {
+				t.Fatalf("build translated plaintext gRPC tests: %v", err)
 			}
 		})
 	}

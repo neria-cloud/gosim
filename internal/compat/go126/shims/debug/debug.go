@@ -4,6 +4,8 @@
 package debug
 
 import (
+	"time"
+
 	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
@@ -29,3 +31,17 @@ type Module struct {
 type BuildSetting struct{ Key, Value string }
 
 func ReadBuildInfo() (*BuildInfo, bool) { return nil, false }
+
+// GCStats permits dormant collectors to describe their sample storage.
+type GCStats struct {
+	LastGC         time.Time
+	NumGC          int64
+	PauseTotal     time.Duration
+	Pause          []time.Duration
+	PauseEnd       []time.Time
+	PauseQuantiles []time.Duration
+}
+
+func ReadGCStats(stats *GCStats) {
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime/debug.ReadGCStats", Message: "host garbage collection metrics are not modeled"})
+}

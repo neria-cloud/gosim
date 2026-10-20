@@ -180,7 +180,13 @@ func f() int64`, "unreviewed bodyless function"},
 func f(n uint32) uint32`, ""},
 		{"invalid-runtime-random", `package app; import _ "unsafe"
 //go:linkname f runtime.fastrandn
-func f(n uint64) uint32`, "invalid runtime random link signature"},
+func f(n uint64) uint32`, "invalid runtime link signature"},
+		{"absent-runtime-auxv", `package app; import _ "unsafe"
+//go:linkname f runtime.getAuxv
+func f() []uintptr`, ""},
+		{"invalid-runtime-auxv", `package app; import _ "unsafe"
+//go:linkname f runtime.getAuxv
+func f() []byte`, "invalid runtime link signature"},
 		{"local-export", `package app; import _ "unsafe"
 //go:linkname f
 func f() int64{return 1}`, ""},

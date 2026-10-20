@@ -24,7 +24,7 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `net` | IPv6 | not supported | The simulated socket provider does not implement IPv6. |
 | `net` | TCP streams and listeners | ✅ | Translated Go networking uses simulated stream sockets for listening, connecting, reading, writing, and closing connections. |
 | `net` | UDP, broadcast, and multicast | not supported | Datagram sockets and UDP broadcast/multicast operations are outside the implemented socket model. |
-| `net` | TCP packet-loss recovery | partially | Streams have acknowledgement and keepalive timers but no TCP retransmission. Dropped packets can break streams; repairing a link may require application reconnection. |
+| `net` | TCP packet-loss recovery | partially | Streams have acknowledgement and keepalive timers but no TCP retransmission. Only ACK progress renews an active five-second acknowledgement deadline; new writes cannot postpone failure detection. Dropped packets can break streams; repairing a link may require application reconnection. |
 | `net` | Two-way and one-way partition/repair | ✅ | `Partition` and `Repair` accept a `Link` with `Both` or `Forward` direction. Explicit partitions remain in effect until repaired, independently of sampled loss. |
 | `net` | Packet hold and release | not supported | There is no public control to hold in-flight packets and release them later. |
 | `net` | Fixed and random latency | ✅ | Global and per-link latency policies support fixed delays or bounded exponential sampling with configurable minimum, maximum, and curve. |
@@ -33,9 +33,10 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `net` | Ordered delivery and stale-packet rejection | ✅ | Delivery remains ordered per directed link. Epoch and connection-generation checks prevent old packets from reaching restarted endpoints or reused connections. |
 | `net` | Arbitrary packet reordering | not supported | There is no public reordering policy; latency variation preserves the model's delivery order. |
 | `net` | Packet inspection and custom rules | not supported | Network tracing is available, but there is no public in-flight packet iterator or packet rule/verdict installation API. |
-| `net` | Network capacity controls | partially | Internal stream buffers exist. Public configuration of buffer capacity, MTU, listen backlog, and ephemeral port ranges is not implemented. |
+| `net` | Network capacity controls | partially | TCPBufferSize configures per-direction capacity for new connections (zero selects 1 KiB; maximum 16 MiB). MTU, listen backlog, and ephemeral port ranges are not configurable. |
 | `net` | HTTP dependencies | partially | Existing Go HTTP source can be translated for optional dependencies; this does not establish full HTTP or HTTPS compatibility. |
-| `net` | gRPC, TLS and certificate operations | not supported | gRPC remains rejected. Optional TLS/X509 declarations can be imported, but executing their operations aborts without host I/O. |
+| `net` | Plaintext gRPC | supported within tested scope | Unary and bidirectional binary streams with metadata authentication over simulated IPv4/TCP; see the standalone [example](../examples/network/grpc/). TLS, DNS and proxies are outside this example. |
+| `net` | TLS and certificate operations | not supported | Optional TLS/X509 declarations can be imported, but executing their operations aborts without host I/O. |
 | `rt` | Native hashing and cryptographic computation | partially | Reviewed hashes, checksums and ciphers use native Go computation. Ed25519 and CRC32 use native Go directly. CRC32 standard tables must remain read-only; Ed25519 key generation needs an explicit deterministic reader for replay (`nil` uses host randomness). Host-global hash registration remains rejected. |
 | `examples/network/nats` | Embedded NATS Core | supported | A separate application module runs a server and two clients over simulated TCP, with send/receive timestamps and delayed links. |
 | `fs` | Files, directories, and metadata | ✅ | Translated `os` calls support modeled open/read/write, directory operations, rename, and metadata. This does not imply complete POSIX syscall coverage. |

@@ -3,6 +3,7 @@
   "family": "1.26",
   "architecture": "amd64",
   "hooks": [
+{"package": "os", "symbol": "Executable", "signature": "func() (string, error)", "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel.Os_Executable", "owner": "rt"},
     {
       "package": "crypto/rand",
       "symbol": "Int",

@@ -114,7 +114,7 @@ A session owns topology, complete validated latency/loss policy groups, determin
 
 Global defaults and per-link overrides are distinct. Link direction selects one ordered edge or both. A submitted non-nil group is copied atomically; nil leaves that override unchanged, while reset restores defaults. Explicit partitions are separate from sampled connection-loss state. Fault transitions consume traffic and the network-owned random stream; no background fault goroutine perturbs scheduling.
 
-Packets include destination epochs and connection generations. Queue order and delivery remain deterministic. Quiesce cancels application callbacks; stale packets cannot reach restarted endpoints or reused connections. The model currently supports IPv4/TCP, with UDP/IPv6 and hostname-resolution gaps explicitly retained.
+Packets include destination epochs and connection generations. Queue order and delivery remain deterministic. Quiesce cancels application callbacks; stale packets cannot reach restarted endpoints or reused connections. The model currently supports IPv4/TCP, with UDP/IPv6 and hostname-resolution gaps explicitly retained. The configured TCP buffer size is captured per direction at connection creation; zero selects the historical 1 KiB window, and reconfiguration never resizes live or pending streams.
 
 ## Go compatibility and capabilities
 
@@ -128,7 +128,7 @@ Existing application and dependency code is translated automatically when it nee
 
 Native boundary nodes depend on their selected symbol adapters, so those adapters participate in initialization, content hashing and global isolation. Legacy `runtime.fastrand`, `fastrandn` and `fastrand64` linknames require exact primitive signatures and resolve to deterministic adapters for any caller, without application-specific profiles.
 
-Optional TLS/X509/OCSP interfaces have guarded declaration facades; no TLS or certificate algorithms are implemented in Gosim. Their operations abort, as do host subprocess, signal and profiling operations. Diagnostic profiling labels are simulated goroutine state. HTTP dependencies can be translated, but full HTTP/HTTPS compatibility is not established; gRPC remains rejected. The separate `examples/network/nats` module owns its NATS dependencies and exercises plain TCP Core messaging. Kernel-owned scatter/gather writes submit one ordered write and preserve partial-write results for the upstream polling loop.
+Optional TLS/X509/OCSP interfaces have guarded declaration facades; no TLS or certificate algorithms are implemented in Gosim. Their operations abort, as do host subprocess, signal and profiling operations. Diagnostic profiling labels are simulated goroutine state. HTTP dependencies can be translated, but full HTTP/HTTPS compatibility is not established. Plaintext gRPC stays entirely translated and uses the simulated TCP stack; the independent `examples/network/grpc` module exercises authenticated unary and bidirectional binary streams. Protobuf sees no executable image (`os.Executable` returns ENOENT), and x/sys sees no ELF auxiliary vector. Optional runtime collectors can register against an empty metric catalogue, but actual heap, thread and goroutine measurements abort. The separate `examples/network/nats` module owns its NATS dependencies and exercises plain TCP Core messaging. Kernel-owned scatter/gather writes submit one ordered write and preserve partial-write results for the upstream polling loop.
 
  Named initialization probes are implemented, limited/stubbed or rejected individually; there is no blanket successful NotImplemented response. The immutable declaration and route ledgers account for replaced legacy entry points.
 
@@ -171,6 +171,6 @@ The suite applicability registry separates runtime, fs, net and full integration
 
 ## Scope and supporting records
 
-The design does not include mutable/per-machine feature sets, concurrent independent engines, native scheduling with virtual fs/net, external provider plugins, extra host platforms, non-Linux simulation, or repairs to the documented HTTP/gRPC and syscall-model gaps.
+The design does not include mutable/per-machine feature sets, concurrent independent engines, native scheduling with virtual fs/net, external provider plugins, extra host platforms, non-Linux simulation, or complete HTTP/HTTPS and syscall-model semantics beyond the documented supported scope.
 
 The [usage guide](../README.md) describes current APIs and commands. The [historical syscall audit](reports/syscall-support-for-gquorum.md) records application requirements that remain outside this refactor. Family [go125](../internal/compat/go125/profile/capabilities.json) and [go126](../internal/compat/go126/profile/capabilities.json) capability manifests retain the distinction between modeled, limited, stub and rejected behavior. Passing a simulator test does not establish correctness for an application that relies on a known missing semantic.
