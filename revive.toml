@@ -2,7 +2,7 @@
 # Standalone revive profile; make lint uses .golangci.yml's explicit rule list.
 # Keep these exclusions aligned with the revive exclusions in .golangci.yml.
 ignoreGeneratedHeader = true
-exclude = ["**/internal/compat/go*/**", "**/internal/compat/selected/**", "**/internal/compat/spec/**", "**/internal/hostabi/**", "**/internal/buildspec/**", "**/rt/runtime/**"]
+exclude = ["**/*_test.go", "**/internal/compat/go*/**", "**/internal/compat/selected/**", "**/internal/compat/spec/**", "**/internal/hostabi/**", "**/internal/buildspec/**", "**/rt/runtime/**"]
 severity = "error"
 confidence = 0.8
 errorCode = -1

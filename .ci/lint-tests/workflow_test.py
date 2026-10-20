@@ -149,6 +149,16 @@ func Syscall_Example(input []int) []int {
         self.assertEqual(repeated.returncode, 1, repeated.stdout)
         self.assertIn("ineffassign", repeated.stdout)
 
+    def test_actual_policy_excludes_test_files(self):
+        shutil.copyfile(ROOT / ".golangci.yml", self.root / ".golangci.yml")
+        self.write("source.go", "package fixture\nfunc Bad_name() {}\n")
+        self.write("source_test.go", "package fixture\nfunc TestBad_name() { Bad_name() }\n")
+        self.run_command("git", "add", ".")
+        result = self.lint()
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("source.go:", result.stdout)
+        self.assertNotIn("source_test.go:", result.stdout)
+
     def test_complexity_checks_survive_signature_and_naming_exclusions(self):
         shutil.copyfile(ROOT / ".golangci.yml", self.root / ".golangci.yml")
         # Separate the rules by declaration: golangci-lint normally emits only

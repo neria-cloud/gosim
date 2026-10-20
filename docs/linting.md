@@ -4,6 +4,9 @@
 pre-commit hook, and `make fmt`. `revive.toml` is a secondary configuration for
 standalone revive; golangci-lint does not read it.
 
+Both configurations exclude `*_test.go` files from lint findings. The ordinary
+test suite still runs those files.
+
 ## Contract-owned source rules
 
 Handwritten files in `internal/compat/go*/`, `internal/compat/selected/`,

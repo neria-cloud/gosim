@@ -362,13 +362,8 @@ linters:
       - path: '^(internal/(compat/(go[0-9]+|selected|spec)|hostabi|buildspec)|rt/runtime)/'
         linters: [revive]
         text: '^(bare-return|line-length-limit):'
-      - linters:
-          - errcheck
-          - gosec
-          - makezero
-          - rowserrcheck
-        path: _test\.go
     paths:
+      - '_test\.go$'
       - third_party$
       - builtin$
       - examples$
