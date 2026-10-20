@@ -20,7 +20,7 @@ func SyncAtomic_SwapInt32(addr *int32, new int32) (old int32) {
 	}
 	old = *addr
 	*addr = new
-	return
+	return old
 }
 
 func SyncAtomic_SwapInt64(addr *int64, new int64) (old int64) {
@@ -30,7 +30,7 @@ func SyncAtomic_SwapInt64(addr *int64, new int64) (old int64) {
 	}
 	old = *addr
 	*addr = new
-	return
+	return old
 }
 
 func SyncAtomic_SwapUint32(addr *uint32, new uint32) (old uint32) {
@@ -40,7 +40,7 @@ func SyncAtomic_SwapUint32(addr *uint32, new uint32) (old uint32) {
 	}
 	old = *addr
 	*addr = new
-	return
+	return old
 }
 
 func SyncAtomic_SwapUint64(addr *uint64, new uint64) (old uint64) {
@@ -50,7 +50,7 @@ func SyncAtomic_SwapUint64(addr *uint64, new uint64) (old uint64) {
 	}
 	old = *addr
 	*addr = new
-	return
+	return old
 }
 
 func SyncAtomic_SwapUintptr(addr *uintptr, new uintptr) (old uintptr) {
@@ -60,7 +60,7 @@ func SyncAtomic_SwapUintptr(addr *uintptr, new uintptr) (old uintptr) {
 	}
 	old = *addr
 	*addr = new
-	return
+	return old
 }
 
 func SyncAtomic_SwapPointer(addr *unsafe.Pointer, new unsafe.Pointer) (old unsafe.Pointer) {
@@ -70,7 +70,7 @@ func SyncAtomic_SwapPointer(addr *unsafe.Pointer, new unsafe.Pointer) (old unsaf
 	}
 	old = *addr
 	*addr = new
-	return
+	return old
 }
 
 func SyncAtomic_CompareAndSwapInt32(addr *int32, old, new int32) (swapped bool) {

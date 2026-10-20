@@ -32,7 +32,7 @@ func (m *Map) Load(key any) (value any, ok bool) {
 	m.lock()
 	defer m.mu.Unlock()
 	value, ok = m.values[key]
-	return
+	return value, ok
 }
 
 func (m *Map) Store(key, value any) { m.Swap(key, value) }
@@ -46,7 +46,7 @@ func (m *Map) Swap(key, value any) (previous any, loaded bool) {
 		m.values = make(map[any]any)
 	}
 	m.values[key] = value
-	return
+	return previous, loaded
 }
 
 func (m *Map) LoadOrStore(key, value any) (actual any, loaded bool) {
@@ -60,7 +60,7 @@ func (m *Map) LoadOrStore(key, value any) (actual any, loaded bool) {
 		m.values[key] = value
 		actual = value
 	}
-	return
+	return actual, loaded
 }
 
 func (m *Map) LoadAndDelete(key any) (value any, loaded bool) {
@@ -69,7 +69,7 @@ func (m *Map) LoadAndDelete(key any) (value any, loaded bool) {
 	defer m.mu.Unlock()
 	value, loaded = m.values[key]
 	delete(m.values, key)
-	return
+	return value, loaded
 }
 
 func (m *Map) Delete(key any) { m.LoadAndDelete(key) }

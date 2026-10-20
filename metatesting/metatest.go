@@ -22,7 +22,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/prettylog"
-	"github.com/neria-cloud/gosim/rt/runtime"
+	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 )
 
 // The structs below are copied from gosimruntime.runConfig and

@@ -17,7 +17,7 @@ func Time_now() (sec int64, nsec int32, mono int64) {
 	mono = now
 	nsec = int32(mono - sec*1e9)
 
-	return
+	return sec, nsec, mono
 }
 
 func Time_runtimeNano() int64 {
