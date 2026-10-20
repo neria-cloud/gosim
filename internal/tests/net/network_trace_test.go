@@ -38,10 +38,12 @@ func TestNetworkTrace(t *testing.T) {
 		if record.TraceKind != "network" {
 			continue
 		}
-		if record.Message == "network.configure_global" && record.Lambda == "2.5" && record.FailProbability == "0.125" && record.RepairProbability == "0.375" {
+		if record.Message == "network.configure_global" && record.Lambda == "2.5" &&
+			record.FailProbability == "0.125" && record.RepairProbability == "0.375" {
 			foundGlobal = true
 		}
-		if record.Message == "network.configure_link" && record.Lambda == "0.25" && record.FailProbability == "0.125" && record.RepairProbability == "0.375" {
+		if record.Message == "network.configure_link" && record.Lambda == "0.25" &&
+			record.FailProbability == "0.125" && record.RepairProbability == "0.375" {
 			foundLocal = true
 		}
 	}
@@ -63,7 +65,10 @@ func TestNetworkTrace(t *testing.T) {
 	if !bytes.Equal(first.Checksum, second.Checksum) || !bytes.Equal(first.LogOutput, second.LogOutput) {
 		t.Fatal("traced network replay differs")
 	}
-	for _, event := range []string{"network.enqueue", "network.random_partition", "network.manual_partition", "network.drop", "network.manual_repair", "network.deliver_admitted"} {
+	for _, event := range []string{
+		"network.enqueue", "network.random_partition", "network.manual_partition",
+		"network.drop", "network.manual_repair", "network.deliver_admitted",
+	} {
 		if !bytes.Contains(first.LogOutput, []byte(event)) {
 			t.Errorf("missing %s", event)
 		}
@@ -76,14 +81,17 @@ func TestNetworkTrace(t *testing.T) {
 func TestRestartDiscardsQueuedOldPacket(t *testing.T) {
 	t.Parallel()
 	runner := metatesting.ForPackage(t, metatesting.Options{})
-	result, err := runner.Run(t, &metatesting.RunConfig{Test: "TestRestartReusesEndpointWithoutOldConnection", Seed: 1, Simtrace: "network"})
+	result, err := runner.Run(t, &metatesting.RunConfig{
+		Test: "TestRestartReusesEndpointWithoutOldConnection", Seed: 1, Simtrace: "network",
+	})
 	if err != nil || result.Failed {
 		t.Fatalf("restart trace: %v %+v", err, result)
 	}
 	found := false
 	for _, line := range bytes.Split(result.LogOutput, []byte{'\n'}) {
 		var record map[string]any
-		if json.Unmarshal(line, &record) == nil && record["msg"] == "network.enqueue" && record["kind"] == "3" && record["sampled"] == "1s" && record["from"] == "10.50.0.2" {
+		if json.Unmarshal(line, &record) == nil && record["msg"] == "network.enqueue" &&
+			record["kind"] == "3" && record["sampled"] == "1s" && record["from"] == "10.50.0.2" {
 			found = true
 		}
 	}

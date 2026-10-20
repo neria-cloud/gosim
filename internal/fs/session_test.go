@@ -30,17 +30,20 @@ func (p *testPorts) Cancel(contracts.EventID)                           {}
 func (p *testPorts) CancelEpoch(contracts.EpochRef)                     {}
 func (p *testPorts) Emit(contracts.EpochRef, string, []contracts.Field) {}
 func (p *testPorts) ports() contracts.Ports {
-	return contracts.Ports{Clock: p, Events: p, Trace: p, RandomFor: func(feature contracts.Feature, ref contracts.MachineRef) contracts.Random {
-		if feature != contracts.FS {
-			panic("filesystem requested another domain")
-		}
-		if r := p.draws[ref]; r != nil {
+	return contracts.Ports{
+		Clock: p, Events: p, Trace: p,
+		RandomFor: func(feature contracts.Feature, ref contracts.MachineRef) contracts.Random {
+			if feature != contracts.FS {
+				panic("filesystem requested another domain")
+			}
+			if r := p.draws[ref]; r != nil {
+				return r
+			}
+			r := &countingRandom{Random: simrt.NewDomainRandom(42, "fs", ref.ID)}
+			p.draws[ref] = r
 			return r
-		}
-		r := &countingRandom{Random: simrt.NewDomainRandom(42, "fs", ref.ID)}
-		p.draws[ref] = r
-		return r
-	}}
+		},
+	}
 }
 
 // Lifecycle preparation must not use descriptors before FileOps opens a file.
@@ -60,7 +63,9 @@ func newSession(t *testing.T) (*Session, *testPorts) {
 
 func prepare(t *testing.T, s *Session, ref contracts.MachineRef, epoch uint64, restart bool) *Prepared {
 	t.Helper()
-	p, err := s.Prepare(contracts.StartSpec{Ref: contracts.EpochRef{Machine: ref, Epoch: epoch}, Restart: restart}, noDescriptors{})
+	p, err := s.Prepare(contracts.StartSpec{
+		Ref: contracts.EpochRef{Machine: ref, Epoch: epoch}, Restart: restart,
+	}, noDescriptors{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +121,9 @@ func TestSessionControlsBeforeStartAndAtomicConfig(t *testing.T) {
 	if s.Controls().FSControl != s || s.Controls().NetControl != nil {
 		t.Fatal("incorrect control ownership")
 	}
-	for _, cfg := range []contracts.FSConfig{{}, {WorkingDir: "relative"}, {WorkingDir: "/bad\x00"}, {WorkingDir: "/missing"}} {
+	for _, cfg := range []contracts.FSConfig{
+		{}, {WorkingDir: "relative"}, {WorkingDir: "/bad\x00"}, {WorkingDir: "/missing"},
+	} {
 		if err := s.ConfigureMachine(ref1, cfg); err == nil {
 			t.Fatal("accepted invalid config", cfg)
 		}
