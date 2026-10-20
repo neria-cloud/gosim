@@ -13,7 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
-	"path"
+	stdpath "path"
 	"path/filepath"
 	"strings"
 
@@ -35,7 +35,7 @@ func doc() string {
 }
 
 func commandName(cmd string) string {
-	return fmt.Sprintf("%s %s", path.Base(os.Args[0]), cmd)
+	return fmt.Sprintf("%s %s", stdpath.Base(os.Args[0]), cmd)
 }
 
 func packageName(pkgPath string) string {

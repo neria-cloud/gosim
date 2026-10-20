@@ -3,7 +3,7 @@
 package behavior_test
 
 import (
-	"log"
+	stdlog "log"
 	"testing"
 
 	"github.com/neria-cloud/gosim/metatesting"
@@ -39,5 +39,5 @@ func TestMachineCrashRuns(t *testing.T) {
 		}
 	}
 
-	log.Println("counts", counts)
+	stdlog.Println("counts", counts)
 }

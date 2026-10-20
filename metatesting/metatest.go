@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	stdlog "log"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -315,12 +315,12 @@ func getCurrentPackageFromWorkingdir() string {
 	// with the relative path to the working directory.
 	goModPath, modFile, err := gosimtool.FindGoMod()
 	if err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 	goModDir := filepath.Dir(goModPath)
 	baseDir, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 	relativePkg := strings.TrimPrefix(baseDir, goModDir)
 	finalPkg := modFile.Module.Mod.Path + relativePkg

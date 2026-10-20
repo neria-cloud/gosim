@@ -24,7 +24,7 @@
 package prettylog
 
 import (
-	"bytes"
+	byteutil "bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -82,13 +82,13 @@ func NewWriter(out io.Writer) *Writer {
 
 var writePool = sync.Pool{
 	New: func() interface{} {
-		return bytes.NewBuffer(make([]byte, 0, 1024))
+		return byteutil.NewBuffer(make([]byte, 0, 1024))
 	},
 }
 
 // Write transforms the JSON input with formatters and appends to w.Out.
 func (w *Writer) Write(p []byte) (n int, err error) {
-	buf := writePool.Get().(*bytes.Buffer)
+	buf := writePool.Get().(*byteutil.Buffer)
 	defer func() {
 		buf.Reset()
 		writePool.Put(buf)
@@ -102,7 +102,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	p = p[i:]
 
 	var evt map[string]interface{}
-	d := json.NewDecoder(bytes.NewReader(p))
+	d := json.NewDecoder(byteutil.NewReader(p))
 	d.UseNumber()
 	err = d.Decode(&evt)
 	if err != nil {
@@ -136,7 +136,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 	first := true
 	buffer := buf.Bytes()
 	for {
-		idx := bytes.IndexByte(buffer, '\n')
+		idx := byteutil.IndexByte(buffer, '\n')
 		if idx == -1 {
 			break
 		}
@@ -160,7 +160,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 }
 
 func jsonMarshal(v interface{}, indent bool) ([]byte, error) {
-	var buf bytes.Buffer
+	var buf byteutil.Buffer
 	encoder := json.NewEncoder(&buf)
 	encoder.SetEscapeHTML(false)
 	if indent {
@@ -190,7 +190,7 @@ func needsQuote(s string) bool {
 const errorKey = "err"
 
 // writeFields appends formatted key-value pairs to buf.
-func (w Writer) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
+func (w Writer) writeFields(evt map[string]interface{}, buf *byteutil.Buffer) {
 	fields := make([]string, 0, len(evt))
 	for field := range evt {
 		// XXX: support skipping more?
@@ -267,7 +267,7 @@ func padRight(s string, n int) string {
 }
 
 // writePart appends a formatted part to buf.
-func (w Writer) writePart(buf *bytes.Buffer, evt map[string]interface{}, p string) {
+func (w Writer) writePart(buf *byteutil.Buffer, evt map[string]interface{}, p string) {
 	var s string
 	switch p {
 	case slog.LevelKey:

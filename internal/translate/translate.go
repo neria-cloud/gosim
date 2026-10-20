@@ -6,7 +6,7 @@ import (
 	"go/token"
 	"go/types"
 	"maps"
-	"path"
+	stdpath "path"
 	"path/filepath"
 	"runtime/debug"
 	"slices"
@@ -382,7 +382,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 	if kind == PackageKindBase {
 		// XXX: compute these automatically?
 		if vars, ok := typeAliases[args.pkg.PkgPath]; ok {
-			file, err := makeTypeAliasFile(path.Base(outputPackage), vars)
+			file, err := makeTypeAliasFile(stdpath.Base(outputPackage), vars)
 			if err != nil {
 				return nil, err
 			}

@@ -135,18 +135,18 @@ func retainOp(op fsOp) fsOp {
 		resizeCopy := *op
 		return &resizeCopy
 	case *reserveOp:
-		copy := *op
-		return &copy
+		reserveCopy := *op
+		return &reserveCopy
 	case *metadataOp:
-		copy := *op
-		return &copy
+		metadataCopy := *op
+		return &metadataCopy
 	case *allocOp:
-		copy := *op
-		return &copy
+		allocCopy := *op
+		return &allocCopy
 	case *dirOp:
-		copy := *op
-		copy.parts = slices.Clone(op.parts)
-		return &copy
+		dirCopy := *op
+		dirCopy.parts = slices.Clone(op.parts)
+		return &dirCopy
 	default:
 		panic("unknown filesystem operation")
 	}

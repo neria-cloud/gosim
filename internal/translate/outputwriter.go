@@ -13,7 +13,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"path"
+	stdpath "path"
 	"path/filepath"
 	"sync"
 
@@ -248,7 +248,7 @@ func (w *outputWriter) writeFiles(rootDir string) error {
 		if *dryrun {
 			log.Println("writing", finalP)
 		} else {
-			if err := os.MkdirAll(path.Dir(finalP), 0o755); err != nil {
+			if err := os.MkdirAll(stdpath.Dir(finalP), 0o755); err != nil {
 				return err
 			}
 			if err := os.WriteFile(finalP, desired, 0o644); err != nil {

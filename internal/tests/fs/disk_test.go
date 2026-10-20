@@ -1,7 +1,7 @@
 package behavior_test
 
 import (
-	"bytes"
+	byteutil "bytes"
 	"crypto/rand"
 	"errors"
 	"io"
@@ -86,7 +86,7 @@ func TestDiskBasic(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(data, []byte("hello")) {
+	if !byteutil.Equal(data, []byte("hello")) {
 		t.Error("bad read", data)
 	}
 	if err := f.Close(); err != nil {
@@ -127,7 +127,7 @@ func TestDiskTruncateGrow(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(data, []byte("hello\x00\x00\x00\x00\x00")) {
+	if !byteutil.Equal(data, []byte("hello\x00\x00\x00\x00\x00")) {
 		t.Error("bad read", data)
 	}
 	if err := f.Close(); err != nil {
@@ -168,7 +168,7 @@ func TestDiskTruncateShrink(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(data, []byte("hel")) {
+	if !byteutil.Equal(data, []byte("hel")) {
 		t.Error("bad read", data)
 	}
 	if err := f.Close(); err != nil {
@@ -216,7 +216,7 @@ func TestDiskOpenTruncate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(data, []byte("goodbye")) {
+	if !byteutil.Equal(data, []byte("goodbye")) {
 		t.Error("bad read", data)
 	}
 	if err := f.Close(); err != nil {
@@ -322,7 +322,7 @@ func TestDiskWriteAtEndOfFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(data, []byte("helhello")) {
+	if !byteutil.Equal(data, []byte("helhello")) {
 		t.Error("bad read", data)
 	}
 	if err := f.Close(); err != nil {
@@ -363,7 +363,7 @@ func TestDiskWriteAtAfterEndOfFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(data, []byte("\x00\x00\x00hello\x00\x00\x00hello")) {
+	if !byteutil.Equal(data, []byte("\x00\x00\x00hello\x00\x00\x00hello")) {
 		t.Error("bad read", data)
 	}
 	if err := f.Close(); err != nil {
@@ -401,7 +401,7 @@ func TestDiskReadAtBasic(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if n != 5 || !bytes.Equal(data, []byte("hello")) {
+	if n != 5 || !byteutil.Equal(data, []byte("hello")) {
 		t.Error("bad read", n, data)
 	}
 
@@ -441,7 +441,7 @@ func TestDiskReadAtEndOfFile(t *testing.T) {
 		if err != io.EOF {
 			t.Error(err)
 		}
-		if n != 2 || !bytes.Equal(data, []byte("lo\x00\x00\x00")) {
+		if n != 2 || !byteutil.Equal(data, []byte("lo\x00\x00\x00")) {
 			t.Error("bad read", n, data)
 		}
 	}
@@ -452,7 +452,7 @@ func TestDiskReadAtEndOfFile(t *testing.T) {
 		if err != io.EOF {
 			t.Error(err)
 		}
-		if n != 0 || !bytes.Equal(data, []byte("\x00\x00\x00\x00\x00")) {
+		if n != 0 || !byteutil.Equal(data, []byte("\x00\x00\x00\x00\x00")) {
 			t.Error("bad read", n, data)
 		}
 	}
@@ -492,7 +492,7 @@ func TestDiskReadAtAfterEndOfFile(t *testing.T) {
 	if err != io.EOF {
 		t.Error(err)
 	}
-	if n != 0 || !bytes.Equal(data, []byte("\x00\x00\x00\x00\x00")) {
+	if n != 0 || !byteutil.Equal(data, []byte("\x00\x00\x00\x00\x00")) {
 		t.Error("bad read", n, data)
 	}
 
@@ -835,7 +835,7 @@ func TestDiskRenameFile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(data, []byte("hello")) {
+	if !byteutil.Equal(data, []byte("hello")) {
 		t.Error("bad read", data)
 	}
 	if err := f.Close(); err != nil {
@@ -921,7 +921,7 @@ func TestDiskRenameFileReplace(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(data, []byte("hello")) {
+	if !byteutil.Equal(data, []byte("hello")) {
 		t.Error("bad read", data)
 	}
 	if err := f.Close(); err != nil {
@@ -1235,7 +1235,7 @@ func (f *mmapTester) readAt(t *testing.T, pos, n int) {
 		}
 
 		got := mmap[pos:min(pos+n, len(mmap))]
-		if !bytes.Equal(expected[:len(got)], got) {
+		if !byteutil.Equal(expected[:len(got)], got) {
 			t.Errorf("expected %v, got %v", expected, got)
 		}
 	}

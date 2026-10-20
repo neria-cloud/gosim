@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"log"
+	stdlog "log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -314,7 +314,7 @@ func Viewer(logs, source string) {
 
 	f, err := os.ReadFile(logs)
 	if err != nil {
-		log.Fatalf("opening logs: %s", err)
+		stdlog.Fatalf("opening logs: %s", err)
 	}
 	lines := bytes.Split(f, []byte("\n"))
 	for i, line := range lines {
@@ -325,7 +325,7 @@ func Viewer(logs, source string) {
 
 		var parsed gosimlog.Log
 		if err := json.Unmarshal(line, &parsed); err != nil {
-			log.Printf("could not parse %q: %s", string(line), err)
+			stdlog.Printf("could not parse %q: %s", string(line), err)
 			continue
 		}
 		parsed.Index = i
@@ -341,8 +341,8 @@ func Viewer(logs, source string) {
 	http.HandleFunc("GET /stack", s.Stack)
 	http.HandleFunc("GET /related", s.Related)
 
-	log.Printf("running server on :8080")
+	stdlog.Printf("running server on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 }
