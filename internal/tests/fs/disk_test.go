@@ -37,8 +37,15 @@ const (
 	diskAfterGoodbye  = 22
 	diskBackTwo       = 20
 	diskBackFive      = 17
+	diskShortLength   = 3
 	mmapPageSize      = 4096
+	mmapHalfPage      = 2048
 	mmapSmallSize     = 1024
+	mmapInitialLength = 10
+	mmapStraddleSize  = 8
+	mmapStraddleGap   = 3
+	mmapTailLength    = 96
+	mmapExtendedWrite = 200
 	mmapNearEnd       = 4000
 	mmapWriteLength   = 40
 	mmapReadLength    = 128
@@ -136,7 +143,7 @@ func TestDiskTruncateGrow(t *testing.T) {
 		return
 	}
 
-	if err := f.Truncate(10); err != nil {
+	if err := f.Truncate(diskSeekPastEnd); err != nil {
 		t.Error(err)
 		return
 	}
@@ -177,7 +184,7 @@ func TestDiskTruncateShrink(t *testing.T) {
 		return
 	}
 
-	if err := f.Truncate(3); err != nil {
+	if err := f.Truncate(diskShortLength); err != nil {
 		t.Error(err)
 		return
 	}
@@ -331,7 +338,7 @@ func TestDiskWriteAtEndOfFile(t *testing.T) {
 		return
 	}
 
-	if _, err := f.WriteAt([]byte(diskHello), 3); err != nil {
+	if _, err := f.WriteAt([]byte(diskHello), diskShortLength); err != nil {
 		t.Error(err)
 		return
 	}
@@ -367,7 +374,7 @@ func TestDiskWriteAtAfterEndOfFile(t *testing.T) {
 		return
 	}
 
-	if _, err := f.WriteAt([]byte(diskHello), 3); err != nil {
+	if _, err := f.WriteAt([]byte(diskHello), diskShortLength); err != nil {
 		t.Error(err)
 		return
 	}
@@ -424,12 +431,12 @@ func TestDiskReadAtBasic(t *testing.T) {
 		return
 	}
 
-	data := make([]byte, 5)
+	data := make([]byte, diskHelloLength)
 	n, err := f.ReadAt(data, 0)
 	if err != nil {
 		t.Error(err)
 	}
-	if n != 5 || !byteutil.Equal(data, []byte(diskHello)) {
+	if n != diskHelloLength || !byteutil.Equal(data, []byte(diskHello)) {
 		t.Error(diskBadRead, n, data)
 	}
 
@@ -464,8 +471,8 @@ func TestDiskReadAtEndOfFile(t *testing.T) {
 	}
 
 	{
-		data := make([]byte, 5)
-		n, err := f.ReadAt(data, 3)
+		data := make([]byte, diskHelloLength)
+		n, err := f.ReadAt(data, diskShortLength)
 		if err != io.EOF {
 			t.Error(err)
 		}
@@ -475,8 +482,8 @@ func TestDiskReadAtEndOfFile(t *testing.T) {
 	}
 
 	{
-		data := make([]byte, 5)
-		n, err := f.ReadAt(data, 5)
+		data := make([]byte, diskHelloLength)
+		n, err := f.ReadAt(data, diskHelloLength)
 		if err != io.EOF {
 			t.Error(err)
 		}
@@ -515,8 +522,8 @@ func TestDiskReadAtAfterEndOfFile(t *testing.T) {
 		return
 	}
 
-	data := make([]byte, 5)
-	n, err := f.ReadAt(data, 10)
+	data := make([]byte, diskHelloLength)
+	n, err := f.ReadAt(data, diskSeekPastEnd)
 	if err != io.EOF {
 		t.Error(err)
 	}
@@ -1081,7 +1088,7 @@ func TestMmapBasic(t *testing.T) {
 		t.Error(err)
 	}
 
-	data, err := unix.Mmap(int(f.Fd()), 0, 4096, syscall.PROT_READ, syscall.MAP_SHARED)
+	data, err := unix.Mmap(int(f.Fd()), 0, mmapPageSize, syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1091,7 +1098,7 @@ func TestMmapBasic(t *testing.T) {
 		}
 	}()
 
-	if got := string(data[0:5]); got != diskHello {
+	if got := string(data[0:diskHelloLength]); got != diskHello {
 		t.Errorf("expected hello, got %q", got)
 	}
 
@@ -1099,26 +1106,26 @@ func TestMmapBasic(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got := string(data[0:7]); got != diskGoodbye {
+	if got := string(data[0:diskGoodbyeLength]); got != diskGoodbye {
 		t.Errorf("expected goodbye, got %q", got)
 	}
 
-	if err := f.Truncate(2048); err != nil {
+	if err := f.Truncate(mmapHalfPage); err != nil {
 		t.Error(err)
 	}
-	n, err := f.WriteAt([]byte("straddle"), 2048-3)
-	if n != 8 || err != nil {
+	n, err := f.WriteAt([]byte("straddle"), mmapHalfPage-mmapStraddleGap)
+	if n != mmapStraddleSize || err != nil {
 		t.Errorf("tried to write, got %d %v", n, err)
 	}
-	if got := string(data[2048-3 : 2048-3+8]); got != "straddle" {
+	if got := string(data[mmapHalfPage-mmapStraddleGap : mmapHalfPage-mmapStraddleGap+mmapStraddleSize]); got != "straddle" {
 		t.Errorf("expected straddle, got %q", got)
 	}
 
-	if err := f.Truncate(1024); err != nil {
+	if err := f.Truncate(mmapSmallSize); err != nil {
 		t.Error(err)
 	}
 
-	if got := string(data[2048-3 : 2048-3+8]); got != "\x00\x00\x00\x00\x00\x00\x00\x00" {
+	if got := string(data[mmapHalfPage-mmapStraddleGap : mmapHalfPage-mmapStraddleGap+mmapStraddleSize]); got != "\x00\x00\x00\x00\x00\x00\x00\x00" {
 		t.Errorf("expected zeroes, got %q", got)
 	}
 }
@@ -1318,14 +1325,14 @@ func TestMmapComplex(t *testing.T) {
 		mmaps:    make(map[string][]byte),
 	}
 
-	mt.readAt(t, 0, 10)
-	mt.writeAt(t, 0, 10)
-	mt.readAt(t, 0, 10)
+	mt.readAt(t, 0, mmapInitialLength)
+	mt.writeAt(t, 0, mmapInitialLength)
+	mt.readAt(t, 0, mmapInitialLength)
 
 	mt.mmap(t, "big", mmapPageSize)
 	mt.mmap(t, "small", mmapSmallSize)
 
-	mt.readAt(t, 0, 10)
+	mt.readAt(t, 0, mmapInitialLength)
 	mt.readAt(t, 0, mmapPageSize)
 
 	mt.writeAt(t, 0, mmapSmallSize)
@@ -1347,11 +1354,11 @@ func TestMmapComplex(t *testing.T) {
 	mt.readAt(t, 0, mmapPageSize)
 
 	mt.truncate(t, mmapPageSize)
-	mt.readAt(t, mmapNearEnd, 96)
-	mt.writeAt(t, mmapNearEnd, 96)
+	mt.readAt(t, mmapNearEnd, mmapTailLength)
+	mt.writeAt(t, mmapNearEnd, mmapTailLength)
 
-	mt.writeAt(t, mmapNearEnd, 200)
-	mt.readAt(t, mmapNearEnd, 200)
+	mt.writeAt(t, mmapNearEnd, mmapExtendedWrite)
+	mt.readAt(t, mmapNearEnd, mmapExtendedWrite)
 }
 
 // open dir
