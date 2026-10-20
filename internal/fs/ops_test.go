@@ -15,6 +15,28 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+const (
+	fileOpsMode             = 0o600
+	fileOpsDirMode          = 0o700
+	fileOpsInputSize        = 6
+	fileOpsSeekBack         = 3
+	fileOpsAllocation       = 10
+	fileOpsTruncatedSize    = 8
+	fileOpsCwdBufferSize    = 64
+	fileOpsDirentSize       = 25
+	fileOpsDirentType       = 8
+	fileOpsLockCommand      = 123
+	fileOpsAdvisoryValue    = 123
+	fileOpsLockType         = 7
+	fileOpsLockPID          = 99
+	fileOpsUnknownStatFlag  = 0x1000
+	fileOpsInvalidOpenMode  = 3
+	fileOpsFileTypeMask     = 0o170000
+	fileOpsRegularFileType  = 0o100000
+	fileOpsPermissionMask   = 0o777
+	fileOpsDirentTypeOffset = 18
+)
+
 func ioFixture(t *testing.T) (*Instance, contracts.CallContext, *kernel.FDTable) {
 	t.Helper()
 	s, _ := newSession(t)
@@ -29,7 +51,7 @@ func ioFixture(t *testing.T) (*Instance, contracts.CallContext, *kernel.FDTable)
 
 func open(t *testing.T, i *Instance, ctx contracts.CallContext, path string, flags int) int {
 	t.Helper()
-	fd, err := i.Openat(ctx, atFDCWD, path, flags, 0o600)
+	fd, err := i.Openat(ctx, atFDCWD, path, flags, fileOpsMode)
 	must(t, err)
 	return fd
 }
@@ -44,37 +66,38 @@ func TestFileOpsOffsetsDurabilityAndBorrowing(t *testing.T) {
 	input := bytesView("abcdef")
 	n, err := file.Write(ctx, input)
 	must(t, err)
-	if n != 6 {
+	if n != fileOpsInputSize {
 		t.Fatal(n)
 	}
 	input.Ptr[0] = 'X'
-	pos, err := i.Seek(ctx, fd, -3, io.SeekCurrent)
+	pos, err := i.Seek(ctx, fd, -fileOpsSeekBack, io.SeekCurrent)
 	must(t, err)
-	if pos != 3 {
+	if pos != fileOpsSeekBack {
 		t.Fatal(pos)
 	}
-	output := make([]byte, 3)
+	output := make([]byte, fileOpsSeekBack)
 	n, err = file.Read(ctx, abi.ByteView{Ptr: output})
 	must(t, err)
-	if n != 3 || string(output) != "def" {
+	if n != fileOpsSeekBack || string(output) != "def" {
 		t.Fatal(string(output))
 	}
 	_, err = i.Pwrite(ctx, fd, bytesView("Q"), 1)
 	must(t, err)
-	if file.pos != 6 {
+	if file.pos != fileOpsInputSize {
 		t.Fatal("pwrite changed offset")
 	}
-	all := make([]byte, 6)
+	all := make([]byte, fileOpsInputSize)
 	_, err = i.Pread(ctx, fd, abi.ByteView{Ptr: all}, 0)
 	must(t, err)
-	if string(all) != "aQcdef" || file.pos != 6 {
+	if string(all) != "aQcdef" || file.pos != fileOpsInputSize {
 		t.Fatal("borrowed write buffer or positional offset", string(all))
 	}
-	must(t, i.Fallocate(ctx, fd, 0, 0, 10))
-	must(t, i.Truncate(ctx, fd, 8))
+	must(t, i.Fallocate(ctx, fd, 0, 0, fileOpsAllocation))
+	must(t, i.Truncate(ctx, fd, fileOpsTruncatedSize))
 	stat, err := i.Fstat(ctx, fd)
 	must(t, err)
-	if stat.Size != 8 || stat.Mode&0o170000 != 0o100000 || stat.Mode&0o777 == 0 || stat.UID != 0 || stat.Nlink != 1 || stat.AtimeNS != 0 {
+	if stat.Size != fileOpsTruncatedSize || stat.Mode&fileOpsFileTypeMask != fileOpsRegularFileType ||
+		stat.Mode&fileOpsPermissionMask == 0 || stat.UID != 0 || stat.Nlink != 1 || stat.AtimeNS != 0 {
 		t.Fatal("invented stat metadata", stat)
 	}
 	must(t, i.Sync(ctx, fd, true))
@@ -100,12 +123,12 @@ func TestFileOpsOffsetsDurabilityAndBorrowing(t *testing.T) {
 func TestFileOpsDirectoriesAndCapabilities(t *testing.T) {
 	t.Parallel()
 	i, ctx, _ := ioFixture(t)
-	must(t, i.Mkdirat(ctx, atFDCWD, "sub", 0o700))
-	if err := i.Mkdirat(ctx, atFDCWD, "sub", 0o700); !errors.Is(err, syscall.EEXIST) {
+	must(t, i.Mkdirat(ctx, atFDCWD, "sub", fileOpsDirMode))
+	if err := i.Mkdirat(ctx, atFDCWD, "sub", fileOpsDirMode); !errors.Is(err, syscall.EEXIST) {
 		t.Fatal(err)
 	}
 	must(t, i.Chdir(ctx, "sub"))
-	buf := make([]byte, 64)
+	buf := make([]byte, fileOpsCwdBufferSize)
 	n, err := i.Getcwd(ctx, abi.ByteView{Ptr: buf})
 	must(t, err)
 	if string(buf[:n]) != "/app/sub\x00" {
@@ -124,7 +147,8 @@ func TestFileOpsDirectoriesAndCapabilities(t *testing.T) {
 	dir := open(t, i, ctx, ".", openDirectory)
 	n, err = i.Getdents64(ctx, dir, abi.ByteView{Ptr: buf})
 	must(t, err)
-	if n != 25 || binary.LittleEndian.Uint16(buf[16:18]) != 25 || buf[18] != 8 || string(buf[19:25]) != "after\x00" {
+	if n != fileOpsDirentSize || binary.LittleEndian.Uint16(buf[16:18]) != fileOpsDirentSize ||
+		buf[fileOpsDirentTypeOffset] != fileOpsDirentType || string(buf[19:25]) != "after\x00" {
 		t.Fatal("dirent encoding changed", buf[:n])
 	}
 	n, err = i.Getdents64(ctx, dir, abi.ByteView{Ptr: buf})
@@ -132,16 +156,16 @@ func TestFileOpsDirectoriesAndCapabilities(t *testing.T) {
 	if n != 0 {
 		t.Fatal("historical one-batch behavior changed")
 	}
-	must(t, i.Flock(ctx, fd, 123))
-	lock := contracts.Lock{Type: 7, PID: 99}
-	must(t, i.FcntlLock(ctx, fd, 123, &lock))
-	if lock.PID != 99 {
+	must(t, i.Flock(ctx, fd, fileOpsLockCommand))
+	lock := contracts.Lock{Type: fileOpsLockType, PID: fileOpsLockPID}
+	must(t, i.FcntlLock(ctx, fd, fileOpsLockCommand, &lock))
+	if lock.PID != fileOpsLockPID {
 		t.Fatal("lock stub changed input")
 	}
 	if _, err := i.FcntlInt(ctx, fd, 1, 0); !errors.Is(err, syscall.ENOSYS) {
 		t.Fatal(err)
 	}
-	must(t, i.Advise(ctx, abi.ByteView{Ptr: buf}, 123))
+	must(t, i.Advise(ctx, abi.ByteView{Ptr: buf}, fileOpsAdvisoryValue))
 	must(t, i.Unlinkat(ctx, atFDCWD, "after", 0))
 	if _, err := i.Statat(ctx, atFDCWD, "after", 0); !errors.Is(err, syscall.ENOENT) {
 		t.Fatal(err)
@@ -156,7 +180,12 @@ func TestFileOpsDirectoriesAndCapabilities(t *testing.T) {
 		}
 		names[capability.Operation] = true
 	}
-	for _, name := range []string{"openat", "close", "read", "write", "pread64", "pwrite64", "lseek", "fdatasync", "fsync", "fallocate", "ftruncate", "flock", "fstat", "newfstatat", "getdents64", "mkdirat", "fchmod", "fchmodat", "renameat", "unlinkat", "fcntl", "readlinkat", "statfs", "mmap", "munmap", "madvise"} {
+	for _, name := range []string{
+		"openat", "close", "read", "write", "pread64", "pwrite64", "lseek", "fdatasync", "fsync",
+		"fallocate", "ftruncate", "flock", "fstat", "newfstatat", "getdents64", "mkdirat",
+		"fchmod", "fchmodat", "renameat", "unlinkat", "fcntl", "readlinkat", "statfs",
+		"mmap", "munmap", "madvise",
+	} {
 		if !names[name] {
 			t.Fatal("unclassified report operation", name)
 		}
@@ -179,7 +208,7 @@ func TestStatatNoFollow(t *testing.T) {
 	if _, err := i.Statat(ctx, atFDCWD, "/app/missing", atSymlinkNoFollow); !errors.Is(err, syscall.ENOENT) {
 		t.Fatal(err)
 	}
-	if _, err := i.Statat(ctx, atFDCWD, "/app", 0x1000); !errors.Is(err, syscall.EINVAL) {
+	if _, err := i.Statat(ctx, atFDCWD, "/app", fileOpsUnknownStatFlag); !errors.Is(err, syscall.EINVAL) {
 		t.Fatal("unmodeled flags accepted", err)
 	}
 }
@@ -222,7 +251,7 @@ func TestFileDescriptorOwnerFailuresAndCleanup(t *testing.T) {
 	if _, err := file.Read(ctx, bytesView("?")); !errors.Is(err, syscall.EBADF) {
 		t.Fatal("closed file readable", err)
 	}
-	for _, flags := range []int{3, 0x400, 0x800, 0x20000000} {
+	for _, flags := range []int{fileOpsInvalidOpenMode, 0x400, 0x800, 0x20000000} {
 		if _, err := i.Openat(ctx, atFDCWD, "unsupported", flags, 0); !errors.Is(err, syscall.EINVAL) {
 			t.Fatal(flags, err)
 		}
