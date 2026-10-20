@@ -8,72 +8,94 @@ import (
 	"testing"
 )
 
+const (
+	mapKeyOne       = 1
+	mapKeyTwo       = 2
+	mapKeyThree     = 3
+	mapKeyNine      = 9
+	mapKeySixteen   = 16
+	mapKeyThirtyTwo = 32
+
+	mapValueThree       = 3
+	mapValueFive        = 5
+	mapValueEight       = 8
+	mapValueEleven      = 11
+	mapValueSeven       = 7
+	mapValueNegativeOne = -1
+	mapRMWResult        = 6
+	mapLengthTwo        = 2
+	mapLengthFour       = 4
+	mapLengthFive       = 5
+	mapMissingKey       = 10
+	mapZeroValue        = 0
+)
+
 func TestMapSmallGetOK(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
 
-	if value, ok := m[2]; !ok || value != 5 {
+	if value, ok := m[mapKeyTwo]; !ok || value != mapValueFive {
 		t.Error("bad get")
 	}
 }
 
 func TestMapGetOK(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[9] = 11
-	m[16] = 7
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyNine] = mapValueEleven
+	m[mapKeySixteen] = mapValueSeven
 
-	if value, ok := m[2]; !ok || value != 5 {
+	if value, ok := m[mapKeyTwo]; !ok || value != mapValueFive {
 		t.Error("bad get")
 	}
-	if value, ok := m[16]; !ok || value != 7 {
+	if value, ok := m[mapKeySixteen]; !ok || value != mapValueSeven {
 		t.Error("bad get")
 	}
 }
 
 func TestMapRMW(t *testing.T) {
 	m := make(map[int]int)
-	m[1] += 5
+	m[mapKeyOne] += mapValueFive
 
-	m[1]++
+	m[mapKeyOne]++
 
-	if value, ok := m[1]; !ok || value != 6 {
+	if value, ok := m[mapKeyOne]; !ok || value != mapRMWResult {
 		t.Error("bad get")
 	}
 }
 
 func TestMapSmallLen(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	delete(m, 2)
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	delete(m, mapKeyTwo)
 
-	if len(m) != 2 {
+	if len(m) != mapLengthTwo {
 		t.Error("bad len")
 	}
 }
 
 func TestMapLen(t *testing.T) {
 	m := make(map[int]int)
-	m[1] = 3
-	m[2] = 5
-	m[3] = 8
-	m[9] = 11
-	m[16] = 7
-	m[32] = -1
-	delete(m, 2)
+	m[mapKeyOne] = mapValueThree
+	m[mapKeyTwo] = mapValueFive
+	m[mapKeyThree] = mapValueEight
+	m[mapKeyNine] = mapValueEleven
+	m[mapKeySixteen] = mapValueSeven
+	m[mapKeyThirtyTwo] = mapValueNegativeOne
+	delete(m, mapKeyTwo)
 
-	if len(m) != 5 {
+	if len(m) != mapLengthFive {
 		t.Error("bad len")
 	}
 
-	delete(m, 16)
-	if len(m) != 4 {
+	delete(m, mapKeySixteen)
+	if len(m) != mapLengthFour {
 		t.Error("bad len")
 	}
 }
@@ -81,11 +103,11 @@ func TestMapLen(t *testing.T) {
 func TestMapGetNil(t *testing.T) {
 	var m map[int]int
 
-	if m[10] != 0 {
+	if m[mapMissingKey] != mapZeroValue {
 		t.Error("bad get")
 	}
 
-	if _, ok := m[10]; ok {
+	if _, ok := m[mapMissingKey]; ok {
 		t.Error("bad get")
 	}
 }
@@ -93,7 +115,7 @@ func TestMapGetNil(t *testing.T) {
 func TestMapLenNil(t *testing.T) {
 	var m map[int]int
 
-	if len(m) != 0 {
+	if len(m) != mapZeroValue {
 		t.Error("bad len")
 	}
 }
@@ -109,7 +131,7 @@ func TestMapIterNil(t *testing.T) {
 func TestMapDeleteNil(t *testing.T) {
 	var m map[int]int
 
-	delete(m, 0)
+	delete(m, mapZeroValue)
 }
 
 // Lifted from golang.org/x/exp/maps:
