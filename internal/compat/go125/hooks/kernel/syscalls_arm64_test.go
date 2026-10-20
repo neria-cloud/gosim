@@ -16,8 +16,7 @@ import (
 func marshalArm64Stat(unsafe.Pointer, contracts.Stat)
 
 func TestArm64LinuxLayoutOnHost(t *testing.T) {
-	if unsafe.Sizeof(kh.Stat_t{}) != 128 || unsafe.Offsetof(kh.Stat_t{}.Mode) != 16 ||
-		unsafe.Offsetof(kh.Stat_t{}.Nlink) != 20 || unsafe.Sizeof(kh.Stat_t{}.Nlink) != 4 {
+	if unsafe.Sizeof(kh.Stat_t{}) != 128 || unsafe.Offsetof(kh.Stat_t{}.Mode) != 16 || unsafe.Offsetof(kh.Stat_t{}.Nlink) != 20 || unsafe.Sizeof(kh.Stat_t{}.Nlink) != 4 {
 		t.Fatal("host stat substituted for Linux arm64")
 	}
 	if kh.LinuxSYS_FSTATAT != 79 || kh.LinuxSYS_GETRANDOM != 278 {

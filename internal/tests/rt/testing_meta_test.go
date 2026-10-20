@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/neria-cloud/gosim/metatesting"
-	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
+	"github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func TestTFatalAborts(t *testing.T) {
