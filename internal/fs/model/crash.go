@@ -125,15 +125,15 @@ func releaseOp(op fsOp) {
 func retainOp(op fsOp) fsOp {
 	switch op := op.(type) {
 	case *writeOp:
-		copy := *op
-		copy.chunks = slices.Clone(op.chunks)
-		for _, chunk := range copy.chunks {
+		writeCopy := *op
+		writeCopy.chunks = slices.Clone(op.chunks)
+		for _, chunk := range writeCopy.chunks {
 			chunk.incRef()
 		}
-		return &copy
+		return &writeCopy
 	case *resizeOp:
-		copy := *op
-		return &copy
+		resizeCopy := *op
+		return &resizeCopy
 	case *reserveOp:
 		copy := *op
 		return &copy

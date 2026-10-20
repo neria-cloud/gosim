@@ -596,8 +596,7 @@ type nilgc struct{}
 func (nilgc) maybeGC(inode int) {}
 
 func tryGetLinkCount(s *filesystemState, inode int) (int, bool) {
-	switch file := s.objects[inode].(type) {
-	case *backingFile:
+	if file, ok := s.objects[inode].(*backingFile); ok {
 		return file.linkCount, true
 	}
 	return 0, false
@@ -638,8 +637,7 @@ func (fs *Filesystem) maybeGC(inode int) {
 	if _, ok := fs.pendingCountByInode[inode]; ok {
 		return
 	}
-	switch file := fs.mem.objects[inode].(type) {
-	case *backingFile:
+	if file, ok := fs.mem.objects[inode].(*backingFile); ok {
 		if file.linkCount == 0 {
 			// XXX: release the file here
 			file.file.Free()
@@ -649,8 +647,7 @@ func (fs *Filesystem) maybeGC(inode int) {
 			// slog.Info("fs freeing mem", "inode", inode)
 		}
 	}
-	switch file := fs.persisted.objects[inode].(type) {
-	case *backingFile:
+	if file, ok := fs.persisted.objects[inode].(*backingFile); ok {
 		if file.linkCount == 0 {
 			// XXX: release the file here
 			file.file.Free()

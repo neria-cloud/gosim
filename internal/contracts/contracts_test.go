@@ -19,11 +19,11 @@ func TestFeatureSets(t *testing.T) {
 		if err != nil || !features.Has(RT) {
 			t.Fatalf("features %v: %v", names, err)
 		}
-		copy := features.Names()
-		if copy[0] != "rt" {
+		featureNames := features.Names()
+		if featureNames[0] != "rt" {
 			t.Fatal("features are not canonical")
 		}
-		copy[0] = "mutated"
+		featureNames[0] = "mutated"
 		if features.Names()[0] != "rt" {
 			t.Fatal("feature names retain caller memory")
 		}
@@ -195,8 +195,8 @@ func TestControlValueValidationAndCopying(t *testing.T) {
 		t.Fatal("unselected override fields inspected")
 	}
 	policy := NetLinkPolicy{SetLatency: true, MaxNS: 10, Lambda: 5}
-	copy := policy
-	copy.MaxNS = 20
+	policyCopy := policy
+	policyCopy.MaxNS = 20
 	if policy.MaxNS != 10 {
 		t.Fatal("control policy borrowed caller state")
 	}

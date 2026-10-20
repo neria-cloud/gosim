@@ -145,7 +145,6 @@ func TestPendingOps(t *testing.T) {
 					for _, dep := range step.addStoreAsAndDependsOn {
 						ops.addDep(op, depKey{inode: int32(dep)}, depStoreAsAndDependsOn)
 					}
-
 				}
 
 				compareCrashOrder(t, ops)

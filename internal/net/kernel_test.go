@@ -487,7 +487,7 @@ func TestFailedPreparationDoesNotConsumeRandomStreams(t *testing.T) {
 			// Use the native stream API, never inspect its scheduler-owned memory.
 			draws = [3]uint64{e.RandomFor("fs", ref.ID).Uint64(), e.RandomFor("net", 0).Uint64(), e.RandomFor("scheduler", 0).Uint64()}
 		})
-		return
+		return draws
 	}
 	if run(false) != run(true) {
 		t.Fatal("failed preparation changed filesystem, network, or scheduler randomness")

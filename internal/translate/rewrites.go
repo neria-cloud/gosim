@@ -272,13 +272,11 @@ func (t *packageTranslator) rewriteStdlibEmptyAndLinkname(c *dstutil.Cursor) {
 			decl.Decs.Start = append(decl.Decs.Start, fmt.Sprintf("//go:linkname %s %s.%s",
 				decl.Name.Name, pkg, selector))
 			t.needsUnsafe = true
-
 		} else if t.profile != nil && t.profile.definitions[PackageSelector{Pkg: t.pkgPath, Selector: decl.Name.Name}] {
 			// need a go:linkname that is not required in the standard library...
 			decl.Decs.Start = append(decl.Decs.Start, fmt.Sprintf("//go:linkname %s",
 				decl.Name.Name))
 			t.needsUnsafe = true
-
 		} else {
 			slog.Error("missing function body", "pkg", t.pkgPath, "name", decl.Name.Name)
 			panic(fmt.Errorf("missing function body %s.%s", t.pkgPath, decl.Name.Name))

@@ -79,8 +79,7 @@ func collectGlobalsSSA(pkg *packages.Package) ssaGlobalsInfo {
 	ssaPkg.Build()
 
 	for _, member := range ssaPkg.Members {
-		switch member := member.(type) {
-		case *ssa.Global:
+		if member, ok := member.(*ssa.Global); ok {
 			// log.Println(member.Name(), member.Type())
 			_, ok := member.Type().(*types.Pointer).Elem().(*types.Map)
 			if ok {

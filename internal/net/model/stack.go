@@ -519,11 +519,7 @@ func (n *Stack) StreamClose(stream *Stream) error {
 		return ErrStreamClosed
 	}
 
-	if err := n.closeStream(stream, true); err != nil {
-		return err
-	}
-
-	return nil
+	return n.closeStream(stream, true)
 }
 
 func (s *Stream) processIncomingPacket(b *Stack, packet *Packet) {

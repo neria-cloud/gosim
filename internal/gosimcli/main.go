@@ -116,11 +116,7 @@ func copyFileIfChanged(src, dst string, perm fs.FileMode) error {
 		}
 	}
 
-	if err := copyFile(src, dst, perm); err != nil {
-		return err
-	}
-
-	return nil
+	return copyFile(src, dst, perm)
 }
 
 func writeFileIfDifferent(b []byte, dst string, perm fs.FileMode) error {
@@ -135,11 +131,7 @@ func writeFileIfDifferent(b []byte, dst string, perm fs.FileMode) error {
 		return nil
 	}
 
-	if err := os.WriteFile(dst, b, perm); err != nil {
-		return err
-	}
-
-	return nil
+	return os.WriteFile(dst, b, perm)
 }
 
 const toolsgoTemplate = `//go:build never

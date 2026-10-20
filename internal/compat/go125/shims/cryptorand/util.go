@@ -71,7 +71,7 @@ func Int(rand io.Reader, max *big.Int) (n *big.Int, err error) {
 	bitLen := n.BitLen()
 	if bitLen == 0 {
 		// the only valid result is 0
-		return
+		return n, nil
 	}
 	// k is the maximum byte length needed to encode a value < max.
 	k := (bitLen + 7) / 8
@@ -95,7 +95,7 @@ func Int(rand io.Reader, max *big.Int) (n *big.Int, err error) {
 
 		n.SetBytes(bytes)
 		if n.Cmp(max) < 0 {
-			return
+			return n, nil
 		}
 	}
 }

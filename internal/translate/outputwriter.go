@@ -203,10 +203,7 @@ func (w *outputWriter) maybeDeleteGeneratedFiles(rootOutputDir string) error {
 				return nil
 			}
 
-			if err := maybeDeleteGeneratedFile(path); err != nil {
-				return err
-			}
-			return nil
+			return maybeDeleteGeneratedFile(path)
 		}
 
 		return nil

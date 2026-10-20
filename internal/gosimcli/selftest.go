@@ -60,7 +60,6 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 		if err := gosimtool.RecordNativeArtifact(raceFinalPath, cfg.Identity); err != nil {
 			return err
 		}
-
 	}
 
 	// Script callers must perform their own normal Go/source selection. Copying
