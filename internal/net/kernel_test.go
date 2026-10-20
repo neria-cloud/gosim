@@ -127,7 +127,7 @@ func TestNetworkControlsLifecycleAndReservations(t *testing.T) {
 		if _, err := c.Address(ref); !errors.Is(err, contracts.ErrNotStarted) {
 			t.Fatal(err)
 		}
-		for _, config := range []contracts.NetConfig{{}, {MinNS: -1, Lambda: 1}, {Lambda: math.NaN()}, {Lambda: 1, Fail: math.Inf(1)}, {Lambda: 1, Repair: -1}} {
+		for _, config := range []contracts.NetConfig{{}, {MinNS: -1, Lambda: 1}, {Lambda: math.NaN()}, {Lambda: 1, Fail: math.Inf(1)}, {Lambda: 1, Repair: -1}, {Lambda: 1, ConnectionTimeoutNS: -1}} {
 			if err := c.Configure(config); !errors.Is(err, contracts.ErrInvalidConfig) {
 				t.Fatal("invalid config", err)
 			}

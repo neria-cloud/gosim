@@ -3,6 +3,7 @@ package contracts
 type NetConfig struct {
 	MinNS, MaxNS         int64
 	Lambda, Fail, Repair float64
+	ConnectionTimeoutNS  int64
 }
 type NetLink struct {
 	From, To  [4]byte

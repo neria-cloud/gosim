@@ -101,6 +101,9 @@ func validateLatency(min, max int64, lambda float64) bool {
 }
 
 func ValidateNetConfig(config NetConfig) error {
+	if config.ConnectionTimeoutNS < 0 {
+		return fmt.Errorf("%w: connection timeout must be non-negative", ErrInvalidConfig)
+	}
 	if !validateLatency(config.MinNS, config.MaxNS, config.Lambda) || !probability(config.Fail) || !probability(config.Repair) {
 		return fmt.Errorf("%w: invalid network latency/loss policy", ErrInvalidConfig)
 	}

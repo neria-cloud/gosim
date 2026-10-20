@@ -34,7 +34,7 @@ func localRequest(kind ControlKind) ControlRequest {
 
 func TestConfigDefaultsValidation(t *testing.T) {
 	t.Parallel()
-	want := Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}}
+	want := Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second}
 	if DefaultConfig() != want {
 		t.Fatal(DefaultConfig())
 	}
@@ -57,6 +57,9 @@ func TestConfigDefaultsValidation(t *testing.T) {
 	bad = append(bad, c)
 	c = want
 	c.Latency.Min = c.Latency.Max + 1
+	bad = append(bad, c)
+	c = want
+	c.ConnectionTimeout = -1
 	bad = append(bad, c)
 	for _, c := range bad {
 		if ValidateConfig(c) != syscall.EINVAL {
@@ -95,6 +98,11 @@ func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 	c := DefaultConfig()
 	c.Latency.Min = 20 * time.Millisecond
 	control(t, n, ControlRequest{Kind: ReplaceGlobal, Config: c})
+	invalid := c
+	invalid.ConnectionTimeout = -1
+	if n.ApplyControl(ControlRequest{Kind: ReplaceGlobal, Config: invalid}) != syscall.EINVAL || n.config != c {
+		t.Fatal("invalid timeout change was not atomic")
+	}
 	if n.ApplyControl(ControlRequest{Kind: SetGlobalMaxLatency, Duration: time.Millisecond}) != syscall.EINVAL || n.config != c {
 		t.Fatal("invalid global change was not atomic")
 	}

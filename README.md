@@ -183,6 +183,21 @@ Graceful stop flushes modeled writes. Crash behavior preserves the existing pers
 
 Use `net.DefaultConfig` and `net.Configure` for global latency/loss defaults. `net.ConfigureMachine` assigns an IPv4 address before the first start; a zero address requests deterministic allocation. `net.Address` returns `ErrNotStarted` before allocation, and restart retains the assigned address.
 
+`net.Config.ConnectionTimeout` sets the connection-opening timeout for new
+attempts. It defaults to one second; zero also selects that default, and negative
+values are invalid. Reconfiguration leaves pending attempts and established
+connections unchanged. A shorter `net.DialTimeout` or dialer context deadline
+still takes precedence. For high-latency links, configure a timeout longer than
+the expected handshake round trip:
+
+```go
+config := simnet.DefaultConfig()
+config.ConnectionTimeout = 10 * time.Second
+if err := simnet.Configure(config); err != nil {
+    t.Fatal(err)
+}
+```
+
 A `net.Link` selects `From`, `To`, and `Forward` or `Both` directions. `SetLinkPolicy` copies each non-nil latency/loss group; nil leaves that override unchanged. `ResetLinkPolicy` restores global defaults. For fixed latency, set `LatencyConfig{Min: delay, Max: delay, Lambda: 1}`. Values are validated atomically; lambda must be positive and probabilities must lie in `[0,1]`.
 
 `Partition`/`Repair` control explicit connectivity separately from sampled loss state. Fault transitions are traffic-driven; packets retain deterministic delivery order, destination epochs and connection generations. Old packets cannot reach a restarted endpoint or a reused connection. Graceful close may deliver a final immutable packet to a still-live peer; crash does not send a close notification.

@@ -14,8 +14,9 @@ type LatencyConfig struct {
 type (
 	LossConfig struct{ FailProbability, RepairProbability float64 }
 	Config     struct {
-		Latency LatencyConfig
-		Loss    LossConfig
+		Latency           LatencyConfig
+		Loss              LossConfig
+		ConnectionTimeout time.Duration
 	}
 )
 
@@ -77,7 +78,7 @@ type linkState struct {
 }
 
 func DefaultConfig() Config {
-	return Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}}
+	return Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second}
 }
 
 func validateProbability(p float64) error {
@@ -102,6 +103,9 @@ func validateLoss(c LossConfig) error {
 }
 
 func ValidateConfig(c Config) error {
+	if c.ConnectionTimeout < 0 {
+		return syscall.EINVAL
+	}
 	if err := validateLatency(c.Latency); err != nil {
 		return err
 	}
@@ -205,8 +209,11 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 		if err := ValidateConfig(c); err != nil {
 			return err
 		}
+		if c.ConnectionTimeout == 0 {
+			c.ConnectionTimeout = DefaultConfig().ConnectionTimeout
+		}
 		n.config = c
-		n.traceNetwork("configure_global", "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "scope", "global")
+		n.traceNetwork("configure_global", "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "connectionTimeout", c.ConnectionTimeout, "scope", "global")
 		return nil
 	}
 	keys, err := selectedEdges(pair, r.Direction)

@@ -45,9 +45,9 @@ func runLatencyExample(t *testing.T, minLatency, maxLatency time.Duration) {
 	}
 	config := simnet.DefaultConfig()
 	config.Loss = simnet.LossConfig{FailProbability: 0, RepairProbability: 1}
-	// Establish TCP before applying latency. The simulated connection-opening
-	// timeout is one second, shorter than the slowest scenario's round trip.
-	config.Latency = simnet.LatencyConfig{Lambda: 5}
+	// Allow the handshake to complete even in the slowest latency scenario.
+	config.ConnectionTimeout = 5 * time.Second
+	config.Latency = simnet.LatencyConfig{Min: minLatency, Max: maxLatency, Lambda: 5}
 	if err := simnet.Configure(config); err != nil {
 		t.Fatal(err)
 	}
@@ -112,16 +112,12 @@ func runLatencyExample(t *testing.T, minLatency, maxLatency time.Duration) {
 	})
 	<-ready
 
-	conn, err := net.DialTimeout("tcp", serverAddress, time.Second)
+	conn, err := net.DialTimeout("tcp", serverAddress, config.ConnectionTimeout)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer conn.Close()
 
-	config.Latency = simnet.LatencyConfig{Min: minLatency, Max: maxLatency, Lambda: 5}
-	if err := simnet.Configure(config); err != nil {
-		t.Fatal(err)
-	}
 	started := time.Now()
 	end := started.Add(duration)
 	if err := conn.SetDeadline(end); err != nil {

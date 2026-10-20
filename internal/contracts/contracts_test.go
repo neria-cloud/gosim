@@ -180,7 +180,7 @@ func TestControlValueValidationAndCopying(t *testing.T) {
 			t.Fatal("invalid selected loss override")
 		}
 	}
-	for _, config := range []NetConfig{{}, {MinNS: -1, Lambda: 1}, {MinNS: 2, MaxNS: 1, Lambda: 1}, {Lambda: math.NaN()}, {Lambda: math.Inf(1)}} {
+	for _, config := range []NetConfig{{}, {MinNS: -1, Lambda: 1}, {MinNS: 2, MaxNS: 1, Lambda: 1}, {Lambda: math.NaN()}, {Lambda: math.Inf(1)}, {Lambda: 1, ConnectionTimeoutNS: -1}} {
 		if err := ValidateNetConfig(config); err == nil {
 			t.Fatalf("accepted invalid network config %+v", config)
 		}

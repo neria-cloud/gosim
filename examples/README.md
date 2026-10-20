@@ -83,9 +83,10 @@ Run the tests directly for fast automated checks and the same timestamped output
 ./.gosim/gosimtool test -features rt,net -v ./examples/network/latency
 ```
 
-Each test connects with zero latency, then applies the latency range in both
-directions using Gosim's bounded exponential sampling. This avoids the current
-one-second connection-opening timeout in the slowest scenario. The observation
+Each test applies the latency range in both directions before connecting, using
+Gosim's bounded exponential sampling. It sets `net.Config.ConnectionTimeout` and
+the caller's dial timeout to five seconds, allowing the slowest scenario's
+handshake to complete with latency enabled. The observation
 window excludes connection setup and lasts exactly 15 seconds of virtual time.
 Direct test execution advances virtual time immediately; the visualization
 script supplies wall-clock pacing without slowing ordinary test automation.

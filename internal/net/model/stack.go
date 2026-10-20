@@ -500,7 +500,7 @@ func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
 	packet.OutBuffer = inBuffer
 	n.send(stream, packet)
 
-	stream.openFailedTimer = n.after(time.Second, func() {
+	stream.openFailedTimer = n.after(n.endpoint.net.config.ConnectionTimeout, func() {
 		if n.shutdown || n.quiesced {
 			return
 		}

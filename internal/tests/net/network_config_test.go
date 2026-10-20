@@ -43,6 +43,7 @@ func TestNetworkConfigValidation(t *testing.T) {
 		func() error { bad := c; bad.Latency.Lambda = math.NaN(); return simnet.Configure(bad) },
 		func() error { bad := c; bad.Loss.FailProbability = 2; return simnet.Configure(bad) },
 		func() error { bad := c; bad.Loss.RepairProbability = -1; return simnet.Configure(bad) },
+		func() error { bad := c; bad.ConnectionTimeout = -1; return simnet.Configure(bad) },
 		func() error { return simnet.Partition(simnet.Link{}) },
 		func() error {
 			return simnet.Partition(simnet.Link{From: netip.MustParseAddr("::1"), To: netip.MustParseAddr(bAddr)})
