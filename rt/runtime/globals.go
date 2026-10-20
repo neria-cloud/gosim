@@ -71,7 +71,8 @@ func (g Global[T]) Get() *T {
 //
 //go:norace
 func infrastructureEngine() *Engine {
-	if s := gs.get(); s != nil && s.engine != nil && s.engine.supervisor != nil && globalPtr.get() == s.engine.supervisor.globals {
+	if s := gs.get(); s != nil && s.engine != nil && s.engine.supervisor != nil &&
+		globalPtr.get() == s.engine.supervisor.globals {
 		return s.engine
 	}
 	return nil
@@ -163,10 +164,28 @@ func InitGlobals(benchmark, initializeShared bool) {
 			return -cmp.Compare(a.duration, b.duration)
 		})
 
-		slog.Info("total initialization", "duration", time.Since(outerStart), "allocs", memStats.TotalAlloc-outerPrev, "size", mergedGlobalTyp.Size())
+		slog.Info(
+			"total initialization",
+			"duration",
+			time.Since(outerStart),
+			"allocs",
+			memStats.TotalAlloc-outerPrev,
+			"size",
+			mergedGlobalTyp.Size(),
+		)
 
 		for _, pkg := range stats {
-			slog.Info("initialization", "pkg", pkg.path, "duration", pkg.duration, "allocs", pkg.allocs, "size", pkg.size)
+			slog.Info(
+				"initialization",
+				"pkg",
+				pkg.path,
+				"duration",
+				pkg.duration,
+				"allocs",
+				pkg.allocs,
+				"size",
+				pkg.size,
+			)
 		}
 	} else {
 		for _, pkg := range packages {

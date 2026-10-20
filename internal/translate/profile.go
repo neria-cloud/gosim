@@ -65,7 +65,10 @@ func Policies(selection buildspec.Selection) (PackagePolicies, error) {
 			}
 		}
 		for _, r := range b.Rewrites {
-			result.replacements[PackageSelector{Pkg: b.Package, Selector: r.Symbol}] = PackageSelector{Pkg: r.Package, Selector: r.Target}
+			result.replacements[PackageSelector{Pkg: b.Package, Selector: r.Symbol}] = PackageSelector{
+				Pkg:      r.Package,
+				Selector: r.Target,
+			}
 		}
 	}
 	for _, p := range p.Packages {
@@ -102,11 +105,13 @@ func (p PackagePolicies) packagePolicy(path string, standard bool) (spec.Package
 			return spec.PackagePolicy{}, fmt.Errorf("retired application package %s", path)
 		}
 	}
-	if strings.HasPrefix(path, prefix+"compat/") && !strings.HasPrefix(path, prefix+"compat/"+p.profile.ID+"/hooks/") && !strings.HasPrefix(path, prefix+"compat/"+p.profile.ID+"/shims/") {
+	if strings.HasPrefix(path, prefix+"compat/") && !strings.HasPrefix(path, prefix+"compat/"+p.profile.ID+"/hooks/") &&
+		!strings.HasPrefix(path, prefix+"compat/"+p.profile.ID+"/shims/") {
 		return spec.PackagePolicy{}, fmt.Errorf("nonselected or host-only compatibility package %s", path)
 	}
 	for _, feature := range []string{"fs", "net"} {
-		if (path == prefix+feature || strings.HasPrefix(path, prefix+feature+"/")) && !slices.Contains(p.features, feature) {
+		if (path == prefix+feature || strings.HasPrefix(path, prefix+feature+"/")) &&
+			!slices.Contains(p.features, feature) {
 			return spec.PackagePolicy{}, fmt.Errorf("disabled provider import %s", path)
 		}
 	}
@@ -353,7 +358,8 @@ func (p PackagePolicies) validateDeclarations(pkg *packages.Package, file *ast.F
 // These legacy symbols are stable across the selected families. Validate their
 // primitive signatures before redirecting private application linknames.
 func runtimeRandomLink(target PackageSelector) bool {
-	return target.Pkg == "runtime" && (target.Selector == "fastrand" || target.Selector == "fastrandn" || target.Selector == "fastrand64")
+	return target.Pkg == "runtime" &&
+		(target.Selector == "fastrand" || target.Selector == "fastrandn" || target.Selector == "fastrand64")
 }
 
 func validRuntimeRandomSignature(target PackageSelector, sig *types.Signature) bool {
@@ -379,7 +385,8 @@ func runtimeAuxvLink(target PackageSelector) bool {
 
 func validRuntimeLinkSignature(target PackageSelector, sig *types.Signature) bool {
 	if runtimeAuxvLink(target) {
-		return !sig.Variadic() && sig.Recv() == nil && sig.Params().Len() == 0 && sig.Results().Len() == 1 && types.Identical(sig.Results().At(0).Type(), types.NewSlice(types.Typ[types.Uintptr]))
+		return !sig.Variadic() && sig.Recv() == nil && sig.Params().Len() == 0 && sig.Results().Len() == 1 &&
+			types.Identical(sig.Results().At(0).Type(), types.NewSlice(types.Typ[types.Uintptr]))
 	}
 	return validRuntimeRandomSignature(target, sig)
 }

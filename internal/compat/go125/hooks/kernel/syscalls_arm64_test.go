@@ -37,7 +37,8 @@ func TestArm64LinuxLayoutOnHost(t *testing.T) {
 			t.Fatal(out)
 		}
 		marshalArm64Stat(unsafe.Pointer(&out), contracts.Stat{Inode: 7, Size: 9, Nlink: math.MaxUint32, AtimeNS: -1})
-		if out.Nlink != math.MaxUint32 || out.Ino != 7 || out.Size != 9 || out.Atim.Sec != -1 || out.Atim.Nsec != 999999999 {
+		if out.Nlink != math.MaxUint32 || out.Ino != 7 || out.Size != 9 || out.Atim.Sec != -1 ||
+			out.Atim.Nsec != 999999999 {
 			t.Fatal(out)
 		}
 		must(t, kh.Syscall_Close(fd))

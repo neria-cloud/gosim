@@ -578,7 +578,12 @@ func (n *Stack) updateStreamPollers(stream *Stream) {
 	if n.quiesced {
 		return
 	}
-	stream.pollers.set(n.ref, stream.closed || stream.incomingAvailable > 0, stream.closed || stream.outgoingWindow > 0, stream.closed)
+	stream.pollers.set(
+		n.ref,
+		stream.closed || stream.incomingAvailable > 0,
+		stream.closed || stream.outgoingWindow > 0,
+		stream.closed,
+	)
 }
 
 func (n *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {

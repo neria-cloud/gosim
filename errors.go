@@ -24,5 +24,12 @@ type FeatureDisabledError struct {
 }
 
 func (e *FeatureDisabledError) Error() string {
-	return fmt.Sprintf("FeatureDisabled: feature=%s operation=%s caller=%s machine=%d epoch=%d", e.Feature, e.Operation, e.Caller, e.MachineID, e.Epoch)
+	return fmt.Sprintf(
+		"FeatureDisabled: feature=%s operation=%s caller=%s machine=%d epoch=%d",
+		e.Feature,
+		e.Operation,
+		e.Caller,
+		e.MachineID,
+		e.Epoch,
+	)
 }

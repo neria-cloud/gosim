@@ -42,7 +42,13 @@ func TestAdapterMetadataAndFingerprints(t *testing.T) {
 }
 
 func currentToolchain() buildspec.Toolchain {
-	return buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin/go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
+	return buildspec.Toolchain{
+		Executable: filepath.Join(runtime.GOROOT(), "bin/go"),
+		GOROOT:     runtime.GOROOT(),
+		Version:    runtime.Version(),
+		HostOS:     runtime.GOOS,
+		HostArch:   runtime.GOARCH,
+	}
 }
 
 func TestPinnedAdapterSourceVerification(t *testing.T) {
@@ -82,7 +88,8 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 					break
 				}
 			}
-			if err := spec.VerifyBaselineOrigin(tc, origin); err == nil || !strings.Contains(err.Error(), "declaration drift") {
+			if err := spec.VerifyBaselineOrigin(tc, origin); err == nil ||
+				!strings.Contains(err.Error(), "declaration drift") {
 				t.Fatalf("wrong private symbol: %v", err)
 			}
 			origin = candidate.origin
@@ -114,7 +121,8 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 			}
 			altered := tc
 			altered.GOROOT = clone
-			if err := spec.VerifyBaselineOrigin(altered, origin); err == nil || !strings.Contains(err.Error(), "source modified") {
+			if err := spec.VerifyBaselineOrigin(altered, origin); err == nil ||
+				!strings.Contains(err.Error(), "source modified") {
 				t.Fatalf("modified source: %v", err)
 			}
 		})

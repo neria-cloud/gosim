@@ -39,7 +39,9 @@ func TestRecoveryLimitAndIndependentOwners(t *testing.T) {
 		t.Fatal("closed iterator usable", err)
 	}
 	testsupport.Check(t, source.Destroy())
-	first, err := gosim.NewMachine(gosim.MachineConfig{Main: func() { testsupport.Check(t, os.WriteFile("pending", []byte("changed"), 0o600)) }})
+	first, err := gosim.NewMachine(
+		gosim.MachineConfig{Main: func() { testsupport.Check(t, os.WriteFile("pending", []byte("changed"), 0o600)) }},
+	)
 	testsupport.Check(t, err)
 	second, err := gosim.NewMachine(gosim.MachineConfig{Main: func() {
 		data, err := os.ReadFile("pending")

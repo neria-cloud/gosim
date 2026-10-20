@@ -13,5 +13,11 @@ import (
 // runtime.Version is diagnostic only; source selection uses bounded build tags.
 func Identity() abi.HostIdentity {
 	p := selected.Profile()
-	return abi.HostIdentity{Toolchain: runtime.Version(), Profile: p.ID, HostOS: runtime.GOOS, HostArch: runtime.GOARCH, SourceDigest: p.Revision}
+	return abi.HostIdentity{
+		Toolchain:    runtime.Version(),
+		Profile:      p.ID,
+		HostOS:       runtime.GOOS,
+		HostArch:     runtime.GOARCH,
+		SourceDigest: p.Revision,
+	}
 }

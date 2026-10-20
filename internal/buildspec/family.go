@@ -69,7 +69,11 @@ func LookupFamily(v GoVersion) (FamilySupport, error) {
 		family.Exclusions = slices.Clone(family.Exclusions)
 		return family, nil
 	}
-	return FamilySupport{}, fmt.Errorf("unsupported Go family %s; supported families: %v", v.Family(), supportedFamilyNames())
+	return FamilySupport{}, fmt.Errorf(
+		"unsupported Go family %s; supported families: %v",
+		v.Family(),
+		supportedFamilyNames(),
+	)
 }
 
 func SupportedFamilies() []FamilySupport {

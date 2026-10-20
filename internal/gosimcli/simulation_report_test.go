@@ -43,7 +43,14 @@ func TestSimulationReportClosesTestsAndPackage(t *testing.T) {
 			}
 			binary := exec.Command(executable, "-test.run=^TestSimulationReportProcess$")
 			binary.Env = append(os.Environ(), "GOSIM_REPORT_TEST_CHILD="+mode)
-			converter := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "tool", "test2json", "-t", "-p", "fixture/simulation")
+			converter := exec.Command(
+				filepath.Join(runtime.GOROOT(), "bin", "go"),
+				"tool",
+				"test2json",
+				"-t",
+				"-p",
+				"fixture/simulation",
+			)
 			var streamed bytes.Buffer
 			data, err := captureSimulationCommand(t.Context(), binary, converter, new(sync.Mutex), &streamed)
 			if (err == nil) != (mode == "pass") {
@@ -87,7 +94,8 @@ func TestSimulationReportClosesTestsAndPackage(t *testing.T) {
 			if terminal != want {
 				t.Fatalf("package result %q, want %q\n%s", terminal, want, data)
 			}
-			if mode != "crash" && (starts["TestExample"] != 1 || starts["TestExample/child"] != 1 || ends["TestExample"] != "pass" || ends["TestExample/child"] != "skip") {
+			if mode != "crash" &&
+				(starts["TestExample"] != 1 || starts["TestExample/child"] != 1 || ends["TestExample"] != "pass" || ends["TestExample/child"] != "skip") {
 				t.Fatalf("mismatched events: %v %v\n%s", starts, ends, data)
 			}
 		})
@@ -103,7 +111,8 @@ func TestSimulationReportConverterStartFailure(t *testing.T) {
 	binary := exec.Command(executable, "-test.run=^TestSimulationReportProcess$")
 	binary.Env = append(os.Environ(), "GOSIM_REPORT_TEST_CHILD=pass")
 	converter := exec.Command(filepath.Join(t.TempDir(), "missing"))
-	if _, err := captureSimulationCommand(t.Context(), binary, converter, new(sync.Mutex), nil); err == nil || !errors.Is(err, os.ErrNotExist) {
+	if _, err := captureSimulationCommand(t.Context(), binary, converter, new(sync.Mutex), nil); err == nil ||
+		!errors.Is(err, os.ErrNotExist) {
 		t.Fatal("lost converter start failure", err)
 	}
 }

@@ -96,7 +96,12 @@ func validateRoutePayload(inv *Invocation) error {
  switch inv.Route {
 `)
 	for _, r := range m.Routes {
-		fmt.Fprintf(&b, "case Route%s:\n if _,ok:=inv.Args[0].(%sRequest); !ok { return invalidRoutePayload(inv) }\n", r.Name, r.Name)
+		fmt.Fprintf(
+			&b,
+			"case Route%s:\n if _,ok:=inv.Args[0].(%sRequest); !ok { return invalidRoutePayload(inv) }\n",
+			r.Name,
+			r.Name,
+		)
 	}
 	b.WriteString(`default:
  return &contracts.Failure{Code:contracts.UnsupportedOperation,Diagnostic:contracts.Diagnostic{Operation:"dispatch",Epoch:inv.Context.Epoch,Message:fmt.Sprintf("unlisted route %d",inv.Route)}}

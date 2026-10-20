@@ -275,7 +275,12 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 
 		dstNode := t.dstMap.Nodes[initializer.Rhs]
 		if dstNode == nil {
-			fmt.Printf("globals: nil dstMap node for initializer in pkg=%s lhs=%s rhs=%v\n", t.pkgPath, initializer.Lhs[0].Name(), initializer.Rhs)
+			fmt.Printf(
+				"globals: nil dstMap node for initializer in pkg=%s lhs=%s rhs=%v\n",
+				t.pkgPath,
+				initializer.Lhs[0].Name(),
+				initializer.Rhs,
+			)
 			continue
 		}
 		rhs := t.apply(dstNode).(dst.Expr) // hmm
@@ -296,10 +301,14 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 				},
 			})
 			if callExpr, ok := rhs.(*dst.CallExpr); ok {
-				if ident, ok := callExpr.Fun.(*dst.Ident); ok && ident.Name == "NewReplacer" && ident.Path == t.replacedPkgs["strings"] {
+				if ident, ok := callExpr.Fun.(*dst.Ident); ok && ident.Name == "NewReplacer" &&
+					ident.Path == t.replacedPkgs["strings"] {
 					lastIfSmt.List = append(lastIfSmt.List, &dst.ExprStmt{
 						X: &dst.CallExpr{
-							Fun: &dst.SelectorExpr{X: dst.NewIdent(initializer.Lhs[0].Name()), Sel: dst.NewIdent("Replace")},
+							Fun: &dst.SelectorExpr{
+								X:   dst.NewIdent(initializer.Lhs[0].Name()),
+								Sel: dst.NewIdent("Replace"),
+							},
 							Args: []dst.Expr{
 								&dst.BasicLit{
 									Kind:  token.STRING,
@@ -425,7 +434,10 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 		},
 	}
 	if t.infrastructure && !forTest {
-		globals.Elts = append(globals.Elts, &dst.KeyValueExpr{Key: dst.NewIdent("Infrastructure"), Value: dst.NewIdent("true")})
+		globals.Elts = append(
+			globals.Elts,
+			&dst.KeyValueExpr{Key: dst.NewIdent("Infrastructure"), Value: dst.NewIdent("true")},
+		)
 	}
 
 	dstFile.Decls = append(dstFile.Decls, &dst.FuncDecl{

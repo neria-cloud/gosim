@@ -13,7 +13,13 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
-func netCall[T any](t *testing.T, k *Kernel, request interface{ Invocation() Invocation }, want syscall.Errno, decode func(Result) (T, error)) T {
+func netCall[T any](
+	t *testing.T,
+	k *Kernel,
+	request interface{ Invocation() Invocation },
+	want syscall.Errno,
+	decode func(Result) (T, error),
+) T {
 	t.Helper()
 	inv := request.Invocation()
 	inv.Context = currentContext(k)
@@ -37,7 +43,11 @@ func TestNetworkApplicationDispatchAndPollDeadline(t *testing.T) {
 	e := engineFor(t)
 	var completed atomic.Bool
 	err := e.Run(func() {
-		k, err := New(configFor(contracts.FeatureSet(contracts.RT|contracts.Net)), e, []contracts.Provider{netprovider.NewProvider()})
+		k, err := New(
+			configFor(contracts.FeatureSet(contracts.RT|contracts.Net)),
+			e,
+			[]contracts.Provider{netprovider.NewProvider()},
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -47,7 +57,13 @@ func TestNetworkApplicationDispatchAndPollDeadline(t *testing.T) {
 		err = k.Run(func() {
 			const flags = 1 | 0x800 | 0x80000
 			create := func() int {
-				return netCall(t, k, SocketRequest{Domain: int(2), Type: int(flags), Protocol: int(0)}, 0, DecodeSocketResult).FD
+				return netCall(
+					t,
+					k,
+					SocketRequest{Domain: int(2), Type: int(flags), Protocol: int(0)},
+					0,
+					DecodeSocketResult,
+				).FD
 			}
 			listener := create()
 			addr := contracts.Address{Family: 2, IPv4: [4]byte{11, 0, 0, 1}, Port: 80}
@@ -58,14 +74,26 @@ func TestNetworkApplicationDispatchAndPollDeadline(t *testing.T) {
 				t.Fatal(actual)
 			}
 			listenerPoll := netCall(t, k, PollOpenRequest{FD: int(listener)}, 0, DecodePollOpenResult).Handle
-			netCall(t, k, AcceptRequest{FD: int(listener), Flags: int(0x800 | 0x80000)}, syscall.EWOULDBLOCK, DecodeAcceptResult)
+			netCall(
+				t,
+				k,
+				AcceptRequest{FD: int(listener), Flags: int(0x800 | 0x80000)},
+				syscall.EWOULDBLOCK,
+				DecodeAcceptResult,
+			)
 			client := create()
 			clientPoll := netCall(t, k, PollOpenRequest{FD: int(client)}, 0, DecodePollOpenResult).Handle
 			netCall(t, k, ConnectRequest{FD: int(client), Address: addr}, syscall.EINPROGRESS, DecodeConnectResult)
 			if result := netCall(t, k, PollWaitRequest{Handle: uint64(listenerPoll), Mode: uint8('r')}, 0, DecodePollWaitResult); result.Code != 0 {
 				t.Fatal(result)
 			}
-			accepted := netCall(t, k, AcceptRequest{FD: int(listener), Flags: int(0x800 | 0x80000)}, 0, DecodeAcceptResult)
+			accepted := netCall(
+				t,
+				k,
+				AcceptRequest{FD: int(listener), Flags: int(0x800 | 0x80000)},
+				0,
+				DecodeAcceptResult,
+			)
 			if accepted.Address.IPv4 != addr.IPv4 {
 				t.Fatal(accepted.Address)
 			}
@@ -73,40 +101,95 @@ func TestNetworkApplicationDispatchAndPollDeadline(t *testing.T) {
 				t.Fatal(result)
 			}
 			status := make([]byte, 4)
-			netCall(t, k, GetOptionRequest{FD: int(client), Level: int(1), Name: int(4), Into: abi.ByteView{Ptr: status}}, 0, DecodeGetOptionResult)
+			netCall(
+				t,
+				k,
+				GetOptionRequest{FD: int(client), Level: int(1), Name: int(4), Into: abi.ByteView{Ptr: status}},
+				0,
+				DecodeGetOptionResult,
+			)
 			if binary.LittleEndian.Uint32(status) != 0 {
 				t.Fatal("connect incomplete", status)
 			}
-			netCall(t, k, SetOptionRequest{FD: int(client), Level: int(6), Name: int(1), Value: abi.ByteView{Ptr: status}}, 0, DecodeSetOptionResult)
-			netCall(t, k, SetOptionRequest{FD: int(client), Level: int(6), Name: int(999), Value: abi.ByteView{Ptr: status}}, syscall.ENOPROTOOPT, DecodeSetOptionResult)
-			netCall(t, k, FcntlIntRequest{FD: int(client), Command: int(3), Argument: int(0)}, syscall.ENOSYS, DecodeFcntlIntResult)
+			netCall(
+				t,
+				k,
+				SetOptionRequest{FD: int(client), Level: int(6), Name: int(1), Value: abi.ByteView{Ptr: status}},
+				0,
+				DecodeSetOptionResult,
+			)
+			netCall(
+				t,
+				k,
+				SetOptionRequest{FD: int(client), Level: int(6), Name: int(999), Value: abi.ByteView{Ptr: status}},
+				syscall.ENOPROTOOPT,
+				DecodeSetOptionResult,
+			)
+			netCall(
+				t,
+				k,
+				FcntlIntRequest{FD: int(client), Command: int(3), Argument: int(0)},
+				syscall.ENOSYS,
+				DecodeFcntlIntResult,
+			)
 			if peer := netCall(t, k, PeerAddressRequest{FD: int(client)}, 0, DecodePeerAddressResult).Address; peer != addr {
 				t.Fatal(peer)
 			}
 			serverPoll := netCall(t, k, PollOpenRequest{FD: int(accepted.FD)}, 0, DecodePollOpenResult).Handle
-			netCall(t, k, ReadRequest{FD: int(accepted.FD), Into: abi.ByteView{Ptr: status}}, syscall.EWOULDBLOCK, DecodeReadResult)
+			netCall(
+				t,
+				k,
+				ReadRequest{FD: int(accepted.FD), Into: abi.ByteView{Ptr: status}},
+				syscall.EWOULDBLOCK,
+				DecodeReadResult,
+			)
 			netCall(t, k, WriteRequest{FD: int(client), From: abi.ByteView{Ptr: []byte("test")}}, 0, DecodeWriteResult)
 			if result := netCall(t, k, PollWaitRequest{Handle: uint64(serverPoll), Mode: uint8('r')}, 0, DecodePollWaitResult); result.Code != 0 {
 				t.Fatal(result)
 			}
-			if n := netCall(t, k, ReadRequest{FD: int(accepted.FD), Into: abi.ByteView{Ptr: status}}, 0, DecodeReadResult).Count; n != 4 || string(status) != "test" {
+			if n := netCall(t, k, ReadRequest{FD: int(accepted.FD), Into: abi.ByteView{Ptr: status}}, 0, DecodeReadResult).Count; n != 4 ||
+				string(status) != "test" {
 				t.Fatal(n, string(status))
 			}
 			netCall(t, k, PollResetRequest{Handle: uint64(serverPoll), Mode: uint8('r')}, 0, DecodePollResetResult)
-			netCall(t, k, PollDeadlineRequest{Handle: uint64(serverPoll), DeadlineNS: int64(100), Mode: uint8('r')}, 0, DecodePollDeadlineResult)
+			netCall(
+				t,
+				k,
+				PollDeadlineRequest{Handle: uint64(serverPoll), DeadlineNS: int64(100), Mode: uint8('r')},
+				0,
+				DecodePollDeadlineResult,
+			)
 			if result := netCall(t, k, PollWaitRequest{Handle: uint64(serverPoll), Mode: uint8('r')}, 0, DecodePollWaitResult); result.Code != 2 {
 				t.Fatal("deadline did not wake real caller", result)
 			}
-			netCall(t, k, PollDeadlineRequest{Handle: uint64(serverPoll), DeadlineNS: int64(0), Mode: uint8('r')}, 0, DecodePollDeadlineResult)
+			netCall(
+				t,
+				k,
+				PollDeadlineRequest{Handle: uint64(serverPoll), DeadlineNS: int64(0), Mode: uint8('r')},
+				0,
+				DecodePollDeadlineResult,
+			)
 			netCall(t, k, CloseRequest{FD: int(client)}, 0, DecodeCloseResult)
 			if result := netCall(t, k, PollWaitRequest{Handle: uint64(serverPoll), Mode: uint8('r')}, 0, DecodePollWaitResult); result.Code != 0 {
 				t.Fatal(result)
 			}
-			netCall(t, k, ReadRequest{FD: int(accepted.FD), Into: abi.ByteView{Ptr: status}}, syscall.EPIPE, DecodeReadResult)
+			netCall(
+				t,
+				k,
+				ReadRequest{FD: int(accepted.FD), Into: abi.ByteView{Ptr: status}},
+				syscall.EPIPE,
+				DecodeReadResult,
+			)
 			for _, id := range []uint64{listenerPoll, clientPoll, serverPoll} {
 				netCall(t, k, PollCloseRequest{Handle: uint64(id)}, 0, DecodePollCloseResult)
 			}
-			netCall(t, k, SocketRequest{Domain: int(10), Type: int(flags), Protocol: int(0)}, syscall.EAFNOSUPPORT, DecodeSocketResult)
+			netCall(
+				t,
+				k,
+				SocketRequest{Domain: int(10), Type: int(flags), Protocol: int(0)},
+				syscall.EAFNOSUPPORT,
+				DecodeSocketResult,
+			)
 			completed.Store(true)
 		})
 		if err != nil {
@@ -142,7 +225,11 @@ func TestNetworkRouteRejectsDisabledAndMalformed(t *testing.T) {
 					t.Fatal(err)
 				}
 				_ = k.Run(func() {
-					inv := &Invocation{Context: currentContext(k), Route: RouteSocket, Args: [5]any{SocketRequest{Domain: 2, Type: 1 | 0x800 | 0x80000}}}
+					inv := &Invocation{
+						Context: currentContext(k),
+						Route:   RouteSocket,
+						Args:    [5]any{SocketRequest{Domain: 2, Type: 1 | 0x800 | 0x80000}},
+					}
 					if mode == "malformed" {
 						inv.Route = RouteConnect
 						inv.Args[0] = func() {}

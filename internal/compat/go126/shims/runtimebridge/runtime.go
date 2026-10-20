@@ -14,16 +14,37 @@ func Runtime_SetBlockProfileRate(rate int) {
 	if rate <= 0 {
 		return
 	}
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.SetBlockProfileRate", Message: "native profiling is not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "runtime.SetBlockProfileRate",
+			Message:   "native profiling is not modeled",
+		},
+	)
 }
 
 func Runtime_ReadMemStats(stats any) {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.ReadMemStats", Message: "native GC statistics are not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "runtime.ReadMemStats",
+			Message:   "native GC statistics are not modeled",
+		},
+	)
 }
 
 func Runtime_GOMAXPROCS(n int) int {
 	if n > 1 {
-		gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.GOMAXPROCS", Message: "the deterministic scheduler supports one simulated processor"})
+		gosimruntime.Abort(
+			abi.Diagnostic{
+				Kind:      "UnsupportedOperation",
+				Feature:   "rt",
+				Operation: "runtime.GOMAXPROCS",
+				Message:   "the deterministic scheduler supports one simulated processor",
+			},
+		)
 	}
 	return 1
 }
@@ -42,12 +63,26 @@ func Runtime_GOROOT() string { return "" }
 type RuntimeCleanup struct{}
 
 func Runtime_AddCleanup[T, S any](_ *T, _ func(S), _ S) RuntimeCleanup {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.AddCleanup", Message: "host GC cleanups are not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "runtime.AddCleanup",
+			Message:   "host GC cleanups are not modeled",
+		},
+	)
 	panic("abort returned")
 }
 
 func (RuntimeCleanup) Stop() {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.Cleanup.Stop", Message: "host GC cleanups are not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "runtime.Cleanup.Stop",
+			Message:   "host GC cleanups are not modeled",
+		},
+	)
 }
 
 // Legacy runtime random linknames are redirected for all translated callers.
@@ -60,11 +95,25 @@ func Runtime_fastrand64() uint64        { return gosimruntime.Fastrand64() }
 func Runtime_getAuxv() []uintptr { return nil }
 
 func Runtime_NumGoroutine() int {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.NumGoroutine", Message: "runtime goroutine metrics are not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "runtime.NumGoroutine",
+			Message:   "runtime goroutine metrics are not modeled",
+		},
+	)
 	panic("abort returned")
 }
 
 func Runtime_ThreadCreateProfile(p any) (int, bool) {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.ThreadCreateProfile", Message: "host thread profiling is not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "runtime.ThreadCreateProfile",
+			Message:   "host thread profiling is not modeled",
+		},
+	)
 	panic("abort returned")
 }

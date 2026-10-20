@@ -229,7 +229,17 @@ func (s *scheduler) Go(fun func(), machine *Machine, token RaceToken) *goroutine
 		token.Acquire()
 	}
 	if s.logger.slog.Enabled(context.TODO(), slog.LevelDebug) {
-		s.logger.slog.Log(context.TODO(), slog.LevelDebug, "spawning goroutine", "eventid", eventID, "childgoroutine", id, "entry", getEntryFunc(fun))
+		s.logger.slog.Log(
+			context.TODO(),
+			slog.LevelDebug,
+			"spawning goroutine",
+			"eventid",
+			eventID,
+			"childgoroutine",
+			id,
+			"entry",
+			getEntryFunc(fun),
+		)
 	}
 
 	// XXX: log/trace happens-before spawn, happens-after start?
@@ -407,7 +417,14 @@ type goroutine struct {
 	entryToken RaceToken
 }
 
-func newGoroutine(id int, parent *goroutine, spawnEventID int, fun func(), machine *Machine, token RaceToken) *goroutine {
+func newGoroutine(
+	id int,
+	parent *goroutine,
+	spawnEventID int,
+	fun func(),
+	machine *Machine,
+	token RaceToken,
+) *goroutine {
 	gs := gs.get()
 
 	g := allocGoroutine()
@@ -423,7 +440,11 @@ func newGoroutine(id int, parent *goroutine, spawnEventID int, fun func(), machi
 	g.parksynctoken = MakeRaceToken()
 
 	if gs.checksummer != nil {
-		gs.checksummer.recordIntInt(checksumKeyCreating, uint64(g.ID), uint64(relativeFuncAddr(fun))) // XXX: test this pointer
+		gs.checksummer.recordIntInt(
+			checksumKeyCreating,
+			uint64(g.ID),
+			uint64(relativeFuncAddr(fun)),
+		) // XXX: test this pointer
 	}
 
 	prev := getg()

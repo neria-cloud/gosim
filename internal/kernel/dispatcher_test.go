@@ -30,14 +30,17 @@ func TestControlErrorCopiesProviderDiagnostic(t *testing.T) {
 			t.Fatal("retained provider error object")
 		}
 	}
-	if err := copyControlError(errors.New("plain diagnostic")); err.Error() != "plain diagnostic" || err.Unwrap() != nil {
+	if err := copyControlError(errors.New("plain diagnostic")); err.Error() != "plain diagnostic" ||
+		err.Unwrap() != nil {
 		t.Fatal(err)
 	}
 }
 
 func currentContext(k *Kernel) contracts.CallContext {
 	token := simrt.CurrentMachineToken()
-	return contracts.CallContext{Epoch: contracts.EpochRef{Machine: contracts.MachineRef{RunID: k.runID, ID: token.ID}, Epoch: token.Epoch}}
+	return contracts.CallContext{
+		Epoch: contracts.EpochRef{Machine: contracts.MachineRef{RunID: k.runID, ID: token.ID}, Epoch: token.Epoch},
+	}
 }
 
 func TestDispatcherRealApplicationRoundTripAndEventWake(t *testing.T) {
@@ -148,7 +151,12 @@ func TestCanceledInvocationDropsMemoryBeforeLateCompletion(t *testing.T) {
 		}
 		run := k.machineByID[ref.ID].current
 		data := []byte("unchanged")
-		inv := &Invocation{Context: contracts.CallContext{Epoch: run.ref}, Route: RouteRead, Args: [5]any{abi.ByteView{Ptr: data}}, Result: Result{Value: &data}}
+		inv := &Invocation{
+			Context: contracts.CallContext{Epoch: run.ref},
+			Route:   RouteRead,
+			Args:    [5]any{abi.ByteView{Ptr: data}},
+			Result:  Result{Value: &data},
+		}
 		if err := k.dispatcher.admit(inv); err != nil {
 			t.Fatal(err)
 		}
@@ -203,12 +211,17 @@ func TestDispatcherRejectsDuplicateCompletionUnknownRoutesAndPayloads(t *testing
 				case "exhaustion":
 					k.dispatcher.nextID = math.MaxUint64
 					k.dispatcher.DispatchOne(inv)
-					k.dispatcher.DispatchOne(&Invocation{Context: ctx, Route: RouteGetpid, Args: [5]any{GetpidRequest{}}})
+					k.dispatcher.DispatchOne(
+						&Invocation{Context: ctx, Route: RouteGetpid, Args: [5]any{GetpidRequest{}}},
+					)
 				case "mode":
 					inv.Route, inv.Scalars[1] = RoutePollWait, 256+'r'
 					k.dispatcher.DispatchOne(inv)
 				case "errno":
-					r := &dataResource{owner: contracts.RT, readErr: errors.Join(syscall.EINVAL, errors.New("provider invariant"))}
+					r := &dataResource{
+						owner:   contracts.RT,
+						readErr: errors.Join(syscall.EINVAL, errors.New("provider invariant")),
+					}
 					fd, err := k.machineByID[ref.ID].current.descriptors.Allocate(r)
 					if err != nil {
 						t.Fatal(err)
@@ -305,7 +318,13 @@ func TestCrashCancelsRealBlockedPollWithoutWake(t *testing.T) {
 		}
 	})
 	if err != nil || !crashed.Load() || resumed.Load() || deferred.Load() {
-		t.Fatalf("blocked crash: %v crash=%t resumed=%t deferred=%t", err, crashed.Load(), resumed.Load(), deferred.Load())
+		t.Fatalf(
+			"blocked crash: %v crash=%t resumed=%t deferred=%t",
+			err,
+			crashed.Load(),
+			resumed.Load(),
+			deferred.Load(),
+		)
 	}
 	if len(k.dispatcher.live) != 0 || len(k.dispatcher.canceled) != 0 || len(k.polls) != 0 {
 		t.Fatal("blocked crash retained metadata")

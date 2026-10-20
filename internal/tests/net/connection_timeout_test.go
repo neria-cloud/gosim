@@ -47,7 +47,10 @@ func TestNetworkConnectionTimeout(t *testing.T) {
 				networkCheck(t, server.Stop())
 				networkCheck(t, server.Destroy())
 			})
-			networkCheck(t, simnet.ConfigureMachine(server, simnet.MachineConfig{Addr: netip.MustParseAddr("10.61.0.1")}))
+			networkCheck(
+				t,
+				simnet.ConfigureMachine(server, simnet.MachineConfig{Addr: netip.MustParseAddr("10.61.0.1")}),
+			)
 			networkCheck(t, server.Start())
 			<-ready
 			started := time.Now()
@@ -57,7 +60,13 @@ func TestNetworkConnectionTimeout(t *testing.T) {
 				defer conn.Close()
 			}
 			if (err == nil) != test.success || elapsed != test.elapsed {
-				t.Fatalf("dial: elapsed=%s err=%v; want elapsed=%s success=%v", elapsed, err, test.elapsed, test.success)
+				t.Fatalf(
+					"dial: elapsed=%s err=%v; want elapsed=%s success=%v",
+					elapsed,
+					err,
+					test.elapsed,
+					test.success,
+				)
 			}
 			if test.name == "caller_deadline" {
 				if timeout, ok := err.(net.Error); !ok || !timeout.Timeout() {

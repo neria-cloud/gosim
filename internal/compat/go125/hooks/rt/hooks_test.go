@@ -17,7 +17,9 @@ import (
 
 func runHooks(t *testing.T, f func()) {
 	t.Helper()
-	e, err := gosimruntime.NewEngine(gosimruntime.EngineConfig{Seed: 42, TimeoutNS: int64(time.Second), ReplayRevision: gosimruntime.ReplayRevision})
+	e, err := gosimruntime.NewEngine(
+		gosimruntime.EngineConfig{Seed: 42, TimeoutNS: int64(time.Second), ReplayRevision: gosimruntime.ReplayRevision},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +102,13 @@ func TestMapAndRandomHooks(t *testing.T) {
 	sample := func() []uint64 {
 		var draws []uint64
 		runHooks(t, func() {
-			draws = []uint64{MathRand_runtime_rand(), MathRandV2_runtime_rand(), HashMaphash_runtime_rand(), InternalSync_runtime_rand(), uint64(Sync_runtime_randn(17))}
+			draws = []uint64{
+				MathRand_runtime_rand(),
+				MathRandV2_runtime_rand(),
+				HashMaphash_runtime_rand(),
+				InternalSync_runtime_rand(),
+				uint64(Sync_runtime_randn(17)),
+			}
 			original := gosimruntime.NewMap[int, string]()
 			original.Set(1, "original")
 			clone := Maps_clone(original).(gosimruntime.Map[int, string])
@@ -146,7 +154,9 @@ func TestHooksDoNotImportPrivateNativeFacade(t *testing.T) {
 			if name == "github.com/neria-cloud/gosim/internal/compat/go125/shims/runtimebridge" {
 				continue
 			} // Selected translated leaf, never a native island.
-			if strings.HasPrefix(name, "github.com/neria-cloud/gosim/") && name != "github.com/neria-cloud/gosim/rt/runtime" && name != "github.com/neria-cloud/gosim/rt/runtime/abi" {
+			if strings.HasPrefix(name, "github.com/neria-cloud/gosim/") &&
+				name != "github.com/neria-cloud/gosim/rt/runtime" &&
+				name != "github.com/neria-cloud/gosim/rt/runtime/abi" {
 				t.Errorf("%s imports native/private implementation %s", path, name)
 			}
 		}

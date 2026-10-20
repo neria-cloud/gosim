@@ -37,7 +37,14 @@ type (
 
 func All() []Description { return nil }
 func Read(samples []Sample) {
-	simrt.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime/metrics.Read", Message: "host heap and scheduler metrics are not modeled"})
+	simrt.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "runtime/metrics.Read",
+			Message:   "host heap and scheduler metrics are not modeled",
+		},
+	)
 }
 func (Value) Kind() ValueKind  { return KindBad }
 func (Value) Uint64() uint64   { panic("called Uint64 on non-uint64 metric value") }

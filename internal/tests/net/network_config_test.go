@@ -153,7 +153,15 @@ func TestNetworkConfigFiveHosts(t *testing.T) {
 		}
 	}
 	a, b := addresses[1], addresses[4]
-	networkCheck(t, simnet.SetLinkPolicy(networkLink(a, b), simnet.LinkPolicy{Latency: &simnet.LatencyConfig{Min: 200 * time.Millisecond, Max: 200 * time.Millisecond, Lambda: 5}}))
+	networkCheck(
+		t,
+		simnet.SetLinkPolicy(
+			networkLink(a, b),
+			simnet.LinkPolicy{
+				Latency: &simnet.LatencyConfig{Min: 200 * time.Millisecond, Max: 200 * time.Millisecond, Lambda: 5},
+			},
+		),
+	)
 	for i := 0; i < 5; i++ {
 		for j := i + 1; j < 5; j++ {
 			result := probe(i, j, false)
@@ -186,7 +194,13 @@ func TestNetworkConfigFiveHosts(t *testing.T) {
 	networkCheck(t, simnet.Repair(networkLink(a, b)))
 	networkCheck(t, probe(1, 4, true).err)
 	networkCheck(t, probe(4, 1, true).err)
-	networkCheck(t, simnet.SetLinkPolicy(networkLink(a, b), simnet.LinkPolicy{Loss: &simnet.LossConfig{FailProbability: 1, RepairProbability: 0}}))
+	networkCheck(
+		t,
+		simnet.SetLinkPolicy(
+			networkLink(a, b),
+			simnet.LinkPolicy{Loss: &simnet.LossConfig{FailProbability: 1, RepairProbability: 0}},
+		),
+	)
 	if result := probe(1, 4, false); result.err == nil {
 		t.Fatal("forced failure did not drop traffic")
 	}
@@ -202,7 +216,13 @@ func TestNetworkConfigFiveHosts(t *testing.T) {
 	networkCheck(t, probe(1, 4, true).err)
 	// Exercise intermediate probabilities and traffic-triggered repairs. A
 	// dropped stream may require reconnection; each attempt has a bounded timeout.
-	networkCheck(t, simnet.SetLinkPolicy(networkLink(a, b), simnet.LinkPolicy{Loss: &simnet.LossConfig{FailProbability: 0.125, RepairProbability: 0.5}}))
+	networkCheck(
+		t,
+		simnet.SetLinkPolicy(
+			networkLink(a, b),
+			simnet.LinkPolicy{Loss: &simnet.LossConfig{FailProbability: 0.125, RepairProbability: 0.5}},
+		),
+	)
 	for range 6 {
 		_ = probe(1, 4, true)
 	}

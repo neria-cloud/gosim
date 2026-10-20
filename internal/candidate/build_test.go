@@ -40,7 +40,16 @@ func TestCandidate(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "./internal/candidate", "-timeout=25m", "-run=^TestCandidateWorker$", "-count=1", "-v"}
+			args := []string{
+				"test",
+				"-ldflags=-checklinkname=0",
+				"-tags=linkname",
+				"./internal/candidate",
+				"-timeout=25m",
+				"-run=^TestCandidateWorker$",
+				"-count=1",
+				"-v",
+			}
 			if hostabi.RaceEnabled {
 				args = append(args, "-race")
 			}
@@ -84,7 +93,9 @@ func TestCandidateWorker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mod := "module " + gosimtool.Module + "/.gosim/candidateprobe\n\ngo 1.25.0\nrequire " + gosimtool.Module + " v0.0.0\nreplace " + gosimtool.Module + " => " + strconv.Quote(root) + "\n"
+	mod := "module " + gosimtool.Module + "/.gosim/candidateprobe\n\ngo 1.25.0\nrequire " + gosimtool.Module + " v0.0.0\nreplace " + gosimtool.Module + " => " + strconv.Quote(
+		root,
+	) + "\n"
 	if err := os.WriteFile(filepath.Join(project, "go.mod"), []byte(mod), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +187,9 @@ func TestCandidateWorker(t *testing.T) {
 			}
 			artifact := built.Artifacts[0]
 			checkArtifactIdentitySeparation(t, artifact)
-			current, err := translate.InspectDependencies(&translate.TranslateInput{Packages: []string{"."}, Cfg: built.Config})
+			current, err := translate.InspectDependencies(
+				&translate.TranslateInput{Packages: []string{"."}, Cfg: built.Config},
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -210,22 +223,49 @@ func TestCandidateWorker(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if artifact.Directory != again.Artifacts[0].Directory || !os.SameFile(before, after) || !before.ModTime().Equal(after.ModTime()) {
-				t.Fatalf("cache hit rebuilt artifact: identity %s -> %s, path %s -> %s", built.Config.Digest, again.Config.Digest, artifact.Directory, again.Artifacts[0].Directory)
+			if artifact.Directory != again.Artifacts[0].Directory || !os.SameFile(before, after) ||
+				!before.ModTime().Equal(after.ModTime()) {
+				t.Fatalf(
+					"cache hit rebuilt artifact: identity %s -> %s, path %s -> %s",
+					built.Config.Digest,
+					again.Config.Digest,
+					artifact.Directory,
+					again.Artifacts[0].Directory,
+				)
 			}
-			configs := []simrt.RunConfig{{Test: "TestRuntime", Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}}, {Test: "TestRuntime", Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}}}
+			configs := []simrt.RunConfig{
+				{Test: "TestRuntime", Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}},
+				{Test: "TestRuntime", Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}},
+			}
 			for _, feature := range []string{"fs", "net"} {
 				if !slices.Contains(features, feature) {
 					name := "TestDisabledFS"
 					if feature == "net" {
 						name = "TestDisabledNet"
 					}
-					configs = append(configs, simrt.RunConfig{Test: name, Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}}, simrt.RunConfig{Test: name + "Control", Seed: 42})
+					configs = append(
+						configs,
+						simrt.RunConfig{Test: name, Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}},
+						simrt.RunConfig{Test: name + "Control", Seed: 42},
+					)
 				}
 			}
-			configs = append(configs, simrt.RunConfig{Test: "TestInitRoot", Seed: 42, ExtraEnv: []string{"INIT_PANIC=root"}}, simrt.RunConfig{Test: "TestInitChild", Seed: 42, ExtraEnv: []string{"INIT_PANIC=child"}})
-			configs = append(configs, simrt.RunConfig{Test: "TestSelfTransitions", Seed: 42}, simrt.RunConfig{Test: "TestRootExit", Seed: 42}, simrt.RunConfig{Test: "TestRootCrash", Seed: 42}, simrt.RunConfig{Test: "TestFailure", Seed: 42})
-			configs = append(configs, simrt.RunConfig{Test: "TestRuntime", Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}})
+			configs = append(
+				configs,
+				simrt.RunConfig{Test: "TestInitRoot", Seed: 42, ExtraEnv: []string{"INIT_PANIC=root"}},
+				simrt.RunConfig{Test: "TestInitChild", Seed: 42, ExtraEnv: []string{"INIT_PANIC=child"}},
+			)
+			configs = append(
+				configs,
+				simrt.RunConfig{Test: "TestSelfTransitions", Seed: 42},
+				simrt.RunConfig{Test: "TestRootExit", Seed: 42},
+				simrt.RunConfig{Test: "TestRootCrash", Seed: 42},
+				simrt.RunConfig{Test: "TestFailure", Seed: 42},
+			)
+			configs = append(
+				configs,
+				simrt.RunConfig{Test: "TestRuntime", Seed: 42, ExtraEnv: []string{"CANDIDATE_ENV=owned"}},
+			)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 			results, err := runRequests(ctx, artifact, configs)
@@ -269,13 +309,15 @@ func TestCandidateWorker(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if traceResults[0].Failed || traceResults[1].Failed || !bytes.Equal(traceResults[0].Checksum, traceResults[1].Checksum) {
+			if traceResults[0].Failed || traceResults[1].Failed ||
+				!bytes.Equal(traceResults[0].Checksum, traceResults[1].Checksum) {
 				t.Fatal("traced replay failed", traceResults)
 			}
 			if !bytes.Contains(traceResults[0].LogOutput, []byte("call ")) {
 				t.Fatal("missing syscall trace")
 			}
-			if slices.Contains(features, "net") && !bytes.Contains(traceResults[0].LogOutput, []byte(`"traceKind":"network"`)) {
+			if slices.Contains(features, "net") &&
+				!bytes.Contains(traceResults[0].LogOutput, []byte(`"traceKind":"network"`)) {
 				t.Fatal("missing network trace")
 			}
 			forged := artifact

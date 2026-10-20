@@ -43,7 +43,9 @@ func TestInventoryCoversLegacyRoutes(t *testing.T) {
 		}
 	}
 	// Preserve the published intermediate route numbers when adding controls.
-	expected := strings.Fields("Read Write Close FcntlInt Getrandom Getpid Uname PollOpen PollClose PollWait PollReset PollDeadline PollUnblock Wait Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync Fstat Statat Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise Socket Bind Listen Accept Connect LocalAddress PeerAddress SetOption GetOption")
+	expected := strings.Fields(
+		"Read Write Close FcntlInt Getrandom Getpid Uname PollOpen PollClose PollWait PollReset PollDeadline PollUnblock Wait Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync Fstat Statat Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise Socket Bind Listen Accept Connect LocalAddress PeerAddress SetOption GetOption",
+	)
 	for i, name := range expected {
 		if m.Routes[i].Name != name || m.Routes[i].ID != uint32(i+1) {
 			t.Fatalf("stable route %d changed", i+1)
@@ -154,14 +156,19 @@ func TestSelectedGenerationIsScopedAndRepeatable(t *testing.T) {
 	if string(first["internal/compat/"+other+"/profile/routes_arm64.json"]) != "unselected-family" {
 		t.Fatal("modified unselected family")
 	}
-	if _, err := os.Stat(filepath.Join(out, "internal/compat/"+profile.ID+"/profile/routes_arm64.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(out, "internal/compat/"+profile.ID+"/profile/routes_arm64.json")); !os.IsNotExist(
+		err,
+	) {
 		t.Fatal("modified unselected architecture")
 	}
 	var record GenerationRecord
 	if err := json.Unmarshal(first["internal/compat/"+profile.ID+"/profile/routes_amd64.json"], &record); err != nil {
 		t.Fatal(err)
 	}
-	if record.Stage != "typed-adapters" || !buildspec.ValidDigest(record.AdapterDigest) || record.GeneratedWith != tc.Version || len(record.Modules) == 0 || !buildspec.ValidDigest(record.OriginDigest) {
+	if record.Stage != "typed-adapters" || !buildspec.ValidDigest(record.AdapterDigest) ||
+		record.GeneratedWith != tc.Version ||
+		len(record.Modules) == 0 ||
+		!buildspec.ValidDigest(record.OriginDigest) {
 		t.Fatalf("generation identity=%+v", record)
 	}
 	for _, test := range []struct {

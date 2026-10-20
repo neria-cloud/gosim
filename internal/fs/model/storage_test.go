@@ -60,7 +60,8 @@ func TestCapacityAdmissionIsAtomic(t *testing.T) {
 		t.Fatalf("fill: n=%d err=%v", n, err)
 	}
 	before := fs.GetInodeInfo(inode).Ops
-	if n, err := fs.Write(inode, chunkSize, abi.ByteView{Ptr: []byte("x")}, capacity); n != 0 || !errors.Is(err, syscall.ENOSPC) {
+	if n, err := fs.Write(inode, chunkSize, abi.ByteView{Ptr: []byte("x")}, capacity); n != 0 ||
+		!errors.Is(err, syscall.ENOSPC) {
 		t.Fatalf("overcapacity write: n=%d err=%v", n, err)
 	}
 	if stat, err := fs.Statfd(inode); err != nil || stat.Size != chunkSize || fs.GetInodeInfo(inode).Ops != before {
@@ -73,7 +74,8 @@ func TestCapacityAdmissionIsAtomic(t *testing.T) {
 	image := fs.FreezeCrash()
 	clone := image.Clone(false, nil)
 	image.Release()
-	if n, err := clone.Write(inode, 0, abi.ByteView{Ptr: []byte("q")}, capacity); err != nil || n != 1 || clone.UsedBlocks() != 2 {
+	if n, err := clone.Write(inode, 0, abi.ByteView{Ptr: []byte("q")}, capacity); err != nil || n != 1 ||
+		clone.UsedBlocks() != 2 {
 		t.Fatalf("copy-on-write clone consumed virtual capacity: n=%d err=%v blocks=%d", n, err, clone.UsedBlocks())
 	}
 	clone.Release()
@@ -86,10 +88,12 @@ func TestCapacityAdmissionIsAtomic(t *testing.T) {
 	if err := fs.Truncate(inode, 8*chunkSize, capacity); err != nil || fs.UsedBlocks() != 1 {
 		t.Fatalf("sparse growth allocated blocks: %v, %d", err, fs.UsedBlocks())
 	}
-	if n, err := fs.Write(inode, 7*chunkSize, abi.ByteView{Ptr: []byte("a")}, capacity); err != nil || n != 1 || fs.UsedBlocks() != 2 {
+	if n, err := fs.Write(inode, 7*chunkSize, abi.ByteView{Ptr: []byte("a")}, capacity); err != nil || n != 1 ||
+		fs.UsedBlocks() != 2 {
 		t.Fatalf("sparse write: n=%d err=%v used=%d", n, err, fs.UsedBlocks())
 	}
-	if n, err := fs.Write(inode, math.MaxInt64, abi.ByteView{Ptr: []byte("x")}, capacity); n != 0 || !errors.Is(err, syscall.EINVAL) {
+	if n, err := fs.Write(inode, math.MaxInt64, abi.ByteView{Ptr: []byte("x")}, capacity); n != 0 ||
+		!errors.Is(err, syscall.EINVAL) {
 		t.Fatalf("overflow write: n=%d err=%v", n, err)
 	}
 	if n, err := fs.Write(inode, 9*chunkSize, abi.ByteView{}, capacity); err != nil || n != 0 {
@@ -118,7 +122,8 @@ func TestOverCapacityImageAllowsExistingBlocks(t *testing.T) {
 	if err := fs.Fallocate(inode, 0, 2*chunkSize, capacity); err != nil {
 		t.Fatalf("existing-block reservation: %v", err)
 	}
-	if n, err := fs.Write(inode, 2*chunkSize, abi.ByteView{Ptr: []byte("x")}, capacity); n != 0 || !errors.Is(err, syscall.ENOSPC) {
+	if n, err := fs.Write(inode, 2*chunkSize, abi.ByteView{Ptr: []byte("x")}, capacity); n != 0 ||
+		!errors.Is(err, syscall.ENOSPC) {
 		t.Fatalf("new allocation above capacity: n=%d err=%v", n, err)
 	}
 	if err := fs.Truncate(inode, 0, capacity); err != nil {

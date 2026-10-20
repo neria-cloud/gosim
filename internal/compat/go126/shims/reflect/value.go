@@ -468,12 +468,26 @@ func (v Value) Pointer() uintptr {
 }
 
 func (v Value) Recv() (x Value, ok bool) {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "reflect.Value.Recv", Message: "reflected channel scheduling is not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "reflect.Value.Recv",
+			Message:   "reflected channel scheduling is not modeled",
+		},
+	)
 	panic("abort returned")
 }
 
 func (v Value) Send(x Value) {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "reflect.Value.Send", Message: "reflected channel scheduling is not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "reflect.Value.Send",
+			Message:   "reflected channel scheduling is not modeled",
+		},
+	)
 	panic("abort returned")
 }
 

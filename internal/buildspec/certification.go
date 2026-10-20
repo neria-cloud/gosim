@@ -32,7 +32,16 @@ type CertificationReport struct {
 }
 
 func TupleFor(id Identity) CertificationTuple {
-	return CertificationTuple{Toolchain: id.Toolchain, HostOS: id.HostOS, HostArch: id.HostArch, SimulationOS: id.SimulationOS, SimulationArch: id.SimulationArch, Features: slices.Clone(id.Features), Race: id.Race, Experiments: id.Experiments}
+	return CertificationTuple{
+		Toolchain:      id.Toolchain,
+		HostOS:         id.HostOS,
+		HostArch:       id.HostArch,
+		SimulationOS:   id.SimulationOS,
+		SimulationArch: id.SimulationArch,
+		Features:       slices.Clone(id.Features),
+		Race:           id.Race,
+		Experiments:    id.Experiments,
+	}
 }
 
 func SameTuple(a, b CertificationTuple) bool {
@@ -112,7 +121,8 @@ func ValidateExecution(id Identity, workerArch, mode, image string) error {
 			return fmt.Errorf("native report claims a container image")
 		}
 	case "container-native", "container-emulated":
-		if id.HostOS != "linux" || !strings.HasPrefix(image, "sha256:") || !ValidDigest(strings.TrimPrefix(image, "sha256:")) {
+		if id.HostOS != "linux" || !strings.HasPrefix(image, "sha256:") ||
+			!ValidDigest(strings.TrimPrefix(image, "sha256:")) {
 			return fmt.Errorf("container report requires Linux and an image digest")
 		}
 	default:

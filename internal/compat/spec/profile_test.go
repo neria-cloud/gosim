@@ -15,11 +15,21 @@ func fixture() (Profile, buildspec.Identity) {
 	id := buildspec.Identity{
 		Schema: 2, Toolchain: "go1.26.9", Profile: "go126", ToolchainDigest: d, StdlibDigest: d, ContractDigest: d,
 		AdapterRevision: d, RuntimeRevision: d, HostOS: "linux", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64",
-		Features: []string{"rt"}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
+		Features: []string{
+			"rt",
+		}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
 	}
 	p := Profile{
 		ID: "go126", Revision: d, Support: buildspec.FamilySupport{Family: "1.26", Profile: "go126"},
-		Hooks:           []Hook{{Package: "runtime", Symbol: "Gosched", Signature: "func()", Target: module + "/internal/compat/go126/hooks/rt.Gosched", Owner: "rt"}},
+		Hooks: []Hook{
+			{
+				Package:   "runtime",
+				Symbol:    "Gosched",
+				Signature: "func()",
+				Target:    module + "/internal/compat/go126/hooks/rt.Gosched",
+				Owner:     "rt",
+			},
+		},
 		Packages:        []PackagePolicy{{Path: "runtime", Mode: "bridge", Reason: "explicit runtime hooks"}},
 		RuntimePackages: []string{module + "/internal/kernel"},
 	}
@@ -28,7 +38,15 @@ func fixture() (Profile, buildspec.Identity) {
 	for _, arch := range []string{"amd64", "arm64"} {
 		p.ContractsByArch[arch] = ContractManifest{
 			Schema: 1, Family: p.Support.Family, Architecture: arch, Hooks: slices.Clone(p.Hooks),
-			Layouts:   []LayoutContract{{Package: "test", Type: "Record", Size: 8, Align: 8, Fields: []FieldContract{{Name: "Value", Type: "int64", Offset: 0}}}},
+			Layouts: []LayoutContract{
+				{
+					Package: "test",
+					Type:    "Record",
+					Size:    8,
+					Align:   8,
+					Fields:  []FieldContract{{Name: "Value", Type: "int64", Offset: 0}},
+				},
+			},
 			Constants: []ConstantContract{{Package: "test", Symbol: "Number", Value: "1"}},
 		}
 	}
@@ -43,7 +61,10 @@ func TestSelectFeatureProvidersAndOwnInputs(t *testing.T) {
 		id.Features = slices.Clone(features)
 		want := make([]string, 0, len(features)-1)
 		for _, feature := range features[1:] {
-			id.ProviderRevisions = append(id.ProviderRevisions, buildspec.Revision{Name: feature, Digest: id.RuntimeRevision})
+			id.ProviderRevisions = append(
+				id.ProviderRevisions,
+				buildspec.Revision{Name: feature, Digest: id.RuntimeRevision},
+			)
 			want = append(want, module+"/internal/"+feature)
 		}
 		selection, err := p.Select(id)
@@ -110,7 +131,11 @@ func TestProfileRejectsIncompleteOrAmbiguousMetadata(t *testing.T) {
 func TestVerifyHooksAgainstActiveToolchain(t *testing.T) {
 	t.Parallel()
 	tc := buildspec.Toolchain{
-		Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH,
+		Executable: filepath.Join(
+			runtime.GOROOT(),
+			"bin",
+			"go",
+		), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH,
 	}
 	hook := Hook{Package: "runtime", Symbol: "Gosched", Signature: "func()"}
 	if err := VerifyHooks(tc, []Hook{hook}); err != nil {

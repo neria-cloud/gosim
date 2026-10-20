@@ -23,7 +23,14 @@ import (
 )
 
 func unsupported() {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "net", Operation: "crypto/x509", Message: "optional TLS/certificate operations are not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "net",
+			Operation: "crypto/x509",
+			Message:   "optional TLS/certificate operations are not modeled",
+		},
+	)
 }
 
 type (
@@ -149,7 +156,13 @@ func (v *Certificate) CheckCRLSignature(crl *pkix.CertificateList) error {
 	panic("abort returned")
 }
 
-func (v *Certificate) CreateCRL(rand io.Reader, priv any, revokedCerts []pkix.RevokedCertificate, now time.Time, expiry time.Time) (crlBytes []byte, err error) {
+func (v *Certificate) CreateCRL(
+	rand io.Reader,
+	priv any,
+	revokedCerts []pkix.RevokedCertificate,
+	now time.Time,
+	expiry time.Time,
+) (crlBytes []byte, err error) {
 	unsupported()
 	panic("abort returned")
 }

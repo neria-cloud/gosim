@@ -16,7 +16,9 @@ import (
 func marshalArm64Stat(unsafe.Pointer, contracts.Stat)
 
 func TestArm64LinuxLayoutOnHost(t *testing.T) {
-	if unsafe.Sizeof(kh.Stat_t{}) != 128 || unsafe.Offsetof(kh.Stat_t{}.Mode) != 16 || unsafe.Offsetof(kh.Stat_t{}.Nlink) != 20 || unsafe.Sizeof(kh.Stat_t{}.Nlink) != 4 {
+	if unsafe.Sizeof(kh.Stat_t{}) != 128 || unsafe.Offsetof(kh.Stat_t{}.Mode) != 16 ||
+		unsafe.Offsetof(kh.Stat_t{}.Nlink) != 20 ||
+		unsafe.Sizeof(kh.Stat_t{}.Nlink) != 4 {
 		t.Fatal("host stat substituted for Linux arm64")
 	}
 	if kh.LinuxSYS_FSTATAT != 79 || kh.LinuxSYS_GETRANDOM != 278 {
@@ -36,7 +38,8 @@ func TestArm64LinuxLayoutOnHost(t *testing.T) {
 			t.Fatal(out)
 		}
 		marshalArm64Stat(unsafe.Pointer(&out), contracts.Stat{Inode: 7, Size: 9, Nlink: math.MaxUint32, AtimeNS: -1})
-		if out.Nlink != math.MaxUint32 || out.Ino != 7 || out.Size != 9 || out.Atim.Sec != -1 || out.Atim.Nsec != 999999999 {
+		if out.Nlink != math.MaxUint32 || out.Ino != 7 || out.Size != 9 || out.Atim.Sec != -1 ||
+			out.Atim.Nsec != 999999999 {
 			t.Fatal(out)
 		}
 		must(t, kh.Syscall_Close(fd))

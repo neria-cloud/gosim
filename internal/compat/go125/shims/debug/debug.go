@@ -11,7 +11,14 @@ import (
 )
 
 func SetMemoryLimit(limit int64) int64 {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime/debug.SetMemoryLimit", Message: "native GC memory limits are not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "runtime/debug.SetMemoryLimit",
+			Message:   "native GC memory limits are not modeled",
+		},
+	)
 	panic("abort returned")
 }
 
@@ -43,5 +50,12 @@ type GCStats struct {
 }
 
 func ReadGCStats(stats *GCStats) {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime/debug.ReadGCStats", Message: "host garbage collection metrics are not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "runtime/debug.ReadGCStats",
+			Message:   "host garbage collection metrics are not modeled",
+		},
+	)
 }

@@ -41,14 +41,25 @@ func InspectDependencies(input *TranslateInput) (map[string]map[string]string, e
 	if err != nil {
 		return nil, err
 	}
-	appRoots, runtimeRoots, graph, err := loadSourceGraph(cfg.Resolution.Context.Directory, inputDir, slices.Clone(input.Packages), cfg, policies)
+	appRoots, runtimeRoots, graph, err := loadSourceGraph(
+		cfg.Resolution.Context.Directory,
+		inputDir,
+		slices.Clone(input.Packages),
+		cfg,
+		policies,
+	)
 	if err != nil {
 		return nil, err
 	}
 	return packageDependencies(projectPath, appRoots, runtimeRoots, graph)
 }
 
-func loadSourceGraph(project, inputDir string, patterns []string, cfg gosimtool.BuildConfig, policies PackagePolicies) ([]*packages.Package, []*packages.Package, *selectedGraph, error) {
+func loadSourceGraph(
+	project, inputDir string,
+	patterns []string,
+	cfg gosimtool.BuildConfig,
+	policies PackagePolicies,
+) ([]*packages.Package, []*packages.Package, *selectedGraph, error) {
 	// Composition exists before either application or infrastructure package load.
 	appRoots, err := loadSelectedPackages(project, patterns, cfg, packages.NeedDeps, true)
 	if err != nil {
@@ -77,7 +88,11 @@ func loadSourceGraph(project, inputDir string, patterns []string, cfg gosimtool.
 // A binary's inputs include its test variants and the selected composition, not
 // unrelated packages named in the same build invocation. This makes a later
 // single-package lookup agree with a batch build.
-func packageDependencies(projectPath string, appRoots, runtimeRoots []*packages.Package, graph *selectedGraph) (map[string]map[string]string, error) {
+func packageDependencies(
+	projectPath string,
+	appRoots, runtimeRoots []*packages.Package,
+	graph *selectedGraph,
+) (map[string]map[string]string, error) {
 	result := make(map[string]map[string]string)
 	for _, root := range appRoots {
 		kind, base := classifyPackage(root)

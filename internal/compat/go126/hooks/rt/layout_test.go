@@ -14,7 +14,10 @@ import (
 func TestTimerPrefix(t *testing.T) {
 	t.Parallel()
 	for _, typ := range []reflect.Type{reflect.TypeOf(time.Timer{}), reflect.TypeOf(time.Ticker{})} {
-		if typ.NumField() != 2 || typ.Field(0).Offset != unsafe.Offsetof(timeTimer{}.c) || typ.Field(0).Type.Size() != unsafe.Sizeof(timeTimer{}.c) || typ.Field(1).Offset != unsafe.Offsetof(timeTimer{}.init) || typ.Field(1).Type.Kind() != reflect.Bool {
+		if typ.NumField() != 2 || typ.Field(0).Offset != unsafe.Offsetof(timeTimer{}.c) ||
+			typ.Field(0).Type.Size() != unsafe.Sizeof(timeTimer{}.c) ||
+			typ.Field(1).Offset != unsafe.Offsetof(timeTimer{}.init) ||
+			typ.Field(1).Type.Kind() != reflect.Bool {
 			t.Fatalf("pinned timer prefix drift: %v", typ)
 		}
 	}

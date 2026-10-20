@@ -76,7 +76,8 @@ func TestByteHelpersMatchStandardLibrary(t *testing.T) {
 			}
 		}
 		for c := 0; c < byteTestRange; c++ {
-			if InternalBytealg_IndexByte([]byte(a), byte(c)) != bytes.IndexByte([]byte(a), byte(c)) || InternalBytealg_IndexByteString(a, byte(c)) != strings.IndexByte(a, byte(c)) {
+			if InternalBytealg_IndexByte([]byte(a), byte(c)) != bytes.IndexByte([]byte(a), byte(c)) ||
+				InternalBytealg_IndexByteString(a, byte(c)) != strings.IndexByte(a, byte(c)) {
 				t.Fatal("indexbyte", a, c)
 			}
 			want := bytes.Count([]byte(a), []byte{byte(c)})
@@ -138,7 +139,10 @@ func TestPrivateRuntimeOperationsAbort(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				e.PublishMachine(token, func() { defer func() { _ = recover(); deferred = true }(); operation(); after = true })
+				e.PublishMachine(
+					token,
+					func() { defer func() { _ = recover(); deferred = true }(); operation(); after = true },
+				)
 				simrt.NewChan[struct{}](0).Recv()
 			})
 			var aborted *simrt.AbortError

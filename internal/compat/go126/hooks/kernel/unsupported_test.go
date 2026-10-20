@@ -30,7 +30,11 @@ func TestUnsupportedPrivateProcessHooks(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			after, deferred := false, false
-			err := runAdapters(t, contracts.FeatureSet(contracts.RT), func() { defer func() { _ = recover(); deferred = true }(); operation(); after = true })
+			err := runAdapters(
+				t,
+				contracts.FeatureSet(contracts.RT),
+				func() { defer func() { _ = recover(); deferred = true }(); operation(); after = true },
+			)
 			var aborted *simrt.AbortError
 			if !errors.As(err, &aborted) || aborted.Diagnostic.Operation != name || after || deferred {
 				t.Fatalf("err=%v after=%v deferred=%v", err, after, deferred)

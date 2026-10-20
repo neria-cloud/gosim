@@ -65,7 +65,9 @@ func TestEtcd(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		label, addr := fmt.Sprintf("etcd-%d", i), fmt.Sprintf("10.0.0.%d", i)
 		delay := time.Duration(i-1) * 100 * time.Millisecond
-		m, err := gosim.NewMachine(gosim.MachineConfig{Label: label, Main: func() { time.Sleep(delay); runEtcdNode(label, addr) }})
+		m, err := gosim.NewMachine(
+			gosim.MachineConfig{Label: label, Main: func() { time.Sleep(delay); runEtcdNode(label, addr) }},
+		)
 		if err != nil {
 			t.Fatal(err)
 		}

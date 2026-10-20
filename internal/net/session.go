@@ -68,7 +68,14 @@ func (s *Session) Prepare(spec contracts.StartSpec, fds contracts.DescriptorTabl
 	if err != nil {
 		return nil, err
 	}
-	i := &Instance{session: s, machine: m, ref: spec.Ref, fds: fds, stack: model.NewStack(spec.Ref, s.ports), sockets: make(map[int]*Socket)}
+	i := &Instance{
+		session: s,
+		machine: m,
+		ref:     spec.Ref,
+		fds:     fds,
+		stack:   model.NewStack(spec.Ref, s.ports),
+		sockets: make(map[int]*Socket),
+	}
 	p := &Prepared{instance: i, reservation: reservation}
 	m.prepared = p
 	return p, nil

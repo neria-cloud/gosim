@@ -417,7 +417,14 @@ func ChanOf(dir ChanDir, t Type) Type {
 }
 
 func MapOf(key, elem Type) Type {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "reflect.MapOf", Message: "dynamic map type construction is not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "reflect.MapOf",
+			Message:   "dynamic map type construction is not modeled",
+		},
+	)
 	panic("gosim go125 reflect: unsupported operation")
 }
 
@@ -446,5 +453,6 @@ func TypeFor[T any]() Type {
 }
 
 func isRuntimeChan(typ reflect.Type) bool {
-	return typ.PkgPath() == "github.com/neria-cloud/gosim/rt/runtime" && len(typ.Name()) >= len("Chan[") && typ.Name()[:len("Chan[")] == "Chan["
+	return typ.PkgPath() == "github.com/neria-cloud/gosim/rt/runtime" && len(typ.Name()) >= len("Chan[") &&
+		typ.Name()[:len("Chan[")] == "Chan["
 }

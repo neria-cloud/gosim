@@ -14,7 +14,16 @@ func ref(m gosim.Machine) contracts.MachineRef {
 }
 
 func ConfigureMachine(m gosim.Machine, c Config) error {
-	config := contracts.FSConfig{WorkingDir: c.WorkingDir, CapacityBytes: c.CapacityBytes, UID: c.UID, GID: c.GID, LatencyNS: int64(c.Latency)}
-	_, err := control.Call(kernel.FSConfigureMachineRequest{Machine: ref(m), Config: config}, kernel.DecodeFSConfigureMachineResult)
+	config := contracts.FSConfig{
+		WorkingDir:    c.WorkingDir,
+		CapacityBytes: c.CapacityBytes,
+		UID:           c.UID,
+		GID:           c.GID,
+		LatencyNS:     int64(c.Latency),
+	}
+	_, err := control.Call(
+		kernel.FSConfigureMachineRequest{Machine: ref(m), Config: config},
+		kernel.DecodeFSConfigureMachineResult,
+	)
 	return err
 }

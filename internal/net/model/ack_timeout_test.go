@@ -48,7 +48,8 @@ func TestAckTimeoutSurvivesWritesAndRepair(t *testing.T) {
 	}
 	events.advance(events.now)
 	data := make([]byte, 1)
-	if count, err := server.StreamRecv(replacementPeer, abi.ByteView{Ptr: data}); err != nil || count != 1 || data[0] != 42 {
+	if count, err := server.StreamRecv(replacementPeer, abi.ByteView{Ptr: data}); err != nil || count != 1 ||
+		data[0] != 42 {
 		t.Fatalf("replacement connection: %d %v %v", count, err, data)
 	}
 }

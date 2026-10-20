@@ -39,7 +39,14 @@ type compatibilityRecord struct {
 	ObservedContractDigest string              `json:"observed_contract_digest"`
 }
 
-func CheckContracts(ctx context.Context, r buildspec.Resolution, p Profile, opts buildspec.BuildOptions, inputs buildspec.Fingerprints, cacheRoot string) (digest string, result error) {
+func CheckContracts(
+	ctx context.Context,
+	r buildspec.Resolution,
+	p Profile,
+	opts buildspec.BuildOptions,
+	inputs buildspec.Fingerprints,
+	cacheRoot string,
+) (digest string, result error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
@@ -55,10 +62,12 @@ func CheckContracts(ctx context.Context, r buildspec.Resolution, p Profile, opts
 	if err != nil {
 		return "", err
 	}
-	if support.Profile != p.ID || !slices.Contains([]string{"linux", "darwin"}, tc.HostOS) || (tc.HostOS == "darwin" && tc.HostArch != "arm64") {
+	if support.Profile != p.ID || !slices.Contains([]string{"linux", "darwin"}, tc.HostOS) ||
+		(tc.HostOS == "darwin" && tc.HostArch != "arm64") {
 		return "", fmt.Errorf("contract profile/platform differs from selected compiler")
 	}
-	if opts.Experiments != "" || !buildspec.ValidDigest(inputs.ToolchainDigest) || !buildspec.ValidDigest(inputs.StdlibDigest) {
+	if opts.Experiments != "" || !buildspec.ValidDigest(inputs.ToolchainDigest) ||
+		!buildspec.ValidDigest(inputs.StdlibDigest) {
 		return "", fmt.Errorf("invalid compatibility inputs/experiments")
 	}
 	for _, tag := range opts.Tags {
@@ -86,21 +95,44 @@ func CheckContracts(ctx context.Context, r buildspec.Resolution, p Profile, opts
 	if err != nil {
 		return "", err
 	}
-	keyInputs := compatibilityInputs{Schema: 1, Family: support.Family, ContractDigest: digest, CheckerRevision: p.Revision, Toolchain: tc.Version, Fingerprints: inputs, HostOS: tc.HostOS, Architecture: tc.HostArch, Race: opts.Race, Experiments: opts.Experiments, SourceTags: buildspec.TranslatedSourceTags(opts.Race), Modules: modules}
+	keyInputs := compatibilityInputs{
+		Schema:          1,
+		Family:          support.Family,
+		ContractDigest:  digest,
+		CheckerRevision: p.Revision,
+		Toolchain:       tc.Version,
+		Fingerprints:    inputs,
+		HostOS:          tc.HostOS,
+		Architecture:    tc.HostArch,
+		Race:            opts.Race,
+		Experiments:     opts.Experiments,
+		SourceTags:      buildspec.TranslatedSourceTags(opts.Race),
+		Modules:         modules,
+	}
 	if cacheRoot == "" {
 		cacheRoot, err = buildspec.CacheRoot()
 		if err != nil {
 			return "", err
 		}
 	}
-	err = checkCachedContracts(ctx, cacheRoot, keyInputs, func() error { return VerifyContracts(ctx, tc, dir, manifest, opts) })
+	err = checkCachedContracts(
+		ctx,
+		cacheRoot,
+		keyInputs,
+		func() error { return VerifyContracts(ctx, tc, dir, manifest, opts) },
+	)
 	if err != nil {
 		return "", err
 	}
 	return digest, nil
 }
 
-func contractModuleInputs(ctx context.Context, tc buildspec.Toolchain, dir string, m ContractManifest) ([]buildspec.Revision, error) {
+func contractModuleInputs(
+	ctx context.Context,
+	tc buildspec.Toolchain,
+	dir string,
+	m ContractManifest,
+) ([]buildspec.Revision, error) {
 	var paths []string
 	for _, path := range contractPaths(m, false, false) {
 		first, _, _ := strings.Cut(path, "/")
@@ -189,7 +221,12 @@ func contractModuleDigest(ctx context.Context, root string) (string, error) {
 	return buildspec.Hash(data), nil
 }
 
-func checkCachedContracts(ctx context.Context, root string, inputs compatibilityInputs, verify func() error) (result error) {
+func checkCachedContracts(
+	ctx context.Context,
+	root string,
+	inputs compatibilityInputs,
+	verify func() error,
+) (result error) {
 	data, err := json.Marshal(inputs)
 	if err != nil {
 		return err

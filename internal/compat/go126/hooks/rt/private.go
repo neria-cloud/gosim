@@ -10,7 +10,14 @@ import (
 )
 
 func rejectPrivate(operation string) {
-	simrt.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: operation, Message: "native CPU and function-ABI operations are not modeled"})
+	simrt.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: operation,
+			Message:   "native CPU and function-ABI operations are not modeled",
+		},
+	)
 }
 func InternalAbi_FuncPCABI0(f any) uintptr { rejectPrivate("internal/abi.FuncPCABI0"); return 0 }
 func InternalAbi_FuncPCABIInternal(f any) uintptr {

@@ -20,7 +20,25 @@ import (
 
 func artifactIdentity() buildspec.Identity {
 	d := strings.Repeat("a", 64)
-	return buildspec.Identity{Schema: 2, Toolchain: "go1.26.9", Profile: "go126", ToolchainDigest: d, StdlibDigest: d, ContractDigest: d, AdapterRevision: d, RuntimeRevision: d, HostOS: "darwin", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64", Features: []string{"rt"}, Tags: []string{"sim", "linkname"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d}
+	return buildspec.Identity{
+		Schema:            2,
+		Toolchain:         "go1.26.9",
+		Profile:           "go126",
+		ToolchainDigest:   d,
+		StdlibDigest:      d,
+		ContractDigest:    d,
+		AdapterRevision:   d,
+		RuntimeRevision:   d,
+		HostOS:            "darwin",
+		HostArch:          "arm64",
+		SimulationOS:      "linux",
+		SimulationArch:    "arm64",
+		Features:          []string{"rt"},
+		Tags:              []string{"sim", "linkname"},
+		ModuleGraphDigest: d,
+		TranslatorDigest:  d,
+		DebugPolicyDigest: d,
+	}
 }
 
 func artifactPackages(name string) []PackageDigest {
@@ -36,7 +54,13 @@ func fixtureBuild(directory string, id buildspec.Identity, packages []PackageDig
 	if err := os.WriteFile(filepath.Join(directory, "sample.test"), binary, 0o755); err != nil {
 		return Manifest{}, err
 	}
-	return Manifest{Schema: 2, Identity: id, PackageDigests: packages, Binary: ArtifactFile{Path: "sample.test", SHA256: buildspec.Hash(binary)}, GeneratedFiles: []ArtifactFile{{Path: "src/sample.go", SHA256: buildspec.Hash(source)}}}, nil
+	return Manifest{
+		Schema:         2,
+		Identity:       id,
+		PackageDigests: packages,
+		Binary:         ArtifactFile{Path: "sample.test", SHA256: buildspec.Hash(binary)},
+		GeneratedFiles: []ArtifactFile{{Path: "src/sample.go", SHA256: buildspec.Hash(source)}},
+	}, nil
 }
 
 func TestArtifactCancellationDoesNotPublish(t *testing.T) {
@@ -110,12 +134,24 @@ func TestArtifactCanonicalIdentityAndPackageSeparation(t *testing.T) {
 	if !reflect.DeepEqual(id.Tags, beforeTags) || !reflect.DeepEqual(packages, beforePackages) {
 		t.Fatal("canonicalization mutated input")
 	}
-	again, err := BuildArtifact(t.Context(), root, id, packages, func(string) (Manifest, error) { t.Fatal("rebuilt complete artifact"); return Manifest{}, nil })
+	again, err := BuildArtifact(
+		t.Context(),
+		root,
+		id,
+		packages,
+		func(string) (Manifest, error) { t.Fatal("rebuilt complete artifact"); return Manifest{}, nil },
+	)
 	if err != nil || again.Directory != a.Directory || calls != 1 {
 		t.Fatal("artifact reuse", err, calls)
 	}
 	other := artifactPackages("other")
-	b, err := BuildArtifact(t.Context(), root, id, other, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, other) })
+	b, err := BuildArtifact(
+		t.Context(),
+		root,
+		id,
+		other,
+		func(dir string) (Manifest, error) { return fixtureBuild(dir, id, other) },
+	)
 	if err != nil || b.Directory == a.Directory {
 		t.Fatal("package artifacts collided", err)
 	}
@@ -137,7 +173,8 @@ func TestArtifactCanonicalIdentityAndPackageSeparation(t *testing.T) {
 	if _, err := VerifyArtifact(a.Directory, id, other); err == nil {
 		t.Fatal("wrong source package set accepted")
 	}
-	if !strings.Contains(filepath.ToSlash(a.Directory), "/.gosim/v2/") || !strings.Contains(filepath.ToSlash(a.Directory), "/packages/") {
+	if !strings.Contains(filepath.ToSlash(a.Directory), "/.gosim/v2/") ||
+		!strings.Contains(filepath.ToSlash(a.Directory), "/packages/") {
 		t.Fatal("wrong artifact namespace", a.Directory)
 	}
 }
@@ -282,7 +319,13 @@ func TestArtifactPathTraversalAndSymlinks(t *testing.T) {
 	id := artifactIdentity()
 	packages := artifactPackages("sample")
 	root := t.TempDir()
-	a, err := BuildArtifact(t.Context(), root, id, packages, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) })
+	a, err := BuildArtifact(
+		t.Context(),
+		root,
+		id,
+		packages,
+		func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) },
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,7 +389,13 @@ func TestArtifactConcurrentBuilds(t *testing.T) {
 	for _, name := range []string{"one", "two"} {
 		p := artifactPackages(name)
 		go func() {
-			_, err := BuildArtifact(t.Context(), root, id, p, func(dir string) (Manifest, error) { entered <- struct{}{}; <-release; return fixtureBuild(dir, id, p) })
+			_, err := BuildArtifact(
+				t.Context(),
+				root,
+				id,
+				p,
+				func(dir string) (Manifest, error) { entered <- struct{}{}; <-release; return fixtureBuild(dir, id, p) },
+			)
 			results <- err
 		}()
 	}
@@ -423,7 +472,13 @@ func TestArtifactManifestRejectsUnknownAndTrailingData(t *testing.T) {
 	root := t.TempDir()
 	id := artifactIdentity()
 	packages := artifactPackages("schema")
-	a, err := BuildArtifact(t.Context(), root, id, packages, func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) })
+	a, err := BuildArtifact(
+		t.Context(),
+		root,
+		id,
+		packages,
+		func(dir string) (Manifest, error) { return fixtureBuild(dir, id, packages) },
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

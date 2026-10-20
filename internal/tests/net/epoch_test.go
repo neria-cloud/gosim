@@ -62,8 +62,18 @@ func TestRestartReusesEndpointWithoutOldConnection(t *testing.T) {
 	}}, netip.MustParseAddr("10.50.0.2"))
 	<-firstAccepted
 	before := <-addresses
-	link := simnet.Link{From: netip.MustParseAddr("10.50.0.2"), To: netip.MustParseAddr("10.50.0.1"), Direction: simnet.Forward}
-	testsupport.Check(t, simnet.SetLinkPolicy(link, simnet.LinkPolicy{Latency: &simnet.LatencyConfig{Min: time.Second, Max: time.Second, Lambda: 1}}))
+	link := simnet.Link{
+		From:      netip.MustParseAddr("10.50.0.2"),
+		To:        netip.MustParseAddr("10.50.0.1"),
+		Direction: simnet.Forward,
+	}
+	testsupport.Check(
+		t,
+		simnet.SetLinkPolicy(
+			link,
+			simnet.LinkPolicy{Latency: &simnet.LatencyConfig{Min: time.Second, Max: time.Second, Lambda: 1}},
+		),
+	)
 	close(sendOld)
 	<-oldQueued
 	time.Sleep(time.Millisecond)

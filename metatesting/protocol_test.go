@@ -93,7 +93,25 @@ func protocolFixture(t *testing.T, mode string) (string, Manifest, string) {
 	if strings.HasPrefix(runtime.Version(), "go1.25.") {
 		profile = "go125"
 	}
-	id := buildspec.Identity{Schema: 2, Toolchain: runtime.Version(), Profile: profile, ToolchainDigest: d, StdlibDigest: d, ContractDigest: d, AdapterRevision: d, RuntimeRevision: d, HostOS: runtime.GOOS, HostArch: runtime.GOARCH, SimulationOS: "linux", SimulationArch: runtime.GOARCH, Features: []string{"rt"}, Tags: []string{"sim", "linkname"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d}
+	id := buildspec.Identity{
+		Schema:            2,
+		Toolchain:         runtime.Version(),
+		Profile:           profile,
+		ToolchainDigest:   d,
+		StdlibDigest:      d,
+		ContractDigest:    d,
+		AdapterRevision:   d,
+		RuntimeRevision:   d,
+		HostOS:            runtime.GOOS,
+		HostArch:          runtime.GOARCH,
+		SimulationOS:      "linux",
+		SimulationArch:    runtime.GOARCH,
+		Features:          []string{"rt"},
+		Tags:              []string{"sim", "linkname"},
+		ModuleGraphDigest: d,
+		TranslatorDigest:  d,
+		DebugPolicyDigest: d,
+	}
 	digest, err := buildspec.Digest(id)
 	if err != nil {
 		t.Fatal(err)
@@ -103,7 +121,11 @@ func protocolFixture(t *testing.T, mode string) (string, Manifest, string) {
 	t.Setenv("GOSIM_PROTOCOL_TEST_CHILD", mode)
 	t.Setenv("GOSIM_PROTOCOL_TEST_PID", pid)
 	t.Setenv("GOSIM_PROTOCOL_TEST_HELLO", string(hello))
-	return path, Manifest{Schema: 2, Identity: id, Binary: gosimtool.ArtifactFile{Path: filepath.Base(path), SHA256: buildspec.Hash(binary)}}, pid
+	return path, Manifest{
+		Schema:   2,
+		Identity: id,
+		Binary:   gosimtool.ArtifactFile{Path: filepath.Base(path), SHA256: buildspec.Hash(binary)},
+	}, pid
 }
 
 func assertReaped(t *testing.T, pidfile string) {

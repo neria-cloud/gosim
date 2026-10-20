@@ -19,7 +19,15 @@ func Digest(id buildspec.Identity) (string, error)    { return buildspec.Digest(
 
 // Identity binds already-fingerprinted compiler inputs and checked contracts.
 // Fingerprint inventories are passed through once per operation.
-func Identity(ctx context.Context, cfg buildspec.Config, resolution buildspec.Resolution, profile spec.Profile, opts buildspec.BuildOptions, inputs buildspec.Fingerprints, contractDigest string) (buildspec.Identity, error) {
+func Identity(
+	ctx context.Context,
+	cfg buildspec.Config,
+	resolution buildspec.Resolution,
+	profile spec.Profile,
+	opts buildspec.BuildOptions,
+	inputs buildspec.Fingerprints,
+	contractDigest string,
+) (buildspec.Identity, error) {
 	tc := resolution.Toolchain
 	cfg, err := Normalize(cfg)
 	if err != nil {
@@ -48,7 +56,8 @@ func Identity(ctx context.Context, cfg buildspec.Config, resolution buildspec.Re
 	if err != nil {
 		return buildspec.Identity{}, err
 	}
-	if contractDigest != expected || !buildspec.ValidDigest(inputs.ToolchainDigest) || !buildspec.ValidDigest(inputs.StdlibDigest) {
+	if contractDigest != expected || !buildspec.ValidDigest(inputs.ToolchainDigest) ||
+		!buildspec.ValidDigest(inputs.StdlibDigest) {
 		return buildspec.Identity{}, fmt.Errorf("missing or mismatched checked compatibility inputs")
 	}
 	modules, err := buildspec.ResolveModuleGraph(ctx, resolution)
@@ -66,7 +75,14 @@ func Identity(ctx context.Context, cfg buildspec.Config, resolution buildspec.Re
 	return identityForSource(cfg, tc, profile, opts, inputs, framework.Effective().Dir, graph)
 }
 
-func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spec.Profile, opts buildspec.BuildOptions, dist buildspec.Fingerprints, root, graph string) (buildspec.Identity, error) {
+func identityForSource(
+	cfg buildspec.Config,
+	tc buildspec.Toolchain,
+	profile spec.Profile,
+	opts buildspec.BuildOptions,
+	dist buildspec.Fingerprints,
+	root, graph string,
+) (buildspec.Identity, error) {
 	contract, err := profile.ContractDigest()
 	if err != nil {
 		return buildspec.Identity{}, err
@@ -78,7 +94,10 @@ func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spe
 		Features: cfg.Features, Race: opts.Race, Experiments: opts.Experiments,
 		Tags: []string{"linkname", "sim"}, ModuleGraphDigest: graph,
 	}
-	id.RuntimeRevision, err = hashSources(root, []string{"rt/runtime", "internal/contracts", "internal/kernel", "internal/control"})
+	id.RuntimeRevision, err = hashSources(
+		root,
+		[]string{"rt/runtime", "internal/contracts", "internal/kernel", "internal/control"},
+	)
 	if err != nil {
 		return id, err
 	}
@@ -102,7 +121,9 @@ func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spe
 	if err != nil {
 		return id, err
 	}
-	policy, err := json.Marshal([]string{"gosim-build-policy-v1", "-ldflags=-checklinkname=0", "-tags=linkname,sim", "GODEBUG=", string(mod)})
+	policy, err := json.Marshal(
+		[]string{"gosim-build-policy-v1", "-ldflags=-checklinkname=0", "-tags=linkname,sim", "GODEBUG=", string(mod)},
+	)
 	if err != nil {
 		return id, err
 	}
@@ -127,44 +148,47 @@ func hashSources(root string, paths []string) (string, error) {
 	var files []buildspec.Revision
 	for _, sub := range paths {
 		before := len(files)
-		err := filepath.WalkDir(filepath.Join(root, sub), func(filename string, entry fs.DirEntry, walkErr error) error {
-			if walkErr != nil {
-				return walkErr
-			}
-			rel, err := filepath.Rel(root, filename)
-			if err != nil {
-				return err
-			}
-			rel = filepath.ToSlash(rel)
-			if rel == ".git" {
+		err := filepath.WalkDir(
+			filepath.Join(root, sub),
+			func(filename string, entry fs.DirEntry, walkErr error) error {
+				if walkErr != nil {
+					return walkErr
+				}
+				rel, err := filepath.Rel(root, filename)
+				if err != nil {
+					return err
+				}
+				rel = filepath.ToSlash(rel)
+				if rel == ".git" {
+					if entry.IsDir() {
+						return filepath.SkipDir
+					}
+					return nil
+				}
 				if entry.IsDir() {
-					return filepath.SkipDir
+					if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" || rel == "test-reports" {
+						return filepath.SkipDir
+					}
+					return nil
 				}
-				return nil
-			}
-			if entry.IsDir() {
-				if entry.Name() == ".git" || entry.Name() == ".gosim" || rel == "docs" || rel == "test-reports" {
-					return filepath.SkipDir
+				if evidenceMetadata(rel) {
+					return nil
 				}
+				// Hash all non-documentation inputs, including embeds and templates.
+				if filepath.Ext(rel) == ".md" {
+					return nil
+				}
+				if !entry.Type().IsRegular() {
+					return fmt.Errorf("source input must be a regular file: %s", rel)
+				}
+				digest, err := hashFile(filename)
+				if err != nil {
+					return err
+				}
+				files = append(files, buildspec.Revision{Name: rel, Digest: digest})
 				return nil
-			}
-			if evidenceMetadata(rel) {
-				return nil
-			}
-			// Hash all non-documentation inputs, including embeds and templates.
-			if filepath.Ext(rel) == ".md" {
-				return nil
-			}
-			if !entry.Type().IsRegular() {
-				return fmt.Errorf("source input must be a regular file: %s", rel)
-			}
-			digest, err := hashFile(filename)
-			if err != nil {
-				return err
-			}
-			files = append(files, buildspec.Revision{Name: rel, Digest: digest})
-			return nil
-		})
+			},
+		)
 		if err != nil {
 			return "", fmt.Errorf("fingerprint %s: %w", sub, err)
 		}

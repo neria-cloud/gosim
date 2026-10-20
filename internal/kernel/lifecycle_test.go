@@ -19,7 +19,9 @@ func configFor(features contracts.FeatureSet) Config {
 
 func engineFor(t *testing.T) *simrt.Engine {
 	t.Helper()
-	e, err := simrt.NewEngine(simrt.EngineConfig{Seed: 42, TimeoutNS: int64(time.Second), ReplayRevision: simrt.ReplayRevision})
+	e, err := simrt.NewEngine(
+		simrt.EngineConfig{Seed: 42, TimeoutNS: int64(time.Second), ReplayRevision: simrt.ReplayRevision},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +38,12 @@ func createFor(t *testing.T, k *Kernel, label string, main func()) contracts.Mac
 	return ref
 }
 
-func fixture(t *testing.T, features contracts.FeatureSet, providers []contracts.Provider, body func(*Kernel)) (*Kernel, error) {
+func fixture(
+	t *testing.T,
+	features contracts.FeatureSet,
+	providers []contracts.Provider,
+	body func(*Kernel),
+) (*Kernel, error) {
 	t.Helper()
 	e := engineFor(t)
 	var k *Kernel
@@ -103,66 +110,79 @@ func TestPreparationRollbackConsumesEpoch(t *testing.T) {
 			var log []string
 			fs, net, providers := providersFor(&log)
 			var boot atomic.Bool
-			_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS|contracts.Net), providers, func(k *Kernel) {
-				ref := createFor(t, k, "first", func() { boot.Store(true); idleMain() })
-				switch failure {
-				case "prepare-fs":
-					fs.prepareErr = errInjected
-				case "prepare-net":
-					net.prepareErr = errInjected
-				case "bindings-fs":
-					fs.badBindings = true
-				case "bindings-net":
-					net.badBindings = true
-				}
-				log = nil
-				if _, err := k.BeginStart(ref, false); err == nil {
-					t.Fatal("fault accepted")
-				}
-				m, _ := k.Lookup(ref)
-				if m.state != StateNew || m.nextEpoch != 2 || m.current != nil || m.lastExit.Valid {
-					t.Fatalf("bad rollback %+v", m)
-				}
-				if boot.Load() {
-					t.Fatal("init ran before commit")
-				}
-				if len(k.transactions) != 0 {
-					t.Fatal("transaction retained")
-				}
-				if failure == "prepare-net" && !slices.Equal(log, []string{"fs:prepare:1:1", "net:prepare:1:1", "fs:release:1:3", "fs:abort"}) {
-					t.Fatalf("bad rollback order %v", log)
-				}
-				if strings.HasPrefix(failure, "bindings") && !slices.Equal(log[len(log)-4:], []string{"fs:release:1:3", "net:release:1:3", "net:abort", "fs:abort"}) {
-					t.Fatalf("reverse rollback order %v", log)
-				}
-				fs.prepareErr, net.prepareErr, fs.badBindings, net.badBindings = nil, nil, false, false
-				tx, err := k.BeginStart(ref, false)
-				if err != nil || tx.run.ref.Epoch != 2 {
-					t.Fatal("retry reused failed epoch", err)
-				}
-				simrt.Yield()
-				if boot.Load() {
-					t.Fatal("prepare started machine")
-				}
-				if err := tx.Commit(); err != nil {
-					t.Fatal(err)
-				}
-				if boot.Load() {
-					t.Fatal("boot inside publication")
-				}
-				if err := tx.Commit(); !errors.Is(err, ErrTxnState) {
-					t.Fatal("double publication", err)
-				}
-				if err := k.Stop(ref, contracts.StopCrash); err != nil {
-					t.Fatal(err)
-				}
-				if err := k.Stop(ref, contracts.StopGraceful); err != nil {
-					t.Fatal("terminal stop not idempotent")
-				}
-				if m.lastExit.Epoch != 2 || m.lastExit.Kind != contracts.StopCrash {
-					t.Fatal("wrong terminal record")
-				}
-			})
+			_, err := fixture(
+				t,
+				contracts.FeatureSet(contracts.RT|contracts.FS|contracts.Net),
+				providers,
+				func(k *Kernel) {
+					ref := createFor(t, k, "first", func() { boot.Store(true); idleMain() })
+					switch failure {
+					case "prepare-fs":
+						fs.prepareErr = errInjected
+					case "prepare-net":
+						net.prepareErr = errInjected
+					case "bindings-fs":
+						fs.badBindings = true
+					case "bindings-net":
+						net.badBindings = true
+					}
+					log = nil
+					if _, err := k.BeginStart(ref, false); err == nil {
+						t.Fatal("fault accepted")
+					}
+					m, _ := k.Lookup(ref)
+					if m.state != StateNew || m.nextEpoch != 2 || m.current != nil || m.lastExit.Valid {
+						t.Fatalf("bad rollback %+v", m)
+					}
+					if boot.Load() {
+						t.Fatal("init ran before commit")
+					}
+					if len(k.transactions) != 0 {
+						t.Fatal("transaction retained")
+					}
+					if failure == "prepare-net" &&
+						!slices.Equal(
+							log,
+							[]string{"fs:prepare:1:1", "net:prepare:1:1", "fs:release:1:3", "fs:abort"},
+						) {
+						t.Fatalf("bad rollback order %v", log)
+					}
+					if strings.HasPrefix(failure, "bindings") &&
+						!slices.Equal(
+							log[len(log)-4:],
+							[]string{"fs:release:1:3", "net:release:1:3", "net:abort", "fs:abort"},
+						) {
+						t.Fatalf("reverse rollback order %v", log)
+					}
+					fs.prepareErr, net.prepareErr, fs.badBindings, net.badBindings = nil, nil, false, false
+					tx, err := k.BeginStart(ref, false)
+					if err != nil || tx.run.ref.Epoch != 2 {
+						t.Fatal("retry reused failed epoch", err)
+					}
+					simrt.Yield()
+					if boot.Load() {
+						t.Fatal("prepare started machine")
+					}
+					if err := tx.Commit(); err != nil {
+						t.Fatal(err)
+					}
+					if boot.Load() {
+						t.Fatal("boot inside publication")
+					}
+					if err := tx.Commit(); !errors.Is(err, ErrTxnState) {
+						t.Fatal("double publication", err)
+					}
+					if err := k.Stop(ref, contracts.StopCrash); err != nil {
+						t.Fatal(err)
+					}
+					if err := k.Stop(ref, contracts.StopGraceful); err != nil {
+						t.Fatal("terminal stop not idempotent")
+					}
+					if m.lastExit.Epoch != 2 || m.lastExit.Kind != contracts.StopCrash {
+						t.Fatal("wrong terminal record")
+					}
+				},
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -252,7 +272,10 @@ func TestWaitCapturesEpochAndStaleHandles(t *testing.T) {
 			if _, err := k.Wait(ctx, observer); !errors.Is(err, contracts.ErrSelfTransition) {
 				t.Fatal(err)
 			}
-			if _, err := k.Lookup(contracts.MachineRef{RunID: k.runID + 1, ID: target.ID}); !errors.Is(err, contracts.ErrWrongRun) {
+			if _, err := k.Lookup(contracts.MachineRef{RunID: k.runID + 1, ID: target.ID}); !errors.Is(
+				err,
+				contracts.ErrWrongRun,
+			) {
 				t.Fatal(err)
 			}
 			if err := k.Stop(target, contracts.StopGraceful); err != nil {
@@ -287,7 +310,11 @@ func TestWaitCapturesEpochAndStaleHandles(t *testing.T) {
 func TestCleanupFailuresContinueAndUseCrashSemantics(t *testing.T) {
 	var log []string
 	fs, net, providers := providersFor(&log)
-	fs.settleErr, net.releaseErr, net.panicDetach, fs.panicClose = errors.New("settle fault"), errors.New("release fault"), true, true
+	fs.settleErr, net.releaseErr, net.panicDetach, fs.panicClose = errors.New(
+		"settle fault",
+	), errors.New(
+		"release fault",
+	), true, true
 	k, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS|contracts.Net), providers, func(k *Kernel) {
 		ref := createFor(t, k, "cleanup", idleMain)
 		if err := k.Start(ref); err != nil {
@@ -297,14 +324,31 @@ func TestCleanupFailuresContinueAndUseCrashSemantics(t *testing.T) {
 		_ = k.Stop(ref, contracts.StopGraceful)
 		t.Error("cleanup failure returned to execution")
 	})
-	if err == nil || !strings.Contains(err.Error(), "settle fault") || !strings.Contains(err.Error(), "release fault") || !strings.Contains(err.Error(), "detach failure") || !strings.Contains(err.Error(), "close failure") {
+	if err == nil || !strings.Contains(err.Error(), "settle fault") ||
+		!strings.Contains(err.Error(), "release fault") ||
+		!strings.Contains(err.Error(), "detach failure") ||
+		!strings.Contains(err.Error(), "close failure") {
 		t.Fatalf("lost cleanup diagnostics: %v", err)
 	}
-	want := []string{"net:quiesce", "fs:quiesce", "fs:settle:0", "net:settle:1", "fs:release:1:2", "net:release:1:2", "net:detach", "fs:detach", "net:destroy:1", "fs:destroy:1", "net:close", "fs:close"}
+	want := []string{
+		"net:quiesce",
+		"fs:quiesce",
+		"fs:settle:0",
+		"net:settle:1",
+		"fs:release:1:2",
+		"net:release:1:2",
+		"net:detach",
+		"fs:detach",
+		"net:destroy:1",
+		"fs:destroy:1",
+		"net:close",
+		"fs:close",
+	}
 	if !slices.Equal(log, want) {
 		t.Fatalf("cleanup order: %v", log)
 	}
-	if k.machineByID[1].lastExit.Kind != contracts.StopCrash || !fs.resources[0].released || !net.resources[0].released {
+	if k.machineByID[1].lastExit.Kind != contracts.StopCrash || !fs.resources[0].released ||
+		!net.resources[0].released {
 		t.Fatal("incomplete cleanup")
 	}
 }
@@ -324,11 +368,16 @@ func TestPublicationInvariantCannotBeRecovered(t *testing.T) {
 			case "yield":
 				net.yieldPublish = true
 			}
-			k, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS|contracts.Net), providers, func(k *Kernel) {
-				ref := createFor(t, k, "broken", func() { t.Error("published broken machine") })
-				_ = k.Start(ref)
-				t.Error("publication failure returned")
-			})
+			k, err := fixture(
+				t,
+				contracts.FeatureSet(contracts.RT|contracts.FS|contracts.Net),
+				providers,
+				func(k *Kernel) {
+					ref := createFor(t, k, "broken", func() { t.Error("published broken machine") })
+					_ = k.Start(ref)
+					t.Error("publication failure returned")
+				},
+			)
 			if err == nil || !strings.Contains(err.Error(), "publication") {
 				t.Fatal(err)
 			}
@@ -395,7 +444,8 @@ func TestRollbackCleanupFailureStillReleasesAllOwners(t *testing.T) {
 		_, _ = k.BeginStart(ref, false)
 		t.Error("rollback failure returned to execution")
 	})
-	if err == nil || !strings.Contains(err.Error(), "rollback release fault") || !strings.Contains(err.Error(), "abort failure") {
+	if err == nil || !strings.Contains(err.Error(), "rollback release fault") ||
+		!strings.Contains(err.Error(), "abort failure") {
 		t.Fatal("lost rollback failures", err)
 	}
 	if len(k.transactions) != 0 || !fs.resources[0].released || k.machineByID[1].nextEpoch != 2 {

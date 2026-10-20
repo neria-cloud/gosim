@@ -51,7 +51,8 @@ func TestNativeDiagnosticSinkAndCanceledSemaphore(t *testing.T) {
 	if woke.Load() {
 		t.Fatal("cancellation woke the dead caller")
 	}
-	if !strings.Contains(logs.String(), "hello supervisor") || !strings.Contains(logs.String(), "stderr") || !strings.Contains(logs.String(), "diagnostic owner") {
+	if !strings.Contains(logs.String(), "hello supervisor") || !strings.Contains(logs.String(), "stderr") ||
+		!strings.Contains(logs.String(), "diagnostic owner") {
 		t.Fatal("diagnostic was not emitted through native log sink", logs.String())
 	}
 }

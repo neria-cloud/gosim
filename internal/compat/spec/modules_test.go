@@ -34,7 +34,11 @@ func TestPinnedModuleGraphAndSources(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeModuleFile(t, filepath.Join(replacement, "go.mod"), "module "+pins[0].Path+"\n\ngo 1.25\n")
-	writeModuleFile(t, filepath.Join(dir, "go.mod"), "module example.test/pin\n\ngo 1.25\nrequire "+pins[0].Path+" "+pins[0].Version+"\nreplace "+pins[0].Path+" => ./replacement\n")
+	writeModuleFile(
+		t,
+		filepath.Join(dir, "go.mod"),
+		"module example.test/pin\n\ngo 1.25\nrequire "+pins[0].Path+" "+pins[0].Version+"\nreplace "+pins[0].Path+" => ./replacement\n",
+	)
 	if err := spec.VerifyModules(tc, dir, pins[:1]); err == nil || !strings.Contains(err.Error(), "pin mismatch") {
 		t.Fatalf("replacement error: %v", err)
 	}
@@ -61,13 +65,15 @@ func TestModuleContentTampering(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeModuleFile(t, source, "package fixture\nconst Value = 2\n")
-	if err := spec.VerifyModuleSource(pin, dir, mod); err == nil || !strings.Contains(err.Error(), "modified module source") {
+	if err := spec.VerifyModuleSource(pin, dir, mod); err == nil ||
+		!strings.Contains(err.Error(), "modified module source") {
 		t.Fatalf("changed source: %v", err)
 	}
 	writeModuleFile(t, source, "package fixture\nconst Value = 1\n")
 	otherMod := filepath.Join(t.TempDir(), "go.mod")
 	writeModuleFile(t, otherMod, "module example.test/substituted\n")
-	if err := spec.VerifyModuleSource(pin, dir, otherMod); err == nil || !strings.Contains(err.Error(), "modified module definition") {
+	if err := spec.VerifyModuleSource(pin, dir, otherMod); err == nil ||
+		!strings.Contains(err.Error(), "modified module definition") {
 		t.Fatalf("changed definition: %v", err)
 	}
 	if err := spec.VerifyModuleSource(pin, "", ""); err == nil {

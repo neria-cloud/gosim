@@ -111,7 +111,9 @@ func TestEngineAbortCannotBeRecovered(t *testing.T) {
 		}()
 		e.PublishMachine(token, func() {
 			defer func() { _ = recover(); deferRan.Store(true) }()
-			e.Abort(abi.Diagnostic{Kind: "FeatureDisabled", Feature: "net", Operation: "socket", MachineID: 1, Epoch: 1})
+			e.Abort(
+				abi.Diagnostic{Kind: "FeatureDisabled", Feature: "net", Operation: "socket", MachineID: 1, Epoch: 1},
+			)
 			after.Store(true)
 		})
 		NewChan[struct{}](0).Recv()
@@ -255,7 +257,9 @@ func TestEngineCleanupFailurePreservesOriginalFailure(t *testing.T) {
 		}()
 		e.Abort(abi.Diagnostic{Kind: "OriginalFailure", Message: "original error"})
 	})
-	if err == nil || !strings.Contains(err.Error(), "original error") || !strings.Contains(err.Error(), "cleanup error") || !completed.Load() {
+	if err == nil || !strings.Contains(err.Error(), "original error") ||
+		!strings.Contains(err.Error(), "cleanup error") ||
+		!completed.Load() {
 		t.Fatalf("incomplete cleanup diagnostics: %v completed=%t", err, completed.Load())
 	}
 }

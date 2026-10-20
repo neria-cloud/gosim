@@ -12,5 +12,11 @@ func (*Provider) Open(ports contracts.Ports) (contracts.ProviderSession, error) 
 	if err := contracts.ValidatePorts(ports); err != nil {
 		return nil, err
 	}
-	return &Session{ports: ports, machines: make(map[uint64]*machine), destroyed: make(map[uint64]bool), handles: make(map[uint64]*recoveryHandle), nextHandle: 1}, nil
+	return &Session{
+		ports:      ports,
+		machines:   make(map[uint64]*machine),
+		destroyed:  make(map[uint64]bool),
+		handles:    make(map[uint64]*recoveryHandle),
+		nextHandle: 1,
+	}, nil
 }

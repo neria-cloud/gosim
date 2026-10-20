@@ -21,7 +21,10 @@ func Resolve(selection buildspec.Selection) (spec.Profile, spec.PolicyManifest, 
 		return spec.Profile{}, spec.PolicyManifest{}, err
 	}
 	if !reflect.DeepEqual(expected, selection) {
-		return spec.Profile{}, spec.PolicyManifest{}, fmt.Errorf("selection differs from canonical %s profile metadata", p.ID)
+		return spec.Profile{}, spec.PolicyManifest{}, fmt.Errorf(
+			"selection differs from canonical %s profile metadata",
+			p.ID,
+		)
 	}
 	m := policyManifest()
 	if err := m.Validate(p); err != nil {

@@ -51,7 +51,11 @@ func TestPrivateModulePreservesWorkspaceSelection(t *testing.T) {
 		write(filepath.Join("output", name), string(content))
 	}
 	flat := r
-	flat.Context = buildspec.ModuleContext{Directory: filepath.Join(root, "output"), GoWork: "off", GoMod: filepath.Join(root, "output/go.mod")}
+	flat.Context = buildspec.ModuleContext{
+		Directory: filepath.Join(root, "output"),
+		GoWork:    "off",
+		GoMod:     filepath.Join(root, "output/go.mod"),
+	}
 	output, err := buildspec.ResolveModuleGraph(t.Context(), flat)
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +141,11 @@ replace example.org/unneeded => ../unneeded
 		write(filepath.Join("output", name), string(data))
 	}
 	flat := r
-	flat.Context = buildspec.ModuleContext{Directory: filepath.Join(root, "output"), GoWork: "off", GoMod: filepath.Join(root, "output/go.mod")}
+	flat.Context = buildspec.ModuleContext{
+		Directory: filepath.Join(root, "output"),
+		GoWork:    "off",
+		GoMod:     filepath.Join(root, "output/go.mod"),
+	}
 	output, err := buildspec.ResolveModuleGraph(t.Context(), flat)
 	if err != nil {
 		t.Fatal(err)

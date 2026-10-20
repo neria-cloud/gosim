@@ -68,7 +68,8 @@ func TestTCPBufferSizeBackpressureAndReconfiguration(t *testing.T) {
 	}
 	oldConfig := n.config
 	config.TCPBufferSize = -1
-	if err := n.ApplyControl(ControlRequest{Kind: ReplaceGlobal, Config: config}); err != syscall.EINVAL || n.config != oldConfig {
+	if err := n.ApplyControl(ControlRequest{Kind: ReplaceGlobal, Config: config}); err != syscall.EINVAL ||
+		n.config != oldConfig {
 		t.Fatal("invalid reconfiguration changed the network", err)
 	}
 }

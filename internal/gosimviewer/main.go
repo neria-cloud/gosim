@@ -246,7 +246,8 @@ func (s *Server) Related(w http.ResponseWriter, r *http.Request) {
 	var logs []*gosimlog.Log
 	if foundLog != nil {
 		logs = filter(s.Logs, func(l *gosimlog.Log) bool {
-			return l.Step == foundLog.Step || (l.RelatedStep != 0 && l.RelatedStep == foundLog.Step) || (foundLog.RelatedStep != 0 && l.Step == foundLog.RelatedStep)
+			return l.Step == foundLog.Step || (l.RelatedStep != 0 && l.RelatedStep == foundLog.Step) ||
+				(foundLog.RelatedStep != 0 && l.Step == foundLog.RelatedStep)
 		})
 	}
 	// TODO: handle not found

@@ -84,7 +84,8 @@ func TestProviderOrderingAndOwnership(t *testing.T) {
 	if err := ValidateBindings(FS, combined); err == nil {
 		t.Fatal("cross-domain ownership accepted")
 	}
-	if partial, err := MergeBindings([]Bindings{files, sockets, files}); err == nil || partial.Files != nil || partial.Sockets != nil {
+	if partial, err := MergeBindings([]Bindings{files, sockets, files}); err == nil || partial.Files != nil ||
+		partial.Sockets != nil {
 		t.Fatal("duplicate binding returned partial success")
 	}
 	for _, owner := range []Feature{FS, Net} {
@@ -128,7 +129,18 @@ func TestRecordingLifecycleAndPortContracts(t *testing.T) {
 	instance.Detach()
 	session.Destroy(MachineRef{})
 	session.Close()
-	want := []string{"open", "prepare", "abort", "prepare", "publish", "quiesce", "settle", "detach", "destroy", "close"}
+	want := []string{
+		"open",
+		"prepare",
+		"abort",
+		"prepare",
+		"publish",
+		"quiesce",
+		"settle",
+		"detach",
+		"destroy",
+		"close",
+	}
 	if !slices.Equal(calls, want) {
 		t.Fatalf("wrong call sequence %v", calls)
 	}
@@ -204,13 +216,27 @@ func TestControlValueValidationAndCopying(t *testing.T) {
 
 func TestProductionDependencyBoundary(t *testing.T) {
 	t.Parallel()
-	cmd := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, "", "list", "-deps", "github.com/neria-cloud/gosim/internal/contracts")
+	cmd := buildspec.GoCommand(
+		buildspec.Toolchain{
+			Executable: filepath.Join(runtime.GOROOT(), "bin", "go"),
+			GOROOT:     runtime.GOROOT(),
+			Version:    runtime.Version(),
+			HostOS:     runtime.GOOS,
+			HostArch:   runtime.GOARCH,
+		},
+		"",
+		"list",
+		"-deps",
+		"github.com/neria-cloud/gosim/internal/contracts",
+	)
 	output, err := cmd.Output()
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, pkg := range strings.Fields(string(output)) {
-		if strings.HasPrefix(pkg, "github.com/neria-cloud/gosim/") && pkg != "github.com/neria-cloud/gosim/internal/contracts" && pkg != "github.com/neria-cloud/gosim/rt/runtime/abi" {
+		if strings.HasPrefix(pkg, "github.com/neria-cloud/gosim/") &&
+			pkg != "github.com/neria-cloud/gosim/internal/contracts" &&
+			pkg != "github.com/neria-cloud/gosim/rt/runtime/abi" {
 			t.Fatalf("contracts depend on implementation %s", pkg)
 		}
 	}

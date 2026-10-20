@@ -39,7 +39,12 @@ func TestLinuxArm64SourceBuildsForNativeDarwin(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			source = bytes.Replace(source, []byte("//go:build "+family.bounds+" && arm64"), []byte("//go:build "+family.bounds+" && linux && arm64"), 1)
+			source = bytes.Replace(
+				source,
+				[]byte("//go:build "+family.bounds+" && arm64"),
+				[]byte("//go:build "+family.bounds+" && linux && arm64"),
+				1,
+			)
 			f, err := decorator.Parse(source)
 			if err != nil {
 				t.Fatal(err)
@@ -59,7 +64,10 @@ func TestLinuxArm64SourceBuildsForNativeDarwin(t *testing.T) {
 			if strings.Contains(out.String(), "//go:build") {
 				t.Fatal("source constraint retained")
 			}
-			name := renameFile(gosimtool.BuildConfig{Identity: buildspec.Identity{SimulationOS: "linux", SimulationArch: "arm64"}}, "layout_linux_arm64.go")
+			name := renameFile(
+				gosimtool.BuildConfig{Identity: buildspec.Identity{SimulationOS: "linux", SimulationArch: "arm64"}},
+				"layout_linux_arm64.go",
+			)
 			if name == "layout_linux_arm64.go" {
 				t.Fatal("Linux filename still excluded on Darwin")
 			}

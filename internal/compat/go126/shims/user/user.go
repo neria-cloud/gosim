@@ -31,7 +31,14 @@ type UnknownGroupError string
 func (e UnknownGroupError) Error() string { return "group: unknown group " + string(e) }
 
 func unsupported() {
-	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "os/user", Message: "host account lookup is not modeled"})
+	gosimruntime.Abort(
+		abi.Diagnostic{
+			Kind:      "UnsupportedOperation",
+			Feature:   "rt",
+			Operation: "os/user",
+			Message:   "host account lookup is not modeled",
+		},
+	)
 }
 func Current() (*User, error)                  { unsupported(); return nil, nil }
 func Lookup(username string) (*User, error)    { unsupported(); return nil, nil }

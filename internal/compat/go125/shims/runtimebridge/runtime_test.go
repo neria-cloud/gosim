@@ -24,7 +24,9 @@ func TestSimulatedProcessorQueries(t *testing.T) {
 }
 
 func TestParallelProcessorRequestAborts(t *testing.T) {
-	e, err := gosimruntime.NewEngine(gosimruntime.EngineConfig{Seed: 1, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision})
+	e, err := gosimruntime.NewEngine(
+		gosimruntime.EngineConfig{Seed: 1, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +63,9 @@ func TestCleanupRegistrationAndStopAbort(t *testing.T) {
 		"runtime.Cleanup.Stop": func() { RuntimeCleanup{}.Stop() },
 	} {
 		t.Run(name, func(t *testing.T) {
-			e, err := gosimruntime.NewEngine(gosimruntime.EngineConfig{Seed: 1, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision})
+			e, err := gosimruntime.NewEngine(
+				gosimruntime.EngineConfig{Seed: 1, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision},
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -72,7 +76,10 @@ func TestCleanupRegistrationAndStopAbort(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				e.PublishMachine(token, func() { defer func() { _ = recover(); deferred = true }(); call(); after = true })
+				e.PublishMachine(
+					token,
+					func() { defer func() { _ = recover(); deferred = true }(); call(); after = true },
+				)
 				gosimruntime.NewChan[struct{}](0).Recv()
 			})
 			var aborted *gosimruntime.AbortError

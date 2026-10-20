@@ -250,7 +250,14 @@ func statResult(stat model.StatResp) contracts.Stat {
 	if stat.IsDir {
 		mode = 0o040000
 	}
-	return contracts.Stat{Inode: uint64(stat.Inode), Size: stat.Size, Mode: mode | stat.Mode, UID: stat.UID, GID: stat.GID, Nlink: stat.Nlink}
+	return contracts.Stat{
+		Inode: uint64(stat.Inode),
+		Size:  stat.Size,
+		Mode:  mode | stat.Mode,
+		UID:   stat.UID,
+		GID:   stat.GID,
+		Nlink: stat.Nlink,
+	}
 }
 
 func statError(err error) error {
@@ -309,7 +316,13 @@ func (i *Instance) FstatFS(ctx contracts.CallContext, fd int) (contracts.FSStora
 
 func (i *Instance) storageStats() contracts.FSStorageStats {
 	stats := i.model.Stats(i.machine.config.CapacityBytes)
-	return contracts.FSStorageStats{TotalBytes: stats.TotalBytes, FreeBytes: stats.FreeBytes, UsedBytes: stats.UsedBytes, BlockSize: stats.BlockSize, ReadOnly: i.machine.readOnly}
+	return contracts.FSStorageStats{
+		TotalBytes: stats.TotalBytes,
+		FreeBytes:  stats.FreeBytes,
+		UsedBytes:  stats.UsedBytes,
+		BlockSize:  stats.BlockSize,
+		ReadOnly:   i.machine.readOnly,
+	}
 }
 
 func (i *Instance) Fchmod(ctx contracts.CallContext, fd int, mode uint32) error {
@@ -482,13 +495,19 @@ func (i *Instance) FcntlLock(ctx contracts.CallContext, fd, command int, lock *c
 	return nil
 }
 
-func (i *Instance) Map(ctx contracts.CallContext, addr, length uintptr, prot, flags, fd int, offset int64) (uintptr, error) {
+func (i *Instance) Map(
+	ctx contracts.CallContext,
+	addr, length uintptr,
+	prot, flags, fd int,
+	offset int64,
+) (uintptr, error) {
 	f, err := i.file(ctx, fd)
 	if err != nil {
 		return 0, err
 	}
 	// TODO(not planned): mappings above 16 MiB, writable/private/anonymous mappings.
-	if addr != 0 || length == 0 || length > maxMapping || prot != protRead || flags&^mapPopulate != mapShared || offset != 0 {
+	if addr != 0 || length == 0 || length > maxMapping || prot != protRead || flags&^mapPopulate != mapShared ||
+		offset != 0 {
 		return 0, syscall.EINVAL
 	}
 	stat, err := i.model.Statfd(f.inode)

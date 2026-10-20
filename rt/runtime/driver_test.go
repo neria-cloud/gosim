@@ -29,7 +29,10 @@ func TestEngineRunCaptureAndOwnership(t *testing.T) {
 			t.Fatal(err)
 		}
 		result := e.RunResult(strings.Repeat("a", 64), "")
-		if result.Failed || result.Err != "" || result.Seed != 42 || result.BuildDigest != strings.Repeat("a", 64) || result.ReplayRevision != ReplayRevision || len(result.Checksum) == 0 || !bytes.Contains(result.LogOutput, []byte("captured output")) {
+		if result.Failed || result.Err != "" || result.Seed != 42 || result.BuildDigest != strings.Repeat("a", 64) ||
+			result.ReplayRevision != ReplayRevision ||
+			len(result.Checksum) == 0 ||
+			!bytes.Contains(result.LogOutput, []byte("captured output")) {
 			t.Fatalf("bad result %+v", result)
 		}
 		if TraceSyscall.Enabled() {
@@ -44,7 +47,8 @@ func TestEngineRunCaptureAndOwnership(t *testing.T) {
 		repeated := e.RunResult(result.BuildDigest, "")
 		result.Checksum[0] ^= 255
 		result.LogOutput[0] ^= 255
-		if !bytes.Equal(repeated.Checksum, e.RunResult(result.BuildDigest, "").Checksum) || !bytes.Equal(repeated.LogOutput, e.RunResult(result.BuildDigest, "").LogOutput) {
+		if !bytes.Equal(repeated.Checksum, e.RunResult(result.BuildDigest, "").Checksum) ||
+			!bytes.Equal(repeated.LogOutput, e.RunResult(result.BuildDigest, "").LogOutput) {
 			t.Fatal("result exposes capture memory")
 		}
 	}
@@ -85,7 +89,8 @@ func TestEngineCaptureFailureAndState(t *testing.T) {
 		t.Fatal(err)
 	}
 	next.Close()
-	if result := next.RunResult("build", "translated cleanup failure"); !result.Failed || result.Err != "translated cleanup failure" {
+	if result := next.RunResult("build", "translated cleanup failure"); !result.Failed ||
+		result.Err != "translated cleanup failure" {
 		t.Fatal(result)
 	}
 }

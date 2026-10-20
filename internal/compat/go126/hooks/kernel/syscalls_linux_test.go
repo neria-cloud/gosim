@@ -80,7 +80,8 @@ func TestLinuxFileRoutes(t *testing.T) {
 		}
 		var stat syscall.Stat_t
 		must(t, linkedFstat(fd, &stat))
-		if stat.Size != 6 || stat.Mode != 0o100600 || stat.Uid != 0 || stat.Gid != 0 || stat.Atim.Sec != 0 || stat.Nlink != 1 {
+		if stat.Size != 6 || stat.Mode != 0o100600 || stat.Uid != 0 || stat.Gid != 0 || stat.Atim.Sec != 0 ||
+			stat.Nlink != 1 {
 			t.Fatal(stat)
 		}
 		var xstat unix.Stat_t
@@ -134,7 +135,8 @@ func TestLinuxFileRoutes(t *testing.T) {
 		entries := make([]byte, 512)
 		n, err := fh.Syscall_Getdents(dir, entries)
 		must(t, err)
-		if n < 20 || binary.LittleEndian.Uint16(entries[16:18]) < 20 || !bytes.Contains(entries[:n], []byte("renamed")) {
+		if n < 20 || binary.LittleEndian.Uint16(entries[16:18]) < 20 ||
+			!bytes.Contains(entries[:n], []byte("renamed")) {
 			t.Fatal(entries[:n])
 		}
 		must(t, kh.Syscall_Close(dir))
@@ -158,7 +160,8 @@ func TestLinuxProcessAndSocketRoutes(t *testing.T) {
 			t.Fatal("invented uname", uname)
 		}
 		random := make([]byte, 32)
-		if n, err := kh.InternalSyscallUnix_GetRandom(random, 0); n != 32 || err != nil || bytes.Equal(random, make([]byte, 32)) {
+		if n, err := kh.InternalSyscallUnix_GetRandom(random, 0); n != 32 || err != nil ||
+			bytes.Equal(random, make([]byte, 32)) {
 			t.Fatal(n, err)
 		}
 		if n, ok := kh.InternalSyscallUnix_vgetrandom(random, 1); !ok || n != -int(syscall.EINVAL) {
@@ -241,7 +244,11 @@ func TestLinuxDisabledAndRawBoundaries(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			reached, deferred := false, false
-			err := runABI(t, contracts.FeatureSet(contracts.RT), func() { defer func() { _ = recover(); deferred = true }(); operation(); reached = true })
+			err := runABI(
+				t,
+				contracts.FeatureSet(contracts.RT),
+				func() { defer func() { _ = recover(); deferred = true }(); operation(); reached = true },
+			)
 			if err == nil || reached || deferred {
 				t.Fatal(err, reached, deferred)
 			}
@@ -277,7 +284,9 @@ func TestLinuxBorrowedMemoryRace(t *testing.T) {
 	cmd := exec.Command(os.Args[0], "-test.run=^TestLinuxBorrowedMemoryRace$")
 	cmd.Env = append(os.Environ(), "GOSIM_ADAPTER_RACE_CHILD=1", "GORACE=halt_on_error=1")
 	out, err := cmd.CombinedOutput()
-	if err == nil || !bytes.Contains(out, []byte("WARNING: DATA RACE")) || !bytes.Contains(out, []byte("runtime.racereadrange")) || !bytes.Contains(out, []byte("TestLinuxBorrowedMemoryRace.func1.1")) {
+	if err == nil || !bytes.Contains(out, []byte("WARNING: DATA RACE")) ||
+		!bytes.Contains(out, []byte("runtime.racereadrange")) ||
+		!bytes.Contains(out, []byte("TestLinuxBorrowedMemoryRace.func1.1")) {
 		t.Fatalf("missing application-memory race: %v\n%s", err, out)
 	}
 }

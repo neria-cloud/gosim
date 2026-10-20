@@ -30,7 +30,8 @@ type socketReadiness struct {
 
 func (r *socketReadiness) Notify(ref contracts.EpochRef, _ int, mask contracts.Readiness) {
 	s := r.socket
-	if !r.active || s.released || s.instance.quiesced || s.instance.detached || s.generation != r.generation || ref != s.instance.ref {
+	if !r.active || s.released || s.instance.quiesced || s.instance.detached || s.generation != r.generation ||
+		ref != s.instance.ref {
 		return
 	}
 	r.sink.Notify(ref, s.fd, mask)

@@ -139,7 +139,14 @@ func (t *gcTester) checkMem(inode int, exists bool, links int) {
 	t.Helper()
 	got := testsupport.Inode(t, gosim.CurrentMachine(), inode)
 	if got.MemExists != exists || got.MemLinks != links {
-		t.Errorf("inode %d: expected mem exists %v, links %d; got exists %v, links %d", inode, exists, links, got.MemExists, got.MemLinks)
+		t.Errorf(
+			"inode %d: expected mem exists %v, links %d; got exists %v, links %d",
+			inode,
+			exists,
+			links,
+			got.MemExists,
+			got.MemLinks,
+		)
 	}
 }
 
@@ -147,7 +154,14 @@ func (t *gcTester) checkDisk(inode int, exists bool, links int) {
 	t.Helper()
 	got := testsupport.Inode(t, gosim.CurrentMachine(), inode)
 	if got.DiskExists != exists || got.DiskLinks != links {
-		t.Errorf("inode %d: expected disk exists %v, links %d; got exists %v, links %d", inode, exists, links, got.DiskExists, got.DiskLinks)
+		t.Errorf(
+			"inode %d: expected disk exists %v, links %d; got exists %v, links %d",
+			inode,
+			exists,
+			links,
+			got.DiskExists,
+			got.DiskLinks,
+		)
 	}
 }
 
@@ -219,7 +233,11 @@ func TestDiskGC(t *testing.T) {
 	harness.rename("bar", "foo")
 
 	// after rename in memory, memory GCs but disk is unchanged
-	harness.checkMem(fooInode, false, 0) // XXX: deleted from memory even though still on disk... problem? could it come back?
+	harness.checkMem(
+		fooInode,
+		false,
+		0,
+	) // XXX: deleted from memory even though still on disk... problem? could it come back?
 	harness.checkDisk(fooInode, true, 1)
 	harness.checkPendingOps(fooInode, 0) // rename does not mention i1
 	harness.checkMem(barInode, true, 1)

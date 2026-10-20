@@ -45,7 +45,11 @@ func TestRaceSim(t *testing.T) {
 		t.Skip("hostabi.RaceEnabled is false")
 	}
 
-	path := gosimtool.GetPathForPrecompiledTestBinary(t, gosimtool.Module+"/internal/tests/race/testdata", gosimtool.ResolveTestIdentity(t, ""))
+	path := gosimtool.GetPathForPrecompiledTestBinary(
+		t,
+		gosimtool.Module+"/internal/tests/race/testdata",
+		gosimtool.ResolveTestIdentity(t, ""),
+	)
 	checkTests(t, exec.Command(path, "-test.v"))
 }
 

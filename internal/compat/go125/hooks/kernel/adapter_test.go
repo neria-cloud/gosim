@@ -33,7 +33,12 @@ func runABI(t *testing.T, features contracts.FeatureSet, main func()) error {
 		}
 		k, err := kernel.New(kernel.Config{
 			BuildDigest: strings.Repeat("b", 64), Features: features, TimeoutNS: 1e9,
-			Identity: abi.HostIdentity{Toolchain: "go1.25.14", Profile: "go125", HostOS: runtime.GOOS, HostArch: runtime.GOARCH},
+			Identity: abi.HostIdentity{
+				Toolchain: "go1.25.14",
+				Profile:   "go125",
+				HostOS:    runtime.GOOS,
+				HostArch:  runtime.GOARCH,
+			},
 		}, e, providers)
 		if err != nil {
 			t.Fatal(err)

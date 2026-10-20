@@ -33,7 +33,8 @@ func TestGo126PolicyDeltas(t *testing.T) {
 	if probe, err := m.Probe("syscall", "runtimeClearenv", []string{"rt"}, nil); err != nil || probe.Feature != "rt" {
 		t.Fatalf("clearenv: %+v %v", probe, err)
 	}
-	if _, err := m.Probe("testing", "*common.ArtifactDir", []string{"rt"}, nil); err == nil || !strings.Contains(err.Error(), "FeatureDisabled") {
+	if _, err := m.Probe("testing", "*common.ArtifactDir", []string{"rt"}, nil); err == nil ||
+		!strings.Contains(err.Error(), "FeatureDisabled") {
 		t.Fatalf("artifact gate: %v", err)
 	}
 	if _, err := m.Probe("testing/cryptotest", "SetGlobalRandom", []string{"rt", "fs", "net"}, nil); err == nil {

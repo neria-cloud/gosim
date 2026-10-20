@@ -46,7 +46,8 @@ func readDeclarationLedger(t *testing.T) declarationLedger {
 	if err := decoder.Decode(&ledger); err != nil {
 		t.Fatal(err)
 	}
-	if ledger.Baseline != "e6122b1" || len(ledger.Declarations) != 964 || !buildspec.ValidDigest(ledger.InventoryDigest) {
+	if ledger.Baseline != "e6122b1" || len(ledger.Declarations) != 964 ||
+		!buildspec.ValidDigest(ledger.InventoryDigest) {
 		t.Fatal("changed baseline inventory")
 	}
 	var baseline strings.Builder
@@ -169,10 +170,12 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 					label := d.File + ":" + d.Name
 					if d.Disposition == "package-reject" || d.Disposition == "package-bridge" {
 						policy, err := p.Policy(d.Package, true)
-						if d.Disposition == "package-reject" && (err == nil || policy.Mode != "reject" || d.Note == "") {
+						if d.Disposition == "package-reject" &&
+							(err == nil || policy.Mode != "reject" || d.Note == "") {
 							t.Error("missing package rejection", label)
 						}
-						if d.Disposition == "package-bridge" && (err != nil || policy.Mode != "bridge" || bridges[d.Package] == "" || d.Note == "") {
+						if d.Disposition == "package-bridge" &&
+							(err != nil || policy.Mode != "bridge" || bridges[d.Package] == "" || d.Note == "") {
 							t.Error("missing translated package bridge", label)
 						}
 						continue
@@ -182,7 +185,8 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 					}
 					target := strings.ReplaceAll(d.Target, "{family}", family.name)
 					key := d.Package + "." + d.Symbol
-					if len(d.Arches) > 0 && !slices.Contains(d.Arches, arch) || slices.Contains(d.AbsentIn, family.name) {
+					if len(d.Arches) > 0 && !slices.Contains(d.Arches, arch) ||
+						slices.Contains(d.AbsentIn, family.name) {
 						if _, ok := hooks[key]; ok {
 							t.Error("absent declaration selected", label)
 						}
@@ -245,7 +249,8 @@ func TestExecutableAdaptersHaveBoundedFamilySelection(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") || strings.Contains(filepath.ToSlash(path), "/profile/") {
+			if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") ||
+				strings.Contains(filepath.ToSlash(path), "/profile/") {
 				return nil
 			}
 			selected := false

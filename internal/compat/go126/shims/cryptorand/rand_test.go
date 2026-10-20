@@ -13,7 +13,9 @@ import (
 
 func TestDeterministicRandomSurface(t *testing.T) {
 	sample := func() []byte {
-		e, err := gosimruntime.NewEngine(gosimruntime.EngineConfig{Seed: 77, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision})
+		e, err := gosimruntime.NewEngine(
+			gosimruntime.EngineConfig{Seed: 77, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision},
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -81,7 +83,9 @@ func TestReaderErrorsAndBounds(t *testing.T) {
 }
 
 func TestReadFailureAbortsWithoutRecovery(t *testing.T) {
-	e, err := gosimruntime.NewEngine(gosimruntime.EngineConfig{Seed: 1, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision})
+	e, err := gosimruntime.NewEngine(
+		gosimruntime.EngineConfig{Seed: 1, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +117,9 @@ func TestGo126PrimeDefaultIgnoresCustomReader(t *testing.T) {
 	previous := Reader
 	Reader = failureReader{errors.New("public reader must not be used by default Prime")}
 	defer func() { Reader = previous }()
-	e, err := gosimruntime.NewEngine(gosimruntime.EngineConfig{Seed: 77, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision})
+	e, err := gosimruntime.NewEngine(
+		gosimruntime.EngineConfig{Seed: 77, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

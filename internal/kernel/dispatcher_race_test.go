@@ -58,7 +58,9 @@ func TestSyscallTransportDoesNotHideApplicationRace(t *testing.T) {
 	cmd := exec.Command(executable, "-test.run=^TestSyscallTransportDoesNotHideApplicationRace$")
 	cmd.Env = append(os.Environ(), "GOSIM_DISPATCH_RACE_CHILD=1", "GORACE=halt_on_error=1")
 	output, err := cmd.CombinedOutput()
-	if err == nil || !strings.Contains(string(output), "WARNING: DATA RACE") || !strings.Contains(string(output), "applicationRaceRead") || !strings.Contains(string(output), "applicationRaceWrite") {
+	if err == nil || !strings.Contains(string(output), "WARNING: DATA RACE") ||
+		!strings.Contains(string(output), "applicationRaceRead") ||
+		!strings.Contains(string(output), "applicationRaceWrite") {
 		t.Fatalf("syscall transport hid or replaced application race: %v\n%s", err, output)
 	}
 }

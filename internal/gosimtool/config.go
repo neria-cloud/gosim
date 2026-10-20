@@ -81,7 +81,8 @@ func (b BuildConfig) Validate() error {
 		return fmt.Errorf("build digest differs from identity")
 	}
 	tc := b.Toolchain
-	identityMismatch := tc.Version != b.Identity.Toolchain || tc.HostOS != b.Identity.HostOS || tc.HostArch != b.Identity.HostArch
+	identityMismatch := tc.Version != b.Identity.Toolchain || tc.HostOS != b.Identity.HostOS ||
+		tc.HostArch != b.Identity.HostArch
 	pathsMismatch := !filepath.IsAbs(tc.GOROOT) || tc.Executable != filepath.Join(tc.GOROOT, "bin", "go")
 	if identityMismatch || pathsMismatch {
 		return fmt.Errorf("selected toolchain differs from build identity/distribution")

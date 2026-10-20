@@ -80,11 +80,19 @@ func Run(ctx context.Context, artifact gosimtool.Artifact, config simrt.RunConfi
 	return results[0], nil
 }
 
-func runRequests(ctx context.Context, artifact gosimtool.Artifact, configs []simrt.RunConfig) ([]simrt.RunResult, error) {
+func runRequests(
+	ctx context.Context,
+	artifact gosimtool.Artifact,
+	configs []simrt.RunConfig,
+) ([]simrt.RunResult, error) {
 	if len(configs) == 0 {
 		return nil, fmt.Errorf("candidate run requires requests")
 	}
-	manifest, err := gosimtool.VerifyArtifact(artifact.Directory, artifact.Manifest.Identity, artifact.Manifest.PackageDigests)
+	manifest, err := gosimtool.VerifyArtifact(
+		artifact.Directory,
+		artifact.Manifest.Identity,
+		artifact.Manifest.PackageDigests,
+	)
 	if err != nil {
 		return nil, err
 	}
