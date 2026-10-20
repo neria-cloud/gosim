@@ -17,8 +17,10 @@ Each record has one reviewed disposition:
   selected toolchains. The old declarations must be absent in pinned source.
 - `replacement`: the target's engine/kernel/control/test-entry replacement, or
   the replacement of a native ChaCha8 linkname by translated computation.
-- `package-reject`: the target excludes runtime/debug, runtime/trace, os/signal
-  and weak as application packages, superseding their legacy partial hooks.
+- `package-bridge`: runtime/debug and os/signal use selected translated shims
+  that model supported behavior and abort unsupported operations.
+- `package-reject`: runtime/trace and weak are excluded as application packages,
+  superseding their legacy partial hooks.
 
 `{family}` expands independently to go125 and go126. Architecture restrictions
 come from selected Linux source: CPU intrinsics differ, and private gettimeofday

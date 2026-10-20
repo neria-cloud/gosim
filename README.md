@@ -236,7 +236,7 @@ the tested copy fail verification. Snapshot details live under
 defaults to ordinary verification; `./test.sh --race` explicitly selects race.
 Neither path invokes certification or rewrites profile evidence.
 
-CI runs ordinary native tests and reporting checks on ARM64 Linux/Darwin with
+CI runs ordinary native tests and reporting checks on ARM64 Linux with
 Go family selectors, and uploads `test-reports`. It has no certification step.
 
 ## Generation and manual certification
@@ -245,7 +245,7 @@ Generation baselines are reproducible provenance, not caller compiler pins.
 `cmd/gosim-gen` uses explicit toolchain/profile/architecture flags; `-check`
 reproduces the recorded baseline without modifying files. An intentional
 `-refresh-origin` validates contracts before recording a different baseline.
-`task go-generate` generates adapters and filesystem-model stringer output.
+`make go-generate` generates adapters and filesystem-model stringer output.
 
 Manual certification is independent of tests and CI. Its matrix defaults to
 Go 1.25.14 and Go 1.26.9 on Linux/Darwin ARM64, with four feature sets and no race
