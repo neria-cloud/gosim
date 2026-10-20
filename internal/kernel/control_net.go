@@ -59,7 +59,7 @@ func (c *networkControl) ConfigureMachine(ref contracts.MachineRef, addr [4]byte
 
 func (c *networkControl) Address(ref contracts.MachineRef) (addr [4]byte, err error) {
 	err = c.call(ref, []State{StateNew, StateRunning, StateStopped, StateCrashed}, func(provider contracts.NetControl) error { addr, err = provider.Address(ref); return err })
-	return addr, err
+	return
 }
 
 func (c *networkControl) SetLinkPolicy(link contracts.NetLink, policy contracts.NetLinkPolicy) error {

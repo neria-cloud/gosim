@@ -357,10 +357,11 @@ linters:
       - path: '^(internal/(compat/(go[0-9]+|selected|spec)|hostabi|buildspec)|rt/runtime)/'
         linters: [revive]
         text: '^(argument-limit|confusing-results|context-as-argument|error-return|flag-parameter|function-result-limit|get-return|modifies-value-receiver|nested-structs|unexported-return):'
+      # Bare-return rewrites only change style but invalidate adapter hashes.
       # Match the lll and formatter exclusions without hiding complexity.
       - path: '^(internal/(compat/(go[0-9]+|selected|spec)|hostabi|buildspec)|rt/runtime)/'
         linters: [revive]
-        text: '^line-length-limit:'
+        text: '^(bare-return|line-length-limit):'
       - linters:
           - errcheck
           - gosec

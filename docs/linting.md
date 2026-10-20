@@ -17,6 +17,7 @@ specific revive diagnostic names; revive is not excluded as a whole.
 | Bug/security checks, including ineffassign, staticcheck and gosec | Active, subject to the shared rule and test-file exclusions |
 | Revive naming, argument/result conventions, receiver-type and nested-struct conventions | Excluded to preserve contract-owned declarations and ABI layouts |
 | unused, predeclared, copyloopvar | Excluded to preserve indirectly referenced symbols, names and loop semantics |
+| revive bare-return | Excluded to avoid style-only adapter rewrites and unnecessary fingerprint changes |
 | lll, revive line-length-limit, automatic formatting | Excluded for byte-sensitive sources |
 
 All other enabled revive rules apply. Generated files remain excluded and must
@@ -24,6 +25,21 @@ be updated through their generators. Complexity findings call for reviewed
 refactoring that preserves method signatures, scheduling and evaluation order.
 Changes to fingerprinted adapter sources still require profile regeneration
 and the relevant contract tests.
+
+The `bare-return` exclusion covers the explicit-return lint edits that previously
+left the Go 1.25 adapter revision stale. Intentional changes, including complexity
+refactoring, still change the source fingerprint even when behavior is preserved.
+After reviewing such changes, run `go run ./internal/compat/genprofile`, review
+the revision diff, and stage it with the source changes. Check freshness with
+`go run ./internal/compat/genprofile -check`; golangci-lint does not validate
+profile fingerprints. Do not update signature contracts merely to silence a
+stale revision error.
+
+Import aliases outside these protected paths still receive lint checks. Rename
+only identifiers bound to the imported package, using semantic tooling or
+reviewed edits. Global text replacement can also change local selectors such as
+`log.Index` and prose such as "artifact bytes"; rule exclusions cannot prevent
+those editing mistakes.
 
 ## Commands and regression checks
 
@@ -46,7 +62,8 @@ Run `make test-lint-tools` to validate the configuration and exercise real
 Git/Go/linter regressions for partial staging, sibling type errors, nested
 modules, repeated snapshots, protected-source diagnostics, and formatter
 exclusions. The complexity regression checks every protected path group and
-verifies that ordinary source still receives naming/signature findings.
+verifies that ordinary source still receives naming/signature, bare-return and
+import-shadowing findings.
 Run `make test` for the ordinary native and simulation suite after source
 changes.
 

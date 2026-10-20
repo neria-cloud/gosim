@@ -156,9 +156,13 @@ func Syscall_Example(input []int) []int {
         # each other. Exercise the actual configured limits.
         source = (
             "package fixture\n"
+            "import \"bytes\"\n"
             "func Fixed_name(value int) int { return value }\n"
             "func Arguments(value, a, b, c, d int) int { return value+a+b+c+d }\n"
             "func Results(value int) (int, bool, string) { return value, true, \"\" }\n"
+            "func Named(value int) (result int) {\n result = value\n return\n}\n"
+            "func ImportShadow() int {\n bytes := []byte{1}\n return len(bytes)\n}\n"
+            "func UseImport() int { return bytes.Compare(nil, nil) }\n"
             "func Cognitive(value int) int {\n"
             + "".join(f" if value > {i} {{\n" for i in range(6))
             + " return 1\n" + " }\n" * 6 + " return 0\n}\n"
@@ -186,11 +190,13 @@ func Syscall_Example(input []int) []int {
                                  if line.startswith(name + ":"))
             for rule in ("cognitive-complexity:", "cyclomatic:", "function-length:"):
                 self.assertIn(rule, findings, f"{name}:\n{result.stdout}")
-            for rule in ("var-naming:", "argument-limit:", "function-result-limit:"):
+            for rule in ("var-naming:", "argument-limit:", "function-result-limit:",
+                         "bare-return:", "import-shadowing:"):
                 self.assertNotIn(rule, findings, f"{name}:\n{findings}")
         ordinary = "\n".join(line for line in result.stdout.splitlines()
                              if line.startswith("ordinary/source.go:"))
-        for rule in ("var-naming:", "argument-limit:", "function-result-limit:"):
+        for rule in ("var-naming:", "argument-limit:", "function-result-limit:",
+                     "bare-return:", "import-shadowing:"):
             self.assertIn(rule, ordinary, result.stdout)
 
     def test_actual_policy_does_not_request_behavior_rewrites(self):

@@ -73,22 +73,22 @@ func (c *filesystemControl) SetReadOnly(ref contracts.MachineRef, enabled bool) 
 
 func (c *filesystemControl) Stats(ref contracts.MachineRef) (stats contracts.FSStorageStats, err error) {
 	err = c.call(ref, []State{StateNew, StateRunning, StateStopped, StateCrashed}, func(provider contracts.FSControl) error { stats, err = provider.Stats(ref); return err })
-	return stats, err
+	return
 }
 
 func (c *filesystemControl) InspectInode(ref contracts.MachineRef, inode int) (info contracts.InodeInfo, err error) {
 	err = c.call(ref, []State{StateNew, StateRunning, StateStopped, StateCrashed}, func(provider contracts.FSControl) error { info, err = provider.InspectInode(ref, inode); return err })
-	return info, err
+	return
 }
 
 func (c *filesystemControl) Enumerate(ref contracts.MachineRef, maxStates uint64) (id uint64, err error) {
 	err = c.call(ref, []State{StateCrashed}, func(provider contracts.FSControl) error { id, err = provider.Enumerate(ref, maxStates); return err })
-	return id, err
+	return
 }
 
 func (c *filesystemControl) NextSnapshot(iteratorID uint64) (id uint64, ok bool, err error) {
 	err = c.call(contracts.MachineRef{}, nil, func(provider contracts.FSControl) error { id, ok, err = provider.NextSnapshot(iteratorID); return err })
-	return id, ok, err
+	return
 }
 
 func (c *filesystemControl) CloseIterator(id uint64) error {

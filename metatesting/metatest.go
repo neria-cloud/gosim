@@ -94,7 +94,7 @@ func (w prefixer) Write(b []byte) (n int, err error) {
 		}
 		b = b[end:]
 	}
-	return n, err
+	return
 }
 
 func newRunner(path string, expected Manifest) (*MetaT, error) {
