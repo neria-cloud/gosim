@@ -10,6 +10,30 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
+const (
+	storageCapacityBlocks       = 4
+	storageReservedBlocks       = 3
+	storageReserveOffset        = 512
+	storageReserveLength        = 1024
+	storageOverflowOffset       = 2048
+	storageReservedSize         = 1536
+	storageOwnedMode            = 0o640
+	storageOwnerUID             = 101
+	storageOwnerGID             = 202
+	storageOwnedFileMode        = 0o100640
+	storageKiBShift             = 10
+	storageHome                 = "/app"
+	storageOwnedName            = "mine"
+	storageDirectoryMode        = 0o777
+	storageCreatedDirectoryMode = 0o040755
+	storageCreatedFileMode      = 0o100600
+	storageAfterGID             = 203
+	storageRestrictedUID        = 999
+	storageChangedMode          = 0o600
+	storageRejectedMode         = 0o644
+	storageInvalidDirectoryFD   = 4
+)
+
 func TestStorageStatsAndReadOnlyLifecycle(t *testing.T) {
 	s, _ := newSession(t)
 	pre, err := s.Stats(ref1)
@@ -19,16 +43,16 @@ func TestStorageStatsAndReadOnlyLifecycle(t *testing.T) {
 	if s.machines[ref1.ID].disk != nil {
 		t.Fatal("stats published a disk before start")
 	}
-	if err := s.ConfigureMachine(ref1, contracts.FSConfig{WorkingDir: "/app", CapacityBytes: 4 << 10, UID: 11, GID: 12}); err != nil {
+	if err := s.ConfigureMachine(ref1, contracts.FSConfig{WorkingDir: storageHome, CapacityBytes: storageCapacityBlocks << storageKiBShift, UID: 11, GID: 12}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.SetReadOnly(ref1, true); err != nil {
 		t.Fatal(err)
 	}
 	i := start(t, s, ref1, 1, false)
-	write(t, i.model, "/app/file", "data")
+	write(t, i.model, storageHome+"/file", "data")
 	live, err := s.Stats(ref1)
-	if err != nil || live.TotalBytes != 4<<10 || live.UsedBytes != 2*model.StorageBlockSize || !live.ReadOnly {
+	if err != nil || live.TotalBytes != storageCapacityBlocks<<storageKiBShift || live.UsedBytes != 2*model.StorageBlockSize || !live.ReadOnly {
 		t.Fatalf("live stats: %+v, %v", live, err)
 	}
 	stop(t, i, contracts.StopGraceful)
@@ -79,19 +103,19 @@ func TestFileCapacityAndReadOnlyWithOpenDescriptor(t *testing.T) {
 
 func TestFallocateProviderReservesAndRejectsFullVolume(t *testing.T) {
 	i, ctx, _ := ioFixture(t)
-	i.machine.config.CapacityBytes = 3 * model.StorageBlockSize
+	i.machine.config.CapacityBytes = storageReservedBlocks * model.StorageBlockSize
 	fd := open(t, i, ctx, "allocated", openCreate|2)
-	if err := i.Fallocate(ctx, fd, 0, 512, 1024); err != nil {
+	if err := i.Fallocate(ctx, fd, 0, storageReserveOffset, storageReserveLength); err != nil {
 		t.Fatal(err)
 	}
 	stats, err := i.session.Stats(ref1)
-	if err != nil || stats.UsedBytes != 3*model.StorageBlockSize {
+	if err != nil || stats.UsedBytes != storageReservedBlocks*model.StorageBlockSize {
 		t.Fatalf("reserved stats: %+v, %v", stats, err)
 	}
-	if err := i.Fallocate(ctx, fd, 0, 2048, 1); !errors.Is(err, syscall.ENOSPC) {
+	if err := i.Fallocate(ctx, fd, 0, storageOverflowOffset, 1); !errors.Is(err, syscall.ENOSPC) {
 		t.Fatalf("full fallocate: %v", err)
 	}
-	if stat, err := i.Fstat(ctx, fd); err != nil || stat.Size != 1536 {
+	if stat, err := i.Fstat(ctx, fd); err != nil || stat.Size != storageReservedSize {
 		t.Fatalf("failed fallocate changed size: %+v, %v", stat, err)
 	}
 	if err := i.Sync(ctx, fd, false); err != nil {
@@ -107,10 +131,10 @@ func TestStatReportsStoredModeAndOwnership(t *testing.T) {
 		t.Fatal(err)
 	}
 	inode := resource.(*File).inode
-	if err := i.model.Chmod(inode, 0o640, model.Identity{}); err != nil {
+	if err := i.model.Chmod(inode, storageOwnedMode, model.Identity{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := i.model.Chown(inode, 101, 202, model.Identity{}); err != nil {
+	if err := i.model.Chown(inode, storageOwnerUID, storageOwnerGID, model.Identity{}); err != nil {
 		t.Fatal(err)
 	}
 	for _, stat := range []func() (contracts.Stat, error){
@@ -118,7 +142,7 @@ func TestStatReportsStoredModeAndOwnership(t *testing.T) {
 		func() (contracts.Stat, error) { return i.Statat(ctx, atFDCWD, "owned", 0) },
 	} {
 		got, err := stat()
-		if err != nil || got.Mode != 0o100640 || got.UID != 101 || got.GID != 202 || got.Nlink != 1 {
+		if err != nil || got.Mode != storageOwnedFileMode || got.UID != storageOwnerUID || got.GID != storageOwnerGID || got.Nlink != 1 {
 			t.Fatalf("stat metadata: %+v, %v", got, err)
 		}
 	}
@@ -126,13 +150,13 @@ func TestStatReportsStoredModeAndOwnership(t *testing.T) {
 
 func TestStorageConfigValidationAtomic(t *testing.T) {
 	s, _ := newSession(t)
-	good := contracts.FSConfig{WorkingDir: "/app", CapacityBytes: 2 << 10}
+	good := contracts.FSConfig{WorkingDir: storageHome, CapacityBytes: 2 << storageKiBShift}
 	if err := s.ConfigureMachine(ref1, good); err != nil {
 		t.Fatal(err)
 	}
 	for _, bad := range []contracts.FSConfig{
-		{WorkingDir: "/app", CapacityBytes: 1},
-		{WorkingDir: "/app", LatencyNS: -1},
+		{WorkingDir: storageHome, CapacityBytes: 1},
+		{WorkingDir: storageHome, LatencyNS: -1},
 	} {
 		if err := s.ConfigureMachine(ref1, bad); !errors.Is(err, contracts.ErrInvalidConfig) {
 			t.Fatalf("accepted %+v: %v", bad, err)
@@ -145,29 +169,29 @@ func TestStorageConfigValidationAtomic(t *testing.T) {
 
 func TestIdentityAndReadOnlyMutations(t *testing.T) {
 	i, ctx, _ := ioFixture(t)
-	i.machine.config.UID, i.machine.config.GID = 101, 202
-	fd := open(t, i, ctx, "mine", openCreate|2)
+	i.machine.config.UID, i.machine.config.GID = storageOwnerUID, storageOwnerGID
+	fd := open(t, i, ctx, storageOwnedName, openCreate|2)
 	stat, err := i.Fstat(ctx, fd)
-	if err != nil || stat.Mode != 0o100600 || stat.UID != 101 || stat.GID != 202 {
+	if err != nil || stat.Mode != storageCreatedFileMode || stat.UID != storageOwnerUID || stat.GID != storageOwnerGID {
 		t.Fatalf("created metadata: %+v, %v", stat, err)
 	}
 	if _, err := i.Openat(ctx, atFDCWD, "/etc/hosts", 2, 0); !errors.Is(err, syscall.EACCES) {
 		t.Fatalf("non-root write to hosts: %v", err)
 	}
-	if err := i.Mkdirat(ctx, atFDCWD, "sub", 0o777); err != nil {
+	if err := i.Mkdirat(ctx, atFDCWD, "sub", storageDirectoryMode); err != nil {
 		t.Fatal(err)
 	}
 	dir, err := i.Statat(ctx, atFDCWD, "sub", 0)
-	if err != nil || dir.Mode != 0o040755 || dir.UID != 101 || dir.GID != 202 {
+	if err != nil || dir.Mode != storageCreatedDirectoryMode || dir.UID != storageOwnerUID || dir.GID != storageOwnerGID {
 		t.Fatalf("created directory: %+v, %v", dir, err)
 	}
 	if err := i.session.SetReadOnly(ref1, true); err != nil {
 		t.Fatal(err)
 	}
 	for name, mutate := range map[string]func() error{
-		"mkdir":    func() error { return i.Mkdirat(ctx, atFDCWD, "blocked", 0o777) },
-		"unlink":   func() error { return i.Unlinkat(ctx, atFDCWD, "mine", 0) },
-		"rename":   func() error { return i.Renameat(ctx, atFDCWD, "mine", atFDCWD, "renamed") },
+		"mkdir":    func() error { return i.Mkdirat(ctx, atFDCWD, "blocked", storageDirectoryMode) },
+		"unlink":   func() error { return i.Unlinkat(ctx, atFDCWD, storageOwnedName, 0) },
+		"rename":   func() error { return i.Renameat(ctx, atFDCWD, storageOwnedName, atFDCWD, "renamed") },
 		"truncate": func() error { return i.Truncate(ctx, fd, 0) },
 		"reserve":  func() error { return i.Fallocate(ctx, fd, 0, 0, 1) },
 	} {
@@ -175,13 +199,13 @@ func TestIdentityAndReadOnlyMutations(t *testing.T) {
 			t.Fatalf("read-only %s: %v", name, err)
 		}
 	}
-	if _, err := i.Openat(ctx, atFDCWD, "mine", openTruncate|2, 0); !errors.Is(err, syscall.EROFS) {
+	if _, err := i.Openat(ctx, atFDCWD, storageOwnedName, openTruncate|2, 0); !errors.Is(err, syscall.EROFS) {
 		t.Fatalf("read-only truncate open: %v", err)
 	}
 	if err := i.session.SetReadOnly(ref1, false); err != nil {
 		t.Fatal(err)
 	}
-	if err := i.Renameat(ctx, atFDCWD, "mine", atFDCWD, "renamed"); err != nil {
+	if err := i.Renameat(ctx, atFDCWD, storageOwnedName, atFDCWD, "renamed"); err != nil {
 		t.Fatal(err)
 	}
 	if err := i.Unlinkat(ctx, atFDCWD, "renamed", 0); err != nil {
@@ -193,7 +217,7 @@ func TestStatFSPathsDescriptorsAndReadOnly(t *testing.T) {
 	i, ctx, _ := ioFixture(t)
 	i.machine.config.CapacityBytes = 4 * model.StorageBlockSize
 	fd := open(t, i, ctx, "stats", openCreate|2)
-	for _, path := range []string{"/", "/app", "stats"} {
+	for _, path := range []string{"/", storageHome, "stats"} {
 		got, err := i.StatFS(ctx, path)
 		if err != nil || got.TotalBytes != 4*model.StorageBlockSize || got.UsedBytes != model.StorageBlockSize || got.BlockSize != model.StorageBlockSize {
 			t.Fatalf("statfs %q: %+v, %v", path, got, err)
@@ -220,39 +244,39 @@ func TestStatFSPathsDescriptorsAndReadOnly(t *testing.T) {
 func TestMetadataRoutesIdentityAndReadOnly(t *testing.T) {
 	i, ctx, _ := ioFixture(t)
 	fd := open(t, i, ctx, "metadata-route", openCreate|2)
-	if err := i.Fchmod(ctx, fd, 0o640); err != nil {
+	if err := i.Fchmod(ctx, fd, storageOwnedMode); err != nil {
 		t.Fatal(err)
 	}
-	if err := i.Fchown(ctx, fd, 101, 202); err != nil {
+	if err := i.Fchown(ctx, fd, storageOwnerUID, storageOwnerGID); err != nil {
 		t.Fatal(err)
 	}
-	if err := i.Chownat(ctx, atFDCWD, "metadata-route", -1, 203, atSymlinkNoFollow); err != nil {
+	if err := i.Chownat(ctx, atFDCWD, "metadata-route", -1, storageAfterGID, atSymlinkNoFollow); err != nil {
 		t.Fatal(err)
 	}
-	i.machine.config.UID, i.machine.config.GID = 101, 203
-	if err := i.Chmodat(ctx, atFDCWD, "metadata-route", 0o600, 0); err != nil {
+	i.machine.config.UID, i.machine.config.GID = storageOwnerUID, storageAfterGID
+	if err := i.Chmodat(ctx, atFDCWD, "metadata-route", storageChangedMode, 0); err != nil {
 		t.Fatal(err)
 	}
 	stat, err := i.Fstat(ctx, fd)
-	if err != nil || stat.Mode != 0o100600 || stat.UID != 101 || stat.GID != 203 {
+	if err != nil || stat.Mode != storageCreatedFileMode || stat.UID != storageOwnerUID || stat.GID != storageAfterGID {
 		t.Fatalf("metadata routes: %+v, %v", stat, err)
 	}
-	i.machine.config.UID = 999
-	if err := i.Fchmod(ctx, fd, 0o644); !errors.Is(err, syscall.EPERM) {
+	i.machine.config.UID = storageRestrictedUID
+	if err := i.Fchmod(ctx, fd, storageRejectedMode); !errors.Is(err, syscall.EPERM) {
 		t.Fatalf("non-owner chmod: %v", err)
 	}
-	if err := i.Fchown(ctx, fd, 999, -1); !errors.Is(err, syscall.EPERM) {
+	if err := i.Fchown(ctx, fd, storageRestrictedUID, -1); !errors.Is(err, syscall.EPERM) {
 		t.Fatalf("non-root chown: %v", err)
 	}
 	if err := i.session.SetReadOnly(ref1, true); err != nil {
 		t.Fatal(err)
 	}
-	for _, err := range []error{i.Fchmod(ctx, fd, 0o644), i.Chmodat(ctx, atFDCWD, "metadata-route", 0o644, 0), i.Fchown(ctx, fd, -1, -1), i.Chownat(ctx, atFDCWD, "metadata-route", -1, -1, 0)} {
+	for _, err := range []error{i.Fchmod(ctx, fd, storageRejectedMode), i.Chmodat(ctx, atFDCWD, "metadata-route", storageRejectedMode, 0), i.Fchown(ctx, fd, -1, -1), i.Chownat(ctx, atFDCWD, "metadata-route", -1, -1, 0)} {
 		if !errors.Is(err, syscall.EROFS) {
 			t.Fatalf("read-only metadata mutation: %v", err)
 		}
 	}
-	if err := i.Chmodat(ctx, 4, "metadata-route", 0o644, 0); !errors.Is(err, syscall.EINVAL) {
+	if err := i.Chmodat(ctx, storageInvalidDirectoryFD, "metadata-route", storageRejectedMode, 0); !errors.Is(err, syscall.EINVAL) {
 		t.Fatalf("unsupported directory descriptor: %v", err)
 	}
 	if err := i.Chownat(ctx, atFDCWD, "metadata-route", -1, -1, 2); !errors.Is(err, syscall.EINVAL) {
