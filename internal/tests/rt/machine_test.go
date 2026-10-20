@@ -39,6 +39,7 @@ func TestMachineDestroyedHandle(t *testing.T) {
 }
 
 func TestMachineCrash(t *testing.T) {
+	output := make(chan int, 3)
 	m := testsupport.Start(t, func() {
 		// sleep a second in both the machine and with the crash call to make
 		// sure they start "at the same time". all global initialization code
@@ -46,11 +47,22 @@ func TestMachineCrash(t *testing.T) {
 		time.Sleep(time.Second)
 		for i := 1; i <= 3; i++ {
 			gosimruntime.Yield()
-			slog.Info("output", "n", i)
+			output <- i
 		}
 	})
 	time.Sleep(time.Second)
 	testsupport.Check(t, m.Crash())
+	// Capture progress before the crash without making its distribution depend
+	// on the scheduling points inside slog. Report the completed prefix only
+	// after the machine can no longer produce output.
+	for {
+		select {
+		case n := <-output:
+			slog.Info("output", "n", n)
+		default:
+			return
+		}
+	}
 }
 
 func TestMachineGo(t *testing.T) {

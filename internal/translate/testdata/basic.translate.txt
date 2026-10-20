@@ -587,9 +587,8 @@ func Goglobal() { gosimruntime.Go(G().goglobalF); gosimruntime.Go(Bind1_0(G().go
 package basicgosim
 
 import (
-	"translated/sync"
-
 	"github.com/neria-cloud/gosim/rt/runtime"
+	"translated/github.com/neria-cloud/gosim/internal_/compat/SELECTED/shims/syncmap"
 )
 
 type Globals struct {
@@ -606,7 +605,7 @@ type Globals struct {
 	t               gosimruntime.Chan[string]
 	mm              gosimruntime.Map[Foo, int]
 	u               Yep[Yep[string]]
-	mu              sync.Map
+	mu              syncmap.Map
 	deps1           string
 	deps3           string
 	deps2           string

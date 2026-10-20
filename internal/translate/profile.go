@@ -56,7 +56,13 @@ func Policies(selection buildspec.Selection) (PackagePolicies, error) {
 		if b.Replacement != "" {
 			result.packages[b.Package] = b.Replacement
 		} else {
-			result.native[b.Package] = true
+			policy, err := p.Policy(b.Package, true)
+			if err != nil {
+				return PackagePolicies{}, err
+			}
+			if policy.Mode == "bridge" {
+				result.native[b.Package] = true
+			}
 		}
 		for _, r := range b.Rewrites {
 			result.replacements[PackageSelector{Pkg: b.Package, Selector: r.Symbol}] = PackageSelector{Pkg: r.Package, Selector: r.Target}

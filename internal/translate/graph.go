@@ -108,6 +108,17 @@ func selectGraph(roots []*packages.Package, p PackagePolicies, available ...*pac
 			return err
 		}
 		var dependencies []*packages.Package
+		// A translated package may replace selected public symbols without
+		// admitting the rest of that package to native execution.
+		for from, to := range p.replacements {
+			if from.Pkg == pkg.PkgPath {
+				dep := byPath[to.Pkg]
+				if dep == nil {
+					return fmt.Errorf("selected adapter %s is not loaded", to.Pkg)
+				}
+				dependencies = append(dependencies, dep)
+			}
+		}
 		for _, path := range sortedImportPaths(pkg) {
 			dep := pkg.Imports[path]
 			if kind == PackageKindTestBinary {

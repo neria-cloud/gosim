@@ -1,4 +1,5 @@
 [
+{"package":"sync","symbol":"Map","status":"implemented","reason":"Deterministic translated storage, one scheduling point per operation, and snapshot Range with callbacks outside the private lock."},
 {"package":"os","symbol":"Executable","status":"limited","reason":"Simulated processes have no executable image; reports ENOENT without reading host procfs."},
 {"package":"runtime/metrics","symbol":"All","status":"limited","reason":"Empty supported metric catalogue allows optional collector registration without exposing host runtime state."},
 {"package":"runtime/metrics","symbol":"Read","status":"limited","reason":"Declaration available for dormant collectors; execution aborts because host runtime measurements are not modeled."},

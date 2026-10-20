@@ -106,6 +106,27 @@ func TestNativeBoundarySelectsOnlyOwnedAdapters(t *testing.T) {
 	}
 }
 
+func TestTranslatedPackageSelectsSymbolAdapter(t *testing.T) {
+	t.Parallel()
+	p, err := Policies(profileSelection(t, "rt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := p.replacements[PackageSelector{Pkg: "sync", Selector: "Map"}].Pkg
+	if target == "" || p.native["sync"] {
+		t.Fatal("sync.Map replacement must retain translated synchronization")
+	}
+	adapter := &packages.Package{ID: target, PkgPath: target, Module: &packages.Module{Path: "github.com/neria-cloud/gosim"}}
+	original := &packages.Package{ID: "sync", PkgPath: "sync"}
+	graph, err := selectGraph([]*packages.Package{original}, p, adapter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(graph.order, []string{target, original.ID}) || graph.native[original.ID] || graph.native[target] {
+		t.Fatalf("translated symbol adapter misclassified: %v", graph.order)
+	}
+}
+
 func TestSymbolAdapterGlobalsAndNativeImports(t *testing.T) {
 	t.Parallel()
 	pkg := types.NewPackage("hash/crc32", "crc32")

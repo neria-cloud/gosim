@@ -16,6 +16,7 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `gosim`, `rt` | Manual simulation stepping | not supported | There is no public API to advance the simulation by one tick or scheduler step. Debugger step selection is a separate facility. |
 | `rt` | Virtual time and timeouts | ✅ | Simulated timers and sleeps use virtual time; the scheduler advances to the next timed event when blocked. `rt.SetTimeout` bounds simulation time. |
 | `rt` | Deterministic scheduling and randomness | ✅ | A seeded cooperative scheduler controls goroutine selection. Translated map iteration and application randomness are deterministic; scheduler and provider random streams are separate. |
+| `rt` | `sync.Map` | ✅ | Deterministic storage and scheduling, including pointer keys. `Range` uses a snapshot and allows callbacks to mutate the map. |
 | `rt` | Source-level pause points and barriers | partially | Tests can coordinate simulated goroutines with Go channels. There is no dedicated public typed barrier API for suspend/observe reactions. |
 | `metatesting` | Determinism and multi-seed checks | ✅ | Native tests run prebuilt simulation workers. `CheckDeterministic` compares repeated runs, and `CheckSeeds` exercises multiple seeds using recorded results and checksums. |
 | `gosim`, `net` | Machine naming and address assignment | ✅ | Machines have labels; `net.ConfigureMachine` accepts an IPv4 address or requests deterministic allocation. `net.Address` exposes the assigned address after startup. |
@@ -35,7 +36,7 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `net` | Packet inspection and custom rules | not supported | Network tracing is available, but there is no public in-flight packet iterator or packet rule/verdict installation API. |
 | `net` | Network capacity controls | partially | TCPBufferSize configures per-direction capacity for new connections (zero selects 1 KiB; maximum 16 MiB). MTU, listen backlog, and ephemeral port ranges are not configurable. |
 | `net` | HTTP dependencies | partially | Existing Go HTTP source can be translated for optional dependencies; this does not establish full HTTP or HTTPS compatibility. |
-| `net` | Plaintext gRPC | supported within tested scope | Unary and bidirectional binary streams with metadata authentication over simulated IPv4/TCP; see the standalone [example](../examples/network/grpc/). TLS, DNS and proxies are outside this example. |
+| `net` | Plaintext gRPC | ✅ | Unary and bidirectional binary streams with metadata authentication over simulated IPv4/TCP. |
 | `net` | TLS and certificate operations | not supported | Optional TLS/X509 declarations can be imported, but executing their operations aborts without host I/O. |
 | `rt` | Native hashing and cryptographic computation | partially | Reviewed hashes, checksums and ciphers use native Go computation. Ed25519 and CRC32 use native Go directly. CRC32 standard tables must remain read-only; Ed25519 key generation needs an explicit deterministic reader for replay (`nil` uses host randomness). Host-global hash registration remains rejected. |
 | `examples/network/nats` | Embedded NATS Core | supported | A separate application module runs a server and two clients over simulated TCP, with send/receive timestamps and delayed links. |

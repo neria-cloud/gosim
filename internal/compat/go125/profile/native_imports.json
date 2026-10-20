@@ -1,4 +1,5 @@
 [
+{"package":"sync","from":"github.com/neria-cloud/gosim/internal/compat/go125/shims/syncmap","reason":"Private Mutex protects non-yielding map operations for host race synchronization; every scheduling point and callback runs outside the lock."},
 {"package":"reflect","reason":"Owned bridge implementation only: private reflection metadata/cache/sequence types, or primitive race-mode atomic operations; no translated context/time/net object escapes.","from":"github.com/neria-cloud/gosim/internal/compat/go125/shims/reflect"},
 {"package":"sync","reason":"Owned bridge implementation only: private reflection metadata/cache/sequence types, or primitive race-mode atomic operations; no translated context/time/net object escapes.","from":"github.com/neria-cloud/gosim/internal/compat/go125/shims/reflect"},
 {"package":"iter","reason":"Owned bridge implementation only: private reflection metadata/cache/sequence types, or primitive race-mode atomic operations; no translated context/time/net object escapes.","from":"github.com/neria-cloud/gosim/internal/compat/go125/shims/reflect"},
