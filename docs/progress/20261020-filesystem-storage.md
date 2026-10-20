@@ -34,3 +34,17 @@ Verified
 
 Notes
 - Read-only admission for `Openat` and `Fallocate` was introduced early because these paths already mutate the model; Task 5 will refine path-aware error priority.
+
+## Task 3 — Make fallocate reserve capacity and survive recovery
+
+Implemented
+- `Fallocate` now reserves zero-filled 1 KiB blocks over a nonnegative range after atomic capacity admission.
+- Added `reserveOp` to pending/crash replay, including clone retention and dependency ordering after file resize.
+- Added model/provider tests for overlapping and nonzero-offset reservations, `ENOSPC` atomicity, sparse reads, crash-state enumeration, sync durability and truncate freeing reserved blocks.
+
+Verified
+- Focused model/provider tests, `./.ci/gofmt check`, and `make build` passed.
+- `make test` passed: 1,805 passed, 16 skipped, 0 failures/errors (`test-reports/unit/20261020T134338.094724Z-a32mh0gk/report.md`).
+
+Notes
+- Existing lifecycle rollback tests stayed green; reservation itself consumes no random draw or host I/O.

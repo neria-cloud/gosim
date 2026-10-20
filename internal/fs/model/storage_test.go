@@ -96,3 +96,73 @@ func TestCapacityAdmissionIsAtomic(t *testing.T) {
 		t.Fatalf("empty write: n=%d err=%v", n, err)
 	}
 }
+
+func TestFallocateReservesBlocksAndCrashState(t *testing.T) {
+	fs := NewLinuxFilesystem()
+	defer fs.Release()
+	inode, err := fs.OpenFile(RootInode, "/app/reserved", os.O_CREATE|os.O_RDWR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fs.CloseFile(inode)
+	fs.FlushEverything()
+	const capacity = 3 * StorageBlockSize // hosts plus two reserved blocks
+	if err := fs.Fallocate(inode, 512, 1024, capacity); err != nil {
+		t.Fatal(err)
+	}
+	if stat, err := fs.Statfd(inode); err != nil || stat.Size != 1536 || fs.UsedBlocks() != 3 {
+		t.Fatalf("reservation did not allocate range: stat=%+v err=%v blocks=%d", stat, err, fs.UsedBlocks())
+	}
+	zeros := make([]byte, 1024)
+	if n := fs.Read(inode, 512, abi.ByteView{Ptr: zeros}); n != len(zeros) {
+		t.Fatalf("reserved range read %d bytes", n)
+	}
+	for _, b := range zeros {
+		if b != 0 {
+			t.Fatal("reserved range is not zero-filled")
+		}
+	}
+	before := fs.GetInodeInfo(inode).Ops
+	if err := fs.Fallocate(inode, 0, 1024, capacity); err != nil || fs.UsedBlocks() != 3 {
+		t.Fatalf("overlapping reserve: err=%v blocks=%d", err, fs.UsedBlocks())
+	}
+	if err := fs.Fallocate(inode, 2048, 1, capacity); !errors.Is(err, syscall.ENOSPC) {
+		t.Fatalf("overcapacity reserve: %v", err)
+	}
+	if stat, _ := fs.Statfd(inode); stat.Size != 1536 || fs.GetInodeInfo(inode).Ops != before {
+		t.Fatal("failed reservation changed file or pending operations")
+	}
+	image := fs.FreezeCrash()
+	iterator := image.IterCrashes()
+	seenPending, seenDurable := false, false
+	for {
+		state, ok := iterator.Next()
+		if !ok {
+			break
+		}
+		switch state.UsedBlocks() {
+		case 1:
+			seenDurable = true
+		case 3:
+			seenPending = true
+		default:
+			t.Fatalf("unexpected crash usage %d", state.UsedBlocks())
+		}
+		state.Release()
+	}
+	image.Release()
+	if !seenPending || !seenDurable {
+		t.Fatalf("crash outcomes omitted reservation: durable=%v pending=%v", seenDurable, seenPending)
+	}
+	fs.Sync(inode)
+	image = fs.FreezeCrash()
+	recovered := image.Clone(false, nil)
+	image.Release()
+	if recovered.UsedBlocks() != 3 {
+		t.Fatalf("sync lost reservation: %d", recovered.UsedBlocks())
+	}
+	recovered.Release()
+	if err := fs.Truncate(inode, 0, capacity); err != nil || fs.UsedBlocks() != 1 {
+		t.Fatalf("truncate did not free reservation: %v, %d", err, fs.UsedBlocks())
+	}
+}

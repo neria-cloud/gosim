@@ -136,7 +136,7 @@ func (i *Instance) Fallocate(ctx contracts.CallContext, fd int, mode uint32, off
 	if err != nil {
 		return err
 	}
-	if mode != 0 || offset != 0 || length < 0 {
+	if mode != 0 || offset < 0 || length <= 0 {
 		return syscall.EINVAL
 	}
 	if !f.write {
@@ -152,12 +152,7 @@ func (i *Instance) Fallocate(ctx contracts.CallContext, fd int, mode uint32, off
 	if i.machine.readOnly {
 		return syscall.EROFS
 	}
-	if length > stat.Size {
-		if err := i.model.Truncate(f.inode, length, i.machine.config.CapacityBytes); err != nil {
-			return err
-		}
-	}
-	return nil
+	return i.model.Fallocate(f.inode, offset, length, i.machine.config.CapacityBytes)
 }
 
 func (i *Instance) Seek(ctx contracts.CallContext, fd int, offset int64, whence int) (int64, error) {

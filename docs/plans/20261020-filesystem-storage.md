@@ -98,14 +98,14 @@ The public `Config` converts explicitly to `contracts.FSConfig{WorkingDir,Capaci
 **References**: target §Storage schema and invariants (`reserveOp`), §Model/provider methods (`Reserve`, `Fallocate` and dependency keys), §Data flows 4 and 8, §NOT CONSIDERED & TODO (no resize); `docs/design.md` §Filesystem provider.  
 **Goal**: Replace the current logical-extend-only fallocate behavior with real virtual block reservation, without adding filesystem resize.
 
-- [ ] Implement COW-safe `Reserve(offset,length)` for previously nil chunks and a `reserveOp` that replays the reservation during flush/crash selection. Keep existing data unchanged and extend logical size only when required by the supported fallocate mode.
-- [ ] Validate mode 0, nonnegative range, overflow and writability before effects. Count newly reserved blocks, reject atomically with `ENOSPC` when unavailable, then apply size/reservation operations with the right allocation/resize/write dependencies.
-- [ ] Extend `retainOp`/crash cloning and pending-op dependency handling so reservations survive graceful stop, appear in eligible crash states, and remain reference-safe. Verify abort preparation does not mutate retained disks or consume random draws.
-- [ ] Update capability text for fallocate once behavior is real. Test reservation of sparse holes, overlapping reservations, quota exhaustion, shrink after reservation, fsync, crash enumeration, restore and replay stability.
+- [x] Implement COW-safe `Reserve(offset,length)` for previously nil chunks and a `reserveOp` that replays the reservation during flush/crash selection. Keep existing data unchanged and extend logical size only when required by the supported fallocate mode.
+- [x] Validate mode 0, nonnegative range, overflow and writability before effects. Count newly reserved blocks, reject atomically with `ENOSPC` when unavailable, then apply size/reservation operations with the right allocation/resize/write dependencies.
+- [x] Extend `retainOp`/crash cloning and pending-op dependency handling so reservations survive graceful stop, appear in eligible crash states, and remain reference-safe. Verify abort preparation does not mutate retained disks or consume random draws.
+- [x] Update capability text for fallocate once behavior is real. Test reservation of sparse holes, overlapping reservations, quota exhaustion, shrink after reservation, fsync, crash enumeration, restore and replay stability.
 
 #### Verification
 
-- [ ] Run focused model/recovery/provider tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
+- [x] Run focused model/recovery/provider tests with linkname flags, then `./.ci/gofmt check`, `make build`, `make test`; inspect report totals/failures and fix all failures.
 
 ---
 

@@ -15,7 +15,7 @@ func Capabilities() []Capability {
 		{"lseek", "supported", "nonnegative virtual file offset"},
 		{"fdatasync", "limited", "same durability semantics as fsync"},
 		{"fsync", "supported", "inode/dependency durability; before/after crash injection"},
-		{"fallocate", "limited", "mode=0 and offset=0; extends file rather than reserving capacity"},
+		{"fallocate", "limited", "mode=0; reserves bounded virtual blocks in the requested range"},
 		{"ftruncate", "supported", "resize writable virtual file"},
 		{"flock", "stub", "success without locking, ownership, or contention"},
 		{"fstat", "limited", "inode/type/size only; permissions, timestamps and other metadata zero"},

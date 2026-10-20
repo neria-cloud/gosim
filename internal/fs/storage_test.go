@@ -77,6 +77,28 @@ func TestFileCapacityAndReadOnlyWithOpenDescriptor(t *testing.T) {
 	}
 }
 
+func TestFallocateProviderReservesAndRejectsFullVolume(t *testing.T) {
+	i, ctx, _ := ioFixture(t)
+	i.machine.config.CapacityBytes = 3 * model.StorageBlockSize
+	fd := open(t, i, ctx, "allocated", openCreate|2)
+	if err := i.Fallocate(ctx, fd, 0, 512, 1024); err != nil {
+		t.Fatal(err)
+	}
+	stats, err := i.session.Stats(ref1)
+	if err != nil || stats.UsedBytes != 3*model.StorageBlockSize {
+		t.Fatalf("reserved stats: %+v, %v", stats, err)
+	}
+	if err := i.Fallocate(ctx, fd, 0, 2048, 1); !errors.Is(err, syscall.ENOSPC) {
+		t.Fatalf("full fallocate: %v", err)
+	}
+	if stat, err := i.Fstat(ctx, fd); err != nil || stat.Size != 1536 {
+		t.Fatalf("failed fallocate changed size: %+v, %v", stat, err)
+	}
+	if err := i.Sync(ctx, fd, false); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestStorageConfigValidationAtomic(t *testing.T) {
 	s, _ := newSession(t)
 	good := contracts.FSConfig{WorkingDir: "/app", CapacityBytes: 2 << 10}

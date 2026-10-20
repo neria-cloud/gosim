@@ -364,6 +364,20 @@ type resizeOp struct {
 	size  int
 }
 
+type reserveOp struct {
+	inode          int
+	offset, length int
+}
+
+func (o *reserveOp) apply(state *filesystemState, _ gcer) {
+	state.getFile(o.inode).file.Reserve(o.offset, o.length)
+}
+
+func (o *reserveOp) touchedInodesIter(iter func(inode int) bool) { iter(o.inode) }
+func (o *reserveOp) String() string {
+	return fmt.Sprintf("reserve file:%d offset:%d length:%d", o.inode, o.offset, o.length)
+}
+
 func (o *resizeOp) apply(fs *filesystemState, gcer gcer) {
 	file := fs.getFile(o.inode)
 	file.resize(o.size)
@@ -485,6 +499,11 @@ func (o *writeOp) addDeps(p *pendingOps, op *pendingOp) {
 func (o *resizeOp) addDeps(p *pendingOps, op *pendingOp) {
 	// p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(o.inode)}, depDependsOn) // optimization?
 	p.addDep(op, depKey{kind: depKeyResizeFile, inode: int32(o.inode)}, depStoreAsAndDependsOn)
+}
+
+func (o *reserveOp) addDeps(p *pendingOps, op *pendingOp) {
+	p.addDep(op, depKey{kind: depKeyWriteFile, inode: int32(o.inode)}, depStoreAs)
+	p.addDep(op, depKey{kind: depKeyResizeFile, inode: int32(o.inode)}, depDependsOn)
 }
 
 func (o *dirOp) addDeps(p *pendingOps, op *pendingOp) {
@@ -626,6 +645,29 @@ func (fs *Filesystem) Truncate(inode int, pos int64, capacityBytes uint64) error
 			size:  int(pos),
 		}
 		fs.apply(op)
+	}
+	return nil
+}
+
+func (fs *Filesystem) Fallocate(inode int, offset, length int64, capacityBytes uint64) error {
+	maxInt := int64(^uint(0) >> 1)
+	if offset < 0 || length <= 0 || offset > maxInt-length {
+		return syscall.EINVAL
+	}
+	file := fs.mem.getFile(inode)
+	if capacityBytes == 0 {
+		capacityBytes = DefaultCapacityBytes
+	}
+	limit := capacityBytes / StorageBlockSize
+	needed := file.file.NewBlocksForWrite(int(offset), int(length))
+	if needed > limit || fs.UsedBlocks() > limit-needed {
+		return syscall.ENOSPC
+	}
+	if end := int(offset + length); end > file.len() {
+		fs.apply(&resizeOp{inode: inode, size: end})
+	}
+	if needed != 0 {
+		fs.apply(&reserveOp{inode: inode, offset: int(offset), length: int(length)})
 	}
 	return nil
 }

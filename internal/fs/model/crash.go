@@ -134,6 +134,9 @@ func retainOp(op fsOp) fsOp {
 	case *resizeOp:
 		copy := *op
 		return &copy
+	case *reserveOp:
+		copy := *op
+		return &copy
 	case *allocOp:
 		copy := *op
 		return &copy

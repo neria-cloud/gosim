@@ -70,6 +70,20 @@ func (w *chunkedFile) NewBlocksForWrite(pos, size int) uint64 {
 	return count
 }
 
+// Reserve materializes zero-filled blocks while preserving existing data.
+// The caller grows the logical file first when the range extends beyond it.
+func (w *chunkedFile) Reserve(offset, length int) {
+	if length == 0 {
+		return
+	}
+	first, last := offset/chunkSize, (offset+length-1)/chunkSize
+	for i := first; i <= last; i++ {
+		if w.chunks[i] == nil {
+			w.chunks[i] = allocRefCountedChunk()
+		}
+	}
+}
+
 type refCountedChunk struct {
 	// XXX: inline data to skip an object?
 	refs int
