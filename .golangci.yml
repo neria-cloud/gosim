@@ -344,10 +344,23 @@ linters:
       - legacy
       - std-error-handling
     rules:
-      # Byte-fingerprinted adapter/facade sources and runtime hook declarations
-      # are maintained with their contracts. Keep bug/security checks active.
+      # Preserve contract-owned symbols, loop semantics and byte-sensitive
+      # formatting. Bug/security checks and revive complexity checks stay active.
       - path: '^(internal/(compat/(go[0-9]+|selected|spec)|hostabi|buildspec)|rt/runtime)/'
-        linters: [revive, lll, predeclared, unused, copyloopvar]
+        linters: [lll, predeclared, unused, copyloopvar]
+      # Suppress only revive's naming conventions in contract-owned sources.
+      - path: '^(internal/(compat/(go[0-9]+|selected|spec)|hostabi|buildspec)|rt/runtime)/'
+        linters: [revive]
+        text: '^(banned-characters|confusing-naming|error-naming|exported|import-shadowing|receiver-naming|redefines-builtin-id|time-naming|unexported-naming|var-naming):'
+      # Fixed argument/result order, receiver types and ABI layouts take
+      # precedence over API-design conventions.
+      - path: '^(internal/(compat/(go[0-9]+|selected|spec)|hostabi|buildspec)|rt/runtime)/'
+        linters: [revive]
+        text: '^(argument-limit|confusing-results|context-as-argument|error-return|flag-parameter|function-result-limit|get-return|modifies-value-receiver|nested-structs|unexported-return):'
+      # Match the lll and formatter exclusions without hiding complexity.
+      - path: '^(internal/(compat/(go[0-9]+|selected|spec)|hostabi|buildspec)|rt/runtime)/'
+        linters: [revive]
+        text: '^line-length-limit:'
       - linters:
           - errcheck
           - gosec

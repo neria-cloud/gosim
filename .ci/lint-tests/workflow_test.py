@@ -141,13 +141,57 @@ func Syscall_Example(input []int) []int {
         result = self.lint()
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("ineffassign", result.stdout)
-        for suppressed in ("prealloc", "revive", "predeclared", "generated.go:"):
+        for suppressed in ("prealloc", "var-naming:", "predeclared", "generated.go:"):
             self.assertNotIn(suppressed, result.stdout)
         # Repeat with identical source in a new snapshot. Cached absolute paths
         # from the first run must not make findings disappear.
         repeated = self.lint()
         self.assertEqual(repeated.returncode, 1, repeated.stdout)
         self.assertIn("ineffassign", repeated.stdout)
+
+    def test_complexity_checks_survive_signature_and_naming_exclusions(self):
+        shutil.copyfile(ROOT / ".golangci.yml", self.root / ".golangci.yml")
+        # Separate the rules by declaration: golangci-lint normally emits only
+        # one finding per line, so several violations on one function can mask
+        # each other. Exercise the actual configured limits.
+        source = (
+            "package fixture\n"
+            "func Fixed_name(value int) int { return value }\n"
+            "func Arguments(value, a, b, c, d int) int { return value+a+b+c+d }\n"
+            "func Results(value int) (int, bool, string) { return value, true, \"\" }\n"
+            "func Cognitive(value int) int {\n"
+            + "".join(f" if value > {i} {{\n" for i in range(6))
+            + " return 1\n" + " }\n" * 6 + " return 0\n}\n"
+            + "func Cyclomatic(value int) bool {\n return "
+            + " ||\n".join(f"value == {i}" for i in range(30)) + "\n}\n"
+            + "func Long(value int) int {\n result := value\n"
+            + " result++\n" * 43 + " return result\n}\n"
+        )
+        protected = (
+            "internal/compat/go125/hooks/kernel/abi.go",
+            "internal/compat/go126/hooks/kernel/abi.go",
+            "internal/compat/selected/selection.go",
+            "internal/compat/spec/profile.go",
+            "internal/hostabi/coro.go",
+            "internal/buildspec/modules.go",
+            "rt/runtime/scheduler.go",
+        )
+        for name in (*protected, "ordinary/source.go"):
+            self.write(name, source)
+        self.run_command("git", "add", ".")
+        result = self.lint()
+        self.assertEqual(result.returncode, 1, result.stdout)
+        for name in protected:
+            findings = "\n".join(line for line in result.stdout.splitlines()
+                                 if line.startswith(name + ":"))
+            for rule in ("cognitive-complexity:", "cyclomatic:", "function-length:"):
+                self.assertIn(rule, findings, f"{name}:\n{result.stdout}")
+            for rule in ("var-naming:", "argument-limit:", "function-result-limit:"):
+                self.assertNotIn(rule, findings, f"{name}:\n{findings}")
+        ordinary = "\n".join(line for line in result.stdout.splitlines()
+                             if line.startswith("ordinary/source.go:"))
+        for rule in ("var-naming:", "argument-limit:", "function-result-limit:"):
+            self.assertIn(rule, ordinary, result.stdout)
 
     def test_actual_policy_does_not_request_behavior_rewrites(self):
         shutil.copyfile(ROOT / ".golangci.yml", self.root / ".golangci.yml")
