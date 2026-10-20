@@ -89,10 +89,13 @@ func TestNativeBoundarySelectsOnlyOwnedAdapters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target := p.replacements[PackageSelector{Pkg: "crypto/ed25519", Selector: "GenerateKey"}].Pkg
+	target := p.replacements[PackageSelector{Pkg: "internal/race", Selector: "Acquire"}].Pkg
+	if target == "" {
+		t.Fatal("missing internal/race adapter")
+	}
 	adapter := &packages.Package{ID: target, PkgPath: target, Module: &packages.Module{Path: "github.com/neria-cloud/gosim"}}
-	native := &packages.Package{ID: "crypto/ed25519", PkgPath: "crypto/ed25519", Imports: map[string]*packages.Package{
-		"crypto/internal/sysrand": {ID: "crypto/internal/sysrand", PkgPath: "crypto/internal/sysrand"},
+	native := &packages.Package{ID: "internal/race", PkgPath: "internal/race", Imports: map[string]*packages.Package{
+		"unsafe": {ID: "unsafe", PkgPath: "unsafe"},
 	}}
 	graph, err := selectGraph([]*packages.Package{native}, p, adapter)
 	if err != nil {

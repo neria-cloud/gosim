@@ -122,10 +122,17 @@ func Verify(ctx context.Context, w Worker, r buildspec.Resolution) error {
 	if info.Toolchain != w.Manifest.Toolchain || info.HostOS != w.Manifest.HostOS || info.HostArch != w.Manifest.HostArch {
 		return fmt.Errorf("worker handshake differs from cache manifest")
 	}
-	if info.Module.Version != w.Manifest.ModuleVersion && !(w.Manifest.ModuleVersion == "" && info.Module.Version == "(devel)") {
-		return fmt.Errorf("worker module version differs from application selection")
+	if !matchesSelectedModuleVersion(w.Manifest.ModuleVersion, info.Module.Version) {
+		return fmt.Errorf("worker module version %q differs from application selection %q", info.Module.Version, w.Manifest.ModuleVersion)
 	}
 	return validateSettings(info.Settings, info.HostOS, info.HostArch, true)
+}
+
+func matchesSelectedModuleVersion(selected, built string) bool {
+	// Go lists a local main module without a version, but may stamp its
+	// binary with a version derived from VCS. Its source and binary digests
+	// are bound by the worker manifest instead.
+	return selected == "" || selected == built
 }
 
 func WriteInfo(w io.Writer) error {

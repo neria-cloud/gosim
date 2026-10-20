@@ -131,6 +131,23 @@ func TestWorkerSettings(t *testing.T) {
 	}
 }
 
+func TestWorkerModuleVersionSelection(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		selected, built string
+		want            bool
+	}{
+		{selected: "", built: "(devel)", want: true},
+		{selected: "", built: "v0.0.2", want: true},
+		{selected: "v1.2.3", built: "v1.2.3", want: true},
+		{selected: "v1.2.3", built: "v1.2.4"},
+	} {
+		if got := matchesSelectedModuleVersion(tc.selected, tc.built); got != tc.want {
+			t.Errorf("selected=%q built=%q: got %t, want %t", tc.selected, tc.built, got, tc.want)
+		}
+	}
+}
+
 // This minimal fixture exercises real go list/build and native handshakes without
 // preparing simulations or sweeping feature/toolchain combinations.
 const fixtureWorker = `package main

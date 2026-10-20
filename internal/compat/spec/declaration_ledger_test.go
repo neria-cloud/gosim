@@ -146,9 +146,10 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 	t.Parallel()
 	ledger := readDeclarationLedger(t)
 	for _, family := range []struct {
-		name       string
-		descriptor func(string) (spec.Profile, error)
-	}{{"go125", p125.DescriptorForArch}, {"go126", p126.DescriptorForArch}} {
+		name           string
+		descriptor     func(string) (spec.Profile, error)
+		policyManifest func() spec.PolicyManifest
+	}{{"go125", p125.DescriptorForArch, p125.PolicyManifest}, {"go126", p126.DescriptorForArch, p126.PolicyManifest}} {
 		for _, arch := range []string{"amd64", "arm64"} {
 			t.Run(family.name+"/"+arch, func(t *testing.T) {
 				p, err := family.descriptor(arch)
@@ -159,13 +160,20 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 				for _, h := range p.Hooks {
 					hooks[h.Package+"."+h.Symbol] = h
 				}
+				bridges := map[string]string{}
+				for _, bridge := range family.policyManifest().Bridges {
+					bridges[bridge.Package] = bridge.Replacement
+				}
 				packages := map[string]map[string]string{}
 				for _, d := range ledger.Declarations {
 					label := d.File + ":" + d.Name
-					if d.Disposition == "package-reject" {
+					if d.Disposition == "package-reject" || d.Disposition == "package-bridge" {
 						policy, err := p.Policy(d.Package, true)
-						if err == nil || policy.Mode != "reject" || d.Note == "" {
+						if d.Disposition == "package-reject" && (err == nil || policy.Mode != "reject" || d.Note == "") {
 							t.Error("missing package rejection", label)
+						}
+						if d.Disposition == "package-bridge" && (err != nil || policy.Mode != "bridge" || bridges[d.Package] == "" || d.Note == "") {
+							t.Error("missing translated package bridge", label)
 						}
 						continue
 					}

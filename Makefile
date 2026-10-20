@@ -3,7 +3,7 @@
 .PHONY: help build check-fmt fix-fmt go-generate certification-matrix certification-colima gosim-tool gosim-prepare-selftest go-test go-race-test test test-unit test-unit-race test-race test-large test-report-tools
 
 # Independent test cases and package binaries run concurrently on the local host.
-UNIT_PARALLEL ?= 4
+UNIT_PARALLEL ?= 2
 UNIT_PACKAGES ?= 2
 TEST_REPORTS_DIR ?= test-reports
 # Optional override; otherwise Go resolves the compiler normally.
