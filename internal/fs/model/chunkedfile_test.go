@@ -174,17 +174,17 @@ func TestFileRead(t *testing.T) {
 	}
 }
 
-func (f *checker) clone() *checker {
+func (c *checker) clone() *checker {
 	return &checker{
-		f: f.f.Clone(),
-		b: slices.Clone(f.b),
+		f: c.f.Clone(),
+		b: slices.Clone(c.b),
 	}
 }
 
-func (f *checker) free() {
-	f.f.Free()
-	f.f = nil
-	f.b = nil
+func (c *checker) free() {
+	c.f.Free()
+	c.f = nil
+	c.b = nil
 }
 
 func TestFileWrite(t *testing.T) {

@@ -370,17 +370,17 @@ func NewLinuxFilesystem() *Filesystem {
 	return newFilesystem(linuxState())
 }
 
-func (fs *filesystemState) getFile(idx int) *backingFile {
-	return fs.objects[idx].(*backingFile)
+func (fss *filesystemState) getFile(idx int) *backingFile {
+	return fss.objects[idx].(*backingFile)
 }
 
-func (fs *filesystemState) getFileOk(idx int) (*backingFile, bool) {
-	f, ok := fs.objects[idx].(*backingFile)
+func (fss *filesystemState) getFileOk(idx int) (*backingFile, bool) {
+	f, ok := fss.objects[idx].(*backingFile)
 	return f, ok
 }
 
-func (fs *filesystemState) getDir(idx int) (*backingDir, bool) {
-	dir, ok := fs.objects[idx].(*backingDir)
+func (fss *filesystemState) getDir(idx int) (*backingDir, bool) {
+	dir, ok := fss.objects[idx].(*backingDir)
 	return dir, ok
 }
 

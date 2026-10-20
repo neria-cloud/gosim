@@ -118,12 +118,12 @@ func (s *Stream) stopTimers() {
 	}
 }
 
-func (b *Stack) Endpoint() *Endpoint {
-	return b.endpoint
+func (s *Stack) Endpoint() *Endpoint {
+	return s.endpoint
 }
 
-func (b *Stack) setEndpoint(ep *Endpoint) {
-	b.endpoint = ep
+func (s *Stack) setEndpoint(ep *Endpoint) {
+	s.endpoint = ep
 }
 
 func NewStack(ref contracts.EpochRef, ports contracts.Ports) *Stack {
@@ -141,55 +141,55 @@ func NewStack(ref contracts.EpochRef, ports contracts.Ports) *Stack {
 	return b
 }
 
-func (n *Stack) allocatePort() uint16 {
-	if n.nextPort > math.MaxUint16 {
+func (s *Stack) allocatePort() uint16 {
+	if s.nextPort > math.MaxUint16 {
 		panic("network port space exhausted")
 	}
-	port := uint16(n.nextPort)
-	n.nextPort++
+	port := uint16(s.nextPort)
+	s.nextPort++
 	return port
 }
 
 // ProcessIncoming rejects retired destinations and recycled connection tuples.
-func (b *Stack) ProcessIncoming(packet *Packet) {
-	if b.shutdown || b.quiesced || packet.DestinationEpoch != b.ref || packet.ConnectionGeneration == 0 {
+func (s *Stack) ProcessIncoming(packet *Packet) {
+	if s.shutdown || s.quiesced || packet.DestinationEpoch != s.ref || packet.ConnectionGeneration == 0 {
 		return
 	}
 	id := packet.ConnId.Flip()
 	if packet.Kind == PacketKindOpenStream {
-		source := b.endpoint.net.endpoints[packet.ConnId.Hosts.SourceHost]
+		source := s.endpoint.net.endpoints[packet.ConnId.Hosts.SourceHost]
 		if source == nil || source.ref != packet.SourceEpoch || packet.InBuffer == nil || packet.OutBuffer == nil {
 			return
 		}
-		if packet.ConnectionGeneration <= b.seen[id] {
+		if packet.ConnectionGeneration <= s.seen[id] {
 			return
 		}
-		b.seen[id] = packet.ConnectionGeneration
-		if old := b.streams[id]; old != nil {
-			b.closeStream(old, false)
+		s.seen[id] = packet.ConnectionGeneration
+		if old := s.streams[id]; old != nil {
+			s.closeStream(old, false)
 		}
-		listener := b.listeners[packet.ConnId.Ports.DestPort]
+		listener := s.listeners[packet.ConnId.Ports.DestPort]
 		if listener == nil || listener.closed || listener.incomingCount == len(listener.incoming) {
 			response := allocPacket(PacketKindStreamClose, id)
 			response.ConnectionGeneration = packet.ConnectionGeneration
-			b.endpoint.Send(response)
+			s.endpoint.Send(response)
 			return
 		}
 		stream := NewStream(id, packet.InBuffer, packet.OutBuffer)
 		stream.generation = packet.ConnectionGeneration
 		stream.remoteEpoch = packet.SourceEpoch
-		stream.owner = b
+		stream.owner = s
 		stream.opened = true
-		b.streams[id] = stream
-		b.resetKeepaliveTimer(stream)
-		b.send(stream, allocPacket(PacketKindOpenedStream, id))
+		s.streams[id] = stream
+		s.resetKeepaliveTimer(stream)
+		s.send(stream, allocPacket(PacketKindOpenedStream, id))
 		pos := (listener.incomingPos + listener.incomingCount) % len(listener.incoming)
 		listener.incoming[pos] = stream
 		listener.incomingCount++
-		b.updateListenerPollers(listener)
+		s.updateListenerPollers(listener)
 		return
 	}
-	stream := b.streams[id]
+	stream := s.streams[id]
 	if stream == nil || stream.generation != packet.ConnectionGeneration {
 		return
 	}
@@ -201,9 +201,9 @@ func (b *Stack) ProcessIncoming(packet *Packet) {
 	}
 	switch packet.Kind {
 	case PacketKindOpenedStream, PacketKindStreamAck, PacketKindStreamData, PacketKindStreamWindow:
-		stream.processIncomingPacket(b, packet)
+		stream.processIncomingPacket(s, packet)
 	case PacketKindStreamClose:
-		b.closeStream(stream, false)
+		s.closeStream(stream, false)
 	default:
 		panic("unknown network packet kind")
 	}
@@ -231,37 +231,37 @@ type Listener struct {
 
 var ErrPortAlreadyInUse = errors.New("port already in use")
 
-func (n *Stack) OpenListener(port uint16) (*Listener, error) {
-	if n.shutdown || n.quiesced || n.endpoint == nil {
+func (s *Stack) OpenListener(port uint16) (*Listener, error) {
+	if s.shutdown || s.quiesced || s.endpoint == nil {
 		return nil, ErrListenerClosed
 	}
 
-	if _, ok := n.listeners[port]; ok {
+	if _, ok := s.listeners[port]; ok {
 		return nil, ErrPortAlreadyInUse
 	}
 
 	l := &Listener{
-		owner:    n,
+		owner:    s,
 		incoming: make([]*Stream, contracts.ListenerBacklog),
 
 		closed: false,
 
 		port: port,
 	}
-	n.listeners[port] = l
+	s.listeners[port] = l
 
 	return l, nil
 }
 
 var ErrListenerClosed = errors.New("listener closed")
 
-func (n *Stack) Accept(listener *Listener) (*Stream, error) {
-	if listener.owner != n {
+func (s *Stack) Accept(listener *Listener) (*Stream, error) {
+	if listener.owner != s {
 		panic("foreign listener")
 	}
 	l := listener
 
-	if l.closed || n.quiesced {
+	if l.closed || s.quiesced {
 		return nil, ErrListenerClosed
 	}
 
@@ -276,42 +276,42 @@ func (n *Stack) Accept(listener *Listener) (*Stream, error) {
 	if l.incomingPos == len(l.incoming) {
 		l.incomingPos = 0
 	}
-	n.updateListenerPollers(l)
+	s.updateListenerPollers(l)
 	return stream, nil
 }
 
-func (n *Stack) updateListenerPollers(listener *Listener) {
-	if n.quiesced {
+func (s *Stack) updateListenerPollers(listener *Listener) {
+	if s.quiesced {
 		return
 	}
-	listener.pollers.set(n.ref, listener.closed || listener.incomingCount > 0, false, listener.closed)
+	listener.pollers.set(s.ref, listener.closed || listener.incomingCount > 0, false, listener.closed)
 }
 
-func (n *Stack) CloseListener(listener *Listener) error {
-	if listener.owner != n {
+func (s *Stack) CloseListener(listener *Listener) error {
+	if listener.owner != s {
 		panic("foreign listener")
 	}
 	l := listener
 
-	if l.closed || n.quiesced {
+	if l.closed || s.quiesced {
 		return ErrListenerClosed
 	}
 
-	return n.ReleaseListener(listener, contracts.CloseExplicit)
+	return s.ReleaseListener(listener, contracts.CloseExplicit)
 }
 
-func (n *Stack) closeStream(stream *Stream, sendClose bool) error {
+func (s *Stack) closeStream(stream *Stream, sendClose bool) error {
 	if stream.closed {
 		panic(stream)
 	}
 
 	if sendClose {
-		n.send(stream, allocPacket(PacketKindStreamClose, stream.id))
+		s.send(stream, allocPacket(PacketKindStreamClose, stream.id))
 	}
 
-	delete(n.streams, stream.id)
+	delete(s.streams, stream.id)
 	stream.closed = true
-	n.updateStreamPollers(stream)
+	s.updateStreamPollers(stream)
 
 	stream.stopTimers()
 
@@ -406,46 +406,46 @@ func (s *Stream) ID() ConnId {
 }
 
 // reset every time we send something that might trigger an ack
-func (n *Stack) resetKeepaliveTimer(s *Stream) {
-	if s.keepaliveTimer == nil {
-		s.keepaliveTimer = n.after(30*time.Second, func() {
-			if n.shutdown || n.quiesced || s.closed {
+func (s *Stack) resetKeepaliveTimer(stream *Stream) {
+	if stream.keepaliveTimer == nil {
+		stream.keepaliveTimer = s.after(30*time.Second, func() {
+			if s.shutdown || s.quiesced || stream.closed {
 				return
 			}
 
 			// only send keepalive if we have not already send any data
-			if s.ackPos != s.sendPos {
+			if stream.ackPos != stream.sendPos {
 				return
 			}
 
-			packet := allocPacket(PacketKindStreamData, s.id)
-			packet.Offset = s.sendPos
+			packet := allocPacket(PacketKindStreamData, stream.id)
+			packet.Offset = stream.sendPos
 			packet.Count = 0
-			n.send(s, packet)
+			s.send(stream, packet)
 
-			n.resetKeepaliveTimer(s)
-			n.startAckFailedTimer(s)
+			s.resetKeepaliveTimer(stream)
+			s.startAckFailedTimer(stream)
 		})
 	} else {
-		s.keepaliveTimer.Reset(15 * time.Second)
+		stream.keepaliveTimer.Reset(15 * time.Second)
 	}
 }
 
 // New writes must not postpone failure detection for earlier unacknowledged
 // data. Only forward ACK progress renews an already running deadline.
-func (n *Stack) startAckFailedTimer(s *Stream) {
-	if s.ackFailedTimer == nil {
+func (s *Stack) startAckFailedTimer(stream *Stream) {
+	if stream.ackFailedTimer == nil {
 		// TODO: this time is way too low, it breaks when latency goes to 2.5s?
-		s.ackFailedTimer = n.after(5*time.Second, func() {
-			if n.shutdown || n.quiesced || s.closed {
+		stream.ackFailedTimer = s.after(5*time.Second, func() {
+			if s.shutdown || s.quiesced || stream.closed {
 				return
 			}
 
 			// A keepalive also requires an ACK, even when ackPos == sendPos.
-			n.closeStream(s, false)
+			s.closeStream(stream, false)
 		})
-	} else if s.ackFailedTimer.event == 0 {
-		s.ackFailedTimer.Reset(5 * time.Second)
+	} else if stream.ackFailedTimer.event == 0 {
+		stream.ackFailedTimer.Reset(5 * time.Second)
 	}
 }
 
@@ -459,18 +459,18 @@ func NewStream(id ConnId, inBuffer, outBuffer *circularBuffer) *Stream {
 	}
 }
 
-func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
-	if n.shutdown || n.quiesced || n.endpoint == nil {
+func (s *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
+	if s.shutdown || s.quiesced || s.endpoint == nil {
 		return nil, ErrStreamClosed
 	}
 	if !addr.Addr().Is4() {
 		return nil, syscall.EAFNOSUPPORT
 	}
 
-	localPort := n.allocatePort()
+	localPort := s.allocatePort()
 	id := ConnId{
 		Hosts: HostPair{
-			SourceHost: n.endpoint.Addr(),
+			SourceHost: s.endpoint.Addr(),
 			DestHost:   addr.Addr(),
 		},
 		Ports: PortPair{
@@ -479,22 +479,22 @@ func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
 		},
 	}
 
-	inBuffer := newCircularBuffer(n.endpoint.net.config.TCPBufferSize)
-	outBuffer := newCircularBuffer(n.endpoint.net.config.TCPBufferSize)
+	inBuffer := newCircularBuffer(s.endpoint.net.config.TCPBufferSize)
+	outBuffer := newCircularBuffer(s.endpoint.net.config.TCPBufferSize)
 	stream := NewStream(id, inBuffer, outBuffer)
-	stream.owner = n
-	stream.generation = n.endpoint.net.connectionGeneration()
+	stream.owner = s
+	stream.generation = s.endpoint.net.connectionGeneration()
 
-	n.streams[stream.id] = stream
+	s.streams[stream.id] = stream
 	// XXX: check stream id doesn't already exist
 
 	packet := allocPacket(PacketKindOpenStream, id)
 	packet.InBuffer = outBuffer
 	packet.OutBuffer = inBuffer
-	n.send(stream, packet)
+	s.send(stream, packet)
 
-	stream.openFailedTimer = n.after(n.endpoint.net.config.ConnectionTimeout, func() {
-		if n.shutdown || n.quiesced {
+	stream.openFailedTimer = s.after(s.endpoint.net.config.ConnectionTimeout, func() {
+		if s.shutdown || s.quiesced {
 			return
 		}
 		if stream.opened || stream.closed {
@@ -502,7 +502,7 @@ func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
 		}
 		// stream.failureReason?
 		// stream.openFailed?
-		n.closeStream(stream, false)
+		s.closeStream(stream, false)
 	})
 
 	return stream, nil
@@ -510,8 +510,8 @@ func (n *Stack) OpenStream(addr netip.AddrPort) (*Stream, error) {
 
 var ErrStreamClosed = errors.New("stream closed")
 
-func (n *Stack) StreamClose(stream *Stream) error {
-	if stream.owner != n {
+func (s *Stack) StreamClose(stream *Stream) error {
+	if stream.owner != s {
 		panic("foreign stream")
 	}
 
@@ -519,7 +519,7 @@ func (n *Stack) StreamClose(stream *Stream) error {
 		return ErrStreamClosed
 	}
 
-	return n.closeStream(stream, true)
+	return s.closeStream(stream, true)
 }
 
 func (s *Stream) processIncomingPacket(b *Stack, packet *Packet) {
@@ -570,81 +570,80 @@ func (s *Stream) processIncomingPacket(b *Stack, packet *Packet) {
 	}
 }
 
-func (n *Stack) updateStreamPollers(stream *Stream) {
-	if n.quiesced {
+func (s *Stack) updateStreamPollers(stream *Stream) {
+	if s.quiesced {
 		return
 	}
-	stream.pollers.set(n.ref, stream.closed || stream.incomingAvailable > 0, stream.closed || stream.outgoingWindow > 0, stream.closed)
+	stream.pollers.set(s.ref, stream.closed || stream.incomingAvailable > 0, stream.closed || stream.outgoingWindow > 0, stream.closed)
 }
 
-func (n *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
-	if stream.owner != n {
+func (s *Stack) StreamSend(stream *Stream, data abi.ByteView) (int, error) {
+	if stream.owner != s {
 		panic("foreign stream")
 	}
-	s := stream
-	if s.closed || n.quiesced {
+	if stream.closed || s.quiesced {
 		return 0, ErrStreamClosed
 	}
 
-	if !s.opened {
+	if !stream.opened {
 		return 0, syscall.EWOULDBLOCK
 	}
 
-	if s.outgoingWindow == 0 {
+	if stream.outgoingWindow == 0 {
 		return 0, syscall.EWOULDBLOCK
 	}
 
-	m := min(s.outgoingWindow, data.Len())
+	m := min(stream.outgoingWindow, data.Len())
 	written := stream.outBuffer.Write(data.Slice(0, m))
 	if written != m {
 		panic("bad")
 	}
 
-	offset := s.sendPos
-	s.sendPos += written
+	offset := stream.sendPos
+	stream.sendPos += written
 
-	packet := allocPacket(PacketKindStreamData, s.id)
+	packet := allocPacket(PacketKindStreamData, stream.id)
 	packet.Offset = offset
 	packet.Count = written
-	n.send(s, packet)
+	s.send(stream, packet)
 
-	s.outgoingWindow -= written
+	stream.outgoingWindow -= written
 
-	n.startAckFailedTimer(s)
-	n.resetKeepaliveTimer(s)
+	s.startAckFailedTimer(stream)
+	s.resetKeepaliveTimer(stream)
 
-	n.updateStreamPollers(s)
+	s.updateStreamPollers(stream)
 
 	return written, nil
 }
 
-func (n *Stack) StreamRecv(s *Stream, data abi.ByteView) (int, error) {
-	if s.owner != n {
+func (s *Stack) StreamRecv(stream *Stream, data abi.ByteView) (int, error) {
+	if stream.owner != s {
 		panic("foreign stream")
 	}
-	if n.quiesced {
+	if s.quiesced {
 		return 0, ErrStreamClosed
 	}
 
-	if s.incomingAvailable == 0 {
-		if s.closed {
+	if stream.incomingAvailable == 0 {
+		if stream.closed {
 			return 0, ErrStreamClosed
 		}
 		return 0, syscall.EWOULDBLOCK
 	}
 
-	m := min(s.incomingAvailable, data.Len())
-	read := s.inBuffer.Read(data.Slice(0, m))
+	m := min(stream.incomingAvailable, data.Len())
+	read := stream.inBuffer.Read(data.Slice(0, m))
 	if read != m {
 		panic("bad")
 	}
-	s.incomingAvailable -= m
+	stream.incomingAvailable -= m
 
-	packet := allocPacket(PacketKindStreamWindow, s.id)
+	packet := allocPacket(PacketKindStreamWindow, stream.id)
 	packet.Count = m
-	n.send(s, packet)
+	s.send(stream, packet)
 
-	n.updateStreamPollers(s)
+	s.updateStreamPollers(stream)
 
 	return m, nil
 }
@@ -654,42 +653,42 @@ type StreamStatus struct {
 	Closed bool
 }
 
-func (n *Stack) StreamStatus(stream *Stream) StreamStatus {
+func (s *Stack) StreamStatus(stream *Stream) StreamStatus {
 	return StreamStatus{
 		Open:   stream.opened,
 		Closed: stream.closed,
 	}
 }
 
-func (n *Stack) RegisterStreamPoller(poller contracts.ReadinessSink, stream *Stream) {
-	stream.pollers.add(n.ref, poller)
+func (s *Stack) RegisterStreamPoller(poller contracts.ReadinessSink, stream *Stream) {
+	stream.pollers.add(s.ref, poller)
 }
 
-func (n *Stack) DeregisterStreamPoller(poller contracts.ReadinessSink, stream *Stream) {
+func (s *Stack) DeregisterStreamPoller(poller contracts.ReadinessSink, stream *Stream) {
 	stream.pollers.remove(poller)
 }
 
-func (n *Stack) RegisterListenerPoller(poller contracts.ReadinessSink, listener *Listener) {
-	listener.pollers.add(n.ref, poller)
+func (s *Stack) RegisterListenerPoller(poller contracts.ReadinessSink, listener *Listener) {
+	listener.pollers.add(s.ref, poller)
 }
 
-func (n *Stack) DeregisterListenerPoller(poller contracts.ReadinessSink, listener *Listener) {
+func (s *Stack) DeregisterListenerPoller(poller contracts.ReadinessSink, listener *Listener) {
 	listener.pollers.remove(poller)
 }
 
-func (n *Stack) ReleaseStream(stream *Stream, reason contracts.CloseReason) error {
-	if stream.owner != n {
+func (s *Stack) ReleaseStream(stream *Stream, reason contracts.CloseReason) error {
+	if stream.owner != s {
 		panic("foreign stream")
 	}
 	if stream.closed {
 		return nil
 	}
-	return n.closeStream(stream, reason == contracts.CloseExplicit || reason == contracts.CloseGraceful)
+	return s.closeStream(stream, reason == contracts.CloseExplicit || reason == contracts.CloseGraceful)
 }
 
 // ReleaseListener is the bounded descriptor-finalization path after Quiesce.
-func (n *Stack) ReleaseListener(listener *Listener, reason contracts.CloseReason) error {
-	if listener.owner != n {
+func (s *Stack) ReleaseListener(listener *Listener, reason contracts.CloseReason) error {
+	if listener.owner != s {
 		panic("foreign listener")
 	}
 	if listener.closed {
@@ -702,13 +701,13 @@ func (n *Stack) ReleaseListener(listener *Listener, reason contracts.CloseReason
 	for listener.incomingCount > 0 {
 		stream := listener.incoming[listener.incomingPos]
 		if !stream.closed {
-			n.closeStream(stream, reason == contracts.CloseExplicit || reason == contracts.CloseGraceful)
+			s.closeStream(stream, reason == contracts.CloseExplicit || reason == contracts.CloseGraceful)
 		}
 		listener.incoming[listener.incomingPos] = nil
 		listener.incomingPos = (listener.incomingPos + 1) % len(listener.incoming)
 		listener.incomingCount--
 	}
-	delete(n.listeners, listener.port)
-	n.updateListenerPollers(listener)
+	delete(s.listeners, listener.port)
+	s.updateListenerPollers(listener)
 	return nil
 }
