@@ -66,8 +66,8 @@ func adapterBody(h spec.Hook, m Manifest) (string, error) {
 		var r *Route
 		for _, item := range m.Routes {
 			if item.Name == routeName {
-				copy := item
-				r = &copy
+				routeCopy := item
+				r = &routeCopy
 				break
 			}
 		}

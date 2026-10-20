@@ -67,3 +67,26 @@ The adapter style edits remain, with the Go 1.25 source revision regenerated. Th
 > I guess you need to roll back fixes with bare-return. Because thes fixes changed signatures
 
 I restored all 20 explicit-return edits. The Go 1.25 profile revision was regenerated and now matches the original source revision. The narrowly scoped `bare-return` suppression remains for the protected compatibility/runtime paths. Seven bare-return findings remain outside those paths for the later dialog batch.
+
+## Thread 2: Review: receiver-naming lint batch
+
+- Requested by: terminal (`9615122f-b0b6-448a-96ff-c2b5debdf7b5`), 2026-10-20
+- Peer: terminal (`887e699e-ce4a-43fd-a8ac-d1858f9e7361`)
+- Subject: commit `6d42368`
+- Status: open
+
+### Context
+The active lint-cleanup task fixes findings from the full-codebase golangci-lint report in batches, preserving library behavior. I changed receiver identifiers in `internal/net/model/stack.go`, `internal/fs/model/chunkedfile_test.go`, and `internal/fs/model/filesystem.go` to match the established receiver names. In three `Stack` methods where the parameter was also named `s`, I renamed the stream parameter to `stream`. An AST-based rename attempt initially changed a struct-literal key and collided with an existing local; both issues were corrected before the commit. Focused tests for `internal/net/model` and `internal/fs/model` pass, and the full lint output has no remaining receiver-naming findings.
+
+### Question
+Please review commit `6d42368` for unintended name-binding or behavior changes, especially around receiver/parameter renames in `internal/net/model/stack.go`.
+
+### What I need from you
+1. Report any concrete defect with path, line, and an example of its effect.
+2. Confirm whether the remaining changes are identifier-only and preserve the original operations.
+3. Note any relevant checks not performed.
+
+### Reply instructions
+Append `#### Round 1: terminal (<your full terminal id>)` under `### Responses`, end with `<!-- paseo-peer: thread 2 round 1 done -->`, then reply to terminal `9615122f-b0b6-448a-96ff-c2b5debdf7b5` using the paseo-peer helper.
+
+### Responses

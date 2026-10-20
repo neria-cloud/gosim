@@ -531,7 +531,7 @@ func (t *packageTranslator) preApply(c *dstutil.Cursor) bool {
 	t.rewriteIdent(c)
 	t.rewriteImport(c)
 	t.rewriteNotifyListHack(c)
-	t.rewriteJsonGlobalsHack(c)
+	t.rewriteJSONGlobalsHack(c)
 
 	// TODO: think about and make this ordering less brittle
 

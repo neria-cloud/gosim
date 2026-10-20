@@ -21,7 +21,7 @@ type Stackframe struct {
 	Line     int    `json:"line"`
 }
 
-func collectJsonKeys(typ reflect.Type) map[string]int {
+func collectJSONKeys(typ reflect.Type) map[string]int {
 	if typ.Kind() != reflect.Struct {
 		panic("bad kind " + typ.Kind().String())
 	}
@@ -127,7 +127,7 @@ type Log struct {
 }
 
 // sync.Once this?
-var knownLogInfo = collectJsonKeys(reflect.TypeFor[Log]())
+var knownLogInfo = collectJSONKeys(reflect.TypeFor[Log]())
 
 func (l *Log) UnmarshalJSON(b []byte) error {
 	type Plain Log

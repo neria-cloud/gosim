@@ -416,8 +416,6 @@ func (b *implicitConversionsBuilder) before(c *astutil.Cursor) bool {
 					b.conversions[y] = x
 				}
 			}
-		} else {
-			// XXX?
 		}
 
 	case *ast.AssignStmt:

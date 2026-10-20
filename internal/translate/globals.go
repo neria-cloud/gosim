@@ -11,7 +11,7 @@ import (
 	"github.com/dave/dst/dstutil"
 )
 
-func (t *packageTranslator) rewriteJsonGlobalsHack(c *dstutil.Cursor) {
+func (t *packageTranslator) rewriteJSONGlobalsHack(c *dstutil.Cursor) {
 	if decl, ok := c.Node().(*dst.FuncDecl); ok {
 		if t.pkgPath == "encoding/json" && (decl.Name.Name == "cachedTypeFields" || decl.Name.Name == "typeEncoder") {
 			decl.Body.List = append([]dst.Stmt{
@@ -51,15 +51,15 @@ func (t *packageTranslator) rewriteInit(c *dstutil.Cursor) {
 	if !ok {
 		return
 	}
-	var_, ok := obj.(*types.Func)
+	variable, ok := obj.(*types.Func)
 	if !ok {
 		return
 	}
-	pkg := var_.Pkg()
+	pkg := variable.Pkg()
 	if pkg == nil {
 		return
 	}
-	if var_.Parent() != pkg.Scope() {
+	if variable.Parent() != pkg.Scope() {
 		return
 	}
 
@@ -106,18 +106,18 @@ func (t *packageTranslator) isGlobalUse(node dst.Node) (dst.Expr, bool) {
 		return nil, false
 	}
 
-	var_, ok := obj.(*types.Var)
+	variable, ok := obj.(*types.Var)
 	if !ok {
 		return nil, false
 	}
 
 	// XXX: jank
-	pkg := var_.Pkg()
+	pkg := variable.Pkg()
 	if pkg == nil {
 		return nil, false
 	}
 
-	if var_.Parent() != pkg.Scope() {
+	if variable.Parent() != pkg.Scope() {
 		return nil, false
 	}
 
@@ -125,7 +125,7 @@ func (t *packageTranslator) isGlobalUse(node dst.Node) (dst.Expr, bool) {
 	if t.nativeImports[path] {
 		return nil, false
 	}
-	name := var_.Name()
+	name := variable.Name()
 	if t.profile != nil {
 		if replacement, ok := t.profile.replacements[PackageSelector{Pkg: path, Selector: name}]; ok {
 			path, name = replacement.Pkg, replacement.Selector
@@ -192,7 +192,7 @@ func (t *packageTranslator) collectGlobalDefImpl(decl *dst.GenDecl) {
 			if !ok {
 				return
 			}
-			var_, ok := obj.(*types.Var)
+			variable, ok := obj.(*types.Var)
 			if !ok {
 				return
 			}
@@ -211,12 +211,12 @@ func (t *packageTranslator) collectGlobalDefImpl(decl *dst.GenDecl) {
 			if !t.globalInfo.ByPackage[t.pkgPath].ShouldShare[name.Name] {
 				t.collect.globalFields = append(t.collect.globalFields, &dst.Field{
 					Names: []*dst.Ident{name},
-					Type:  t.makeTypeExpr(var_.Type()),
+					Type:  t.makeTypeExpr(variable.Type()),
 				})
 			} else {
 				t.collect.sharedGlobalFields = append(t.collect.sharedGlobalFields, &dst.ValueSpec{
 					Names: []*dst.Ident{name},
-					Type:  t.makeTypeExpr(var_.Type()),
+					Type:  t.makeTypeExpr(variable.Type()),
 				})
 			}
 		}
@@ -258,17 +258,17 @@ func makeDetgoGlobalsFile(t *packageTranslator, pkgName string, forTest bool) (*
 
 		shouldShare := t.globalInfo.ByPackage[t.pkgPath].ShouldShare[initializer.Lhs[0].Name()]
 
-		for _, var_ := range initializer.Lhs {
-			if var_.Name() == "_" {
+		for _, variable := range initializer.Lhs {
+			if variable.Name() == "_" {
 				lhs = append(lhs, dst.NewIdent("_"))
 			} else {
 				if !shouldShare {
 					lhs = append(lhs, &dst.SelectorExpr{
 						X:   &dst.CallExpr{Fun: dst.NewIdent(funcName)},
-						Sel: dst.NewIdent(var_.Name()),
+						Sel: dst.NewIdent(variable.Name()),
 					})
 				} else {
-					lhs = append(lhs, dst.NewIdent(var_.Name()))
+					lhs = append(lhs, dst.NewIdent(variable.Name()))
 				}
 			}
 		}

@@ -99,8 +99,8 @@ func ValidateFSFault(config FSFaultConfig) error {
 	return nil
 }
 
-func validateLatency(min, max int64, lambda float64) bool {
-	return min >= 0 && max >= min && !math.IsNaN(lambda) && !math.IsInf(lambda, 0) && lambda > 0
+func validateLatency(minNS, maxNS int64, lambda float64) bool {
+	return minNS >= 0 && maxNS >= minNS && !math.IsNaN(lambda) && !math.IsInf(lambda, 0) && lambda > 0
 }
 
 func ValidateNetConfig(config NetConfig) error {

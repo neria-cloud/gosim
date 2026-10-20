@@ -180,12 +180,11 @@ func (p *pendingOps) enqueuePrevDeps(dep *pendingDep, out []*pendingOp) []*pendi
 	for cur := dep; cur != nil && cur.op != flagOpWalked; cur = cur.prev {
 		if cur.kind.isStoreAs() {
 			out = p.maybeEnqueueOpFromDep(cur, out)
-		} else {
-			// XXX: how do we unhook this guy???????????????????????????????????
-			// do we just leave it??? but then its prev and next are wrong!!!!!
-			// (actually i think they are right, just other depends-on deps at
-			// the start of the chain)
 		}
+		// XXX: how do we unhook this guy???????????????????????????????????
+		// do we just leave it??? but then its prev and next are wrong!!!!!
+		// (actually i think they are right, just other depends-on deps at
+		// the start of the chain)
 		cur.op = flagOpWalked
 	}
 	return out

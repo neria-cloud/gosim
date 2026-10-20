@@ -94,14 +94,14 @@ func (i *Instance) Renameat(ctx contracts.CallContext, oldFD int, oldPath string
 	if err != nil {
 		return err
 	}
-	new, err := i.dirInode(newFD)
+	newDir, err := i.dirInode(newFD)
 	if err != nil {
 		return err
 	}
 	if err := i.checkMutation(); err != nil {
 		return err
 	}
-	return i.model.Rename(old, oldPath, new, newPath, i.identity())
+	return i.model.Rename(old, oldPath, newDir, newPath, i.identity())
 }
 
 func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteView) (int, error) {

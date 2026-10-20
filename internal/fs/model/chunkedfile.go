@@ -134,16 +134,16 @@ func (c *refCountedChunk) decRef() {
 // this at end of simulation?)
 
 // small helper to make testing possible
-func requiredCount(chunkPos int, len int) int {
-	if len == 0 {
+func requiredCount(chunkPos int, length int) int {
+	if length == 0 {
 		return 0
 	}
 	count := 0
 	if chunkPos != 0 {
 		count++
-		len -= min(chunkSize-chunkPos, len)
+		length -= min(chunkSize-chunkPos, length)
 	}
-	count += (len + chunkSize - 1) / chunkSize
+	count += (length + chunkSize - 1) / chunkSize
 	return count
 }
 

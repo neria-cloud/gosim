@@ -626,9 +626,7 @@ func (fs *Filesystem) getInodeInfo(inode int) InodeInfo {
 }
 
 func (fs *Filesystem) maybeGC(inode int) {
-	if inode == 2 {
-		// slog.Info("considering gc", "inode", inode, "info", fs.getInodeInfo(inode))
-	}
+	// slog.Info("considering gc", "inode", inode, "info", fs.getInodeInfo(inode))
 
 	// haha take taht!!!
 	if _, ok := fs.openCountByInode[inode]; ok {
@@ -691,19 +689,19 @@ func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView, capacityB
 	}
 
 	chunks := makeChunks(int(pos), buffer)
-	len := buffer.Len()
+	bufferLen := buffer.Len()
 
 	op := &writeOp{
 		inode:  inode,
 		pos:    int(pos),
-		size:   buffer.Len(),
+		size:   bufferLen,
 		chunks: chunks,
 		// XXX: if we're running in some kind of non-fail mode, no need to make an (expensive?) copy?
 		// data: data, // XXX: test that we clone this please somehow (also other clones)
 	}
 	fs.apply(op)
 
-	return len, nil
+	return bufferLen, nil
 }
 
 func (fs *Filesystem) Truncate(inode int, pos int64, capacityBytes uint64) error {
@@ -932,8 +930,8 @@ func (fs *Filesystem) Chown(inode, uid, gid int, who Identity) error {
 
 // for getcwd
 func (fs *Filesystem) Getpath(dirInode int) (string, error) {
-	var stack_ [16]string
-	s := stack_[:0]
+	var stack [16]string
+	s := stack[:0]
 	for dirInode != RootInode {
 		dir, ok := fs.mem.getDir(dirInode)
 		if !ok {
@@ -1286,9 +1284,9 @@ func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool, who Id
 }
 
 // Open a mmap for the given inode. Mmap starts at offset 0.
-func (fs *Filesystem) Mmap(inode int, len int) *Mmap {
-	backingArray := make([]byte, len)
-	byteView := abi.NewSliceView(unsafe.SliceData(backingArray), uintptr(len))
+func (fs *Filesystem) Mmap(inode int, length int) *Mmap {
+	backingArray := make([]byte, length)
+	byteView := abi.NewSliceView(unsafe.SliceData(backingArray), uintptr(length))
 
 	file := fs.mem.getFile(inode)
 	file.read(0, byteView)

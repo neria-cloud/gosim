@@ -316,9 +316,7 @@ const timeFormat = "15:04:05.000"
 func (f *formatter) timestamp(i interface{}) string {
 	if s, ok := i.(string); ok {
 		ts, err := time.ParseInLocation(time.RFC3339Nano, s, time.UTC)
-		if err != nil {
-			// ignore
-		} else {
+		if err == nil {
 			i = ts.In(time.UTC).Format(timeFormat)
 		}
 	}

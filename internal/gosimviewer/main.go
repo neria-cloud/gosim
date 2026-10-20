@@ -205,10 +205,7 @@ func (s *Server) Index(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Stack(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	indexStr := q.Get("index")
-	indexIdx, err := strconv.Atoi(indexStr)
-	if err != nil {
-		// TODO: handle
-	}
+	indexIdx, _ := strconv.Atoi(indexStr)
 
 	var foundLog *gosimlog.Log
 
@@ -230,10 +227,7 @@ func (s *Server) Stack(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Related(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	indexStr := q.Get("index")
-	indexIdx, err := strconv.Atoi(indexStr)
-	if err != nil {
-		// TODO: handle
-	}
+	indexIdx, _ := strconv.Atoi(indexStr)
 
 	var foundLog *gosimlog.Log
 
@@ -263,10 +257,7 @@ func (s *Server) Viewer(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	file := q.Get("file")
 	lineStr := q.Get("line")
-	lineIdx, err := strconv.Atoi(lineStr)
-	if err != nil {
-		// TODO: handle
-	}
+	lineIdx, _ := strconv.Atoi(lineStr)
 
 	if !strings.HasPrefix(file, "translated/") {
 		http.Error(w, fmt.Sprintf("file %q does not have translated/ prefix", file), http.StatusBadRequest)
