@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neria-cloud/gosim/internal/compat/go125/shims/exec"
-	"github.com/neria-cloud/gosim/internal/compat/go125/shims/pprof"
+	exec "github.com/neria-cloud/gosim/internal/compat/go125/shims/exec"
+	pprof "github.com/neria-cloud/gosim/internal/compat/go125/shims/pprof"
 	rb "github.com/neria-cloud/gosim/internal/compat/go125/shims/runtimebridge"
-	"github.com/neria-cloud/gosim/internal/compat/go125/shims/signal"
-	"github.com/neria-cloud/gosim/internal/compat/go125/shims/tls"
-	"github.com/neria-cloud/gosim/internal/compat/go125/shims/x509"
+	signal "github.com/neria-cloud/gosim/internal/compat/go125/shims/signal"
+	tls "github.com/neria-cloud/gosim/internal/compat/go125/shims/tls"
+	x509 "github.com/neria-cloud/gosim/internal/compat/go125/shims/x509"
 	engine "github.com/neria-cloud/gosim/rt/runtime"
 )
 

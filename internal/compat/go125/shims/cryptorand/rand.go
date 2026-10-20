@@ -17,7 +17,7 @@ import (
 
 type deterministicReader struct{}
 
-func (_ *deterministicReader) Read(b []byte) (int, error) {
+func (r *deterministicReader) Read(b []byte) (int, error) {
 	for i := 0; i < len(b); {
 		v := gosimruntime.Fastrand64()
 		for j := 0; j < 8 && i < len(b); j++ {

@@ -10,7 +10,7 @@ import (
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 
-func SetMemoryLimit(_ int64) int64 {
+func SetMemoryLimit(limit int64) int64 {
 	gosimruntime.Abort(
 		abi.Diagnostic{
 			Kind:      "UnsupportedOperation",
@@ -49,7 +49,7 @@ type GCStats struct {
 	PauseQuantiles []time.Duration
 }
 
-func ReadGCStats(_ *GCStats) {
+func ReadGCStats(stats *GCStats) {
 	gosimruntime.Abort(
 		abi.Diagnostic{
 			Kind:      "UnsupportedOperation",

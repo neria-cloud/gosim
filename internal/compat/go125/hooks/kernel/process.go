@@ -8,7 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
-	"github.com/neria-cloud/gosim/internal/kernel"
+	kernel "github.com/neria-cloud/gosim/internal/kernel"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
