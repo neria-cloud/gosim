@@ -92,6 +92,26 @@ class MatrixTests(unittest.TestCase):
             self.assertEqual(result["status"], "failed")
             path = Path(tmp) / matrix.job_name(job) / "execution.json"
             self.assertIn("worker failed", json.loads(path.read_text())["error"])
+            self.assertGreaterEqual(result["elapsed_seconds"], 0)
+
+    def test_native_jobs_reuse_compiler_cache_between_runs(self):
+        job = matrix.enumerate_jobs(["darwin/arm64"], matrix.DEFAULT_TOOLCHAINS, smoke=True)[0]
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(matrix, "ROOT", Path(tmp)), \
+                patch.dict(matrix.os.environ, {}, clear=True), \
+                patch.object(matrix, "snapshot", return_value={}), \
+                patch.object(matrix, "checked", side_effect=RuntimeError("stop after launch")) as command:
+            for name in ("first", "second"):
+                run = Path(tmp) / name
+                run.mkdir()
+                matrix.execute(job, run, argparse.Namespace(native=True, worker_concurrency=2), {}, [], {}, {})
+            caches = [call.kwargs["env"]["GOCACHE"] for call in command.call_args_list]
+            self.assertEqual(caches, [str(Path(tmp) / ".gosim/certification/go-build-cache")] * 2)
+            with patch.dict(matrix.os.environ, {"GOCACHE": str(Path(tmp) / "custom-cache")}):
+                run = Path(tmp) / "third"
+                run.mkdir()
+                matrix.execute(job, run, argparse.Namespace(native=True, worker_concurrency=2), {}, [], {}, {})
+                self.assertEqual(command.call_args.kwargs["env"]["GOCACHE"], str(Path(tmp) / "custom-cache"))
 
     def test_container_failure_collects_evidence_and_removes_owned_container(self):
         job = matrix.enumerate_jobs(["linux/arm64"], matrix.DEFAULT_TOOLCHAINS, smoke=True)[0]

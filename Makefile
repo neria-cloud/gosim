@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help build check-fmt fix-fmt go-generate certification-matrix certification-colima gosim-tool gosim-prepare-selftest go-test go-race-test test test-unit test-unit-race test-race test-large test-report-tools
+.PHONY: help build check-fmt fix-fmt lint lint-full lint-staged lint-tools install-hooks test-lint-tools go-generate certification-matrix certification-colima gosim-tool gosim-prepare-selftest go-test go-race-test test test-unit test-unit-race test-race test-large test-report-tools
 
 # Independent test cases and package binaries run concurrently on the local host.
 UNIT_PARALLEL ?= 2
@@ -25,6 +25,26 @@ check-fmt: ## Check Go formatting
 
 fix-fmt: ## Format Go sources
 	./.ci/gofmt fix
+
+lint: ## Lint changed Go files under cmd/ and examples/ (staged, unstaged, untracked)
+	@python3 -B scripts/lint.py
+
+lint-full: ## Lint all Go files under cmd/ and examples/, including unchanged files
+	@python3 -B scripts/lint.py --full
+
+lint-staged: ## Lint staged cmd/ and examples/ Go files in an isolated index snapshot
+	@python3 -B scripts/lint_staged.py
+
+lint-tools: ## Install the lint tool versions used by gquorum
+	@mkdir -p .gosim/lint/golangci-v2.14.0 .gosim/lint/revive-v1.17.1
+	GOBIN="$(CURDIR)/.gosim/lint/golangci-v2.14.0" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+	GOBIN="$(CURDIR)/.gosim/lint/revive-v1.17.1" go install github.com/mgechev/revive@v1.17.1
+
+install-hooks: ## Enable the repository's pre-commit lint hook
+	git config --local core.hooksPath .githooks
+
+test-lint-tools: ## Check changed-file selection and staged lint isolation
+	python3 -B -m unittest discover -s scripts -p 'lint_test.py'
 
 go-generate: ## Generate Go adapters and filesystem model stringers
 	GOTOOLCHAIN=go1.25.14 go run ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=.

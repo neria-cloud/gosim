@@ -17,16 +17,14 @@ func TestBbolt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := db.Update(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucket([]byte("bucket1"))
 		if err != nil {
 			return err
 		}
-		if err := bucket.Put([]byte("key1"), []byte("value")); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
+		return bucket.Put([]byte("key1"), []byte("value"))
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
 

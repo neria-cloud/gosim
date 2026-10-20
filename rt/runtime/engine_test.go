@@ -105,8 +105,12 @@ func TestEngineAbortCannotBeRecovered(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer func() {
+			// Translated cleanup (for example encoding/json) uses atomics.
+			// Their implicit scheduling points must not suspend cleanup.
+			AtomicYield()
 			e.CancelMachine(token)
 			e.DisposeMachine(token)
+			AtomicYield()
 			supervisorCleaned.Store(true)
 		}()
 		e.PublishMachine(token, func() {

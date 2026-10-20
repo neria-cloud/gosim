@@ -10,6 +10,7 @@ import platform
 import subprocess
 import sys
 import tempfile
+import time
 
 from test_support import ROOT, memory_limit, source_files, snapshot as copy_snapshot
 from worker import CERTIFICATION_PLATFORMS, arch, validate_certification, validate_toolchain
@@ -128,6 +129,7 @@ def docker_image(docker, job, run, source):
 
 
 def execute(job, run, args, inputs, docker, daemon, images):
+    started = time.monotonic()
     directory = run / job_name(job)
     directory.mkdir()
     evidence = directory / "evidence"
@@ -146,7 +148,10 @@ def execute(job, run, args, inputs, docker, daemon, images):
             source = directory / "source"
             record["snapshot_metadata"] = snapshot(source, inputs)
             mode, image = "native", ""
-            env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GOCACHE=str(run / "go-build-cache"))
+            # Go's content-addressed cache safely separates compiler/source
+            # identities. Reuse compilation across runs, never test results.
+            cache = os.environ.get("GOCACHE") or str(ROOT / ".gosim/certification/go-build-cache")
+            env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GOCACHE=cache)
             checked([sys.executable, "-B", str(source / ".ci/crossarch-tests/worker.py"),
                      *common, "--evidence", str(evidence)], log, cwd=source, env=env)
         else:
@@ -189,12 +194,24 @@ def execute(job, run, args, inputs, docker, daemon, images):
             raise RuntimeError("source changed during matrix execution")
     except Exception as error:
         record.update(status="failed", error=str(error))
+    record["elapsed_seconds"] = round(time.monotonic() - started, 3)
     status.write_text(json.dumps(record, indent=2) + "\n")
-    print(job_name(job), record["status"], flush=True)
+    print(job_name(job), record["status"], f"({record['elapsed_seconds']:.1f}s)", flush=True)
+    if record["status"] == "failed":
+        print(f"  {record['error']}", flush=True)
+        for report in sorted(evidence.rglob("report.json")):
+            try:
+                suites = json.loads(report.read_text()).get("suites", [])
+            except (OSError, ValueError):
+                continue
+            for suite in suites:
+                if not suite.get("passed"):
+                    print(f"  failed suite log: {report.parent / (suite['name'] + '.log')}", flush=True)
     return record
 
 
 def main(argv=None):
+    started = time.monotonic()
     parser = argparse.ArgumentParser()
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--context", default="colima")
@@ -267,7 +284,9 @@ def main(argv=None):
             manifest.write_text(json.dumps(plan, indent=2) + "\n")
     passed = len(results) == len(jobs) and all(r["status"] == "passed" for r in results)
     plan["status"] = "passed" if passed else "failed"
+    plan["elapsed_seconds"] = round(time.monotonic() - started, 3)
     manifest.write_text(json.dumps(plan, indent=2) + "\n")
+    print(f"matrix: {plan['status']} ({plan['elapsed_seconds']:.1f}s); summary: {manifest}", flush=True)
     return 0 if passed else 1
 
 

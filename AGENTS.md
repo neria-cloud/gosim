@@ -84,6 +84,27 @@ The verification entry creates an isolated copy and verifies equal executable in
 
 Do not run bare native `go test ./...` against stale or missing prebuilt simulation workers. Metatesting requires matching patch/features/race manifests and an automatically selected matching CLI worker. `build-tests` and `prepare-selftest` use the same explicit build selection; the verification entry handles preparation.
 
+## Linting
+
+Enforcing every linter across the whole project causes major problems for
+runtime code generation and crypto/hash implementations. Generated adapters,
+runtime compatibility code and low-level algorithms have constraints that do
+not fit general-purpose style and refactoring rules. Do not change their
+semantics or generator output merely to satisfy a linter.
+
+Lint only `./cmd` and `./examples`, including their subdirectories. Do not run
+linters against the whole project or expand enforcement into runtime,
+generated compatibility, or crypto/hash implementations. `make lint` selects
+staged, unstaged or untracked Go files within these two directories and reports
+findings in those changed files. Other directories are outside lint scope.
+`make lint-full` checks all Go files in the same allowed paths, including
+unchanged tracked files and non-ignored untracked files, across nested modules.
+
+`make lint-staged` checks the same scope's exact index contents in an isolated snapshot.
+`make install-hooks` enables the pre-commit hook for that check. The copied
+rules live in `.golangci.yml` and `revive.toml`; `make lint-tools` installs the
+tools, and `make test-lint-tools` verifies selection and snapshot behavior.
+
 ## Architecture
 
 | Location | Responsibility |

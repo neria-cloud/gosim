@@ -209,6 +209,30 @@ The reviewed [go125](internal/compat/go125/profile/capabilities.json) and [go126
 
 ## Development and test reports
 
+Run `make lint` to check the current contents of all staged, unstaged and
+untracked Go files under `./cmd` and `./examples` only. It checks entire changed
+files, with their package context, and reports findings only in those files (package type errors still
+fail). Deleted files are skipped. Nested modules are discovered from `go.mod`.
+The `.golangci.yml` and `revive.toml` rules come from gquorum, with golangci's
+path scope restricted to `cmd/` and `examples/` and its examples exclusion removed.
+Golangci-lint checks native packages with `linkname` and the selected compiler;
+standalone revive also checks files excluded by build tags, including `sim`
+tests. Lint does not execute tests or enforce rules in runtime or crypto/hash code.
+
+Run `make lint-full` to check all Go files within those same allowed paths,
+including unchanged tracked files and non-ignored untracked files. It uses
+the same rules and nested-module handling as `make lint`.
+
+`make lint-tools` installs gquorum's pinned tools under `.gosim/lint/`.
+Lint prefers those binaries, otherwise uses tools on `PATH`; `GOLANGCI` and
+`REVIVE` can override the executables. `GOSIM_TOOLCHAIN` selects the compiler
+used for analysis. Changes outside these directories and non-Go changes are a no-op.
+
+Run `make install-hooks` to enable the copied pre-commit hook. It runs
+`make lint-staged`'s runner against an isolated copy of the index, so partially
+staged files are checked exactly as they will be committed. Neither command
+changes or stages source files. `make test-lint-tools` checks this workflow.
+
 Run `make test` for ordinary local native and simulation checks. Go selects the
 compiler normally; `GOSIM_TOOLCHAIN` is an optional explicit override. The runner
 creates an isolated source snapshot and starts no Docker, Colima, VMs or
@@ -270,6 +294,11 @@ requires complete selected-tuple large coverage and records exact source,
 compiler, observed architecture, image metadata and logs. Such a report never
 changes library usability or promotes a pending tuple. No normal command
 invokes this matrix.
+
+Native matrix jobs reuse Go's content-addressed build cache across runs under
+`.gosim/certification/go-build-cache/` (or the caller's `GOCACHE`). Test results
+remain uncached and each tuple keeps its own source snapshot and evidence.
+The runner prints tuple and total durations and links failed suite logs.
 
 See [the architecture](docs/design.md), [examples](examples/), and [nemesis](nemesis/) for implementation details and supported scenarios.
 

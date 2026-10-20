@@ -12,7 +12,11 @@
 Example cases are separate packages, selected by their required features.
 The unsupported `examples/etcd` integration remains separate rejection coverage.
 
-Each positive package retains native metatests for deterministic replay, seeds and execution. Expected application failures have separate native assertions. The race oracle runs only for full-feature race tuples, with its native harness checking intentional race reports. HTTP/gRPC are explicit translation rejections; the retained ignored source examples do not count as simulated coverage. The old commented nemesis behavior files remain preserved in integration; the active nemesis package runs on full-feature tuples.
+Native metatests are selected separately using the registry's `Native` field.
+The sim-only bolt, network/machines and network/latency examples are built and
+executed in simulation, but are not passed to native `go test`. The other
+positive packages retain native checks for deterministic replay, seeds and execution.
+Expected application failures have separate native assertions. The race oracle runs only for full-feature race tuples, with its native harness checking intentional race reports. HTTP/gRPC are explicit translation rejections; the retained ignored source examples do not count as simulated coverage. The old commented nemesis behavior files remain preserved in integration; the active nemesis package runs on full-feature tuples.
 
 `inventory.json` maps all 207 declared baseline behavior tests to their new files and build constraints. An AST comparison against the Task 24 commit confirmed identical function bodies immediately after moving. The fs syscall trace expectation was then adjusted to omit the hostname init call that now belongs to rt; filesystem syscall assertions remain intact. `inventory_test.go` prevents declarations or their applicability constraints from silently disappearing. `suite-moves.json` records the default file destinations; mixed crash/logging declarations are individually mapped in the test inventory.
 

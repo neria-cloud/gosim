@@ -243,7 +243,11 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	if full {
 		args = append(args, "./...")
 	} else {
-		args = append(args, packages...)
+		metatests, err := features.MetatestPackages(cfg.Identity.Features)
+		if err != nil {
+			return results, err
+		}
+		args = append(args, metatests...)
 	}
 	if cfg.Identity.Race {
 		args = append(args, "-race")
@@ -302,10 +306,9 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 }
 
 func runLargeSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (SuiteResult, error) {
-	parallel, packages := max(1, suite.concurrency/2), 2
-	if suite.concurrency == 1 {
-		packages = 1
-	}
+	// Keep the same budget division as native tests. In particular a budget
+	// of three must allow parallel script fixtures, not serialize them all.
+	packages, parallel := nativeTestConcurrency(suite.concurrency)
 	if suite.parallel > 0 {
 		parallel = suite.parallel
 	}
@@ -327,8 +330,13 @@ func runLargeSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (S
 // Divide one budget between package processes and parallel tests in each
 // process, rather than allowing both levels to multiply the worker count.
 func nativeTestParallelFlags(concurrency int) []string {
-	packages := max(1, concurrency/2)
-	return []string{"-p=" + strconv.Itoa(packages), "-parallel=" + strconv.Itoa(max(1, concurrency/packages))}
+	packages, parallel := nativeTestConcurrency(concurrency)
+	return []string{"-p=" + strconv.Itoa(packages), "-parallel=" + strconv.Itoa(parallel)}
+}
+
+func nativeTestConcurrency(concurrency int) (packages, parallel int) {
+	packages = max(1, concurrency/2)
+	return packages, max(1, concurrency/packages)
 }
 
 // Simulation engines cannot share a process. Run independent binaries with a
