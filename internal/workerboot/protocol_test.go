@@ -22,27 +22,8 @@ func TestProbeRejectsInvalidWorkers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := buildspec.Resolution{
-		Schema: 1,
-		Toolchain: buildspec.Toolchain{
-			Version:    runtime.Version(),
-			GOROOT:     root,
-			Executable: filepath.Join(root, "bin/go"),
-			HostOS:     runtime.GOOS,
-			HostArch:   runtime.GOARCH,
-		},
-		Context: buildspec.ModuleContext{Directory: t.TempDir(), GoWork: "off"},
-	}
-	valid := Info{
-		Protocol:  Protocol,
-		Toolchain: runtime.Version(),
-		Compiler:  "gc",
-		HostOS:    runtime.GOOS,
-		HostArch:  runtime.GOARCH,
-		GOROOT:    root,
-		BuildPath: WorkerPackage,
-		Module:    debug.Module{Path: buildcfg.GosimModule},
-	}
+	r := buildspec.Resolution{Schema: 1, Toolchain: buildspec.Toolchain{Version: runtime.Version(), GOROOT: root, Executable: filepath.Join(root, "bin/go"), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, Context: buildspec.ModuleContext{Directory: t.TempDir(), GoWork: "off"}}
+	valid := Info{Protocol: Protocol, Toolchain: runtime.Version(), Compiler: "gc", HostOS: runtime.GOOS, HostArch: runtime.GOARCH, GOROOT: root, BuildPath: WorkerPackage, Module: debug.Module{Path: buildcfg.GosimModule}}
 	for _, tc := range []struct {
 		name   string
 		change func(*Info)
@@ -77,8 +58,7 @@ func TestProbeRejectsInvalidWorkers(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if _, err := Probe(t.Context(), script(t, tc.body), r); err == nil ||
-				!strings.Contains(err.Error(), tc.want) {
+			if _, err := Probe(t.Context(), script(t, tc.body), r); err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatal(err)
 			}
 		})

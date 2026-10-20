@@ -74,12 +74,7 @@ func TestLatencySampling(t *testing.T) {
 	}{
 		{"default", DefaultConfig().Latency, 1, 20 * time.Millisecond},
 		{"cap", DefaultConfig().Latency, 9, 100 * time.Millisecond},
-		{
-			"quantize",
-			LatencyConfig{Min: 1500 * time.Microsecond, Max: 6500 * time.Microsecond, Lambda: 2.5},
-			1,
-			3500 * time.Microsecond,
-		},
+		{"quantize", LatencyConfig{Min: 1500 * time.Microsecond, Max: 6500 * time.Microsecond, Lambda: 2.5}, 1, 3500 * time.Microsecond},
 		{"submillisecond", LatencyConfig{Min: 100, Max: 900, Lambda: 5}, 100, 100},
 		{"zero", LatencyConfig{Lambda: 5}, 3, 0},
 		{"fixed", LatencyConfig{Min: 123, Max: 123, Lambda: 5}, 1, 123},

@@ -83,8 +83,7 @@ func write(t *testing.T, fs *model.Filesystem, name, value string) int {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n, err := fs.Write(inode, 0, abi.ByteView{Ptr: []byte(value)}, model.DefaultCapacityBytes); err != nil ||
-		n != len(value) {
+	if n, err := fs.Write(inode, 0, abi.ByteView{Ptr: []byte(value)}, model.DefaultCapacityBytes); err != nil || n != len(value) {
 		t.Fatal("short write")
 	}
 	if err := fs.CloseFile(inode); err != nil {
@@ -139,8 +138,7 @@ func TestSessionControlsBeforeStartAndAtomicConfig(t *testing.T) {
 		t.Fatal("configuration published an initial disk")
 	}
 	original := s.machines[1].config
-	if err := s.ConfigureMachine(ref1, contracts.FSConfig{WorkingDir: "/missing"}); err == nil ||
-		s.machines[1].config != original {
+	if err := s.ConfigureMachine(ref1, contracts.FSConfig{WorkingDir: "/missing"}); err == nil || s.machines[1].config != original {
 		t.Fatal("configuration was not atomic")
 	}
 	fault := contracts.FSFaultConfig{Probability: 0.2, BeforeProbability: 0.7}
@@ -149,8 +147,7 @@ func TestSessionControlsBeforeStartAndAtomicConfig(t *testing.T) {
 	}
 	for _, value := range []float64{-1, 2, math.NaN(), math.Inf(1)} {
 		for _, bad := range []contracts.FSFaultConfig{{Probability: value}, {BeforeProbability: value}} {
-			if err := s.SetSyncFault(ref1, bad); !errors.Is(err, contracts.ErrInvalidConfig) ||
-				s.machines[1].fault != fault {
+			if err := s.SetSyncFault(ref1, bad); !errors.Is(err, contracts.ErrInvalidConfig) || s.machines[1].fault != fault {
 				t.Fatal("invalid fault changed state")
 			}
 		}
@@ -165,10 +162,7 @@ func TestSessionControlsBeforeStartAndAtomicConfig(t *testing.T) {
 	if p.instance.workingDir != 2 || s.machines[1].disk != nil {
 		t.Fatal("cwd not staged")
 	}
-	if err := s.ConfigureMachine(ref1, contracts.FSConfig{WorkingDir: "/app"}); !errors.Is(
-		err,
-		contracts.ErrInvalidState,
-	) {
+	if err := s.ConfigureMachine(ref1, contracts.FSConfig{WorkingDir: "/app"}); !errors.Is(err, contracts.ErrInvalidState) {
 		t.Fatal(err)
 	}
 	p.Abort()
@@ -235,8 +229,7 @@ func TestCrashVersusGracefulAndSettleOnce(t *testing.T) {
 			t.Fatal(err)
 		}
 		disk, image := s.machines[1].disk, s.machines[1].crash
-		if err := i.Settle(contracts.StopKind(1 - kind)); err != nil || s.machines[1].disk != disk ||
-			s.machines[1].crash != image {
+		if err := i.Settle(contracts.StopKind(1 - kind)); err != nil || s.machines[1].disk != disk || s.machines[1].crash != image {
 			t.Fatal("repeated settle changed outcome")
 		}
 		i.Detach()
@@ -296,16 +289,10 @@ func TestInvalidAndStaleLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := prepare(t, s, ref1, 1, false)
-	if _, err := s.Prepare(contracts.StartSpec{Ref: p.instance.ref}, noDescriptors{}); !errors.Is(
-		err,
-		contracts.ErrInvalidState,
-	) {
+	if _, err := s.Prepare(contracts.StartSpec{Ref: p.instance.ref}, noDescriptors{}); !errors.Is(err, contracts.ErrInvalidState) {
 		t.Fatal("double preparation", err)
 	}
-	if _, err := p.instance.Getcwd(contracts.CallContext{Epoch: p.instance.ref}, abi.ByteView{}); !errors.Is(
-		err,
-		contracts.ErrInvalidState,
-	) {
+	if _, err := p.instance.Getcwd(contracts.CallContext{Epoch: p.instance.ref}, abi.ByteView{}); !errors.Is(err, contracts.ErrInvalidState) {
 		t.Fatal("staged binding accepted a call", err)
 	}
 	i := p.Publish().(*Instance)
@@ -315,10 +302,7 @@ func TestInvalidAndStaleLifecycle(t *testing.T) {
 		t.Fatal("published binding failed", err)
 	}
 	stop(t, i, contracts.StopGraceful)
-	if _, err := i.Getcwd(contracts.CallContext{Epoch: i.ref}, abi.ByteView{}); !errors.Is(
-		err,
-		contracts.ErrInvalidState,
-	) {
+	if _, err := i.Getcwd(contracts.CallContext{Epoch: i.ref}, abi.ByteView{}); !errors.Is(err, contracts.ErrInvalidState) {
 		t.Fatal("old binding accepted call", err)
 	}
 	wrong := ref1

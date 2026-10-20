@@ -35,45 +35,33 @@ func authenticated(ctx context.Context) error {
 
 var service = grpc.ServiceDesc{
 	ServiceName: "simulation.Echo", HandlerType: (*echoService)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "Unary",
-			Handler: func(_ any, ctx context.Context, decode func(any) error, _ grpc.UnaryServerInterceptor) (any, error) {
-				if err := authenticated(ctx); err != nil {
-					return nil, err
+	Methods: []grpc.MethodDesc{{MethodName: "Unary", Handler: func(_ any, ctx context.Context, decode func(any) error, _ grpc.UnaryServerInterceptor) (any, error) {
+		if err := authenticated(ctx); err != nil {
+			return nil, err
+		}
+		msg := new(wrapperspb.BytesValue)
+		if err := decode(msg); err != nil {
+			return nil, err
+		}
+		return msg, nil
+	}}},
+	Streams: []grpc.StreamDesc{{StreamName: "Bidi", ServerStreams: true, ClientStreams: true, Handler: func(_ any, stream grpc.ServerStream) error {
+		if err := authenticated(stream.Context()); err != nil {
+			return err
+		}
+		for {
+			msg := new(wrapperspb.BytesValue)
+			if err := stream.RecvMsg(msg); err != nil {
+				if err == io.EOF {
+					return nil
 				}
-				msg := new(wrapperspb.BytesValue)
-				if err := decode(msg); err != nil {
-					return nil, err
-				}
-				return msg, nil
-			},
-		},
-	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "Bidi",
-			ServerStreams: true,
-			ClientStreams: true,
-			Handler: func(_ any, stream grpc.ServerStream) error {
-				if err := authenticated(stream.Context()); err != nil {
-					return err
-				}
-				for {
-					msg := new(wrapperspb.BytesValue)
-					if err := stream.RecvMsg(msg); err != nil {
-						if err == io.EOF {
-							return nil
-						}
-						return err
-					}
-					if err := stream.SendMsg(msg); err != nil {
-						return err
-					}
-				}
-			},
-		},
-	},
+				return err
+			}
+			if err := stream.SendMsg(msg); err != nil {
+				return err
+			}
+		}
+	}}},
 }
 
 func TestPlaintextRPC(t *testing.T)        { testPlaintextRPC(t, 0) }
@@ -119,10 +107,7 @@ func testPlaintextRPC(t *testing.T, latency time.Duration) {
 		t.Fatal(err)
 	}
 	<-ready
-	conn, err := grpc.NewClient(
-		"passthrough:///10.0.0.1:9000",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	conn, err := grpc.NewClient("passthrough:///10.0.0.1:9000", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,9 +115,7 @@ func testPlaintextRPC(t *testing.T, latency time.Duration) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	payload := &wrapperspb.BytesValue{Value: bytes.Repeat([]byte{0, 255, 128, 1}, 32768)}
-	if err := conn.Invoke(ctx, "/simulation.Echo/Unary", payload, new(wrapperspb.BytesValue)); status.Code(
-		err,
-	) != codes.Unauthenticated {
+	if err := conn.Invoke(ctx, "/simulation.Echo/Unary", payload, new(wrapperspb.BytesValue)); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unauthenticated call: %v", err)
 	}
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "test-token")

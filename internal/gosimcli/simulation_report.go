@@ -57,26 +57,14 @@ func (w *simulationOutput) line(line string) error {
 			elapsed = time.Since(start).Seconds()
 			delete(w.starts, match[2])
 		}
-		_, err := fmt.Fprintf(
-			w.out,
-			"    simulated result: %s\n%s%s (%.6fs)\n",
-			strings.TrimSpace(line),
-			strings.TrimLeft(match[1], " \t"),
-			match[2],
-			elapsed,
-		)
+		_, err := fmt.Fprintf(w.out, "    simulated result: %s\n%s%s (%.6fs)\n", strings.TrimSpace(line), strings.TrimLeft(match[1], " \t"), match[2], elapsed)
 		return err
 	}
 	_, err := fmt.Fprintln(w.out, line)
 	return err
 }
 
-func captureSimulationCommand(
-	ctx context.Context,
-	binary, converter *exec.Cmd,
-	mu *sync.Mutex,
-	stream io.Writer,
-) ([]byte, error) {
+func captureSimulationCommand(ctx context.Context, binary, converter *exec.Cmd, mu *sync.Mutex, stream io.Writer) ([]byte, error) {
 	input, output := io.Pipe()
 	converter.Stdin = input
 	type result struct {

@@ -13,9 +13,7 @@ import (
 func TestStorageStatsAndReadOnlyLifecycle(t *testing.T) {
 	s, _ := newSession(t)
 	pre, err := s.Stats(ref1)
-	if err != nil || pre.TotalBytes != model.DefaultCapacityBytes || pre.UsedBytes != model.StorageBlockSize ||
-		pre.FreeBytes != pre.TotalBytes-pre.UsedBytes ||
-		pre.ReadOnly {
+	if err != nil || pre.TotalBytes != model.DefaultCapacityBytes || pre.UsedBytes != model.StorageBlockSize || pre.FreeBytes != pre.TotalBytes-pre.UsedBytes || pre.ReadOnly {
 		t.Fatalf("initial stats: %+v, %v", pre, err)
 	}
 	if s.machines[ref1.ID].disk != nil {
@@ -62,8 +60,7 @@ func TestFileCapacityAndReadOnlyWithOpenDescriptor(t *testing.T) {
 		t.Fatalf("fill: n=%d err=%v", n, err)
 	}
 	before := f.pos
-	if n, err := f.Write(ctx, abi.ByteView{Ptr: []byte("x")}); n != 0 || !errors.Is(err, syscall.ENOSPC) ||
-		f.pos != before {
+	if n, err := f.Write(ctx, abi.ByteView{Ptr: []byte("x")}); n != 0 || !errors.Is(err, syscall.ENOSPC) || f.pos != before {
 		t.Fatalf("full write changed offset: n=%d err=%v pos=%d", n, err, f.pos)
 	}
 	if err := i.session.SetReadOnly(ref1, true); err != nil {
@@ -198,8 +195,7 @@ func TestStatFSPathsDescriptorsAndReadOnly(t *testing.T) {
 	fd := open(t, i, ctx, "stats", openCreate|2)
 	for _, path := range []string{"/", "/app", "stats"} {
 		got, err := i.StatFS(ctx, path)
-		if err != nil || got.TotalBytes != 4*model.StorageBlockSize || got.UsedBytes != model.StorageBlockSize ||
-			got.BlockSize != model.StorageBlockSize {
+		if err != nil || got.TotalBytes != 4*model.StorageBlockSize || got.UsedBytes != model.StorageBlockSize || got.BlockSize != model.StorageBlockSize {
 			t.Fatalf("statfs %q: %+v, %v", path, got, err)
 		}
 	}
@@ -216,8 +212,7 @@ func TestStatFSPathsDescriptorsAndReadOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := i.FstatFS(ctx, fd)
-	if err != nil || !got.ReadOnly || got.UsedBytes != 2*model.StorageBlockSize ||
-		got.FreeBytes != 2*model.StorageBlockSize {
+	if err != nil || !got.ReadOnly || got.UsedBytes != 2*model.StorageBlockSize || got.FreeBytes != 2*model.StorageBlockSize {
 		t.Fatalf("fstatfs after allocation: %+v, %v", got, err)
 	}
 }

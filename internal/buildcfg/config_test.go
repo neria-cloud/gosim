@@ -20,11 +20,7 @@ func TestConfigOverridesReplaceAndOwnFeatures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ConfigRequest{
-		Config:            buildspec.Config{Schema: 2, Features: []string{"rt", "fs"}, SimulationOS: "linux"},
-		ExplicitToolchain: version,
-		Legacy:            true,
-	}
+	want := ConfigRequest{Config: buildspec.Config{Schema: 2, Features: []string{"rt", "fs"}, SimulationOS: "linux"}, ExplicitToolchain: version, Legacy: true}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %#v, want %#v", got, want)
 	}
@@ -41,8 +37,7 @@ func TestConfigOverridesReplaceAndOwnFeatures(t *testing.T) {
 func TestConfigDefaultUsesGoResolution(t *testing.T) {
 	t.Parallel()
 	got, err := Load("", Overrides{})
-	if err != nil || got.ExplicitToolchain != "" || got.Legacy ||
-		!reflect.DeepEqual(got.Config.Features, []string{"rt", "fs", "net"}) {
+	if err != nil || got.ExplicitToolchain != "" || got.Legacy || !reflect.DeepEqual(got.Config.Features, []string{"rt", "fs", "net"}) {
 		t.Fatalf("default config: %+v, %v", got, err)
 	}
 	path := filepath.Join(t.TempDir(), "gosim.json")

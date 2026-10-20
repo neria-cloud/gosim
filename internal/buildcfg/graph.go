@@ -18,9 +18,7 @@ func FrameworkModule(modules []buildspec.Module) (buildspec.Module, error) {
 		if m.Path == GosimModule {
 			selected := m.Effective()
 			if selected.Dir == "" {
-				return buildspec.Module{}, fmt.Errorf(
-					"selected Gosim source is unavailable; download the module with Go tooling",
-				)
+				return buildspec.Module{}, fmt.Errorf("selected Gosim source is unavailable; download the module with Go tooling")
 			}
 			if !filepath.IsAbs(selected.Dir) {
 				return buildspec.Module{}, fmt.Errorf("selected Gosim source must be absolute")
@@ -31,10 +29,7 @@ func FrameworkModule(modules []buildspec.Module) (buildspec.Module, error) {
 			return m, nil
 		}
 	}
-	return buildspec.Module{}, fmt.Errorf(
-		"application module graph does not contain %s; add it as a Go dependency",
-		GosimModule,
-	)
+	return buildspec.Module{}, fmt.Errorf("application module graph does not contain %s; add it as a Go dependency", GosimModule)
 }
 
 // GraphDigest binds selected versions and actual local module contents. It is
@@ -51,14 +46,7 @@ func GraphDigest(modules []buildspec.Module) (string, error) {
 	entries := make([]entry, 0, len(modules))
 	for _, m := range modules {
 		effective := m.Effective()
-		e := entry{
-			Path:      m.Path,
-			Version:   m.Version,
-			Sum:       effective.Sum,
-			GoModSum:  effective.GoModSum,
-			GoVersion: effective.GoVersion,
-			Main:      m.Main,
-		}
+		e := entry{Path: m.Path, Version: m.Version, Sum: effective.Sum, GoModSum: effective.GoModSum, GoVersion: effective.GoVersion, Main: m.Main}
 		if m.Replace != nil {
 			e.Replacement = effective.Path + "@" + effective.Version
 			if effective.Version == "" {

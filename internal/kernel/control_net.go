@@ -21,18 +21,13 @@ func (c *networkControl) check() error {
 	if c.runID != c.kernel.runID {
 		return contracts.ErrWrongRun
 	}
-	if c.kernel.closed || c.ctx.Epoch.Machine.ID != 0 && !c.kernel.Accepts(c.ctx.Epoch) ||
-		c.kernel.controls.NetControl == nil {
+	if c.kernel.closed || c.ctx.Epoch.Machine.ID != 0 && !c.kernel.Accepts(c.ctx.Epoch) || c.kernel.controls.NetControl == nil {
 		return contracts.ErrInvalidState
 	}
 	return nil
 }
 
-func (c *networkControl) call(
-	ref contracts.MachineRef,
-	allowed []State,
-	operation func(contracts.NetControl) error,
-) error {
+func (c *networkControl) call(ref contracts.MachineRef, allowed []State, operation func(contracts.NetControl) error) error {
 	if err := c.check(); err != nil {
 		return err
 	}
@@ -55,50 +50,26 @@ func (c *networkControl) call(
 }
 
 func (c *networkControl) Configure(config contracts.NetConfig) error {
-	return c.call(
-		contracts.MachineRef{},
-		nil,
-		func(provider contracts.NetControl) error { return provider.Configure(config) },
-	)
+	return c.call(contracts.MachineRef{}, nil, func(provider contracts.NetControl) error { return provider.Configure(config) })
 }
 
 func (c *networkControl) ConfigureMachine(ref contracts.MachineRef, addr [4]byte, automatic bool) error {
-	return c.call(
-		ref,
-		[]State{StateNew},
-		func(provider contracts.NetControl) error { return provider.ConfigureMachine(ref, addr, automatic) },
-	)
+	return c.call(ref, []State{StateNew}, func(provider contracts.NetControl) error { return provider.ConfigureMachine(ref, addr, automatic) })
 }
 
 func (c *networkControl) Address(ref contracts.MachineRef) (addr [4]byte, err error) {
-	err = c.call(
-		ref,
-		[]State{StateNew, StateRunning, StateStopped, StateCrashed},
-		func(provider contracts.NetControl) error { addr, err = provider.Address(ref); return err },
-	)
+	err = c.call(ref, []State{StateNew, StateRunning, StateStopped, StateCrashed}, func(provider contracts.NetControl) error { addr, err = provider.Address(ref); return err })
 	return
 }
 
 func (c *networkControl) SetLinkPolicy(link contracts.NetLink, policy contracts.NetLinkPolicy) error {
-	return c.call(
-		contracts.MachineRef{},
-		nil,
-		func(provider contracts.NetControl) error { return provider.SetLinkPolicy(link, policy) },
-	)
+	return c.call(contracts.MachineRef{}, nil, func(provider contracts.NetControl) error { return provider.SetLinkPolicy(link, policy) })
 }
 
 func (c *networkControl) ResetLinkPolicy(link contracts.NetLink) error {
-	return c.call(
-		contracts.MachineRef{},
-		nil,
-		func(provider contracts.NetControl) error { return provider.ResetLinkPolicy(link) },
-	)
+	return c.call(contracts.MachineRef{}, nil, func(provider contracts.NetControl) error { return provider.ResetLinkPolicy(link) })
 }
 
 func (c *networkControl) SetConnectivity(link contracts.NetLink, connected bool) error {
-	return c.call(
-		contracts.MachineRef{},
-		nil,
-		func(provider contracts.NetControl) error { return provider.SetConnectivity(link, connected) },
-	)
+	return c.call(contracts.MachineRef{}, nil, func(provider contracts.NetControl) error { return provider.SetConnectivity(link, connected) })
 }

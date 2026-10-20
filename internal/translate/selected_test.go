@@ -35,15 +35,7 @@ func TestSelectedTranslation(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			args := []string{
-				"test",
-				"-ldflags=-checklinkname=0",
-				"-tags=linkname",
-				"./internal/translate",
-				"-run=^TestSelectedTranslationWorker$",
-				"-count=1",
-				"-v",
-			}
+			args := []string{"test", "-ldflags=-checklinkname=0", "-tags=linkname", "./internal/translate", "-run=^TestSelectedTranslationWorker$", "-count=1", "-v"}
 			if hostabi.RaceEnabled {
 				args = append(args, "-race")
 			}
@@ -87,9 +79,7 @@ func TestSelectedTranslationWorker(t *testing.T) {
 	if err := gosimtool.MakeGoModForTest(framework, project, nil); err != nil {
 		t.Fatal(err)
 	}
-	source := []byte(
-		"package fixture\nvar values=map[int]int{1:2}\nfunc Work()int{ch:=make(chan int,1);go func(){ch<-values[1]}();return <-ch}\n",
-	)
+	source := []byte("package fixture\nvar values=map[int]int{1:2}\nfunc Work()int{ch:=make(chan int,1);go func(){ch<-values[1]}();return <-ch}\n")
 	app := filepath.Join(project, "app.go")
 	if err := os.WriteFile(app, source, 0o644); err != nil {
 		t.Fatal(err)
@@ -137,8 +127,7 @@ func TestWork(t *testing.T) { if Work() != 2 { t.Fatal("work") } }
 		t.Fatal(first.Packages, second.Packages)
 	}
 	a, b := readTree(t, first.RootOutputDir), readTree(t, second.RootOutputDir)
-	if !bytes.Contains(a["test/gosim_meta_test.go"], []byte("TestMain")) ||
-		!bytes.Contains(a["test/gosim_meta_test.go"], []byte(".Driver{}")) {
+	if !bytes.Contains(a["test/gosim_meta_test.go"], []byte("TestMain")) || !bytes.Contains(a["test/gosim_meta_test.go"], []byte(".Driver{}")) {
 		t.Fatal("test metadata did not select generated Driver")
 	}
 	if _, ok := a["math/big/arith_decl_pure.go"]; !ok {
@@ -185,20 +174,13 @@ func TestWork(t *testing.T) { if Work() != 2 { t.Fatal("work") } }
 		t.Fatal("source change reused translated app")
 	}
 	for name, data := range a {
-		if strings.HasSuffix(name, ".go") &&
-			(bytes.Contains(data, []byte(gosimtool.Module+"/internal/simulation")) || bytes.Contains(data, []byte(gosimtool.Module+"/internal/hooks/"))) {
+		if strings.HasSuffix(name, ".go") && (bytes.Contains(data, []byte(gosimtool.Module+"/internal/simulation")) || bytes.Contains(data, []byte(gosimtool.Module+"/internal/hooks/"))) {
 			t.Fatalf("legacy path in selected output %s", name)
 		}
 	}
 }
 
-func testCurrentSourceDiscovery(
-	t *testing.T,
-	cfg gosimtool.BuildConfig,
-	cached *cache.Cache,
-	project string,
-	original map[string]string,
-) {
+func testCurrentSourceDiscovery(t *testing.T, cfg gosimtool.BuildConfig, cached *cache.Cache, project string, original map[string]string) {
 	t.Helper()
 	inspect := func(pattern string) map[string]string {
 		t.Helper()
@@ -231,14 +213,8 @@ func testCurrentSourceDiscovery(
 	}
 	embed := filepath.Join(other, "payload.txt")
 	write(embed, "before")
-	write(
-		filepath.Join(other, "other.go"),
-		"package other\nimport _ \"embed\"\n//go:embed payload.txt\nvar Payload string\n",
-	)
-	write(
-		filepath.Join(other, "other_test.go"),
-		"package other_test\nimport (\"testing\"; \"test/other\")\nfunc TestOther(t *testing.T) { if other.Payload != \"before\" { t.Fatal(other.Payload) } }\n",
-	)
+	write(filepath.Join(other, "other.go"), "package other\nimport _ \"embed\"\n//go:embed payload.txt\nvar Payload string\n")
+	write(filepath.Join(other, "other_test.go"), "package other_test\nimport (\"testing\"; \"test/other\")\nfunc TestOther(t *testing.T) { if other.Payload != \"before\" { t.Fatal(other.Payload) } }\n")
 	cfg = liveTranslationConfig(t)
 	batch, err := translatePackages(cached, []string{".", "./other"}, t.TempDir(), cfg)
 	if err != nil {
@@ -298,15 +274,7 @@ func liveTranslationConfig(t *testing.T) gosimtool.BuildConfig {
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := buildcfg.Identity(
-		t.Context(),
-		buildspec.Config{Schema: 2, Features: []string{"rt"}, SimulationOS: "linux"},
-		r,
-		p,
-		opts,
-		inputs,
-		contract,
-	)
+	id, err := buildcfg.Identity(t.Context(), buildspec.Config{Schema: 2, Features: []string{"rt"}, SimulationOS: "linux"}, r, p, opts, inputs, contract)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -325,8 +293,7 @@ func appSourceInputs(project string, inputs map[string]string) map[string]string
 	result := make(map[string]string)
 	for name, digest := range inputs {
 		rel, err := filepath.Rel(project, name)
-		if err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) &&
-			!strings.HasPrefix(rel, ".gosim"+string(filepath.Separator)) {
+		if err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !strings.HasPrefix(rel, ".gosim"+string(filepath.Separator)) {
 			result[name] = digest
 		}
 	}

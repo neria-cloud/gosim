@@ -21,12 +21,7 @@ type selectedGraph struct {
 }
 
 func selectGraph(roots []*packages.Package, p PackagePolicies, available ...*packages.Package) (*selectedGraph, error) {
-	g := &selectedGraph{
-		all:    make(map[string]*packages.Package),
-		nodes:  make(map[string]*packages.Package),
-		deps:   make(map[string][]string),
-		native: make(map[string]bool),
-	}
+	g := &selectedGraph{all: make(map[string]*packages.Package), nodes: make(map[string]*packages.Package), deps: make(map[string][]string), native: make(map[string]bool)}
 	byPath := make(map[string]*packages.Package)
 	var gather func(*packages.Package)
 	gather = func(pkg *packages.Package) {
@@ -305,10 +300,7 @@ func pushedDefinitions(graph *selectedGraph, policies PackagePolicies) (map[Pack
 					if err != nil {
 						return nil, err
 					}
-					policy, err := policies.packagePolicy(
-						target.Pkg,
-						!strings.Contains(strings.Split(target.Pkg, "/")[0], "."),
-					)
+					policy, err := policies.packagePolicy(target.Pkg, !strings.Contains(strings.Split(target.Pkg, "/")[0], "."))
 					if err == nil && policy.Mode == "translate" {
 						definitions[target] = true
 					}

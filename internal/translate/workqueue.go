@@ -134,12 +134,7 @@ func collectPreviousResults[V any](g *depGraph, cur string, prev map[string]V) m
 	return results
 }
 
-func buildInParallel[V any](
-	g *depGraph,
-	numWorkers int,
-	results map[string]V,
-	work func(e string, inputs map[string]V) V,
-) {
+func buildInParallel[V any](g *depGraph, numWorkers int, results map[string]V, work func(e string, inputs map[string]V) V) {
 	var mu sync.Mutex
 	newWorkQueue(g).workInParallel(numWorkers, func(e string) {
 		mu.Lock()

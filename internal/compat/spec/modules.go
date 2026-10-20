@@ -43,8 +43,7 @@ func VerifyModules(tc buildspec.Toolchain, dir string, pins []ModulePin) error {
 			return err
 		}
 		pin, ok := expected[module.Path]
-		if !ok || module.Replace != nil || module.Version != pin.Version || module.Sum != pin.Sum ||
-			module.GoModSum != pin.GoModSum {
+		if !ok || module.Replace != nil || module.Version != pin.Version || module.Sum != pin.Sum || module.GoModSum != pin.GoModSum {
 			return fmt.Errorf("module ABI pin mismatch for %s", module.Path)
 		}
 		if err := VerifyModuleSource(pin, module.Dir, module.GoMod); err != nil {

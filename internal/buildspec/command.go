@@ -104,18 +104,7 @@ func checkGoFlags(args []string) error {
 	for i := 0; i < len(args); i++ {
 		name, value, hasValue := strings.Cut(args[i], "=")
 		switch name {
-		case "-gcflags",
-			"-asmflags",
-			"-compiler",
-			"-toolexec",
-			"-overlay",
-			"-modfile",
-			"-pgo",
-			"-asan",
-			"-msan",
-			"-cover",
-			"-covermode",
-			"-coverpkg":
+		case "-gcflags", "-asmflags", "-compiler", "-toolexec", "-overlay", "-modfile", "-pgo", "-asan", "-msan", "-cover", "-covermode", "-coverpkg":
 			return fmt.Errorf("unapproved Go build flag %s", name)
 		case "-tags", "-ldflags":
 			if !hasValue {

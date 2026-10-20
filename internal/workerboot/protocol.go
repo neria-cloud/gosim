@@ -29,14 +29,7 @@ type Info struct {
 }
 
 func CurrentInfo() (Info, error) {
-	info := Info{
-		Protocol:  Protocol,
-		Toolchain: runtime.Version(),
-		Compiler:  runtime.Compiler,
-		HostOS:    runtime.GOOS,
-		HostArch:  runtime.GOARCH,
-		GOROOT:    runtime.GOROOT(),
-	}
+	info := Info{Protocol: Protocol, Toolchain: runtime.Version(), Compiler: runtime.Compiler, HostOS: runtime.GOOS, HostArch: runtime.GOARCH, GOROOT: runtime.GOROOT()}
 	build, ok := debug.ReadBuildInfo()
 	if !ok {
 		return info, fmt.Errorf("worker has no Go build information")
@@ -115,11 +108,7 @@ func Probe(ctx context.Context, path string, r buildspec.Resolution) (Info, erro
 	if err != nil {
 		return info, err
 	}
-	if info.Protocol != Protocol || info.Compiler != "gc" || info.Toolchain != tc.Version || info.HostOS != tc.HostOS ||
-		info.HostArch != tc.HostArch ||
-		root != tc.GOROOT ||
-		info.BuildPath != WorkerPackage ||
-		info.Module.Path != buildcfg.GosimModule {
+	if info.Protocol != Protocol || info.Compiler != "gc" || info.Toolchain != tc.Version || info.HostOS != tc.HostOS || info.HostArch != tc.HostArch || root != tc.GOROOT || info.BuildPath != WorkerPackage || info.Module.Path != buildcfg.GosimModule {
 		return info, fmt.Errorf("worker protocol/compiler/platform differs from resolved Go")
 	}
 	return info, nil
@@ -130,16 +119,11 @@ func Verify(ctx context.Context, w Worker, r buildspec.Resolution) error {
 	if err != nil {
 		return err
 	}
-	if info.Toolchain != w.Manifest.Toolchain || info.HostOS != w.Manifest.HostOS ||
-		info.HostArch != w.Manifest.HostArch {
+	if info.Toolchain != w.Manifest.Toolchain || info.HostOS != w.Manifest.HostOS || info.HostArch != w.Manifest.HostArch {
 		return fmt.Errorf("worker handshake differs from cache manifest")
 	}
 	if !matchesSelectedModuleVersion(w.Manifest.ModuleVersion, info.Module.Version) {
-		return fmt.Errorf(
-			"worker module version %q differs from application selection %q",
-			info.Module.Version,
-			w.Manifest.ModuleVersion,
-		)
+		return fmt.Errorf("worker module version %q differs from application selection %q", info.Module.Version, w.Manifest.ModuleVersion)
 	}
 	return validateSettings(info.Settings, info.HostOS, info.HostArch, true)
 }

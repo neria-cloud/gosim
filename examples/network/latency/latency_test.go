@@ -171,14 +171,6 @@ func runLatencyExample(t *testing.T, minLatency, maxLatency time.Duration) {
 	if completed == 0 || time.Since(started) != duration {
 		t.Fatalf("incomplete observation: exchanges=%d elapsed=%s", completed, time.Since(started))
 	}
-	t.Logf(
-		"END one-way latency=%s..%s, simulated duration=%s, exchanges=%d, RTT min/mean/max=%s/%s/%s, connection drops=0",
-		minLatency,
-		maxLatency,
-		duration,
-		completed,
-		shortestRTT,
-		totalRTT/time.Duration(completed),
-		longestRTT,
-	)
+	t.Logf("END one-way latency=%s..%s, simulated duration=%s, exchanges=%d, RTT min/mean/max=%s/%s/%s, connection drops=0",
+		minLatency, maxLatency, duration, completed, shortestRTT, totalRTT/time.Duration(completed), longestRTT)
 }

@@ -128,9 +128,7 @@ func computePackageHash(tool Hash, pkg *packages.Package, importHashes map[strin
 }
 
 func validateCacheEntry(entry CacheEntryV2, identity, packageDigest string) error {
-	if entry.Format != 2 || !buildspec.ValidDigest(identity) || !buildspec.ValidDigest(packageDigest) ||
-		entry.IdentityDigest != identity ||
-		entry.PackageDigest != packageDigest {
+	if entry.Format != 2 || !buildspec.ValidDigest(identity) || !buildspec.ValidDigest(packageDigest) || entry.IdentityDigest != identity || entry.PackageDigest != packageDigest {
 		return fmt.Errorf("cache format or identity/package digest mismatch")
 	}
 	if err := gosimtool.ValidateGeneratedFiles(entry.Result.TranslatedFiles); err != nil {

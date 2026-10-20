@@ -22,36 +22,21 @@ func TestCommandPinsExecutableAndEnvironment(t *testing.T) {
 	if err := os.WriteFile(exe, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	tc := buildspec.Toolchain{
-		Executable: exe,
-		GOROOT:     root,
-		Version:    "go1.26.9",
-		HostOS:     runtime.GOOS,
-		HostArch:   runtime.GOARCH,
-	}
+	tc := buildspec.Toolchain{Executable: exe, GOROOT: root, Version: "go1.26.9", HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
 	t.Setenv("GOWORK", filepath.Join(root, "untrusted.work"))
 	cmd := Command(tc, root, "env", "GOVERSION")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := strings.Join(
-		[]string{"local", root, "off", "off", tc.HostOS + "/" + tc.HostArch, "", root, "env", "GOVERSION", ""},
-		"\n",
-	)
+	want := strings.Join([]string{"local", root, "off", "off", tc.HostOS + "/" + tc.HostArch, "", root, "env", "GOVERSION", ""}, "\n")
 	if string(out) != want {
 		t.Fatalf("child received %q, want %q", out, want)
 	}
 }
 
 func TestCommandRejectsUnapprovedEnvironment(t *testing.T) {
-	tc := buildspec.Toolchain{
-		Executable: filepath.Join(runtime.GOROOT(), "bin", "go"),
-		GOROOT:     runtime.GOROOT(),
-		Version:    "go1.26.9",
-		HostOS:     runtime.GOOS,
-		HostArch:   runtime.GOARCH,
-	}
+	tc := buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: "go1.26.9", HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
 	for _, setting := range []struct{ key, value string }{
 		{"GOFLAGS", "-tags=go1.27"},
 		{"GOEXPERIMENT", "noswissmap"},
@@ -79,21 +64,14 @@ func TestWorkerMismatchPointsToLauncher(t *testing.T) {
 		tc.Version = "go1.26.9"
 	}
 	err := ValidateWorker(tc)
-	if err == nil || !strings.Contains(err.Error(), "use the gosim launcher to select a matching worker") ||
-		!strings.Contains(err.Error(), tc.Version) {
+	if err == nil || !strings.Contains(err.Error(), "use the gosim launcher to select a matching worker") || !strings.Contains(err.Error(), tc.Version) {
 		t.Fatalf("missing actionable mismatch error: %v", err)
 	}
 }
 
 func TestCommandRejectsUnapprovedFlags(t *testing.T) {
 	t.Parallel()
-	tc := buildspec.Toolchain{
-		Executable: filepath.Join(runtime.GOROOT(), "bin", "go"),
-		GOROOT:     runtime.GOROOT(),
-		Version:    runtime.Version(),
-		HostOS:     runtime.GOOS,
-		HostArch:   runtime.GOARCH,
-	}
+	tc := buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
 	for _, flags := range [][]string{
 		{"-tags=go1.27"},
 		{"-tags", "sim,retired"},

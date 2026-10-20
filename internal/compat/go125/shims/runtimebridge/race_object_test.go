@@ -68,8 +68,7 @@ func TestObjectRaceABI(t *testing.T) {
 			cmd := exec.Command(os.Args[0], "-test.run=^TestObjectRaceABI$")
 			cmd.Env = append(os.Environ(), "GOSIM_OBJECT_RACE_CHILD="+mode, "GORACE=halt_on_error=1")
 			out, err := cmd.CombinedOutput()
-			if err == nil || !bytes.Contains(out, []byte("WARNING: DATA RACE")) ||
-				!bytes.Contains(out, []byte("TestObjectRaceABI")) {
+			if err == nil || !bytes.Contains(out, []byte("WARNING: DATA RACE")) || !bytes.Contains(out, []byte("TestObjectRaceABI")) {
 				t.Fatalf("missing last-field object race: %v\n%s", err, out)
 			}
 		})

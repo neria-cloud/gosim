@@ -34,8 +34,7 @@ func TestDistributionFingerprintTracksInstalledContent(t *testing.T) {
 			t.Parallel()
 			root := distributionFixture(t)
 			before, err := fingerprintInstalled(root)
-			if err != nil || !buildspec.ValidDigest(before.ToolchainDigest) ||
-				!buildspec.ValidDigest(before.StdlibDigest) {
+			if err != nil || !buildspec.ValidDigest(before.ToolchainDigest) || !buildspec.ValidDigest(before.StdlibDigest) {
 				t.Fatal(before, err)
 			}
 			source := filepath.Join(root, "src/runtime/runtime.go")

@@ -29,10 +29,5 @@ type (
 type MachineConfig struct{ Addr netip.Addr }
 
 func DefaultConfig() Config {
-	return Config{
-		Latency:           LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5},
-		Loss:              LossConfig{RepairProbability: 1},
-		ConnectionTimeout: time.Second,
-		TCPBufferSize:     1024,
-	}
+	return Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second, TCPBufferSize: 1024}
 }

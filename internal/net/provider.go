@@ -18,10 +18,5 @@ func (*Provider) Open(ports contracts.Ports) (contracts.ProviderSession, error) 
 	if random == nil {
 		return nil, contracts.ErrInvalidConfig
 	}
-	return &Session{
-		ports:     ports,
-		network:   model.NewNetwork(ports.Clock, ports.Events, random, ports.Trace),
-		machines:  make(map[uint64]*machine),
-		destroyed: make(map[uint64]bool),
-	}, nil
+	return &Session{ports: ports, network: model.NewNetwork(ports.Clock, ports.Events, random, ports.Trace), machines: make(map[uint64]*machine), destroyed: make(map[uint64]bool)}, nil
 }

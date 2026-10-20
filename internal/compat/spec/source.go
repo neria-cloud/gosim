@@ -49,14 +49,7 @@ type sourceInspection struct {
 	version  string
 }
 
-func inspectSources(
-	ctx context.Context,
-	tc buildspec.Toolchain,
-	dir string,
-	selection SourceContext,
-	deps bool,
-	paths []string,
-) (*sourceInspection, error) {
+func inspectSources(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string) (*sourceInspection, error) {
 	args := []string{"list", "-mod=mod", "-json", "-tags=linkname"}
 	if deps {
 		args = append(args, "-deps")
@@ -95,25 +88,9 @@ func inspectSources(
 	cmd.Stderr = &diagnostics
 	data, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf(
-			"inspect %s/%s declarations with %s: %w\n%s",
-			selection.OS,
-			selection.Arch,
-			tc.Version,
-			err,
-			diagnostics.Bytes(),
-		)
+		return nil, fmt.Errorf("inspect %s/%s declarations with %s: %w\n%s", selection.OS, selection.Arch, tc.Version, err, diagnostics.Bytes())
 	}
-	result := &sourceInspection{
-		ctx:      ctx,
-		packages: map[string]sourcePackage{},
-		fset:     token.NewFileSet(),
-		syntax:   map[string][]*ast.File{},
-		types:    map[string]*types.Package{},
-		loading:  map[string]bool{},
-		sizes:    types.SizesFor("gc", selection.Arch),
-		version:  tc.Version,
-	}
+	result := &sourceInspection{ctx: ctx, packages: map[string]sourcePackage{}, fset: token.NewFileSet(), syntax: map[string][]*ast.File{}, types: map[string]*types.Package{}, loading: map[string]bool{}, sizes: types.SizesFor("gc", selection.Arch), version: tc.Version}
 	if result.sizes == nil {
 		return nil, fmt.Errorf("unsupported source architecture %s", selection.Arch)
 	}
@@ -177,13 +154,7 @@ func (s *sourceInspection) Import(path string) (*types.Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg := types.Config{
-		Importer:                 s,
-		Sizes:                    s.sizes,
-		IgnoreFuncBodies:         true,
-		DisableUnusedImportCheck: true,
-		GoVersion:                s.version,
-	}
+	cfg := types.Config{Importer: s, Sizes: s.sizes, IgnoreFuncBodies: true, DisableUnusedImportCheck: true, GoVersion: s.version}
 	pkg, err := cfg.Check(path, s.fset, files, nil)
 	if err != nil {
 		return nil, fmt.Errorf("inspect types in %s: %w", path, err)

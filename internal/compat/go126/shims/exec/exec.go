@@ -52,14 +52,7 @@ type Cmd struct {
 }
 
 func unsupported() {
-	gosimruntime.Abort(
-		abi.Diagnostic{
-			Kind:      "UnsupportedOperation",
-			Feature:   "rt",
-			Operation: "os/exec",
-			Message:   "native processes are not available in simulation",
-		},
-	)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "os/exec", Message: "native processes are not available in simulation"})
 }
 func Command(name string, arg ...string) *Cmd                             { unsupported(); return nil }
 func CommandContext(ctx context.Context, name string, arg ...string) *Cmd { unsupported(); return nil }

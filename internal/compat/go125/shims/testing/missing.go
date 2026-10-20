@@ -15,12 +15,7 @@ func Coverage() float64 {
 // Init is a modeled init probe: translated tests are registered by composition.
 func Init() {}
 
-func Main(
-	matchString func(pat, str string) (bool, error),
-	tests []InternalTest,
-	benchmarks []InternalBenchmark,
-	examples []InternalExample,
-) {
+func Main(matchString func(pat, str string) (bool, error), tests []InternalTest, benchmarks []InternalBenchmark, examples []InternalExample) {
 	panic("gosim go125 testing: unsupported operation")
 }
 

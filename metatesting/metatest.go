@@ -129,18 +129,7 @@ func startRunner(path string, expected Manifest, startupTimeout time.Duration) (
 		stdout.Close()
 		return nil, err
 	}
-	runner := &MetaT{
-		cmd:    cmd,
-		stdin:  stdin,
-		stdout: stdout,
-		w:      json.NewEncoder(stdin),
-		r:      json.NewDecoder(stdout),
-		expected: gosimruntime.MetatestHandshake{
-			Protocol:       3,
-			IdentityDigest: digest,
-			Toolchain:      expected.Identity.Toolchain,
-		},
-	}
+	runner := &MetaT{cmd: cmd, stdin: stdin, stdout: stdout, w: json.NewEncoder(stdin), r: json.NewDecoder(stdout), expected: gosimruntime.MetatestHandshake{Protocol: 3, IdentityDigest: digest, Toolchain: expected.Identity.Toolchain}}
 	ready := make(chan error, 1)
 	go func() {
 		var hello gosimruntime.MetatestHandshake

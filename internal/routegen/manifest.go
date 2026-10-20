@@ -57,9 +57,7 @@ func (m Manifest) Validate() error {
 	names, ids, legacy := map[string]bool{}, map[uint32]bool{}, map[string]bool{}
 	var previous uint32
 	for _, r := range m.Routes {
-		if r.ID == 0 || r.ID <= previous || ids[r.ID] || !exported(r.Name) || names[r.Name] ||
-			!slices.Contains([]string{"kernel", "fs", "net"}, r.Owner) ||
-			!slices.Contains([]string{"syscall", "poll", "wait", "control", "self"}, r.Kind) {
+		if r.ID == 0 || r.ID <= previous || ids[r.ID] || !exported(r.Name) || names[r.Name] || !slices.Contains([]string{"kernel", "fs", "net"}, r.Owner) || !slices.Contains([]string{"syscall", "poll", "wait", "control", "self"}, r.Kind) {
 			return fmt.Errorf("invalid or duplicate route %d %s", r.ID, r.Name)
 		}
 		if (r.Kind == "poll" || r.Kind == "wait" || r.Kind == "self") && r.Owner != "kernel" {

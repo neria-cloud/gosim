@@ -22,25 +22,7 @@ import (
 
 func cacheIdentity() buildspec.Identity {
 	d := strings.Repeat("a", 64)
-	return buildspec.Identity{
-		Schema:            2,
-		Toolchain:         "go1.26.9",
-		Profile:           "go126",
-		ToolchainDigest:   d,
-		StdlibDigest:      d,
-		ContractDigest:    d,
-		AdapterRevision:   d,
-		RuntimeRevision:   d,
-		HostOS:            "darwin",
-		HostArch:          "arm64",
-		SimulationOS:      "linux",
-		SimulationArch:    "arm64",
-		Features:          []string{"rt"},
-		Tags:              []string{"linkname", "sim"},
-		ModuleGraphDigest: d,
-		TranslatorDigest:  d,
-		DebugPolicyDigest: d,
-	}
+	return buildspec.Identity{Schema: 2, Toolchain: "go1.26.9", Profile: "go126", ToolchainDigest: d, StdlibDigest: d, ContractDigest: d, AdapterRevision: d, RuntimeRevision: d, HostOS: "darwin", HostArch: "arm64", SimulationOS: "linux", SimulationArch: "arm64", Features: []string{"rt"}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d}
 }
 
 func cacheEntry(t *testing.T, key Hash) CacheEntryV2 {
@@ -49,22 +31,7 @@ func cacheEntry(t *testing.T, key Hash) CacheEntryV2 {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return CacheEntryV2{
-		Format:         2,
-		IdentityDigest: digest,
-		PackageDigest:  hex.EncodeToString(key[:]),
-		Result: TranslatePackageResult{
-			PackageName:    "p",
-			PackagePath:    "example/p",
-			CollectedTests: []PackageSelector{{Pkg: "example/p", Selector: "TestOne"}},
-			GlobalInfo: &PackageGlobalInfo{
-				Container:   map[string]string{"x": "G"},
-				ShouldShare: map[string]bool{"y": true},
-				Rewritten:   map[string]string{"TestOne": "ImplTestOne"},
-			},
-			TranslatedFiles: map[string][]byte{"example/p/p.go": []byte("package p\n")},
-		},
-	}
+	return CacheEntryV2{Format: 2, IdentityDigest: digest, PackageDigest: hex.EncodeToString(key[:]), Result: TranslatePackageResult{PackageName: "p", PackagePath: "example/p", CollectedTests: []PackageSelector{{Pkg: "example/p", Selector: "TestOne"}}, GlobalInfo: &PackageGlobalInfo{Container: map[string]string{"x": "G"}, ShouldShare: map[string]bool{"y": true}, Rewritten: map[string]string{"TestOne": "ImplTestOne"}}, TranslatedFiles: map[string][]byte{"example/p/p.go": []byte("package p\n")}}}
 }
 
 func rawEnvelope(t *testing.T, value any) []byte {
@@ -142,8 +109,7 @@ func TestV2CacheRoundTripCorruptionAndReplacement(t *testing.T) {
 			if err != nil || hit || result != nil {
 				t.Fatal("corruption was not a miss", hit, err)
 			}
-			if !strings.Contains(diagnostic.String(), keyString) ||
-				!strings.Contains(diagnostic.String(), "corrupt translation cache") {
+			if !strings.Contains(diagnostic.String(), keyString) || !strings.Contains(diagnostic.String(), "corrupt translation cache") {
 				t.Fatal("corruption not observable", diagnostic.String())
 			}
 			if _, err := db.Get(keyString); !errors.Is(err, cache.ErrNoSuchKey) {
@@ -268,16 +234,7 @@ func TestV2SourceContentAndSelectedInputs(t *testing.T) {
 	a, b := write("a.go", "package p\nvar A=1\n"), write("b.go", "package p\nvar B=2\n")
 	unselected := write("ignored_windows.go", "package p\n")
 	asm, embedded, mod := write("a.s", "data"), write("asset.txt", "embedded"), write("go.mod", "module example\n")
-	pkg := &packages.Package{
-		ID:              "example/p",
-		PkgPath:         "example/p",
-		Name:            "p",
-		GoFiles:         []string{a, b, unselected},
-		CompiledGoFiles: []string{a, b},
-		OtherFiles:      []string{asm},
-		EmbedFiles:      []string{embedded},
-		Module:          &packages.Module{Path: "example", Version: "v1.0.0", GoMod: mod},
-	}
+	pkg := &packages.Package{ID: "example/p", PkgPath: "example/p", Name: "p", GoFiles: []string{a, b, unselected}, CompiledGoFiles: []string{a, b}, OtherFiles: []string{asm}, EmbedFiles: []string{embedded}, Module: &packages.Module{Path: "example", Version: "v1.0.0", GoMod: mod}}
 	tool, err := computeTranslateToolHash(cacheIdentity())
 	if err != nil {
 		t.Fatal(err)

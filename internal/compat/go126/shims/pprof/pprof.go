@@ -70,14 +70,7 @@ func Do(ctx context.Context, labels LabelSet, f func(context.Context)) {
 }
 
 func unsupported() {
-	gosimruntime.Abort(
-		abi.Diagnostic{
-			Kind:      "UnsupportedOperation",
-			Feature:   "rt",
-			Operation: "runtime/pprof",
-			Message:   "native profiling is not available in simulation",
-		},
-	)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime/pprof", Message: "native profiling is not available in simulation"})
 }
 
 type Profile struct{}

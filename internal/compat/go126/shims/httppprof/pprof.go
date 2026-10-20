@@ -11,14 +11,7 @@ import (
 )
 
 func unsupported(w http.ResponseWriter, r *http.Request) {
-	gosimruntime.Abort(
-		abi.Diagnostic{
-			Kind:      "UnsupportedOperation",
-			Feature:   "rt",
-			Operation: "net/http/pprof",
-			Message:   "host profiling is unsupported",
-		},
-	)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "net/http/pprof", Message: "host profiling is unsupported"})
 }
 func Handler(name string) http.Handler               { return http.HandlerFunc(unsupported) }
 func Index(w http.ResponseWriter, r *http.Request)   { unsupported(w, r) }

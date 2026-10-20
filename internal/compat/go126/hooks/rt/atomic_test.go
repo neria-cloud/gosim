@@ -10,9 +10,7 @@ import (
 
 func runAtomicTest(t *testing.T, f func()) {
 	t.Helper()
-	e, err := gosimruntime.NewEngine(
-		gosimruntime.EngineConfig{Seed: 42, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision},
-	)
+	e, err := gosimruntime.NewEngine(gosimruntime.EngineConfig{Seed: 42, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision})
 	if err != nil {
 		t.Fatal(err)
 	}

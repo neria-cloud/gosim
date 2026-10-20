@@ -26,9 +26,7 @@ type ConfigRequest struct {
 // Load distinguishes Go discovery (the default) from an explicit legacy/CLI override.
 // Legacy is exposed to the command layer so its migration diagnostic stays on stderr.
 func Load(path string, overrides Overrides) (ConfigRequest, error) {
-	request := ConfigRequest{
-		Config: buildspec.Config{Schema: 2, Features: []string{"rt", "fs", "net"}, SimulationOS: "linux"},
-	}
+	request := ConfigRequest{Config: buildspec.Config{Schema: 2, Features: []string{"rt", "fs", "net"}, SimulationOS: "linux"}}
 	if path != "" {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -55,15 +53,11 @@ func Load(path string, overrides Overrides) (ConfigRequest, error) {
 			return request, fmt.Errorf("unsupported config schema %d", wire.Schema)
 		}
 		if wire.Schema == 2 && wire.Toolchain != nil {
-			return request, fmt.Errorf(
-				"schema 2 uses Go tooling for compiler selection; remove toolchain or use explicit -go",
-			)
+			return request, fmt.Errorf("schema 2 uses Go tooling for compiler selection; remove toolchain or use explicit -go")
 		}
 		if wire.Schema == 1 {
 			if wire.Toolchain == nil || *wire.Toolchain == "" {
-				return request, fmt.Errorf(
-					"legacy schema 1 requires an exact toolchain; migrate to schema 2 for automatic Go selection",
-				)
+				return request, fmt.Errorf("legacy schema 1 requires an exact toolchain; migrate to schema 2 for automatic Go selection")
 			}
 			request.ExplicitToolchain, request.Legacy = *wire.Toolchain, true
 		}

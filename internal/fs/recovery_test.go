@@ -58,8 +58,7 @@ func TestEnumerationBudgetAndLookahead(t *testing.T) {
 	if lookahead == nil {
 		t.Fatal("missing bounded lookahead")
 	}
-	if _, _, err := s.NextSnapshot(id); !errors.Is(err, contracts.ErrEnumerationLimit) ||
-		iterator.lookahead != lookahead {
+	if _, _, err := s.NextSnapshot(id); !errors.Is(err, contracts.ErrEnumerationLimit) || iterator.lookahead != lookahead {
 		t.Fatal("budget check advanced traversal")
 	}
 	must(t, s.CloseIterator(id))
@@ -149,8 +148,7 @@ func TestRestoreAtomicAndRetainedAcrossFailedPrepare(t *testing.T) {
 	must(t, s.Restore(target, snapshot))
 	disk := s.machines[target.ID].disk
 	must(t, s.CloseSnapshot(snapshot))
-	if err := s.Restore(target, snapshot); !errors.Is(err, contracts.ErrInvalidState) ||
-		s.machines[target.ID].disk != disk {
+	if err := s.Restore(target, snapshot); !errors.Is(err, contracts.ErrInvalidState) || s.machines[target.ID].disk != disk {
 		t.Fatal("invalid restore changed disk")
 	}
 	p := prepare(t, s, target, 1, false)
@@ -198,9 +196,7 @@ func TestRecoveryIDsAndSessionCleanup(t *testing.T) {
 	machine := s.machines[ref1.ID]
 	s.Close()
 	s.Close()
-	if iterator.lookahead != nil || iterator.model != nil || machine.disk != nil || machine.crash != nil ||
-		len(s.handles) != 0 ||
-		len(s.machines) != 0 {
+	if iterator.lookahead != nil || iterator.model != nil || machine.disk != nil || machine.crash != nil || len(s.handles) != 0 || len(s.machines) != 0 {
 		t.Fatal("session close retained resources")
 	}
 	if _, _, err := s.NextSnapshot(id); !errors.Is(err, contracts.ErrInvalidState) {
@@ -295,8 +291,7 @@ func TestPrepareMissingRestoredWorkingDirectoryIsAtomic(t *testing.T) {
 	must(t, s.Restore(target, snapshot))
 	disk := s.machines[target.ID].disk
 	_, err := s.Prepare(contracts.StartSpec{Ref: contracts.EpochRef{Machine: target, Epoch: 1}}, noDescriptors{})
-	if err == nil || s.machines[target.ID].disk != disk || s.machines[target.ID].prepared != nil ||
-		s.machines[target.ID].started {
+	if err == nil || s.machines[target.ID].disk != disk || s.machines[target.ID].prepared != nil || s.machines[target.ID].started {
 		t.Fatal("failed working directory resolution published state", err)
 	}
 	must(t, s.ConfigureMachine(target, contracts.FSConfig{WorkingDir: "/app"}))

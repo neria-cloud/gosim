@@ -19,14 +19,7 @@ import (
 )
 
 func unsupported() {
-	gosimruntime.Abort(
-		abi.Diagnostic{
-			Kind:      "UnsupportedOperation",
-			Feature:   "net",
-			Operation: "golang.org/x/crypto/ocsp",
-			Message:   "optional TLS/certificate operations are not modeled",
-		},
-	)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "net", Operation: "golang.org/x/crypto/ocsp", Message: "optional TLS/certificate operations are not modeled"})
 }
 
 type Request struct {
@@ -86,12 +79,7 @@ func CreateRequest(cert *x509.Certificate, issuer *x509.Certificate, opts *Reque
 	panic("abort returned")
 }
 
-func CreateResponse(
-	issuer *x509.Certificate,
-	responderCert *x509.Certificate,
-	template Response,
-	priv crypto.Signer,
-) ([]byte, error) {
+func CreateResponse(issuer *x509.Certificate, responderCert *x509.Certificate, template Response, priv crypto.Signer) ([]byte, error) {
 	unsupported()
 	panic("abort returned")
 }

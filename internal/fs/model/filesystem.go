@@ -587,11 +587,7 @@ func (o *dirOp) addDeps(p *pendingOps, op *pendingOp) {
 		p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(part.file)}, depDependsOn)
 		p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(part.dir)}, depDependsOn)
 		p.addDep(op, depKey{kind: depKeyWriteDir, inode: int32(part.dir)}, depStoreAs)
-		p.addDep(
-			op,
-			depKey{kind: depKeyWriteDirEntry, inode: int32(part.dir), entry: part.name},
-			depStoreAsAndDependsOn,
-		)
+		p.addDep(op, depKey{kind: depKeyWriteDirEntry, inode: int32(part.dir), entry: part.name}, depStoreAsAndDependsOn)
 	}
 }
 
@@ -920,8 +916,7 @@ func (fs *Filesystem) Chown(inode, uid, gid int, who Identity) error {
 	if who.UID != 0 {
 		return syscall.EPERM
 	}
-	if uid < -1 || gid < -1 || uint64(uid) > uint64(^uint32(0)) && uid != -1 ||
-		uint64(gid) > uint64(^uint32(0)) && gid != -1 {
+	if uid < -1 || gid < -1 || uint64(uid) > uint64(^uint32(0)) && uid != -1 || uint64(gid) > uint64(^uint32(0)) && gid != -1 {
 		return syscall.EINVAL
 	}
 	next := meta
@@ -1224,12 +1219,7 @@ func (fs *Filesystem) GetInodeInfo(inode int) InodeInfo {
 	return fs.getInodeInfo(inode)
 }
 
-func (fs *Filesystem) walkpath(
-	baseInode int,
-	path string,
-	keepLast bool,
-	who Identity,
-) (inode int, entry string, err error) {
+func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool, who Identity) (inode int, entry string, err error) {
 	// TODO(not planned): symlink traversal; the model contains only files and directories.
 	// TODO: harden and test; this function and its callers are not not well
 	// tested and brittle

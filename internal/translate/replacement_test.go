@@ -20,12 +20,10 @@ func TestReplacementGlobalUsesMachineContainer(t *testing.T) {
 	original := ast.NewIdent("Reader")
 	ident := &dst.Ident{Name: "Reader", Path: "translated/rand"}
 	tr := packageTranslator{
-		astMap:    decorator.AstMap{Nodes: map[dst.Node]ast.Node{ident: original}},
-		typesInfo: &types.Info{Uses: map[*ast.Ident]types.Object{original: obj}},
-		profile:   &PackagePolicies{packages: map[string]string{"crypto/rand": "owned/rand"}},
-		globalInfo: &GlobalInfo{
-			ByPackage: map[string]*PackageGlobalInfo{"owned/rand": {Container: map[string]string{"Reader": "G"}}},
-		},
+		astMap:     decorator.AstMap{Nodes: map[dst.Node]ast.Node{ident: original}},
+		typesInfo:  &types.Info{Uses: map[*ast.Ident]types.Object{original: obj}},
+		profile:    &PackagePolicies{packages: map[string]string{"crypto/rand": "owned/rand"}},
+		globalInfo: &GlobalInfo{ByPackage: map[string]*PackageGlobalInfo{"owned/rand": {Container: map[string]string{"Reader": "G"}}}},
 	}
 	got, ok := tr.isGlobalUse(ident)
 	if !ok {
@@ -44,11 +42,7 @@ func TestOptionalReplacementDoesNotSelectUnusedDependencies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	root := &packages.Package{
-		ID:      "example.com/app",
-		PkgPath: "example.com/app",
-		Module:  &packages.Module{Path: "example.com/app"},
-	}
+	root := &packages.Package{ID: "example.com/app", PkgPath: "example.com/app", Module: &packages.Module{Path: "example.com/app"}}
 	// An unavailable operation in an unused shim must not poison this graph.
 	optional := &packages.Package{ID: "net/http/httptest", PkgPath: "net/http/httptest"}
 	graph, err := selectGraph([]*packages.Package{root}, p, optional)
@@ -99,11 +93,7 @@ func TestNativeBoundarySelectsOnlyOwnedAdapters(t *testing.T) {
 	if target == "" {
 		t.Fatal("missing internal/race adapter")
 	}
-	adapter := &packages.Package{
-		ID:      target,
-		PkgPath: target,
-		Module:  &packages.Module{Path: "github.com/neria-cloud/gosim"},
-	}
+	adapter := &packages.Package{ID: target, PkgPath: target, Module: &packages.Module{Path: "github.com/neria-cloud/gosim"}}
 	native := &packages.Package{ID: "internal/race", PkgPath: "internal/race", Imports: map[string]*packages.Package{
 		"unsafe": {ID: "unsafe", PkgPath: "unsafe"},
 	}}
@@ -111,8 +101,7 @@ func TestNativeBoundarySelectsOnlyOwnedAdapters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(graph.order, []string{target, native.ID}) || !graph.native[native.ID] ||
-		graph.native[target] {
+	if !reflect.DeepEqual(graph.order, []string{target, native.ID}) || !graph.native[native.ID] || graph.native[target] {
 		t.Fatalf("native computation or translated adapter misclassified: %v", graph.order)
 	}
 }
@@ -127,18 +116,13 @@ func TestTranslatedPackageSelectsSymbolAdapter(t *testing.T) {
 	if target == "" || p.native["sync"] {
 		t.Fatal("sync.Map replacement must retain translated synchronization")
 	}
-	adapter := &packages.Package{
-		ID:      target,
-		PkgPath: target,
-		Module:  &packages.Module{Path: "github.com/neria-cloud/gosim"},
-	}
+	adapter := &packages.Package{ID: target, PkgPath: target, Module: &packages.Module{Path: "github.com/neria-cloud/gosim"}}
 	original := &packages.Package{ID: "sync", PkgPath: "sync"}
 	graph, err := selectGraph([]*packages.Package{original}, p, adapter)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(graph.order, []string{target, original.ID}) || graph.native[original.ID] ||
-		graph.native[target] {
+	if !reflect.DeepEqual(graph.order, []string{target, original.ID}) || graph.native[original.ID] || graph.native[target] {
 		t.Fatalf("translated symbol adapter misclassified: %v", graph.order)
 	}
 }
@@ -151,16 +135,10 @@ func TestSymbolAdapterGlobalsAndNativeImports(t *testing.T) {
 	original := ast.NewIdent("IEEETable")
 	ident := &dst.Ident{Name: "IEEETable", Path: "hash/crc32"}
 	tr := packageTranslator{
-		astMap:    decorator.AstMap{Nodes: map[dst.Node]ast.Node{ident: original}},
-		typesInfo: &types.Info{Uses: map[*ast.Ident]types.Object{original: obj}},
-		profile: &PackagePolicies{
-			replacements: map[PackageSelector]PackageSelector{
-				{Pkg: pkg.Path(), Selector: obj.Name()}: {Pkg: "owned/crc32", Selector: obj.Name()},
-			},
-		},
-		globalInfo: &GlobalInfo{
-			ByPackage: map[string]*PackageGlobalInfo{"owned/crc32": {Container: map[string]string{obj.Name(): "G"}}},
-		},
+		astMap:     decorator.AstMap{Nodes: map[dst.Node]ast.Node{ident: original}},
+		typesInfo:  &types.Info{Uses: map[*ast.Ident]types.Object{original: obj}},
+		profile:    &PackagePolicies{replacements: map[PackageSelector]PackageSelector{{Pkg: pkg.Path(), Selector: obj.Name()}: {Pkg: "owned/crc32", Selector: obj.Name()}}},
+		globalInfo: &GlobalInfo{ByPackage: map[string]*PackageGlobalInfo{"owned/crc32": {Container: map[string]string{obj.Name(): "G"}}}},
 	}
 	if _, ok := tr.isGlobalUse(ident); !ok {
 		t.Fatal("symbol-adapted global missing")

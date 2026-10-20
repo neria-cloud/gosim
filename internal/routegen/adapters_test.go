@@ -100,8 +100,7 @@ func TestAdapterInventoryAndProviderBoundary(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, imp := range f.Imports {
-			if strings.Contains(imp.Path.Value, "gosim/internal/fs") ||
-				strings.Contains(imp.Path.Value, "gosim/internal/net") {
+			if strings.Contains(imp.Path.Value, "gosim/internal/fs") || strings.Contains(imp.Path.Value, "gosim/internal/net") {
 				t.Fatal("adapter imports provider", imp.Path.Value)
 			}
 		}

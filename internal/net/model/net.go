@@ -73,17 +73,7 @@ func (e *Endpoint) Send(packet *Packet) {
 	}
 	n := e.net
 	drop := func(reason string) {
-		n.traceNetwork(
-			"drop",
-			"from",
-			e.addr,
-			"to",
-			packet.ConnId.Hosts.DestHost,
-			"kind",
-			packet.Kind,
-			"reason",
-			reason,
-		)
+		n.traceNetwork("drop", "from", e.addr, "to", packet.ConnId.Hosts.DestHost, "kind", packet.Kind, "reason", reason)
 		freePacket(packet)
 	}
 	if e.closed {
@@ -120,25 +110,7 @@ func (e *Endpoint) Send(packet *Packet) {
 	packet.ArrivalTime = timeIndex{time: arrival, index: n.nextSequence}
 	packet.Generation = state.Generation
 	e.last[dst] = packet.ArrivalTime
-	n.traceNetwork(
-		"enqueue",
-		"from",
-		e.addr,
-		"to",
-		dst,
-		"kind",
-		packet.Kind,
-		"sampled",
-		sampled,
-		"arrival",
-		arrival,
-		"sequence",
-		n.nextSequence,
-		"generation",
-		state.Generation,
-		"saturated",
-		saturated,
-	)
+	n.traceNetwork("enqueue", "from", e.addr, "to", dst, "kind", packet.Kind, "sampled", sampled, "arrival", arrival, "sequence", n.nextSequence, "generation", state.Generation, "saturated", saturated)
 	n.queue.enqueue(packet)
 }
 
@@ -167,22 +139,13 @@ type Reservation struct {
 
 func (r Reservation) Address() netip.Addr { return r.address }
 
-func NewNetwork(
-	clock contracts.Clock,
-	events contracts.Events,
-	random contracts.Random,
-	trace contracts.Trace,
-) *Network {
+func NewNetwork(clock contracts.Clock, events contracts.Events, random contracts.Random, trace contracts.Trace) *Network {
 	if clock == nil || events == nil || random == nil || trace == nil {
 		panic("missing network ports")
 	}
 	n := &Network{
-		endpoints: make(
-			map[netip.Addr]*Endpoint,
-		), config: DefaultConfig(), links: make(map[linkKey]*linkState), rng: random, clock: clock, events: events, trace: trace,
-		reservations: make(
-			map[uint64]Reservation,
-		), reserved: make(map[netip.Addr]uint64), assigned: make(map[contracts.MachineRef]netip.Addr), owners: make(map[netip.Addr]contracts.MachineRef),
+		endpoints: make(map[netip.Addr]*Endpoint), config: DefaultConfig(), links: make(map[linkKey]*linkState), rng: random, clock: clock, events: events, trace: trace,
+		reservations: make(map[uint64]Reservation), reserved: make(map[netip.Addr]uint64), assigned: make(map[contracts.MachineRef]netip.Addr), owners: make(map[netip.Addr]contracts.MachineRef),
 	}
 	n.queue = newDelayQueue(clock, events, func(p *Packet) {
 		if stack := n.getStack(p); stack != nil {
@@ -245,10 +208,7 @@ func (n *Network) AbortReservation(r Reservation) {
 }
 
 func (n *Network) Attach(r Reservation, ref contracts.EpochRef, stack *Stack) {
-	if r.id == 0 || n.reservations[r.id] != r || ref.Machine != r.owner || ref.Epoch == 0 || stack == nil ||
-		stack.ref != ref ||
-		stack.endpoint != nil ||
-		stack.shutdown {
+	if r.id == 0 || n.reservations[r.id] != r || ref.Machine != r.owner || ref.Epoch == 0 || stack == nil || stack.ref != ref || stack.endpoint != nil || stack.shutdown {
 		panic("invalid network publication")
 	}
 	n.AbortReservation(r)
@@ -339,25 +299,13 @@ func (n *Network) SetConnectivity(p HostPair, connected bool, direction Connecti
 }
 
 func (n *Network) SetDelay(p HostPair, delay time.Duration) error {
-	return n.ApplyControl(
-		ControlRequest{Kind: SetPairLatency, A: p.SourceHost.String(), B: p.DestHost.String(), Duration: delay},
-	)
+	return n.ApplyControl(ControlRequest{Kind: SetPairLatency, A: p.SourceHost.String(), B: p.DestHost.String(), Duration: delay})
 }
 
 func (n *Network) getStack(packet *Packet) *Stack {
 	state := n.links[edgeKey(packet.ConnId.Hosts)]
 	if state == nil || state.Generation != packet.Generation || state.Status != linkHealthy || state.Explicit {
-		n.traceNetwork(
-			"drop",
-			"reason",
-			"stale_or_partitioned",
-			"from",
-			packet.ConnId.Hosts.SourceHost,
-			"to",
-			packet.ConnId.Hosts.DestHost,
-			"generation",
-			packet.Generation,
-		)
+		n.traceNetwork("drop", "reason", "stale_or_partitioned", "from", packet.ConnId.Hosts.SourceHost, "to", packet.ConnId.Hosts.DestHost, "generation", packet.Generation)
 		return nil
 	}
 	endpoint := n.endpoints[packet.ConnId.Hosts.DestHost]
@@ -366,19 +314,7 @@ func (n *Network) getStack(packet *Packet) *Stack {
 		return nil
 	}
 	// Delivery is serialized with topology mutation by the event owner.
-	n.traceNetwork(
-		"deliver_admitted",
-		"from",
-		packet.ConnId.Hosts.SourceHost,
-		"to",
-		packet.ConnId.Hosts.DestHost,
-		"kind",
-		packet.Kind,
-		"sequence",
-		packet.ArrivalTime.index,
-		"generation",
-		packet.Generation,
-	)
+	n.traceNetwork("deliver_admitted", "from", packet.ConnId.Hosts.SourceHost, "to", packet.ConnId.Hosts.DestHost, "kind", packet.Kind, "sequence", packet.ArrivalTime.index, "generation", packet.Generation)
 
 	return endpoint.stack
 }

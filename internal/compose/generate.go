@@ -53,16 +53,7 @@ func render(selection buildspec.Selection) ([]byte, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	data := compositionData{
-		IdentityDigest:  digest,
-		Toolchain:       id.Toolchain,
-		Profile:         id.Profile,
-		HostOS:          id.HostOS,
-		HostArch:        id.HostArch,
-		AdapterRevision: id.AdapterRevision,
-		RuntimeRevision: id.RuntimeRevision,
-		Features:        "contracts.RT",
-	}
+	data := compositionData{IdentityDigest: digest, Toolchain: id.Toolchain, Profile: id.Profile, HostOS: id.HostOS, HostArch: id.HostArch, AdapterRevision: id.AdapterRevision, RuntimeRevision: id.RuntimeRevision, Features: "contracts.RT"}
 	imports := map[string]string{
 		gosimtool.Module + "/internal/logging":   "logging",
 		gosimtool.Module + "/internal/contracts": "contracts", gosimtool.Module + "/internal/control": "control",
@@ -160,9 +151,7 @@ func ValidateImports(output GeneratedComposition, selection buildspec.Selection)
 		return err
 	}
 	digest, _ := buildspec.Digest(selection.Identity)
-	if output.IdentityDigest != digest || !slices.Equal(output.Files, []string{"composition.go"}) ||
-		!filepath.IsAbs(output.SourceDir) ||
-		filepath.Clean(output.SourceDir) != output.SourceDir {
+	if output.IdentityDigest != digest || !slices.Equal(output.Files, []string{"composition.go"}) || !filepath.IsAbs(output.SourceDir) || filepath.Clean(output.SourceDir) != output.SourceDir {
 		return fmt.Errorf("invalid generated composition record")
 	}
 	info, err := os.Lstat(output.SourceDir)

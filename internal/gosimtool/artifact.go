@@ -68,11 +68,7 @@ func MaterializeFiles(directory string, files map[string][]byte) error {
 		if err := mkdirArtifactParents(directory, filepath.Dir(filepath.FromSlash(name))); err != nil {
 			return err
 		}
-		f, err := os.OpenFile(
-			filepath.Join(directory, filepath.FromSlash(name)),
-			os.O_WRONLY|os.O_CREATE|os.O_EXCL,
-			0o644,
-		)
+		f, err := os.OpenFile(filepath.Join(directory, filepath.FromSlash(name)), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 		if err != nil {
 			return err
 		}
@@ -89,13 +85,7 @@ func MaterializeFiles(directory string, files map[string][]byte) error {
 // The builder owns a private directory and returns its complete manifest; it
 // must include its binary and every generated file. Only verified output moves
 // into the final namespace. Task 21 connects the translator/compiler to this API.
-func BuildArtifact(
-	ctx context.Context,
-	project string,
-	identity buildspec.Identity,
-	packages []PackageDigest,
-	builder func(string) (Manifest, error),
-) (artifact Artifact, err error) {
+func BuildArtifact(ctx context.Context, project string, identity buildspec.Identity, packages []PackageDigest, builder func(string) (Manifest, error)) (artifact Artifact, err error) {
 	identity, err = buildspec.NormalizeIdentity(identity)
 	if err != nil {
 		return artifact, err

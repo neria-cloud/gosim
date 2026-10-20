@@ -50,8 +50,7 @@ func TestKernelRunSelfExitAndRootLastCleanup(t *testing.T) {
 	if err != nil || !returned.Load() {
 		t.Fatal("root did not exit normally", err)
 	}
-	if k.machineByID[1].lastExit.Kind != contracts.StopGraceful ||
-		k.machineByID[2].lastExit.Kind != contracts.StopGraceful {
+	if k.machineByID[1].lastExit.Kind != contracts.StopGraceful || k.machineByID[2].lastExit.Kind != contracts.StopGraceful {
 		t.Fatal("main return did not gracefully finalize")
 	}
 	var releases []string
@@ -157,14 +156,7 @@ func TestRunPanicAndDisabledFeatureCrashCleanup(t *testing.T) {
 						panic("application init/main failure")
 					}
 					defer func() { _ = recover(); recovered.Store(true) }()
-					k.Require(
-						contracts.CallContext{
-							Epoch: contracts.EpochRef{Machine: contracts.MachineRef{RunID: k.runID, ID: 1}, Epoch: 1},
-							PC:    42,
-						},
-						contracts.FS,
-						"openat",
-					)
+					k.Require(contracts.CallContext{Epoch: contracts.EpochRef{Machine: contracts.MachineRef{RunID: k.runID, ID: 1}, Epoch: 1}, PC: 42}, contracts.FS, "openat")
 					after.Store(true)
 				})
 			})
@@ -173,10 +165,7 @@ func TestRunPanicAndDisabledFeatureCrashCleanup(t *testing.T) {
 			}
 			if failure == "disabled" {
 				var diagnostic *simrt.AbortError
-				if !errors.As(err, &diagnostic) || diagnostic.Diagnostic.Kind != "FeatureDisabled" ||
-					diagnostic.Diagnostic.PC != 42 ||
-					recovered.Load() ||
-					after.Load() {
+				if !errors.As(err, &diagnostic) || diagnostic.Diagnostic.Kind != "FeatureDisabled" || diagnostic.Diagnostic.PC != 42 || recovered.Load() || after.Load() {
 					t.Fatalf("recoverable feature guard: %v", err)
 				}
 			}
@@ -218,10 +207,7 @@ func TestPortsEpochAdmissionCopyingAndRandomOwnership(t *testing.T) {
 			t.Fatal(err)
 		}
 		ports := fs.ports
-		if _, err := ports.Events.Schedule(tx.run.ref, ports.Clock.NowNanos(), func() {}); !errors.Is(
-			err,
-			contracts.ErrInvalidState,
-		) {
+		if _, err := ports.Events.Schedule(tx.run.ref, ports.Clock.NowNanos(), func() {}); !errors.Is(err, contracts.ErrInvalidState) {
 			t.Fatal("staged event accepted")
 		}
 		if err := tx.Commit(); err != nil {

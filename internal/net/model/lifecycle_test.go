@@ -125,13 +125,7 @@ func TestStalePacketsAfterRestartAndPortReuse(t *testing.T) {
 	t.Parallel()
 	n, events, a, b := liveNetwork(t)
 	client, server, _ := connect(t, events, a, b)
-	stale := Packet{
-		ConnId:               client.id,
-		Kind:                 PacketKindStreamClose,
-		SourceEpoch:          a.ref,
-		DestinationEpoch:     b.ref,
-		ConnectionGeneration: client.generation,
-	}
+	stale := Packet{ConnId: client.id, Kind: PacketKindStreamClose, SourceEpoch: a.ref, DestinationEpoch: b.ref, ConnectionGeneration: client.generation}
 	if err := a.StreamClose(client); err != nil {
 		t.Fatal(err)
 	}
@@ -153,15 +147,7 @@ func TestStalePacketsAfterRestartAndPortReuse(t *testing.T) {
 	if replacement.closed {
 		t.Fatal("stale close killed recycled connection")
 	}
-	oldOpen := Packet{
-		ConnId:               client.id,
-		Kind:                 PacketKindOpenStream,
-		SourceEpoch:          a.ref,
-		DestinationEpoch:     b.ref,
-		ConnectionGeneration: client.generation,
-		InBuffer:             newCircularBuffer(1024),
-		OutBuffer:            newCircularBuffer(1024),
-	}
+	oldOpen := Packet{ConnId: client.id, Kind: PacketKindOpenStream, SourceEpoch: a.ref, DestinationEpoch: b.ref, ConnectionGeneration: client.generation, InBuffer: newCircularBuffer(1024), OutBuffer: newCircularBuffer(1024)}
 	b.ProcessIncoming(&oldOpen)
 	if b.streams[next.id.Flip()] != replacement {
 		t.Fatal("stale handshake replaced connection")
@@ -200,53 +186,48 @@ func TestStalePacketsAfterRestartAndPortReuse(t *testing.T) {
 func TestGracefulFinalCloseAndCrashSilence(t *testing.T) {
 	t.Parallel()
 	for _, kind := range []contracts.StopKind{contracts.StopGraceful, contracts.StopCrash} {
-		t.Run(
-			map[contracts.StopKind]string{contracts.StopGraceful: "graceful", contracts.StopCrash: "crash"}[kind],
-			func(t *testing.T) {
-				n, events, a, b := liveNetwork(t)
-				client, server, _ := connect(t, events, a, b)
-				if err := n.SetDelay(testPair, time.Second); err != nil {
-					t.Fatal(err)
+		t.Run(map[contracts.StopKind]string{contracts.StopGraceful: "graceful", contracts.StopCrash: "crash"}[kind], func(t *testing.T) {
+			n, events, a, b := liveNetwork(t)
+			client, server, _ := connect(t, events, a, b)
+			if err := n.SetDelay(testPair, time.Second); err != nil {
+				t.Fatal(err)
+			}
+			staleCallback := events.pending[server.keepaliveTimer.event].fn
+			// Mirrors kernel ordering: epoch events canceled before provider quiescence.
+			events.CancelEpoch(b.ref)
+			b.Quiesce()
+			b.Shutdown(kind)
+			n.Detach(b.ref)
+			if len(b.streams) != 0 || len(b.listeners) != 0 || server.inBuffer != nil || server.outBuffer != nil {
+				t.Fatal("retained stack resources")
+			}
+			for _, event := range events.pending {
+				if event.ref == b.ref {
+					t.Fatal("event targets canceled source")
 				}
-				staleCallback := events.pending[server.keepaliveTimer.event].fn
-				// Mirrors kernel ordering: epoch events canceled before provider quiescence.
-				events.CancelEpoch(b.ref)
-				b.Quiesce()
-				b.Shutdown(kind)
-				n.Detach(b.ref)
-				if len(b.streams) != 0 || len(b.listeners) != 0 || server.inBuffer != nil || server.outBuffer != nil {
-					t.Fatal("retained stack resources")
+			}
+			want := 0
+			if kind == contracts.StopGraceful {
+				want = 1
+			}
+			if len(n.queue.items) != want {
+				t.Fatal("wrong final notification count", len(n.queue.items))
+			}
+			if want == 1 {
+				p := n.queue.items[0]
+				if p.Kind != PacketKindStreamClose || p.InBuffer != nil || p.OutBuffer != nil || p.DestinationEpoch != a.ref || p.ConnectionGeneration != client.generation {
+					t.Fatal("final close captured mutable source")
 				}
-				for _, event := range events.pending {
-					if event.ref == b.ref {
-						t.Fatal("event targets canceled source")
-					}
-				}
-				want := 0
-				if kind == contracts.StopGraceful {
-					want = 1
-				}
-				if len(n.queue.items) != want {
-					t.Fatal("wrong final notification count", len(n.queue.items))
-				}
-				if want == 1 {
-					p := n.queue.items[0]
-					if p.Kind != PacketKindStreamClose || p.InBuffer != nil || p.OutBuffer != nil ||
-						p.DestinationEpoch != a.ref ||
-						p.ConnectionGeneration != client.generation {
-						t.Fatal("final close captured mutable source")
-					}
-				}
-				staleCallback()
-				events.advance(int64(2 * time.Second))
-				if client.closed != (kind == contracts.StopGraceful) {
-					t.Fatal("peer close does not match stop kind")
-				}
-				if _, err := b.OpenStream(netip.AddrPortFrom(a.endpoint.addr, 80)); err != ErrStreamClosed {
-					t.Fatal("quiesced application work admitted")
-				}
-			},
-		)
+			}
+			staleCallback()
+			events.advance(int64(2 * time.Second))
+			if client.closed != (kind == contracts.StopGraceful) {
+				t.Fatal("peer close does not match stop kind")
+			}
+			if _, err := b.OpenStream(netip.AddrPortFrom(a.endpoint.addr, 80)); err != ErrStreamClosed {
+				t.Fatal("quiesced application work admitted")
+			}
+		})
 	}
 }
 
@@ -263,8 +244,7 @@ func TestQuiesceRearmsQueueForSurvivingDestination(t *testing.T) {
 	}
 	events.CancelEpoch(b.ref)
 	b.Quiesce()
-	if first.Kind != 255 || len(n.queue.items) != 1 || n.queue.items[0] != second ||
-		events.pending[n.queue.event].ref != a.ref {
+	if first.Kind != 255 || len(n.queue.items) != 1 || n.queue.items[0] != second || events.pending[n.queue.event].ref != a.ref {
 		t.Fatal("stopped destination stranded unrelated packet")
 	}
 	events.advance(int64(time.Second))
@@ -351,8 +331,7 @@ func TestStreamDataPollingAndTimerRetirement(t *testing.T) {
 		t.Fatal("wrap read", count, err)
 	}
 	events.advance(events.now)
-	if len(sink.masks) < 3 || sink.masks[1]&contracts.ReadReady == 0 ||
-		sink.masks[len(sink.masks)-1]&contracts.ReadReady != 0 {
+	if len(sink.masks) < 3 || sink.masks[1]&contracts.ReadReady == 0 || sink.masks[len(sink.masks)-1]&contracts.ReadReady != 0 {
 		t.Fatal("readiness", sink.masks)
 	}
 	for _, ref := range sink.refs {
@@ -388,9 +367,7 @@ func TestDirectedPolicyCopiesAndAtomicUpdates(t *testing.T) {
 	}
 	before := n.effectiveConfig(forward)
 	bad := LossConfig{FailProbability: math.NaN()}
-	if n.SetLinkPolicy(testPair, DirectionTwoWay, &latency, &bad) != syscall.EINVAL ||
-		n.effectiveConfig(forward) != before ||
-		len(n.links) != 1 {
+	if n.SetLinkPolicy(testPair, DirectionTwoWay, &latency, &bad) != syscall.EINVAL || n.effectiveConfig(forward) != before || len(n.links) != 1 {
 		t.Fatal("invalid grouped update partially applied")
 	}
 	if err := n.SetLinkPolicy(testPair, DirectionTwoWay, nil, &loss); err != nil {
@@ -444,16 +421,8 @@ func TestSymmetricFieldUpdateFailsWithoutMutationOrTrace(t *testing.T) {
 	}
 	trace := n.trace.(*testTrace)
 	before := len(trace.names)
-	err := n.ApplyControl(
-		ControlRequest{
-			Kind:     SetPairMaxLatency,
-			A:        testPair.SourceHost.String(),
-			B:        testPair.DestHost.String(),
-			Duration: 5,
-		},
-	)
-	if err != syscall.EINVAL || len(n.links) != 1 || len(trace.names) != before ||
-		n.links[edgeKey(testPair.Flip())].Latency.Max != 20 {
+	err := n.ApplyControl(ControlRequest{Kind: SetPairMaxLatency, A: testPair.SourceHost.String(), B: testPair.DestHost.String(), Duration: 5})
+	if err != syscall.EINVAL || len(n.links) != 1 || len(trace.names) != before || n.links[edgeKey(testPair.Flip())].Latency.Max != 20 {
 		t.Fatal("partially published invalid Both update")
 	}
 }

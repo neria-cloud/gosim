@@ -101,8 +101,7 @@ func renameFile(cfg gosimtool.BuildConfig, filePath string) string {
 	}
 
 	matched := false
-	if len(parts) >= 2 && parts[len(parts)-2] == cfg.Identity.SimulationOS &&
-		parts[len(parts)-1] == cfg.Identity.SimulationArch {
+	if len(parts) >= 2 && parts[len(parts)-2] == cfg.Identity.SimulationOS && parts[len(parts)-1] == cfg.Identity.SimulationArch {
 		matched = true
 	}
 	if len(parts) >= 1 && parts[len(parts)-1] == cfg.Identity.SimulationOS {
@@ -174,11 +173,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 			profile:      policies,
 		}
 
-		file, err := t.makeMetaTestFile(
-			packageName,
-			collectedTests,
-			args.hooksPackage,
-		) // XXX get right pkg name please....
+		file, err := t.makeMetaTestFile(packageName, collectedTests, args.hooksPackage) // XXX get right pkg name please....
 		if err != nil {
 			return nil, err
 		}
@@ -292,10 +287,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 	if kind == PackageKindForTest || kind == PackageKindTests {
 		for _, test := range globals.tests {
 			testFuncs[test] = true
-			results.CollectedTests = append(
-				results.CollectedTests,
-				PackageSelector{Pkg: args.pkg.PkgPath, Selector: test},
-			)
+			results.CollectedTests = append(results.CollectedTests, PackageSelector{Pkg: args.pkg.PkgPath, Selector: test})
 			globalInfo.Rewritten[test] = "Impl" + test
 		}
 	}
@@ -371,9 +363,7 @@ func translatePackage(args *translatePackageArgs) (result *TranslatePackageResul
 		PackageKindTests:   "gosim_globals_test.go",
 	}[kind]; ok {
 		// write a globals.go, if applicable
-		if len(translator.collect.globalFields) > 0 || len(translator.collect.inits) > 0 ||
-			len(translator.collect.bindspecs) > 0 ||
-			len(translator.collect.sharedGlobalFields) > 0 {
+		if len(translator.collect.globalFields) > 0 || len(translator.collect.inits) > 0 || len(translator.collect.bindspecs) > 0 || len(translator.collect.sharedGlobalFields) > 0 {
 			file, err := makeDetgoGlobalsFile(translator, args.pkg.Name, forTest)
 			if err != nil {
 				return nil, err

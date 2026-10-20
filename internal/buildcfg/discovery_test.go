@@ -28,24 +28,12 @@ func fakeDiscoveryGo(t *testing.T, version string) (string, string, string) {
 	}
 	observed := filepath.Join(root, "observed")
 	work := filepath.Join(root, "caller.work")
-	info := map[string]string{
-		"GOVERSION":  version,
-		"GOROOT":     root,
-		"GOHOSTOS":   runtime.GOOS,
-		"GOHOSTARCH": runtime.GOARCH,
-		"GOMOD":      filepath.Join(root, "go.mod"),
-		"GOWORK":     work,
-	}
+	info := map[string]string{"GOVERSION": version, "GOROOT": root, "GOHOSTOS": runtime.GOOS, "GOHOSTARCH": runtime.GOARCH, "GOMOD": filepath.Join(root, "go.mod"), "GOWORK": work}
 	data, err := json.Marshal(info)
 	if err != nil {
 		t.Fatal(err)
 	}
-	script := fmt.Sprintf(
-		"#!/bin/sh\nif [ \"$1\" = version ]; then\n printf '%%s\\n' %s\nelse\n printf '%%s\\n' \"$PWD\" \"$GOTOOLCHAIN\" \"$GOWORK\" > %s\n printf '%%s\\n' %s\nfi\n",
-		shellQuote("go version "+version+" "+runtime.GOOS+"/"+runtime.GOARCH),
-		shellQuote(observed),
-		shellQuote(string(data)),
-	)
+	script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = version ]; then\n printf '%%s\\n' %s\nelse\n printf '%%s\\n' \"$PWD\" \"$GOTOOLCHAIN\" \"$GOWORK\" > %s\n printf '%%s\\n' %s\nfi\n", shellQuote("go version "+version+" "+runtime.GOOS+"/"+runtime.GOARCH), shellQuote(observed), shellQuote(string(data)))
 	if err := os.WriteFile(filepath.Join(bin, "go"), []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -118,8 +106,7 @@ func TestDiscoveryExplicitOverrideAndCancellation(t *testing.T) {
 func TestDiscoveryRejectsUnsupportedFamily(t *testing.T) {
 	root, _, _ := fakeDiscoveryGo(t, "go1.27.1")
 	t.Setenv("PATH", filepath.Join(root, "bin")+string(os.PathListSeparator)+os.Getenv("PATH"))
-	if _, err := Discover(context.Background(), root, ""); err == nil ||
-		!strings.Contains(err.Error(), "unsupported Go family") {
+	if _, err := Discover(context.Background(), root, ""); err == nil || !strings.Contains(err.Error(), "unsupported Go family") {
 		t.Fatal(err)
 	}
 }

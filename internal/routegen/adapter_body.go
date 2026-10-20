@@ -105,10 +105,7 @@ func adapterBody(h spec.Hook, m Manifest) (string, error) {
 		if len(r.Results) > 0 {
 			variable = "out"
 		}
-		body = before + variable + ",err:=" + call + "(k." + routeName + "Request{" + strings.Join(
-			params,
-			",",
-		) + "},k.Decode" + routeName + "Result);\n" + after
+		body = before + variable + ",err:=" + call + "(k." + routeName + "Request{" + strings.Join(params, ",") + "},k.Decode" + routeName + "Result);\n" + after
 		if op == "Getpid" {
 			body += "if err!=nil{Reject(\"getpid\")};return out.PID"
 		} else if op == "VGetrandom" {

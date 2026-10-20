@@ -34,17 +34,7 @@ func Require(feature contracts.Feature, operation string) {
 func Reject(operation string) {
 	ref := control.CurrentRef()
 	token := simrt.CurrentMachineToken()
-	simrt.Abort(
-		abi.Diagnostic{
-			Kind:      string(contracts.UnsupportedOperation),
-			Feature:   "rt",
-			Operation: operation,
-			Message:   "operation is not modeled by the Go 1.25 profile",
-			RunID:     ref.RunID,
-			MachineID: ref.ID,
-			Epoch:     token.Epoch,
-		},
-	)
+	simrt.Abort(abi.Diagnostic{Kind: string(contracts.UnsupportedOperation), Feature: "rt", Operation: operation, Message: "operation is not modeled by the Go 1.25 profile", RunID: ref.RunID, MachineID: ref.ID, Epoch: token.Epoch})
 }
 
 func checked[T any](value T, err error) T {

@@ -55,10 +55,7 @@ func TestNetTcpGrpc(t *testing.T) {
 			// give the other a second to start listening
 			time.Sleep(time.Second)
 
-			client, err := grpc.Dial(
-				fmt.Sprintf("%s:1234", aAddr),
-				grpc.WithTransportCredentials(insecure.NewCredentials()),
-			)
+			client, err := grpc.Dial(fmt.Sprintf("%s:1234", aAddr), grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				t.Fatal(err)
 			}

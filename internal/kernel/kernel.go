@@ -55,9 +55,7 @@ func New(config Config, engine *simrt.Engine, providers []contracts.Provider) (*
 	if err != nil {
 		return nil, err
 	}
-	if len(config.BuildDigest) != 64 || strings.Trim(config.BuildDigest, "0123456789abcdef") != "" ||
-		config.TimeoutNS <= 0 ||
-		engine == nil {
+	if len(config.BuildDigest) != 64 || strings.Trim(config.BuildDigest, "0123456789abcdef") != "" || config.TimeoutNS <= 0 || engine == nil {
 		return nil, fmt.Errorf("%w: invalid kernel identity, timeout or engine", contracts.ErrInvalidConfig)
 	}
 	if err := engine.BeginTransition(); err != nil {
@@ -71,9 +69,7 @@ func New(config Config, engine *simrt.Engine, providers []contracts.Provider) (*
 	k := &Kernel{
 		features: config.Features, engine: engine, runID: runID, nextMachineID: 1,
 		config: config, machineByID: make(map[uint64]*Machine), transactions: make(map[uint64]*StartTxn),
-		waits: make(
-			map[contracts.WaitID]*waitRecord,
-		), nextWaitID: 1, events: make(map[contracts.EventID]contracts.EpochRef),
+		waits: make(map[contracts.WaitID]*waitRecord), nextWaitID: 1, events: make(map[contracts.EventID]contracts.EpochRef),
 		polls: make(map[uint64]*pollRegistration), nextPollID: 1,
 		exits: simrt.NewChan[[3]uint64](0), closeKind: contracts.StopCrash,
 	}
@@ -148,8 +144,7 @@ func (k *Kernel) Run(main func()) (result error) {
 		request := payload.([3]uint64)
 		id, epoch, kind := request[0], request[1], contracts.StopKind(request[2])
 		m := k.machineByID[id]
-		if m == nil || m.state != StateRunning || m.current.ref.Epoch != epoch ||
-			(kind != contracts.StopGraceful && kind != contracts.StopCrash) {
+		if m == nil || m.state != StateRunning || m.current.ref.Epoch != epoch || (kind != contracts.StopGraceful && kind != contracts.StopCrash) {
 			k.invariant("invalid self-exit request")
 			return contracts.ErrInvalidState
 		}

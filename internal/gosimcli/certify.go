@@ -38,12 +38,7 @@ type suiteOptions struct {
 	large       bool
 }
 
-func runCertificationCommand(
-	ctx context.Context,
-	command string,
-	args []string,
-	streams workerboot.Streams,
-) (int, error) {
+func runCertificationCommand(ctx context.Context, command string, args []string, streams workerboot.Streams) (int, error) {
 	f := flag.NewFlagSet("internal-candidate "+command, flag.ContinueOnError)
 	f.SetOutput(streams.Err)
 	flags := addBuildFlags(f)
@@ -71,8 +66,7 @@ func runCertificationCommand(
 		}
 		return 2, err
 	}
-	if f.NArg() != 0 || suite.concurrency < 1 || suite.parallel < 0 || suite.packages < 0 ||
-		(ordinary && flags.Options.Race) {
+	if f.NArg() != 0 || suite.concurrency < 1 || suite.parallel < 0 || suite.packages < 0 || (ordinary && flags.Options.Race) {
 		return 2, fmt.Errorf("require no positional arguments, positive -concurrency, and one test mode")
 	}
 	var err error
@@ -93,12 +87,7 @@ func certify(flags BuildFlags, options MatrixOptions, suite suiteOptions) (Certi
 	return certifyContext(context.Background(), flags, options, suite)
 }
 
-func certifyContext(
-	ctx context.Context,
-	flags BuildFlags,
-	options MatrixOptions,
-	suite suiteOptions,
-) (report CertificationReport, err error) {
+func certifyContext(ctx context.Context, flags BuildFlags, options MatrixOptions, suite suiteOptions) (report CertificationReport, err error) {
 	if err := validateCertificationSelection(runtime.GOARCH, flags.Options.Race); err != nil {
 		return report, err
 	}
@@ -107,18 +96,9 @@ func certifyContext(
 		return report, err
 	}
 	if !suite.large {
-		return report, fmt.Errorf(
-			"manual certification requires explicit -large coverage; use verify for ordinary tests",
-		)
+		return report, fmt.Errorf("manual certification requires explicit -large coverage; use verify for ordinary tests")
 	}
-	report = CertificationReport{
-		Schema:               2,
-		Tuple:                buildspec.TupleFor(resolved.Identity),
-		Identity:             resolved.Identity,
-		ExecutionMode:        options.ExecutionMode,
-		WorkerArch:           runtime.GOARCH,
-		ContainerImageDigest: options.ContainerImageDigest,
-	}
+	report = CertificationReport{Schema: 2, Tuple: buildspec.TupleFor(resolved.Identity), Identity: resolved.Identity, ExecutionMode: options.ExecutionMode, WorkerArch: runtime.GOARCH, ContainerImageDigest: options.ContainerImageDigest}
 	report.FrameworkDigest, err = buildspec.SourceDigest(resolved.Identity)
 	if err != nil {
 		return report, err
@@ -209,11 +189,7 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 	}
 	built, buildErr := buildrun.BuildResolved(cfg, packages)
 	if buildErr == nil && len(built.Artifacts) != len(packages) {
-		buildErr = fmt.Errorf(
-			"missing applicable package artifacts: got %d want %d",
-			len(built.Artifacts),
-			len(packages),
-		)
+		buildErr = fmt.Errorf("missing applicable package artifacts: got %d want %d", len(built.Artifacts), len(packages))
 	}
 	data, marshalErr := json.Marshal(built.Artifacts)
 	buildErr = errors.Join(buildErr, marshalErr)
@@ -239,15 +215,7 @@ func runFullSuite(cfg gosimtool.BuildConfig, dir string, suite suiteOptions) (re
 		if suite.json {
 			pkg := strings.TrimPrefix(artifact.Manifest.PackageDigests[0].Path, "translated/"+gosimtool.Module+"/")
 			pkg = strings.ReplaceAll(pkg, "internal_", "internal")
-			converter = buildcfg.Command(
-				cfg.Toolchain,
-				"",
-				"tool",
-				"test2json",
-				"-t",
-				"-p",
-				gosimtool.Module+"/simulation/"+pkg,
-			)
+			converter = buildcfg.Command(cfg.Toolchain, "", "tool", "test2json", "-t", "-p", gosimtool.Module+"/simulation/"+pkg)
 		}
 		commands = append(commands, cmd)
 		converters = append(converters, converter)

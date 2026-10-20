@@ -15,19 +15,9 @@ func certificationFixture(t *testing.T) (buildspec.Identity, buildspec.Certifica
 	if err != nil {
 		t.Fatal(err)
 	}
-	report := buildspec.CertificationReport{
-		Schema:          2,
-		Identity:        id,
-		FrameworkDigest: source,
-		Tuple:           buildspec.TupleFor(id),
-		ExecutionMode:   "native",
-		WorkerArch:      id.HostArch,
-	}
+	report := buildspec.CertificationReport{Schema: 2, Identity: id, FrameworkDigest: source, Tuple: buildspec.TupleFor(id), ExecutionMode: "native", WorkerArch: id.HostArch}
 	for _, name := range []string{"build", "execute", "native", "large"} {
-		report.Suites = append(
-			report.Suites,
-			buildspec.SuiteResult{Name: name, Passed: true, LogDigest: buildspec.Hash([]byte(name))},
-		)
+		report.Suites = append(report.Suites, buildspec.SuiteResult{Name: name, Passed: true, LogDigest: buildspec.Hash([]byte(name))})
 	}
 	report.ResultDigest, err = buildspec.ReportDigest(report)
 	if err != nil {
@@ -118,10 +108,7 @@ func TestReducedReportRequiresApplicableNativeAndBoundarySuites(t *testing.T) {
 	if err := buildspec.ValidateReport(r); err == nil {
 		t.Fatal("reduced report omitted native units")
 	}
-	r.Suites = append(
-		r.Suites,
-		buildspec.SuiteResult{Name: "native-units", Passed: true, LogDigest: buildspec.Hash([]byte("units"))},
-	)
+	r.Suites = append(r.Suites, buildspec.SuiteResult{Name: "native-units", Passed: true, LogDigest: buildspec.Hash([]byte("units"))})
 	r.ResultDigest, _ = buildspec.ReportDigest(r)
 	if err := buildspec.ValidateReport(r); err != nil {
 		t.Fatal(err)

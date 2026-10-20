@@ -21,14 +21,7 @@ import (
 )
 
 func unsupported() {
-	gosimruntime.Abort(
-		abi.Diagnostic{
-			Kind:      "UnsupportedOperation",
-			Feature:   "net",
-			Operation: "crypto/tls",
-			Message:   "optional TLS/certificate operations are not modeled",
-		},
-	)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "net", Operation: "crypto/tls", Message: "optional TLS/certificate operations are not modeled"})
 }
 
 type Certificate struct {

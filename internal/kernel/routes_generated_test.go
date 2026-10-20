@@ -51,8 +51,7 @@ func TestGeneratedPayloadBoundaries(t *testing.T) {
 	}
 	unknown := Invocation{Route: RouteID(0xffffffff)}
 	var failure *contracts.Failure
-	if err := validateRoutePayload(&unknown); !errors.As(err, &failure) ||
-		failure.Code != contracts.UnsupportedOperation {
+	if err := validateRoutePayload(&unknown); !errors.As(err, &failure) || failure.Code != contracts.UnsupportedOperation {
 		t.Fatalf("unknown route: %v", err)
 	}
 }

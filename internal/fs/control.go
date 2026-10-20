@@ -63,13 +63,7 @@ func (s *Session) Stats(ref contracts.MachineRef) (contracts.FSStorageStats, err
 		defer disk.Release()
 	}
 	stats := disk.Stats(m.config.CapacityBytes)
-	return contracts.FSStorageStats{
-		TotalBytes: stats.TotalBytes,
-		FreeBytes:  stats.FreeBytes,
-		UsedBytes:  stats.UsedBytes,
-		BlockSize:  stats.BlockSize,
-		ReadOnly:   m.readOnly,
-	}, nil
+	return contracts.FSStorageStats{TotalBytes: stats.TotalBytes, FreeBytes: stats.FreeBytes, UsedBytes: stats.UsedBytes, BlockSize: stats.BlockSize, ReadOnly: m.readOnly}, nil
 }
 
 func (s *Session) SetCrashMode(ref contracts.MachineRef, mode uint8) error {
@@ -113,14 +107,7 @@ func (s *Session) InspectInode(ref contracts.MachineRef, inode int) (contracts.I
 		return contracts.InodeInfo{}, contracts.ErrNotStarted
 	}
 	info := disk.GetInodeInfo(inode)
-	return contracts.InodeInfo{
-		MemLinks:   info.MemLinks,
-		MemExists:  info.MemExists,
-		DiskLinks:  info.DiskLinks,
-		DiskExists: info.DiskExists,
-		Handles:    info.Handles,
-		Ops:        info.Ops,
-	}, nil
+	return contracts.InodeInfo{MemLinks: info.MemLinks, MemExists: info.MemExists, DiskLinks: info.DiskLinks, DiskExists: info.DiskExists, Handles: info.Handles, Ops: info.Ops}, nil
 }
 
 type recoveryHandle struct {
@@ -138,14 +125,7 @@ type recoveryIterator struct {
 
 func (s *Session) allocateHandle(h *recoveryHandle) (uint64, error) {
 	if s.nextHandle == 0 || s.nextHandle == math.MaxUint64 {
-		return 0, &contracts.Failure{
-			Code: contracts.InvariantFailure,
-			Diagnostic: contracts.Diagnostic{
-				Feature:   "fs",
-				Operation: "allocate recovery handle",
-				Message:   "handle ID space exhausted",
-			},
-		}
+		return 0, &contracts.Failure{Code: contracts.InvariantFailure, Diagnostic: contracts.Diagnostic{Feature: "fs", Operation: "allocate recovery handle", Message: "handle ID space exhausted"}}
 	}
 	id := s.nextHandle
 	s.nextHandle++

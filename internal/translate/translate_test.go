@@ -86,22 +86,7 @@ func TestTranslate(t *testing.T) {
 	// Build a worker with this test's exact compiler. Shared prepare-selftest
 	// artifacts may belong to another patch/family and omit its native packages.
 	binPath := filepath.Join(t.TempDir(), "gosim")
-	build := buildspec.GoCommand(
-		buildspec.Toolchain{
-			Executable: filepath.Join(runtime.GOROOT(), "bin", "go"),
-			GOROOT:     runtime.GOROOT(),
-			Version:    runtime.Version(),
-			HostOS:     runtime.GOOS,
-			HostArch:   runtime.GOARCH,
-		},
-		curModDir,
-		"build",
-		"-ldflags=-checklinkname=0",
-		"-tags=linkname",
-		"-o",
-		binPath,
-		"./cmd/gosim",
-	)
+	build := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, curModDir, "build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", binPath, "./cmd/gosim")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build matching translator worker: %v\n%s", err, out)
 	}
@@ -154,14 +139,7 @@ func TestTranslate(t *testing.T) {
 
 	// run the tool in the work directory
 	// TODO: use a race version, optionally
-	cmd := exec.Command(
-		binPath,
-		"internal-candidate",
-		"translate",
-		"-go="+runtime.Version(),
-		"-features=rt,fs,net",
-		"./...",
-	)
+	cmd := exec.Command(binPath, "internal-candidate", "translate", "-go="+runtime.Version(), "-features=rt,fs,net", "./...")
 	cmd.Dir = workDir
 	cmd.Env = envVars
 	cmd.Stdin = os.Stdin

@@ -76,9 +76,7 @@ type Dispatcher struct {
 func NewDispatcher(kernel *Kernel) *Dispatcher {
 	return &Dispatcher{
 		kernel: kernel, incoming: simrt.NewChan[*Invocation](0), nextID: 1,
-		live: make(
-			map[uint64]*invocationLease,
-		), envelopes: make(map[*Invocation]uint64), canceled: make(map[uint64]contracts.EpochRef), timers: make(map[uint64]contracts.EventID),
+		live: make(map[uint64]*invocationLease), envelopes: make(map[*Invocation]uint64), canceled: make(map[uint64]contracts.EpochRef), timers: make(map[uint64]contracts.EventID),
 	}
 }
 
@@ -160,12 +158,7 @@ func (d *Dispatcher) DispatchOne(inv *Invocation) {
 	}
 	k := d.kernel
 	if simrt.TraceSyscall.Enabled() {
-		k.engine.WriteTrace(
-			tokenFor(inv.Context.Epoch),
-			inv.Context.GoroutineID,
-			inv.Context.PC,
-			"call "+inv.Route.String(),
-		)
+		k.engine.WriteTrace(tokenFor(inv.Context.Epoch), inv.Context.GoroutineID, inv.Context.PC, "call "+inv.Route.String())
 	}
 	previous := k.caller
 	k.caller = inv.Context
@@ -317,11 +310,7 @@ func (d *Dispatcher) Complete(id uint64, result Result) error {
 		delete(d.timers, id)
 	}
 	if epoch, ok := d.canceled[id]; ok {
-		d.kernel.Ports().Trace.Emit(
-			epoch,
-			"discard-canceled-completion",
-			[]contracts.Field{{Key: "invocation", Value: fmt.Sprint(id)}},
-		)
+		d.kernel.Ports().Trace.Emit(epoch, "discard-canceled-completion", []contracts.Field{{Key: "invocation", Value: fmt.Sprint(id)}})
 		return nil
 	}
 	entry := d.live[id]
@@ -336,12 +325,7 @@ func (d *Dispatcher) Complete(id uint64, result Result) error {
 	}
 	inv := entry.invocation
 	if simrt.TraceSyscall.Enabled() {
-		d.kernel.engine.WriteTrace(
-			tokenFor(inv.Context.Epoch),
-			inv.Context.GoroutineID,
-			inv.Context.PC,
-			"ret  "+inv.Route.String(),
-		)
+		d.kernel.engine.WriteTrace(tokenFor(inv.Context.Epoch), inv.Context.GoroutineID, inv.Context.PC, "ret  "+inv.Route.String())
 	}
 	clearInvocation(inv)
 	if err, ok := result.Value.(error); ok {

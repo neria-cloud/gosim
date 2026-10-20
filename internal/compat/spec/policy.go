@@ -31,11 +31,7 @@ func (p Profile) Policy(path string, standard bool) (PackagePolicy, error) {
 		if standard {
 			return PackagePolicy{}, fmt.Errorf("unreviewed standard-library package %s in %s", path, p.ID)
 		}
-		return PackagePolicy{
-			Path:   path,
-			Mode:   "translate",
-			Reason: "Application code stays in the translated type universe; private ABI and cgo checks still apply.",
-		}, nil
+		return PackagePolicy{Path: path, Mode: "translate", Reason: "Application code stays in the translated type universe; private ABI and cgo checks still apply."}, nil
 	}
 	if found.Mode == "reject" {
 		return found, fmt.Errorf("unsupported application package %s in %s: %s", path, p.ID, found.Reason)
@@ -112,8 +108,7 @@ func (m PolicyManifest) Validate(p Profile) error {
 	shared := make(map[string]bool)
 	for _, global := range m.SharedGlobals {
 		key := global.Package + "." + global.Symbol
-		if global.Package != module+"/internal/control" || global.Symbol != "binding" || global.Reason == "" ||
-			shared[key] {
+		if global.Package != module+"/internal/control" || global.Symbol != "binding" || global.Reason == "" || shared[key] {
 			return fmt.Errorf("invalid shared translated global %s", key)
 		}
 		shared[key] = true
@@ -122,9 +117,7 @@ func (m PolicyManifest) Validate(p Profile) error {
 	native := make(map[string]bool)
 	for _, entry := range m.NativeImports {
 		key := entry.From + ":" + entry.Package
-		if !strings.HasPrefix(entry.From, module+"/internal/compat/"+p.ID+"/") || entry.Package == "" ||
-			entry.Reason == "" ||
-			native[key] {
+		if !strings.HasPrefix(entry.From, module+"/internal/compat/"+p.ID+"/") || entry.Package == "" || entry.Reason == "" || native[key] {
 			return fmt.Errorf("invalid native import %s", key)
 		}
 		native[key] = true
@@ -134,16 +127,13 @@ func (m PolicyManifest) Validate(p Profile) error {
 		policy, err := p.Policy(bridge.Package, true)
 		translatedRewrite := policy.Mode == "translate" && len(bridge.Rewrites) > 0 &&
 			bridge.Replacement == "" && !bridge.NativeIsland && len(bridge.NativeSymbols) == 0
-		if err != nil || (policy.Mode != "bridge" && !translatedRewrite) || bridges[bridge.Package] ||
-			bridge.Reason == "" {
+		if err != nil || (policy.Mode != "bridge" && !translatedRewrite) || bridges[bridge.Package] || bridge.Reason == "" {
 			return fmt.Errorf("invalid bridge %s", bridge.Package)
 		}
-		if bridge.NativeIsland &&
-			(bridge.Package != module+"/rt/runtime" && bridge.Package != module+"/rt/runtime/abi" || bridge.Replacement != "" || len(bridge.NativeSymbols) > 0 || len(bridge.Rewrites) > 0) {
+		if bridge.NativeIsland && (bridge.Package != module+"/rt/runtime" && bridge.Package != module+"/rt/runtime/abi" || bridge.Replacement != "" || len(bridge.NativeSymbols) > 0 || len(bridge.Rewrites) > 0) {
 			return fmt.Errorf("invalid native island %s", bridge.Package)
 		}
-		if bridge.Replacement != "" &&
-			(!strings.HasPrefix(bridge.Replacement, module+"/internal/compat/"+p.ID+"/") || len(bridge.NativeSymbols) > 0 || len(bridge.Rewrites) > 0) {
+		if bridge.Replacement != "" && (!strings.HasPrefix(bridge.Replacement, module+"/internal/compat/"+p.ID+"/") || len(bridge.NativeSymbols) > 0 || len(bridge.Rewrites) > 0) {
 			return fmt.Errorf("invalid bridge replacement %s", bridge.Package)
 		}
 		symbols := make(map[string]bool)
@@ -172,13 +162,7 @@ func (m PolicyManifest) Validate(p Profile) error {
 	probes := make(map[string]bool)
 	for _, probe := range m.Probes {
 		key := probe.Package + "." + probe.Symbol
-		if probe.Package == "" || probe.Symbol == "" || probes[key] ||
-			!slices.Contains([]string{"init", "first-use", "operation"}, probe.Phase) ||
-			!slices.Contains([]string{"modeled", "guarded", "reject"}, probe.Disposition) ||
-			!slices.Contains([]string{"rt", "fs", "net"}, probe.Feature) ||
-			probe.Operation == "" ||
-			probe.Response == "" ||
-			!strings.HasPrefix(probe.Source, "src/") {
+		if probe.Package == "" || probe.Symbol == "" || probes[key] || !slices.Contains([]string{"init", "first-use", "operation"}, probe.Phase) || !slices.Contains([]string{"modeled", "guarded", "reject"}, probe.Disposition) || !slices.Contains([]string{"rt", "fs", "net"}, probe.Feature) || probe.Operation == "" || probe.Response == "" || !strings.HasPrefix(probe.Source, "src/") {
 			return fmt.Errorf("invalid init probe %s", key)
 		}
 		if probe.Disposition == "guarded" && probe.Feature == "rt" {
@@ -200,10 +184,7 @@ func (m PolicyManifest) Validate(p Profile) error {
 	}
 	modules := make(map[string]bool)
 	for _, pin := range m.Modules {
-		if pin.Path == "" || pin.Version == "" || !strings.HasPrefix(pin.Sum, "h1:") ||
-			!strings.HasPrefix(pin.GoModSum, "h1:") ||
-			pin.Reason == "" ||
-			modules[pin.Path] {
+		if pin.Path == "" || pin.Version == "" || !strings.HasPrefix(pin.Sum, "h1:") || !strings.HasPrefix(pin.GoModSum, "h1:") || pin.Reason == "" || modules[pin.Path] {
 			return fmt.Errorf("invalid module pin %s", pin.Path)
 		}
 		modules[pin.Path] = true
@@ -211,10 +192,7 @@ func (m PolicyManifest) Validate(p Profile) error {
 	capabilities := make(map[string]bool)
 	for _, c := range m.Capabilities {
 		key := c.Package + "." + c.Symbol
-		if c.Package == "" || c.Symbol == "" ||
-			!slices.Contains([]string{"implemented", "limited", "stub", "rejected"}, c.Status) ||
-			c.Reason == "" ||
-			capabilities[key] {
+		if c.Package == "" || c.Symbol == "" || !slices.Contains([]string{"implemented", "limited", "stub", "rejected"}, c.Status) || c.Reason == "" || capabilities[key] {
 			return fmt.Errorf("invalid capability %s", key)
 		}
 		capabilities[key] = true

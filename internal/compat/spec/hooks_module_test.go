@@ -21,9 +21,7 @@ func TestHookInspectionModulePreservesInputs(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	source := []byte(
-		"module example.com/app/v2\n\ngo 1.25.0\nrequire example.com/dep v1.0.0\nreplace example.com/dep => ../replacement\n",
-	)
+	source := []byte("module example.com/app/v2\n\ngo 1.25.0\nrequire example.com/dep v1.0.0\nreplace example.com/dep => ../replacement\n")
 	path := filepath.Join(project, "go.mod")
 	if err := os.WriteFile(path, source, 0o600); err != nil {
 		t.Fatal(err)
@@ -35,13 +33,7 @@ func TestHookInspectionModulePreservesInputs(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(project)
-	tc := buildspec.Toolchain{
-		Version:    runtime.Version(),
-		Executable: filepath.Join(runtime.GOROOT(), "bin/go"),
-		GOROOT:     runtime.GOROOT(),
-		HostOS:     runtime.GOOS,
-		HostArch:   runtime.GOARCH,
-	}
+	tc := buildspec.Toolchain{Version: runtime.Version(), Executable: filepath.Join(runtime.GOROOT(), "bin/go"), GOROOT: runtime.GOROOT(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
 	dir, cleanup, err := hookInspectionModule(tc)
 	if err != nil {
 		t.Fatal(err)

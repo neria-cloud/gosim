@@ -59,9 +59,7 @@ func (k *Kernel) invariant(message string) {
 }
 
 func (k *Kernel) cleanupFailure(operation string, err error) {
-	k.AbortRun(
-		contracts.Diagnostic{Kind: string(contracts.InvariantFailure), Operation: operation, Message: err.Error()},
-	)
+	k.AbortRun(contracts.Diagnostic{Kind: string(contracts.InvariantFailure), Operation: operation, Message: err.Error()})
 }
 
 func (k *Kernel) Ports() contracts.Ports {

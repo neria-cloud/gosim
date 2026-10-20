@@ -229,11 +229,7 @@ func TestTransportProviderControls(t *testing.T) {
 		if !next.OK || next.Snapshot == 0 {
 			t.Fatal(next)
 		}
-		must(
-			t,
-			kernel.FSCloseIteratorRequest{RunID: root.RunID, Iterator: iterator},
-			kernel.DecodeFSCloseIteratorResult,
-		)
+		must(t, kernel.FSCloseIteratorRequest{RunID: root.RunID, Iterator: iterator}, kernel.DecodeFSCloseIteratorResult)
 		if _, err := invoke(kernel.FSRestoreRequest{
 			Machine: child, SnapshotRunID: root.RunID + 1, Snapshot: next.Snapshot,
 		}, kernel.DecodeFSRestoreResult); !errors.Is(err, contracts.ErrWrongRun) {

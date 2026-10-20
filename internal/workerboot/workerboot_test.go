@@ -112,8 +112,7 @@ func TestLauncherHelpDoesNotResolveGo(t *testing.T) {
 	directory := t.TempDir()
 	for _, args := range [][]string{nil, {"help"}, {"version"}, {"--help"}, {"test", "-h"}, {"internal-candidate", "verify", "--help"}, {"-C", directory, "help"}, {"-C=" + directory, "version"}} {
 		var out, diagnostics bytes.Buffer
-		if code := Main(t.Context(), args, Streams{Out: &out, Err: &diagnostics}); code != 0 || out.Len() == 0 ||
-			diagnostics.Len() != 0 {
+		if code := Main(t.Context(), args, Streams{Out: &out, Err: &diagnostics}); code != 0 || out.Len() == 0 || diagnostics.Len() != 0 {
 			t.Fatalf("%v: code=%d stdout=%s stderr=%s", args, code, &out, &diagnostics)
 		}
 	}
@@ -121,12 +120,7 @@ func TestLauncherHelpDoesNotResolveGo(t *testing.T) {
 
 func TestWorkerSettings(t *testing.T) {
 	t.Parallel()
-	base := []debug.BuildSetting{
-		{Key: "GOOS", Value: "darwin"},
-		{Key: "GOARCH", Value: "arm64"},
-		{Key: "-tags", Value: "linkname"},
-		{Key: "-trimpath", Value: "true"},
-	}
+	base := []debug.BuildSetting{{Key: "GOOS", Value: "darwin"}, {Key: "GOARCH", Value: "arm64"}, {Key: "-tags", Value: "linkname"}, {Key: "-trimpath", Value: "true"}}
 	if err := validateSettings(base, "darwin", "arm64", true); err != nil {
 		t.Fatal(err)
 	}
@@ -202,23 +196,11 @@ func fixture(t *testing.T) (buildspec.Resolution, Source, string) {
 		t.Fatal(err)
 	}
 	framework, app, dep := filepath.Join(root, "framework"), filepath.Join(root, "app"), filepath.Join(root, "dep")
-	writeFixture(
-		t,
-		filepath.Join(framework, "go.mod"),
-		"module "+buildcfg.GosimModule+"\n\ngo 1.25\n\nrequire example.org/worker-dep v0.0.0\n",
-	)
+	writeFixture(t, filepath.Join(framework, "go.mod"), "module "+buildcfg.GosimModule+"\n\ngo 1.25\n\nrequire example.org/worker-dep v0.0.0\n")
 	writeFixture(t, filepath.Join(framework, "cmd/gosim-worker/main.go"), fixtureWorker)
 	writeFixture(t, filepath.Join(dep, "go.mod"), "module example.org/worker-dep\n\ngo 1.25\n")
 	writeFixture(t, filepath.Join(dep, "dep.go"), "package dep\nconst Value=\"first\"\n")
-	writeFixture(
-		t,
-		filepath.Join(app, "go.mod"),
-		fmt.Sprintf(
-			"module example.org/app\n\ngo 1.25\n\nrequire (\n%s v0.0.0\nexample.org/worker-dep v0.0.0\n)\nreplace %s => ../framework\nreplace example.org/worker-dep => ../dep\n",
-			buildcfg.GosimModule,
-			buildcfg.GosimModule,
-		),
-	)
+	writeFixture(t, filepath.Join(app, "go.mod"), fmt.Sprintf("module example.org/app\n\ngo 1.25\n\nrequire (\n%s v0.0.0\nexample.org/worker-dep v0.0.0\n)\nreplace %s => ../framework\nreplace example.org/worker-dep => ../dep\n", buildcfg.GosimModule, buildcfg.GosimModule))
 	writeFixture(t, filepath.Join(app, "app.go"), "package app\n")
 	r, err := buildcfg.ResolveRunningProcess(t.Context(), app)
 	if err != nil {
@@ -281,15 +263,8 @@ func TestWorkerCacheAndForwarding(t *testing.T) {
 		t.Fatal("cache hit rebuilt worker")
 	}
 	var out, diagnostics bytes.Buffer
-	code, err := Run(
-		t.Context(),
-		w,
-		r,
-		[]string{"test"},
-		Streams{In: strings.NewReader("caller input\n"), Out: &out, Err: &diagnostics},
-	)
-	if err != nil || code != 17 || !strings.Contains(out.String(), "caller input") ||
-		diagnostics.String() != "worker diagnostics\n" {
+	code, err := Run(t.Context(), w, r, []string{"test"}, Streams{In: strings.NewReader("caller input\n"), Out: &out, Err: &diagnostics})
+	if err != nil || code != 17 || !strings.Contains(out.String(), "caller input") || diagnostics.String() != "worker diagnostics\n" {
 		t.Fatalf("forwarding: code=%d err=%v stdout=%s stderr=%s", code, err, &out, &diagnostics)
 	}
 	invocation := strings.TrimPrefix(strings.Split(out.String(), "\n")[0], "invocation=")
@@ -355,11 +330,7 @@ func TestSourceSelectionAndIsolation(t *testing.T) {
 		t.Fatal("dependency edit was not isolated to graph identity")
 	}
 	work := filepath.Join(filepath.Dir(r.Context.Directory), "go.work")
-	writeFixture(
-		t,
-		work,
-		"go 1.25\nuse (\n./app\n./framework\n./dep\n)\nreplace example.org/worker-dep v0.0.0 => ./dep\n",
-	)
+	writeFixture(t, work, "go 1.25\nuse (\n./app\n./framework\n./dep\n)\nreplace example.org/worker-dep v0.0.0 => ./dep\n")
 	// Workspace main modules own selection, so remove overlapping replacements.
 	writeFixture(t, filepath.Join(r.Context.Directory, "go.mod"), "module example.org/app\n\ngo 1.25\n")
 	r.Context.GoWork = work
@@ -379,10 +350,7 @@ func TestSourceSelectionAndIsolation(t *testing.T) {
 func TestWorkerLockCancellation(t *testing.T) {
 	t.Parallel()
 	r, source, _ := fixture(t)
-	inputs := buildspec.Fingerprints{
-		ToolchainDigest: buildspec.Hash([]byte("go")),
-		StdlibDigest:    buildspec.Hash([]byte("stdlib")),
-	}
+	inputs := buildspec.Fingerprints{ToolchainDigest: buildspec.Hash([]byte("go")), StdlibDigest: buildspec.Hash([]byte("stdlib"))}
 	want, err := manifestFor(r, source, inputs)
 	if err != nil {
 		t.Fatal(err)

@@ -33,12 +33,7 @@ func SourceRevision(root, family string) (string, error) {
 				return nil
 			}
 			name := entry.Name()
-			if strings.HasSuffix(name, "_test.go") ||
-				name == "revision.go" &&
-					strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) ||
-				name == "tuples.json" ||
-				name == "evidence.json" &&
-					strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) {
+			if strings.HasSuffix(name, "_test.go") || name == "revision.go" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) || name == "tuples.json" || name == "evidence.json" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) {
 				return nil
 			}
 			if !strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, ".json") {

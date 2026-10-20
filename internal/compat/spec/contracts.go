@@ -71,39 +71,27 @@ func (p Profile) validateContractHooks(m ContractManifest) error {
 	}
 	for _, h := range p.Hooks {
 		if got := hooks[h.Package+"."+h.Symbol]; got != h {
-			return fmt.Errorf(
-				"selected hook %s.%s differs from reviewed %s contracts",
-				h.Package,
-				h.Symbol,
-				m.Architecture,
-			)
+			return fmt.Errorf("selected hook %s.%s differs from reviewed %s contracts", h.Package, h.Symbol, m.Architecture)
 		}
 	}
 	return nil
 }
 
 func (m ContractManifest) Validate() error {
-	if m.Schema != 1 || m.Family == "" || (m.Architecture != "arm64" && m.Architecture != "amd64") ||
-		len(m.Hooks) == 0 ||
-		len(m.Layouts) == 0 ||
-		len(m.Constants) == 0 {
+	if m.Schema != 1 || m.Family == "" || (m.Architecture != "arm64" && m.Architecture != "amd64") || len(m.Hooks) == 0 || len(m.Layouts) == 0 || len(m.Constants) == 0 {
 		return fmt.Errorf("incomplete ABI contract manifest for %s/%s", m.Family, m.Architecture)
 	}
 	seen := map[string]bool{}
 	for _, h := range m.Hooks {
 		key := "hook:" + h.Context + ":" + h.Package + "." + h.Symbol
-		if !validContractPackage(h.Package) || h.Symbol == "" || h.Signature == "" || h.Target == "" ||
-			!slices.Contains([]string{"rt", "kernel", "fs", "net"}, h.Owner) ||
-			seen[key] ||
-			!slices.Contains([]string{"", "host", "host-race"}, h.Context) {
+		if !validContractPackage(h.Package) || h.Symbol == "" || h.Signature == "" || h.Target == "" || !slices.Contains([]string{"rt", "kernel", "fs", "net"}, h.Owner) || seen[key] || !slices.Contains([]string{"", "host", "host-race"}, h.Context) {
 			return fmt.Errorf("invalid/duplicate contract %s", key)
 		}
 		seen[key] = true
 	}
 	for _, l := range m.Layouts {
 		key := "layout:" + l.Package + "." + l.Type
-		if !validContractPackage(l.Package) || l.Type == "" || l.Size < 0 || l.Align < 1 || seen[key] ||
-			len(l.Fields) == 0 {
+		if !validContractPackage(l.Package) || l.Type == "" || l.Size < 0 || l.Align < 1 || seen[key] || len(l.Fields) == 0 {
 			return fmt.Errorf("invalid/duplicate contract %s", key)
 		}
 		seen[key] = true
@@ -126,8 +114,7 @@ func (m ContractManifest) Validate() error {
 }
 
 func validContractPackage(path string) bool {
-	return path != "" && !strings.HasPrefix(path, "-") && !strings.ContainsAny(path, "\\ \t\n") &&
-		!strings.Contains(path, "..")
+	return path != "" && !strings.HasPrefix(path, "-") && !strings.ContainsAny(path, "\\ \t\n") && !strings.Contains(path, "..")
 }
 
 func contractPaths(m ContractManifest, host, race bool) []string {
@@ -167,26 +154,14 @@ func describeLayout(pkg *types.Package, sizes types.Sizes, name string) (LayoutC
 	if !ok {
 		return LayoutContract{}, fmt.Errorf("required type %s.%s is not a struct", pkg.Path(), name)
 	}
-	l := LayoutContract{
-		Package: pkg.Path(),
-		Type:    name,
-		Size:    sizes.Sizeof(obj.Type()),
-		Align:   sizes.Alignof(obj.Type()),
-	}
+	l := LayoutContract{Package: pkg.Path(), Type: name, Size: sizes.Sizeof(obj.Type()), Align: sizes.Alignof(obj.Type())}
 	fields := make([]*types.Var, strct.NumFields())
 	for i := range fields {
 		fields[i] = strct.Field(i)
 	}
 	offsets := sizes.Offsetsof(fields)
 	for i, f := range fields {
-		l.Fields = append(
-			l.Fields,
-			FieldContract{
-				Name:   f.Name(),
-				Type:   types.TypeString(types.Unalias(f.Type()), func(p *types.Package) string { return p.Path() }),
-				Offset: offsets[i],
-			},
-		)
+		l.Fields = append(l.Fields, FieldContract{Name: f.Name(), Type: types.TypeString(types.Unalias(f.Type()), func(p *types.Package) string { return p.Path() }), Offset: offsets[i]})
 	}
 	return l, nil
 }
@@ -204,14 +179,7 @@ func (s *sourceInspection) verifyLayoutsAndConstants(m ContractManifest) error {
 		if !reflect.DeepEqual(got, want) {
 			actual, _ := json.Marshal(got)
 			expected, _ := json.Marshal(want)
-			return fmt.Errorf(
-				"layout ABI drift for %s.%s in %s: got %s, expected %s",
-				want.Package,
-				want.Type,
-				s.version,
-				actual,
-				expected,
-			)
+			return fmt.Errorf("layout ABI drift for %s.%s in %s: got %s, expected %s", want.Package, want.Type, s.version, actual, expected)
 		}
 	}
 	for _, want := range m.Constants {
@@ -224,14 +192,7 @@ func (s *sourceInspection) verifyLayoutsAndConstants(m ContractManifest) error {
 			return fmt.Errorf("required constant %s.%s is missing in %s", want.Package, want.Symbol, s.version)
 		}
 		if got := obj.Val().ExactString(); got != want.Value {
-			return fmt.Errorf(
-				"constant ABI drift for %s.%s in %s: got %s, expected %s",
-				want.Package,
-				want.Symbol,
-				s.version,
-				got,
-				want.Value,
-			)
+			return fmt.Errorf("constant ABI drift for %s.%s in %s: got %s, expected %s", want.Package, want.Symbol, s.version, got, want.Value)
 		}
 	}
 	return nil
@@ -239,13 +200,7 @@ func (s *sourceInspection) verifyLayoutsAndConstants(m ContractManifest) error {
 
 // VerifyContracts inspects declarations, never baseline file hashes or behavior.
 // dir is a private inspection module with the caller's selected dependencies.
-func VerifyContracts(
-	ctx context.Context,
-	tc buildspec.Toolchain,
-	dir string,
-	m ContractManifest,
-	opts buildspec.BuildOptions,
-) error {
+func VerifyContracts(ctx context.Context, tc buildspec.Toolchain, dir string, m ContractManifest, opts buildspec.BuildOptions) error {
 	if err := m.Validate(); err != nil {
 		return err
 	}
@@ -256,14 +211,7 @@ func VerifyContracts(
 	if opts.Experiments != "" {
 		return fmt.Errorf("nondefault contract experiments are unsupported")
 	}
-	linux, err := inspectSources(
-		ctx,
-		tc,
-		dir,
-		SourceContext{OS: "linux", Arch: m.Architecture, Race: opts.Race},
-		true,
-		contractPaths(m, false, opts.Race),
-	)
+	linux, err := inspectSources(ctx, tc, dir, SourceContext{OS: "linux", Arch: m.Architecture, Race: opts.Race}, true, contractPaths(m, false, opts.Race))
 	if err != nil {
 		return err
 	}
@@ -282,14 +230,7 @@ func VerifyContracts(
 		return err
 	}
 	if len(hostHooks) > 0 {
-		host, err := inspectSources(
-			ctx,
-			tc,
-			dir,
-			SourceContext{OS: tc.HostOS, Arch: tc.HostArch, Race: opts.Race, Native: true},
-			false,
-			contractPaths(m, true, opts.Race),
-		)
+		host, err := inspectSources(ctx, tc, dir, SourceContext{OS: tc.HostOS, Arch: tc.HostArch, Race: opts.Race, Native: true}, false, contractPaths(m, true, opts.Race))
 		if err != nil {
 			return err
 		}
@@ -301,12 +242,7 @@ func VerifyContracts(
 }
 
 // VerifyFamilyContracts is also used by generation, without a persistent cache.
-func VerifyFamilyContracts(
-	ctx context.Context,
-	r buildspec.Resolution,
-	m ContractManifest,
-	opts buildspec.BuildOptions,
-) (result error) {
+func VerifyFamilyContracts(ctx context.Context, r buildspec.Resolution, m ContractManifest, opts buildspec.BuildOptions) (result error) {
 	dir, cleanup, err := hookInspectionContext(ctx, r)
 	if err != nil {
 		return err

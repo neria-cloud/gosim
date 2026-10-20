@@ -39,14 +39,7 @@ func VerifyHooks(tc buildspec.Toolchain, hooks []Hook) (result error) {
 		return err
 	}
 	defer func() { result = errors.Join(result, cleanup()) }()
-	sources, err := inspectSources(
-		context.Background(),
-		tc,
-		dir,
-		SourceContext{OS: "linux", Arch: tc.HostArch},
-		false,
-		paths,
-	)
+	sources, err := inspectSources(context.Background(), tc, dir, SourceContext{OS: "linux", Arch: tc.HostArch}, false, paths)
 	if err != nil {
 		return err
 	}

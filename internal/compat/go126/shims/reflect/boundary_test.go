@@ -10,9 +10,7 @@ import (
 )
 
 func TestReflectedMapBoundary(t *testing.T) {
-	e, err := gosimruntime.NewEngine(
-		gosimruntime.EngineConfig{Seed: 4, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision},
-	)
+	e, err := gosimruntime.NewEngine(gosimruntime.EngineConfig{Seed: 4, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,10 +102,7 @@ func TestOrdinaryValuesStayWrapped(t *testing.T) {
 	if got, ok := TypeAssert[record](value); !ok || got.Number != 9 {
 		t.Fatal("typed assertion or wrapped mutation failed")
 	}
-	callback := MakeFunc(
-		TypeOf(func(int) int { return 0 }),
-		func(args []Value) []Value { return []Value{ValueOf(int(args[0].Int()) + 1)} },
-	)
+	callback := MakeFunc(TypeOf(func(int) int { return 0 }), func(args []Value) []Value { return []Value{ValueOf(int(args[0].Int()) + 1)} })
 	if got := callback.Call([]Value{ValueOf(41)})[0].Int(); got != 42 {
 		t.Fatalf("MakeFunc=%d", got)
 	}

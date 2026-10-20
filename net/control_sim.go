@@ -62,10 +62,7 @@ func Partition(link Link) error {
 	if err != nil {
 		return err
 	}
-	_, err = control.Call(
-		kernel.NetSetConnectivityRequest{Link: l, Connected: false},
-		kernel.DecodeNetSetConnectivityResult,
-	)
+	_, err = control.Call(kernel.NetSetConnectivityRequest{Link: l, Connected: false}, kernel.DecodeNetSetConnectivityResult)
 	return err
 }
 
@@ -77,9 +74,6 @@ func Repair(link Link) error {
 	if err != nil {
 		return err
 	}
-	_, err = control.Call(
-		kernel.NetSetConnectivityRequest{Link: l, Connected: true},
-		kernel.DecodeNetSetConnectivityResult,
-	)
+	_, err = control.Call(kernel.NetSetConnectivityRequest{Link: l, Connected: true}, kernel.DecodeNetSetConnectivityResult)
 	return err
 }

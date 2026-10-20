@@ -136,9 +136,7 @@ func TestPollDeadlineGenerationAndCanceledEpoch(t *testing.T) {
 		if err := k.Stop(ctx.Epoch.Machine, contracts.StopCrash); err != nil {
 			t.Fatal(err)
 		}
-		if pending.Sema != 0 || pending.Result != (Result{}) || len(k.dispatcher.live) != 0 ||
-			len(k.dispatcher.canceled) != 0 ||
-			len(k.polls) != 0 {
+		if pending.Sema != 0 || pending.Result != (Result{}) || len(k.dispatcher.live) != 0 || len(k.dispatcher.canceled) != 0 || len(k.polls) != 0 {
 			t.Fatal("canceled poll retained lease or woke caller")
 		}
 		if err := k.Restart(ctx.Epoch.Machine); err != nil {

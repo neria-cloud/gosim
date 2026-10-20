@@ -19,13 +19,7 @@ import (
 func selectedTestConfig(t *testing.T) gosimtool.BuildConfig {
 	t.Helper()
 	selection := profileSelection(t, "rt")
-	tc := buildspec.Toolchain{
-		GOROOT:     "/selected",
-		Executable: "/selected/bin/go",
-		Version:    selection.Identity.Toolchain,
-		HostOS:     selection.Identity.HostOS,
-		HostArch:   selection.Identity.HostArch,
-	}
+	tc := buildspec.Toolchain{GOROOT: "/selected", Executable: "/selected/bin/go", Version: selection.Identity.Toolchain, HostOS: selection.Identity.HostOS, HostArch: selection.Identity.HostArch}
 	cfg, err := gosimtool.NewBuildConfig(t.Context(), selection, buildspec.Resolution{Toolchain: tc})
 	if err != nil {
 		t.Fatal(err)
@@ -146,20 +140,12 @@ func TestSelectedModulePaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, path := range []string{"example.com/app", "example.com/app/v2", "gopkg.in/check.v1"} {
-		source, err := modfile.Parse(
-			"go.mod",
-			[]byte("module "+path+"\ngo 1.25.0\nreplace example.com/dependency => ../dependency\n"),
-			nil,
-		)
+		source, err := modfile.Parse("go.mod", []byte("module "+path+"\ngo 1.25.0\nreplace example.com/dependency => ../dependency\n"), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		before, _ := source.Format()
-		files, err := buildspec.ModuleFiles(
-			buildspec.Resolution{Toolchain: buildspec.Toolchain{Version: "go1.25.14"}},
-			[]buildspec.Module{{Path: path, Main: true, Dir: root}},
-			"translated",
-		)
+		files, err := buildspec.ModuleFiles(buildspec.Resolution{Toolchain: buildspec.Toolchain{Version: "go1.25.14"}}, []buildspec.Module{{Path: path, Main: true, Dir: root}}, "translated")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -195,16 +181,9 @@ func TestSelectedGraphDropsOnlyHookBodies(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	pkg := &packages.Package{
-		ID:              "example.com/app",
-		PkgPath:         "example.com/app",
-		Name:            "app",
-		Module:          &packages.Module{Path: "example.com/app"},
-		CompiledGoFiles: []string{source},
-		Imports: map[string]*packages.Package{
-			"net/http/httptest": {ID: "net/http/httptest", PkgPath: "net/http/httptest", Name: "http"},
-		},
-	}
+	pkg := &packages.Package{ID: "example.com/app", PkgPath: "example.com/app", Name: "app", Module: &packages.Module{Path: "example.com/app"}, CompiledGoFiles: []string{source}, Imports: map[string]*packages.Package{
+		"net/http/httptest": {ID: "net/http/httptest", PkgPath: "net/http/httptest", Name: "http"},
+	}}
 	p.hooks[PackageSelector{Pkg: pkg.PkgPath, Selector: "replaced"}] = PackageSelector{Pkg: "owned", Selector: "hook"}
 	write("package app; import h \"net/http/httptest\";func replaced(){h.NewServer(nil)}")
 	graph, err := selectGraph([]*packages.Package{pkg}, p)
@@ -235,8 +214,7 @@ func TestSelectedTranslationReturnsInputErrors(t *testing.T) {
 		}
 	}
 	cfg := selectedTestConfig(t)
-	if _, err := translatePackage(&translatePackageArgs{Selection: cfg.Selection, pkg: &packages.Package{ID: "example.com/missing", PkgPath: "example.com/missing"}}); err == nil ||
-		!strings.Contains(err.Error(), "could not load package") {
+	if _, err := translatePackage(&translatePackageArgs{Selection: cfg.Selection, pkg: &packages.Package{ID: "example.com/missing", PkgPath: "example.com/missing"}}); err == nil || !strings.Contains(err.Error(), "could not load package") {
 		t.Fatalf("missing source: %v", err)
 	}
 }
@@ -262,11 +240,7 @@ func absent()
 		t.Fatal(err)
 	}
 	pkg := &packages.Package{ID: "example.com/impl", PkgPath: "example.com/impl", CompiledGoFiles: []string{source}}
-	graph := &selectedGraph{
-		order:  []string{pkg.ID},
-		nodes:  map[string]*packages.Package{pkg.ID: pkg},
-		native: map[string]bool{},
-	}
+	graph := &selectedGraph{order: []string{pkg.ID}, nodes: map[string]*packages.Package{pkg.ID: pkg}, native: map[string]bool{}}
 	p.hooks[PackageSelector{Pkg: pkg.PkgPath, Selector: "removed"}] = PackageSelector{Pkg: "owned", Selector: "hook"}
 	got, err := pushedDefinitions(graph, p)
 	if err != nil {

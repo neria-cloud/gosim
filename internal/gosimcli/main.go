@@ -309,14 +309,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 	}
 	for _, artifact := range result.Artifacts {
 		binary := filepath.Join(artifact.Directory, artifact.Manifest.Binary.Path)
-		args := []string{
-			"-test.run=" + *run,
-			"-test.skip=" + *skip,
-			"-test.v=" + fmt.Sprint(*verbose),
-			"-seeds=" + *seeds,
-			"-simtrace=" + *trace,
-			"-logformat=" + *format,
-		}
+		args := []string{"-test.run=" + *run, "-test.skip=" + *skip, "-test.v=" + fmt.Sprint(*verbose), "-seeds=" + *seeds, "-simtrace=" + *trace, "-logformat=" + *format}
 		if *jsonlog != "" {
 			absolute, err := filepath.Abs(*jsonlog)
 			if err != nil {
@@ -333,14 +326,7 @@ func run(ctx context.Context, args []string, streams workerboot.Streams) (int, e
 			if *headless {
 				dlv = append(dlv, "--headless", "--listen=:2345", "--accept-multiclient")
 			}
-			dlv = append(
-				dlv,
-				"--",
-				"-test.run=^"+*test+"$",
-				"-test.v",
-				"-seeds="+fmt.Sprint(*seed),
-				"-step-breakpoint="+fmt.Sprint(*step),
-			)
+			dlv = append(dlv, "--", "-test.run=^"+*test+"$", "-test.v", "-seeds="+fmt.Sprint(*seed), "-step-breakpoint="+fmt.Sprint(*step))
 			child = exec.Command("dlv", dlv...)
 		} else {
 			child = exec.Command(binary, args...)

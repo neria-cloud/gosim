@@ -129,11 +129,7 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 	if len(n.queue.items) != 20 {
 		t.Fatal(len(n.queue.items))
 	}
-	control(
-		t,
-		n,
-		ControlRequest{Kind: SetPairLatency, A: hosts[1].String(), B: hosts[4].String(), Duration: 2 * time.Hour},
-	)
+	control(t, n, ControlRequest{Kind: SetPairLatency, A: hosts[1].String(), B: hosts[4].String(), Duration: 2 * time.Hour})
 	control(t, n, ControlRequest{Kind: SetPairFailRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 1})
 	control(t, n, ControlRequest{Kind: SetPairRepairRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 0})
 	sendTestPacket(n, target)
@@ -145,8 +141,7 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 		if other == key || other == edgeKey(target.Flip()) {
 			continue
 		}
-		if s.Latency != nil || s.Loss != nil || s.Status != linkHealthy || s.Generation != 0 ||
-			n.effectiveConfig(s) != c {
+		if s.Latency != nil || s.Loss != nil || s.Status != linkHealthy || s.Generation != 0 || n.effectiveConfig(s) != c {
 			t.Fatal("unrelated pair changed", other, s)
 		}
 	}
@@ -171,8 +166,7 @@ func TestNetworkFiveHostIsolation(t *testing.T) {
 	control(t, n, ControlRequest{Kind: SetPairRepairRate, A: hosts[1].String(), B: hosts[4].String(), Probability: 1})
 	rng.exponentials = append(rng.exponentials, 0)
 	sendTestPacket(n, target.Flip())
-	if len(n.queue.items) != 19 || n.links[edgeKey(target.Flip())].Status != linkHealthy ||
-		n.links[key].Status != linkRandomPartition {
+	if len(n.queue.items) != 19 || n.links[edgeKey(target.Flip())].Status != linkHealthy || n.links[key].Status != linkRandomPartition {
 		t.Fatal("send did not repair")
 	}
 	for other := range n.links {
@@ -199,8 +193,7 @@ func TestNetworkDirectedConnectivity(t *testing.T) {
 		if err := n.SetConnectivity(pair, false, DirectionOneWay); err != nil {
 			t.Fatal(err)
 		}
-		if forward.Kind != 255 || len(n.queue.items) != 1 || n.queue.items[0] != backward ||
-			*n.links[edgeKey(pair.Flip())] != oldReverse {
+		if forward.Kind != 255 || len(n.queue.items) != 1 || n.queue.items[0] != backward || *n.links[edgeKey(pair.Flip())] != oldReverse {
 			t.Fatal("forward partition affected reverse")
 		}
 		if _, ok := n.endpoints[pair.SourceHost].last[pair.DestHost]; ok {
@@ -231,9 +224,7 @@ func TestNetworkDirectedConnectivity(t *testing.T) {
 		}
 	}
 	n := testNetwork(t, &scriptedRandom{})
-	if n.SetConnectivity(HostPair{}, false, DirectionOneWay) != syscall.EINVAL ||
-		n.SetConnectivity(testPair, false, 99) != syscall.EINVAL ||
-		len(n.links) != 0 {
+	if n.SetConnectivity(HostPair{}, false, DirectionOneWay) != syscall.EINVAL || n.SetConnectivity(testPair, false, 99) != syscall.EINVAL || len(n.links) != 0 {
 		t.Fatal("invalid direction/address mutated state")
 	}
 }

@@ -35,13 +35,7 @@ type GenerationRecord struct {
 // family's files. Shared route schemas are architecture-neutral.
 type GenerateOptions struct{ RefreshOrigin bool }
 
-func GenerateProfile(
-	tc buildspec.Toolchain,
-	profileID string,
-	arches []string,
-	output string,
-	options GenerateOptions,
-) error {
+func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, output string, options GenerateOptions) error {
 	version, err := buildspec.ParseGoVersion(tc.Version)
 	if err != nil {
 		return err
@@ -177,13 +171,7 @@ func GenerateProfile(
 	return nil
 }
 
-func renderOutputs(
-	toolchain, profile string,
-	arches []string,
-	m Manifest,
-	origin spec.Origin,
-	pins []spec.ModulePin,
-) (map[string][]byte, error) {
+func renderOutputs(toolchain, profile string, arches []string, m Manifest, origin spec.Origin, pins []spec.ModulePin) (map[string][]byte, error) {
 	code, err := RenderKernel(m)
 	if err != nil {
 		return nil, err
@@ -200,18 +188,7 @@ func renderOutputs(
 	for _, arch := range arches {
 		// GenerateProfile augments this transport record with selected adapter
 		// source digests; the record itself never certifies execution.
-		record := GenerationRecord{
-			TransportDigest: buildspec.Hash(append(append([]byte(nil), code...), dispatch...)),
-			Schema:          2,
-			GeneratedWith:   toolchain,
-			Family:          origin.Family,
-			Profile:         profile,
-			Architecture:    arch,
-			RouteDigest:     m.Digest(),
-			OriginDigest:    buildspec.Hash(source),
-			Modules:         pins,
-			Stage:           "transport-schema",
-		}
+		record := GenerationRecord{TransportDigest: buildspec.Hash(append(append([]byte(nil), code...), dispatch...)), Schema: 2, GeneratedWith: toolchain, Family: origin.Family, Profile: profile, Architecture: arch, RouteDigest: m.Digest(), OriginDigest: buildspec.Hash(source), Modules: pins, Stage: "transport-schema"}
 		data, err := json.MarshalIndent(record, "", "  ")
 		if err != nil {
 			return nil, err

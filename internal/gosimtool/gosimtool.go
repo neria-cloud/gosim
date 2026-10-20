@@ -195,13 +195,7 @@ func invokeTestWorker(t *testing.T, patch, command string, args ...string) []byt
 		t.Fatal(err)
 	}
 	var output, diagnostics bytes.Buffer
-	code, err := workerboot.Run(
-		ctx,
-		worker,
-		r,
-		append([]string{command}, args...),
-		workerboot.Streams{Out: &output, Err: &diagnostics},
-	)
+	code, err := workerboot.Run(ctx, worker, r, append([]string{command}, args...), workerboot.Streams{Out: &output, Err: &diagnostics})
 	if err != nil || code != 0 {
 		t.Fatalf("gosim worker %s: exit status %d: %v\n%s", command, code, err, diagnostics.String())
 	}

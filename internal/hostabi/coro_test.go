@@ -61,33 +61,19 @@ func TestUpcallRunsAndResumes(t *testing.T) {
 func TestIdentityAndFamilyIsolation(t *testing.T) {
 	t.Parallel()
 	id := Identity()
-	if id.Toolchain != runtime.Version() || id.HostOS != runtime.GOOS || id.HostArch != runtime.GOARCH ||
-		!buildspec.ValidDigest(id.SourceDigest) {
+	if id.Toolchain != runtime.Version() || id.HostOS != runtime.GOOS || id.HostArch != runtime.GOARCH || !buildspec.ValidDigest(id.SourceDigest) {
 		t.Fatalf("identity=%+v", id)
 	}
 	other := "go125"
 	if id.Profile == other {
 		other = "go126"
 	}
-	cmd := buildspec.GoCommand(
-		buildspec.Toolchain{
-			Executable: filepath.Join(runtime.GOROOT(), "bin", "go"),
-			GOROOT:     runtime.GOROOT(),
-			Version:    runtime.Version(),
-			HostOS:     runtime.GOOS,
-			HostArch:   runtime.GOARCH,
-		},
-		"",
-		"list",
-		"-deps",
-		"github.com/neria-cloud/gosim/rt/runtime",
-	)
+	cmd := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, "", "list", "-deps", "github.com/neria-cloud/gosim/rt/runtime")
 	data, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("list: %v: %s", err, data)
 	}
-	if strings.Contains(string(data), "/internal/compat/"+other+"/host") ||
-		strings.Contains(string(data), "/internal/coro\n") {
+	if strings.Contains(string(data), "/internal/compat/"+other+"/host") || strings.Contains(string(data), "/internal/coro\n") {
 		t.Fatalf("wrong native ABI import: %s", data)
 	}
 	if !strings.Contains(string(data), "/internal/compat/"+id.Profile+"/host") {
@@ -98,18 +84,7 @@ func TestIdentityAndFamilyIsolation(t *testing.T) {
 func TestUnsupportedFamilyFailsExplicitly(t *testing.T) {
 	t.Parallel()
 	for _, pkg := range []string{"hostabi", "compat/selected"} {
-		cmd := buildspec.GoCommand(
-			buildspec.Toolchain{
-				Executable: filepath.Join(runtime.GOROOT(), "bin", "go"),
-				GOROOT:     runtime.GOROOT(),
-				Version:    runtime.Version(),
-				HostOS:     runtime.GOOS,
-				HostArch:   runtime.GOARCH,
-			},
-			"",
-			"build",
-			"github.com/neria-cloud/gosim/internal/"+pkg,
-		)
+		cmd := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, "", "build", "github.com/neria-cloud/gosim/internal/"+pkg)
 		// Deliberate negative compile probe: normal GoCommand rejects user
 		// release tags, but this test must exercise the compiler-level guard.
 		cmd.Args = append(cmd.Args[:2], "-tags=go1.27", cmd.Args[2])

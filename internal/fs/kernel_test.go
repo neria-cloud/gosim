@@ -26,9 +26,7 @@ func (p *captureProvider) Open(ports contracts.Ports) (contracts.ProviderSession
 
 func withKernel(t *testing.T, extra []contracts.Provider, body func(*kernel.Kernel, *Session)) error {
 	t.Helper()
-	engine, err := simrt.NewEngine(
-		simrt.EngineConfig{Seed: 42, TimeoutNS: int64(time.Second), ReplayRevision: simrt.ReplayRevision},
-	)
+	engine, err := simrt.NewEngine(simrt.EngineConfig{Seed: 42, TimeoutNS: int64(time.Second), ReplayRevision: simrt.ReplayRevision})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,11 +37,7 @@ func withKernel(t *testing.T, extra []contracts.Provider, body func(*kernel.Kern
 		if len(extra) > 0 {
 			features |= contracts.FeatureSet(contracts.Net)
 		}
-		k, err := kernel.New(
-			kernel.Config{Features: features, TimeoutNS: int64(time.Second), BuildDigest: strings.Repeat("a", 64)},
-			engine,
-			append([]contracts.Provider{provider}, extra...),
-		)
+		k, err := kernel.New(kernel.Config{Features: features, TimeoutNS: int64(time.Second), BuildDigest: strings.Repeat("a", 64)}, engine, append([]contracts.Provider{provider}, extra...))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -86,10 +80,7 @@ func TestKernelFilesystemControlStateAndRunGuards(t *testing.T) {
 		}
 		tx.Abort()
 		must(t, k.Start(ref))
-		if err := c.ConfigureMachine(ref, contracts.FSConfig{WorkingDir: "/etc"}); !errors.Is(
-			err,
-			contracts.ErrInvalidState,
-		) {
+		if err := c.ConfigureMachine(ref, contracts.FSConfig{WorkingDir: "/etc"}); !errors.Is(err, contracts.ErrInvalidState) {
 			t.Fatal("configured running machine", err)
 		}
 		must(t, c.SetSyncFault(ref, contracts.FSFaultConfig{Probability: 0.1}))
@@ -131,10 +122,7 @@ func TestKernelFilesystemControlStateAndRunGuards(t *testing.T) {
 		if _, err := c.Enumerate(target, 1); !errors.Is(err, contracts.ErrInvalidState) {
 			t.Fatal("enumerated graceful stop", err)
 		}
-		if err := c.ConfigureMachine(target, contracts.FSConfig{WorkingDir: "/app"}); !errors.Is(
-			err,
-			contracts.ErrInvalidState,
-		) {
+		if err := c.ConfigureMachine(target, contracts.FSConfig{WorkingDir: "/app"}); !errors.Is(err, contracts.ErrInvalidState) {
 			t.Fatal("configured after first start", err)
 		}
 	}))
@@ -143,10 +131,7 @@ func TestKernelFilesystemControlStateAndRunGuards(t *testing.T) {
 	}
 	must(t, withKernel(t, nil, func(k *kernel.Kernel, s *Session) {
 		ref := create(t, k)
-		if _, err := k.FilesystemControl(contracts.CallContext{}, oldRef.RunID); !errors.Is(
-			err,
-			contracts.ErrWrongRun,
-		) {
+		if _, err := k.FilesystemControl(contracts.CallContext{}, oldRef.RunID); !errors.Is(err, contracts.ErrWrongRun) {
 			t.Fatal("cross-run snapshot control accepted", err)
 		}
 		if err := controls(t, k, ref).SetCrashMode(oldRef, 0); !errors.Is(err, contracts.ErrWrongRun) {

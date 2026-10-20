@@ -153,11 +153,7 @@ func (p Profile) Select(build buildspec.Identity) (buildspec.Selection, error) {
 	if err != nil {
 		return buildspec.Selection{}, err
 	}
-	selection := buildspec.Selection{
-		Identity:           id,
-		HookManifestDigest: buildspec.Hash(data),
-		RuntimePackages:    slices.Clone(p.RuntimePackages),
-	}
+	selection := buildspec.Selection{Identity: id, HookManifestDigest: buildspec.Hash(data), RuntimePackages: slices.Clone(p.RuntimePackages)}
 	slices.Sort(selection.RuntimePackages)
 	for _, feature := range id.Features {
 		if feature != "rt" {
@@ -170,10 +166,7 @@ func (p Profile) Select(build buildspec.Identity) (buildspec.Selection, error) {
 // ContractDigest binds declared ABI expectations, independently of baseline provenance.
 func (p Profile) ContractDigest() (string, error) {
 	hooks := slices.Clone(p.Hooks)
-	slices.SortFunc(
-		hooks,
-		func(a, b Hook) int { return strings.Compare(a.Package+"."+a.Symbol, b.Package+"."+b.Symbol) },
-	)
+	slices.SortFunc(hooks, func(a, b Hook) int { return strings.Compare(a.Package+"."+a.Symbol, b.Package+"."+b.Symbol) })
 	packages := slices.Clone(p.Packages)
 	slices.SortFunc(packages, func(a, b PackagePolicy) int { return strings.Compare(a.Path, b.Path) })
 	data, err := json.Marshal(struct {

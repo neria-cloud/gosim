@@ -48,10 +48,7 @@ func VerifyBaselineOrigin(tc buildspec.Toolchain, origin Origin) error {
 	}
 	seen := make(map[string]bool)
 	for _, file := range origin.Files {
-		if !strings.HasPrefix(file.Path, "src/") || filepath.ToSlash(filepath.Clean(file.Path)) != file.Path ||
-			strings.Contains(file.Path, "\\") ||
-			seen[file.Path] ||
-			!buildspec.ValidDigest(file.Digest) {
+		if !strings.HasPrefix(file.Path, "src/") || filepath.ToSlash(filepath.Clean(file.Path)) != file.Path || strings.Contains(file.Path, "\\") || seen[file.Path] || !buildspec.ValidDigest(file.Digest) {
 			return fmt.Errorf("invalid native ABI source %q", file.Path)
 		}
 		seen[file.Path] = true
@@ -69,13 +66,7 @@ func VerifyBaselineOrigin(tc buildspec.Toolchain, origin Origin) error {
 				return err
 			}
 			if got := symbols[hook.Package+"."+hook.Symbol]; got != hook.Signature {
-				return fmt.Errorf(
-					"native ABI declaration drift for %s.%s: got %q, expected %q",
-					hook.Package,
-					hook.Symbol,
-					got,
-					hook.Signature,
-				)
+				return fmt.Errorf("native ABI declaration drift for %s.%s: got %q, expected %q", hook.Package, hook.Symbol, got, hook.Signature)
 			}
 		}
 	}
@@ -84,12 +75,7 @@ func VerifyBaselineOrigin(tc buildspec.Toolchain, origin Origin) error {
 
 // RefreshOrigin updates provenance only after the generator checks reviewed contracts.
 // It does not approve new hook/layout expectations or change family eligibility.
-func RefreshOrigin(
-	ctx context.Context,
-	r buildspec.Resolution,
-	previous Origin,
-	manifests []ContractManifest,
-) (result Origin, resultErr error) {
+func RefreshOrigin(ctx context.Context, r buildspec.Resolution, previous Origin, manifests []ContractManifest) (result Origin, resultErr error) {
 	tc := r.Toolchain
 	v, err := buildspec.ParseGoVersion(tc.Version)
 	if err != nil || v.Family() != previous.Family {
@@ -107,9 +93,7 @@ func RefreshOrigin(
 	// Keep still-present reviewed inputs; moved/removed files are replaced by the
 	// actual selected source inventory below. Compatibility never depends on names.
 	for _, file := range previous.Files {
-		if !strings.HasPrefix(file.Path, "src/") || filepath.ToSlash(filepath.Clean(file.Path)) != file.Path ||
-			strings.Contains(file.Path, "\\") ||
-			files[file.Path].Path != "" {
+		if !strings.HasPrefix(file.Path, "src/") || filepath.ToSlash(filepath.Clean(file.Path)) != file.Path || strings.Contains(file.Path, "\\") || files[file.Path].Path != "" {
 			return Origin{}, fmt.Errorf("invalid origin path %q", file.Path)
 		}
 		if _, err := os.Stat(filepath.Join(tc.GOROOT, filepath.FromSlash(file.Path))); os.IsNotExist(err) {
@@ -161,17 +145,12 @@ func RefreshOrigin(
 								return Origin{}, err
 							}
 							for _, hook := range manifest.Hooks {
-								if hook.Context == "" || hook.Package != pkg.ImportPath ||
-									(hook.Context == "host-race" && !race) {
+								if hook.Context == "" || hook.Package != pkg.ImportPath || (hook.Context == "host-race" && !race) {
 									continue
 								}
 								if signature, found := symbols[hook.Package+"."+hook.Symbol]; found {
 									if signature != hook.Signature {
-										return Origin{}, fmt.Errorf(
-											"native ABI declaration drift for %s.%s",
-											hook.Package,
-											hook.Symbol,
-										)
+										return Origin{}, fmt.Errorf("native ABI declaration drift for %s.%s", hook.Package, hook.Symbol)
 									}
 									hook.Context = ""
 									if !slices.Contains(record.Hooks, hook) {
@@ -193,10 +172,7 @@ func RefreshOrigin(
 			return Origin{}, err
 		}
 		file.Digest = buildspec.Hash(data)
-		slices.SortFunc(
-			file.Hooks,
-			func(a, b Hook) int { return strings.Compare(a.Package+"."+a.Symbol, b.Package+"."+b.Symbol) },
-		)
+		slices.SortFunc(file.Hooks, func(a, b Hook) int { return strings.Compare(a.Package+"."+a.Symbol, b.Package+"."+b.Symbol) })
 		result.Files = append(result.Files, file)
 	}
 	slices.SortFunc(result.Files, func(a, b SourceFile) int { return strings.Compare(a.Path, b.Path) })

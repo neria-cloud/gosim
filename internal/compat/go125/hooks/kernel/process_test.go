@@ -31,22 +31,7 @@ func runAdapters(t *testing.T, features contracts.FeatureSet, main func()) error
 		if features.Has(contracts.Net) {
 			providers = append(providers, netprovider.NewProvider())
 		}
-		k, err := kernel.New(
-			kernel.Config{
-				Identity: abi.HostIdentity{
-					Toolchain:    "go1.25.14",
-					Profile:      "go125",
-					HostOS:       "darwin",
-					HostArch:     "arm64",
-					SourceDigest: strings.Repeat("a", 64),
-				},
-				BuildDigest: strings.Repeat("b", 64),
-				Features:    features,
-				TimeoutNS:   1e9,
-			},
-			e,
-			providers,
-		)
+		k, err := kernel.New(kernel.Config{Identity: abi.HostIdentity{Toolchain: "go1.25.14", Profile: "go125", HostOS: "darwin", HostArch: "arm64", SourceDigest: strings.Repeat("a", 64)}, BuildDigest: strings.Repeat("b", 64), Features: features, TimeoutNS: 1e9}, e, providers)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -211,11 +196,7 @@ func TestFatalAdapterBoundaries(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			reached, deferred := false, false
-			err := runAdapters(
-				t,
-				contracts.FeatureSet(contracts.RT),
-				func() { defer func() { _ = recover(); deferred = true }(); operation(); reached = true },
-			)
+			err := runAdapters(t, contracts.FeatureSet(contracts.RT), func() { defer func() { _ = recover(); deferred = true }(); operation(); reached = true })
 			if err == nil || reached || deferred {
 				t.Fatal("fatal boundary returned/recovered", err, reached, deferred)
 			}

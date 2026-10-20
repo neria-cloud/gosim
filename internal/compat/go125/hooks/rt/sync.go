@@ -119,13 +119,9 @@ func InternalSync_runtime_rand() uint64 {
 }
 
 func InternalSync_throw(str string) {
-	gosimruntime.Abort(
-		abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "InternalSync_throw", Message: str},
-	)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "InternalSync_throw", Message: str})
 }
 
 func InternalSync_fatal(str string) {
-	gosimruntime.Abort(
-		abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "InternalSync_fatal", Message: str},
-	)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "InternalSync_fatal", Message: str})
 }

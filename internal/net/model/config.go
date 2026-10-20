@@ -81,12 +81,7 @@ type linkState struct {
 }
 
 func DefaultConfig() Config {
-	return Config{
-		Latency:           LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5},
-		Loss:              LossConfig{RepairProbability: 1},
-		ConnectionTimeout: time.Second,
-		TCPBufferSize:     1024,
-	}
+	return Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second, TCPBufferSize: 1024}
 }
 
 func validateProbability(p float64) error {
@@ -224,21 +219,7 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 			c.TCPBufferSize = DefaultConfig().TCPBufferSize
 		}
 		n.config = c
-		n.traceNetwork(
-			"configure_global",
-			"operation",
-			r.Kind,
-			"latency",
-			c.Latency,
-			"loss",
-			c.Loss,
-			"connectionTimeout",
-			c.ConnectionTimeout,
-			"tcpBufferSize",
-			c.TCPBufferSize,
-			"scope",
-			"global",
-		)
+		n.traceNetwork("configure_global", "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "connectionTimeout", c.ConnectionTimeout, "tcpBufferSize", c.TCPBufferSize, "scope", "global")
 		return nil
 	}
 	keys, err := selectedEdges(pair, r.Direction)
@@ -264,23 +245,7 @@ func (n *Network) ApplyControl(r ControlRequest) error {
 		if r.Kind == ResetPairLatency || r.Kind == ResetPairLoss {
 			event = "reset_group"
 		}
-		n.traceNetwork(
-			event,
-			"a",
-			key.A,
-			"b",
-			key.B,
-			"operation",
-			r.Kind,
-			"latency",
-			c.Latency,
-			"loss",
-			c.Loss,
-			"latencyLocal",
-			state.Latency != nil,
-			"lossLocal",
-			state.Loss != nil,
-		)
+		n.traceNetwork(event, "a", key.A, "b", key.B, "operation", r.Kind, "latency", c.Latency, "loss", c.Loss, "latencyLocal", state.Latency != nil, "lossLocal", state.Loss != nil)
 	}
 	return nil
 }
@@ -327,12 +292,7 @@ func (n *Network) applyLocal(s *linkState, r ControlRequest) error {
 }
 
 // SetLinkPolicy replaces complete copied groups atomically; nil leaves a group unchanged.
-func (n *Network) SetLinkPolicy(
-	p HostPair,
-	direction ConnectivityDirection,
-	latency *LatencyConfig,
-	loss *LossConfig,
-) error {
+func (n *Network) SetLinkPolicy(p HostPair, direction ConnectivityDirection, latency *LatencyConfig, loss *LossConfig) error {
 	keys, err := selectedEdges(p, direction)
 	if err != nil {
 		return err
@@ -358,21 +318,7 @@ func (n *Network) SetLinkPolicy(
 			s.Loss = &c
 		}
 		config := n.effectiveConfig(s)
-		n.traceNetwork(
-			"configure_link",
-			"a",
-			key.A,
-			"b",
-			key.B,
-			"latency",
-			config.Latency,
-			"loss",
-			config.Loss,
-			"latencyLocal",
-			s.Latency != nil,
-			"lossLocal",
-			s.Loss != nil,
-		)
+		n.traceNetwork("configure_link", "a", key.A, "b", key.B, "latency", config.Latency, "loss", config.Loss, "latencyLocal", s.Latency != nil, "lossLocal", s.Loss != nil)
 	}
 	return nil
 }
@@ -387,21 +333,7 @@ func (n *Network) ResetLinkPolicy(p HostPair, direction ConnectivityDirection) e
 			s.Latency = nil
 			s.Loss = nil
 			config := n.effectiveConfig(s)
-			n.traceNetwork(
-				"configure_link",
-				"a",
-				key.A,
-				"b",
-				key.B,
-				"latency",
-				config.Latency,
-				"loss",
-				config.Loss,
-				"latencyLocal",
-				false,
-				"lossLocal",
-				false,
-			)
+			n.traceNetwork("configure_link", "a", key.A, "b", key.B, "latency", config.Latency, "loss", config.Loss, "latencyLocal", false, "lossLocal", false)
 		}
 	}
 	return nil

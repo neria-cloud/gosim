@@ -56,8 +56,7 @@ func TestViewSliceRejectsOutOfBounds(t *testing.T) {
 
 func TestBoolWireRepresentation(t *testing.T) {
 	t.Parallel()
-	if abi.BoolToUintptr(false) != 0 || abi.BoolToUintptr(true) != 1 || abi.BoolFromUintptr(0) ||
-		!abi.BoolFromUintptr(2) {
+	if abi.BoolToUintptr(false) != 0 || abi.BoolToUintptr(true) != 1 || abi.BoolFromUintptr(0) || !abi.BoolFromUintptr(2) {
 		t.Fatal("boolean wire representation changed")
 	}
 }

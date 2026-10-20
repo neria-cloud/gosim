@@ -68,8 +68,7 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 			if _, err := p.Policy("future/stdlib", true); err == nil {
 				t.Fatal("unknown standard package became native")
 			}
-			if policy, err := p.Policy("google.golang.org/grpc-extra", false); err != nil ||
-				policy.Mode != "translate" {
+			if policy, err := p.Policy("google.golang.org/grpc-extra", false); err != nil || policy.Mode != "translate" {
 				t.Fatal("subtree rule matched adjacent path")
 			}
 			for _, path := range []string{"", "../net", "net\\http", "net http"} {
@@ -96,8 +95,7 @@ func TestFamiliesNativeBridges(t *testing.T) {
 				}
 			}
 			for _, symbol := range []string{"Caller", "CallersFrames", "Goexit", "KeepAlive", "Version"} {
-				if target, err := m.ResolveSymbol(p, "runtime", symbol, true); err != nil ||
-					target.Package != "runtime" {
+				if target, err := m.ResolveSymbol(p, "runtime", symbol, true); err != nil || target.Package != "runtime" {
 					t.Fatalf("reviewed primitive bridge %s: %+v %v", symbol, target, err)
 				}
 			}
@@ -112,8 +110,7 @@ func TestFamiliesNativeBridges(t *testing.T) {
 					t.Fatalf("whole shim %s: %+v %v", path, target, err)
 				}
 			}
-			if target, err := m.ResolveSymbol(p, "internal/race", "Acquire", true); err != nil ||
-				target.Target != "InternalRace_Acquire" {
+			if target, err := m.ResolveSymbol(p, "internal/race", "Acquire", true); err != nil || target.Target != "InternalRace_Acquire" {
 				t.Fatalf("race bridge=%+v %v", target, err)
 			}
 			if _, err := m.ResolveSymbol(p, "iter", "Pull", true); err == nil {
@@ -169,17 +166,14 @@ func TestMinimalImportInitClassification(t *testing.T) {
 			if _, err := m.Probe("syscall", "Getrlimit", []string{"rt"}, map[string]int64{"resource": 1}); err == nil {
 				t.Fatal("unmodeled resource limit accepted")
 			}
-			if _, err := m.Probe("net", "*ipStackCapabilities.probe", []string{"rt"}, nil); err == nil ||
-				!strings.Contains(err.Error(), "FeatureDisabled") {
+			if _, err := m.Probe("net", "*ipStackCapabilities.probe", []string{"rt"}, nil); err == nil || !strings.Contains(err.Error(), "FeatureDisabled") {
 				t.Fatalf("net gate: %v", err)
 			}
-			if probe, err := m.Probe("net", "*ipStackCapabilities.probe", []string{"rt", "net"}, nil); err != nil ||
-				probe.Phase != "first-use" {
+			if probe, err := m.Probe("net", "*ipStackCapabilities.probe", []string{"rt", "net"}, nil); err != nil || probe.Phase != "first-use" {
 				t.Fatalf("lazy owned net probe: %+v %v", probe, err)
 			}
 			for _, symbol := range []string{"dnsReadConfig", "readHosts"} {
-				if _, err := m.Probe("net", symbol, []string{"rt", "net"}, nil); err == nil ||
-					!strings.Contains(err.Error(), "feature=fs") {
+				if _, err := m.Probe("net", symbol, []string{"rt", "net"}, nil); err == nil || !strings.Contains(err.Error(), "feature=fs") {
 					t.Fatalf("implicit fs enablement: %s %v", symbol, err)
 				}
 			}
@@ -247,12 +241,7 @@ func TestPolicyFixtures(t *testing.T) {
 						if !ok {
 							return true
 						}
-						_, err := m.ResolveSymbol(
-							p,
-							path,
-							selector.Sel.Name,
-							!strings.Contains(strings.Split(path, "/")[0], "."),
-						)
+						_, err := m.ResolveSymbol(p, path, selector.Sel.Name, !strings.Contains(strings.Split(path, "/")[0], "."))
 						if err != nil {
 							rejected = err
 						}
@@ -304,9 +293,7 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				owner := "github.com/neria-cloud/gosim/internal/compat/" + filepath.ToSlash(
-					strings.TrimPrefix(filepath.Dir(filename), "../"),
-				)
+				owner := "github.com/neria-cloud/gosim/internal/compat/" + filepath.ToSlash(strings.TrimPrefix(filepath.Dir(filename), "../"))
 				for _, imp := range file.Imports {
 					for _, comments := range []*ast.CommentGroup{imp.Doc, imp.Comment} {
 						if !hasNativeDirective(comments) {

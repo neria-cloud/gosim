@@ -13,14 +13,7 @@ import (
 )
 
 func unsupported() {
-	gosimruntime.Abort(
-		abi.Diagnostic{
-			Kind:      "UnsupportedOperation",
-			Feature:   "rt",
-			Operation: "os/signal",
-			Message:   "simulated process signals are not implemented",
-		},
-	)
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "os/signal", Message: "simulated process signals are not implemented"})
 }
 
 func Notify(c chan<- os.Signal, sig ...os.Signal) { unsupported() }

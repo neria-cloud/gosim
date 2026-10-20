@@ -24,9 +24,7 @@ func TestResolveArchitectureAndOwnedMetadata(t *testing.T) {
 			id := buildspec.Identity{
 				Schema: 2, Toolchain: patch, Profile: p.ID, AdapterRevision: p.Revision,
 				ToolchainDigest: d, StdlibDigest: d, ContractDigest: d, RuntimeRevision: d, HostOS: "linux", HostArch: arch, SimulationOS: "linux", SimulationArch: arch,
-				Features: []string{
-					"rt",
-				}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
+				Features: []string{"rt"}, Tags: []string{"linkname", "sim"}, ModuleGraphDigest: d, TranslatorDigest: d, DebugPolicyDigest: d,
 			}
 			id.ContractDigest, _ = p.ContractDigest()
 			s, err := p.Select(id)
@@ -53,8 +51,7 @@ func TestResolveArchitectureAndOwnedMetadata(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if again.Hooks[0].Target == "mutated" || againManifest.Bridges[0].Package == "mutated" ||
-				!slices.Equal(again.RuntimePackages, p.RuntimePackages) {
+			if again.Hooks[0].Target == "mutated" || againManifest.Bridges[0].Package == "mutated" || !slices.Equal(again.RuntimePackages, p.RuntimePackages) {
 				t.Fatal("metadata ownership leaked")
 			}
 			other := "arm64"

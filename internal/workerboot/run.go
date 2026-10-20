@@ -104,14 +104,7 @@ func startupOverrides(args []string) (config, version string, err error) {
 			return "", "", fmt.Errorf("internal-candidate requires an operation")
 		}
 	}
-	booleans := map[string]bool{
-		"race":     true,
-		"v":        true,
-		"headless": true,
-		"json":     true,
-		"ordinary": true,
-		"large":    true,
-	}
+	booleans := map[string]bool{"race": true, "v": true, "headless": true, "json": true, "ordinary": true, "large": true}
 	for i := start; i < len(args); i++ {
 		arg := args[i]
 		if arg == "--" || !strings.HasPrefix(arg, "-") {

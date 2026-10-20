@@ -73,8 +73,7 @@ func TestDeleteLastUseRetentionAndUnchangedSchema(t *testing.T) {
 			t.Fatal(err)
 		}
 		count++
-		if name != "cache" || !strings.HasSuffix(ddl, "STRICT") ||
-			!strings.Contains(ddl, "key TEXT PRIMARY KEY NOT NULL") {
+		if name != "cache" || !strings.HasSuffix(ddl, "STRICT") || !strings.Contains(ddl, "key TEXT PRIMARY KEY NOT NULL") {
 			t.Fatal("persistent schema changed", name, ddl)
 		}
 	}

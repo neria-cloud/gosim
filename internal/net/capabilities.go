@@ -21,18 +21,10 @@ func Capabilities() []Capability {
 		{"setsockopt", "stub/limited", "SO_REUSEADDR/SO_SNDBUF/SO_RCVBUF/SO_KEEPALIVE/SO_LINGER and " +
 			"TCP_NODELAY/KEEPIDLE/KEEPINTVL/KEEPCNT accept correctly sized payloads " +
 			"without applying options; others ENOPROTOOPT"},
-		{
-			"getsockopt",
-			capabilityLimited,
-			"SO_ERROR only; pending EINPROGRESS, failed opening ETIMEDOUT; error not cleared",
-		},
+		{"getsockopt", capabilityLimited, "SO_ERROR only; pending EINPROGRESS, failed opening ETIMEDOUT; error not cleared"},
 		{"fcntl", "missing", "integer commands return ENOSYS"},
 		{"read/write", "limited", "owned stream buffers and backpressure; legacy closed-read EPIPE semantics"},
-		{
-			"close",
-			capabilitySupported,
-			"explicit/graceful close notifies peer; crash/abort silent; release exactly once",
-		},
+		{"close", capabilitySupported, "explicit/graceful close notifies peer; crash/abort silent; release exactly once"},
 		{"poll", capabilitySupported, "epoch/connection/subscription generations; kernel deadlines and cancellation"},
 	}
 }

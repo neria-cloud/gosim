@@ -198,16 +198,7 @@ func (k *Kernel) FcntlInt(ctx contracts.CallContext, fd, command, argument int) 
 			}
 			return 1, nil
 		}
-		k.AbortRun(
-			contracts.Diagnostic{
-				Kind:      string(contracts.UnsupportedOperation),
-				Feature:   "rt",
-				Operation: "fcntl",
-				Epoch:     ctx.Epoch,
-				PC:        ctx.PC,
-				Message:   "unsupported diagnostic descriptor command",
-			},
-		)
+		k.AbortRun(contracts.Diagnostic{Kind: string(contracts.UnsupportedOperation), Feature: "rt", Operation: "fcntl", Epoch: ctx.Epoch, PC: ctx.PC, Message: "unsupported diagnostic descriptor command"})
 		return 0, contracts.ErrInvalidState
 	case contracts.FS:
 		if run.bindings.Files == nil {
@@ -222,16 +213,7 @@ func (k *Kernel) FcntlInt(ctx contracts.CallContext, fd, command, argument int) 
 		}
 		return run.bindings.Sockets.FcntlInt(ctx, fd, command, argument)
 	default:
-		k.AbortRun(
-			contracts.Diagnostic{
-				Kind:      string(contracts.UnsupportedOperation),
-				Feature:   "rt",
-				Operation: "fcntl",
-				Epoch:     ctx.Epoch,
-				PC:        ctx.PC,
-				Message:   "diagnostic descriptors do not model fcntl commands",
-			},
-		)
+		k.AbortRun(contracts.Diagnostic{Kind: string(contracts.UnsupportedOperation), Feature: "rt", Operation: "fcntl", Epoch: ctx.Epoch, PC: ctx.PC, Message: "diagnostic descriptors do not model fcntl commands"})
 		return 0, contracts.ErrInvalidState
 	}
 }

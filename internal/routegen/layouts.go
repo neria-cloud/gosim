@@ -14,9 +14,7 @@ import (
 	"strings"
 )
 
-var layoutNames = strings.Fields(
-	"Timespec Stat_t Statfs_t Fsid Dirent Flock_t RawSockaddr RawSockaddrInet4 RawSockaddrAny Utsname Rlimit",
-)
+var layoutNames = strings.Fields("Timespec Stat_t Statfs_t Fsid Dirent Flock_t RawSockaddr RawSockaddrInet4 RawSockaddrAny Utsname Rlimit")
 
 //go:embed layout_amd64.json
 var amd64Layout []byte
@@ -41,12 +39,7 @@ func renderLayouts(sources map[string]sourcePackage, arch, profileID string) ([]
 		return nil, err
 	}
 	var b bytes.Buffer
-	fmt.Fprintf(
-		&b,
-		"// Code generated from pinned Linux source by gosim-gen. DO NOT EDIT.\n//go:build %s && %s\n\npackage kernel\n",
-		familyBounds(profileID),
-		arch,
-	)
+	fmt.Fprintf(&b, "// Code generated from pinned Linux source by gosim-gen. DO NOT EDIT.\n//go:build %s && %s\n\npackage kernel\n", familyBounds(profileID), arch)
 	for _, pkg := range []string{"syscall", "golang.org/x/sys/unix"} {
 		prefix := ""
 		if pkg != "syscall" {
@@ -98,8 +91,7 @@ func renderLayouts(sources map[string]sourcePackage, arch, profileID string) ([]
 			if pkg == "syscall" && name == "SYS_GETRANDOM" {
 				expr = sources["internal/syscall/unix"].Constants["getrandomTrap"]
 			}
-			if expr == nil ||
-				constant.MakeFromLiteral(sourceText(expr), token.INT, 0).ExactString() != expected.Numbers[name] {
+			if expr == nil || constant.MakeFromLiteral(sourceText(expr), token.INT, 0).ExactString() != expected.Numbers[name] {
 				return nil, fmt.Errorf("Linux syscall number drift: %s.%s", pkg, name)
 			}
 		}

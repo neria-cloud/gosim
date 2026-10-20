@@ -44,11 +44,7 @@ func (t *packageTranslator) rewriteTestFunc(c *dstutil.Cursor) {
 	file.Decls = newDecls
 }
 
-func (t *packageTranslator) makeMetaTestFile(
-	pkgName string,
-	tests []PackageSelector,
-	runtime string,
-) (*dst.File, error) {
+func (t *packageTranslator) makeMetaTestFile(pkgName string, tests []PackageSelector, runtime string) (*dst.File, error) {
 	elts := make([]dst.Expr, 0, len(tests))
 	slices.SortFunc(tests, func(a, b PackageSelector) int {
 		if d := cmp.Compare(a.Pkg, b.Pkg); d != 0 {
@@ -61,9 +57,7 @@ func (t *packageTranslator) makeMetaTestFile(
 		elts = append(elts, &dst.CompositeLit{
 			Elts: []dst.Expr{
 				&dst.KeyValueExpr{
-					Key: dst.NewIdent(
-						"Name",
-					), // XXX: what happens if two tests have the same name in foo and foo_test?
+					Key:   dst.NewIdent("Name"), // XXX: what happens if two tests have the same name in foo and foo_test?
 					Value: &dst.BasicLit{Kind: token.STRING, Value: strconv.Quote(name.Selector)},
 				},
 				&dst.KeyValueExpr{
@@ -136,10 +130,8 @@ func (t *packageTranslator) makeMetaTestFile(
 					List: []dst.Stmt{
 						&dst.ExprStmt{
 							X: &dst.CallExpr{
-								Fun: t.newRuntimeSelector("TestMain"),
-								Args: []dst.Expr{
-									&dst.CompositeLit{Type: &dst.Ident{Path: t.replacedPkgs[runtime], Name: "Driver"}},
-								},
+								Fun:  t.newRuntimeSelector("TestMain"),
+								Args: []dst.Expr{&dst.CompositeLit{Type: &dst.Ident{Path: t.replacedPkgs[runtime], Name: "Driver"}}},
 							},
 							Decs: dst.ExprStmtDecorations{
 								NodeDecs: dst.NodeDecs{

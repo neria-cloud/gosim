@@ -99,12 +99,7 @@ func (e *Engine) onSupervisor(f func()) error {
 		defer func() {
 			if failure := recover(); failure != nil {
 				failed = true
-				e.scheduler.abortErr = &AbortError{
-					Diagnostic: abi.Diagnostic{
-						Kind:    "InvariantFailure",
-						Message: fmt.Sprint(failure) + "\n" + string(debug.Stack()),
-					},
-				}
+				e.scheduler.abortErr = &AbortError{Diagnostic: abi.Diagnostic{Kind: "InvariantFailure", Message: fmt.Sprint(failure) + "\n" + string(debug.Stack())}}
 			}
 		}()
 		f()
@@ -323,16 +318,7 @@ type AbortError struct{ Diagnostic abi.Diagnostic }
 
 func (err *AbortError) Error() string {
 	d := err.Diagnostic
-	return fmt.Sprintf(
-		"%s: feature=%s operation=%s machine=%d epoch=%d pc=%#x: %s",
-		d.Kind,
-		d.Feature,
-		d.Operation,
-		d.MachineID,
-		d.Epoch,
-		d.PC,
-		d.Message,
-	)
+	return fmt.Sprintf("%s: feature=%s operation=%s machine=%d epoch=%d pc=%#x: %s", d.Kind, d.Feature, d.Operation, d.MachineID, d.Epoch, d.PC, d.Message)
 }
 
 func (e *Engine) invariant(message string) {
@@ -397,12 +383,7 @@ func (e *Engine) Run(supervise func()) (result error) {
 	e.ran, e.running = true, true
 	defer func() {
 		if failure := recover(); failure != nil {
-			result = &AbortError{
-				Diagnostic: abi.Diagnostic{
-					Kind:    "InvariantFailure",
-					Message: fmt.Sprint(failure) + "\n" + string(debug.Stack()),
-				},
-			}
+			result = &AbortError{Diagnostic: abi.Diagnostic{Kind: "InvariantFailure", Message: fmt.Sprint(failure) + "\n" + string(debug.Stack())}}
 		}
 		e.running = false
 		e.result = result

@@ -34,12 +34,7 @@ func localRequest(kind ControlKind) ControlRequest {
 
 func TestConfigDefaultsValidation(t *testing.T) {
 	t.Parallel()
-	want := Config{
-		Latency:           LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5},
-		Loss:              LossConfig{RepairProbability: 1},
-		ConnectionTimeout: time.Second,
-		TCPBufferSize:     1024,
-	}
+	want := Config{Latency: LatencyConfig{Max: 100 * time.Millisecond, Lambda: 5}, Loss: LossConfig{RepairProbability: 1}, ConnectionTimeout: time.Second, TCPBufferSize: 1024}
 	if DefaultConfig() != want {
 		t.Fatal(DefaultConfig())
 	}
@@ -114,8 +109,7 @@ func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 	if n.ApplyControl(ControlRequest{Kind: ReplaceGlobal, Config: invalid}) != syscall.EINVAL || n.config != c {
 		t.Fatal("invalid timeout change was not atomic")
 	}
-	if n.ApplyControl(ControlRequest{Kind: SetGlobalMaxLatency, Duration: time.Millisecond}) != syscall.EINVAL ||
-		n.config != c {
+	if n.ApplyControl(ControlRequest{Kind: SetGlobalMaxLatency, Duration: time.Millisecond}) != syscall.EINVAL || n.config != c {
 		t.Fatal("invalid global change was not atomic")
 	}
 	r := localRequest(SetPairMaxLatency)
@@ -137,8 +131,7 @@ func TestConfigSnapshotsAndAtomicity(t *testing.T) {
 	c.Loss = LossConfig{FailProbability: 0.9, RepairProbability: 0.4}
 	control(t, n, ControlRequest{Kind: ReplaceGlobal, Config: c})
 	effective := n.effectiveConfig(s)
-	if effective.Latency.Lambda != 2.5 || effective.Loss.FailProbability != 0.125 ||
-		effective.Loss.RepairProbability != 1 {
+	if effective.Latency.Lambda != 2.5 || effective.Loss.FailProbability != 0.125 || effective.Loss.RepairProbability != 1 {
 		t.Fatal(effective)
 	}
 	before := effective
