@@ -262,7 +262,7 @@ func (i *Instance) GetOption(ctx contracts.CallContext, fd, level, name int, val
 	return 4, nil
 }
 
-func (i *Instance) FcntlInt(ctx contracts.CallContext, fd, _, argument int) (int, error) {
+func (i *Instance) FcntlInt(ctx contracts.CallContext, fd, command, argument int) (int, error) {
 	if _, err := i.socket(ctx, fd); err != nil {
 		return 0, err
 	}

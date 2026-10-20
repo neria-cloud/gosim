@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestGoMutexWaitGroup(_ *testing.T) {
+func TestGoMutexWaitGroup(t *testing.T) {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	var order string

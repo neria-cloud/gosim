@@ -13,19 +13,19 @@ func Sync_runtime_Semacquire(addr *uint32) {
 	gosimruntime.Semacquire(addr, false)
 }
 
-func Sync_runtime_Semrelease(addr *uint32, _ bool, skipframes int) {
+func Sync_runtime_Semrelease(addr *uint32, handoff bool, skipframes int) {
 	gosimruntime.Semrelease(addr)
 }
 
-func Sync_runtime_SemacquireRWMutexR(addr *uint32, lifo bool, _ int) {
+func Sync_runtime_SemacquireRWMutexR(addr *uint32, lifo bool, skipframes int) {
 	gosimruntime.Semacquire(addr, lifo)
 }
 
-func Sync_runtime_SemacquireRWMutex(addr *uint32, lifo bool, _ int) {
+func Sync_runtime_SemacquireRWMutex(addr *uint32, lifo bool, skipframes int) {
 	gosimruntime.Semacquire(addr, lifo)
 }
 
-func Sync_runtime_registerPoolCleanup(_ func()) {
+func Sync_runtime_registerPoolCleanup(cleanup func()) {
 	// noop
 }
 
@@ -90,19 +90,19 @@ func Sync_fatal(str string) {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "RuntimeFatal", Feature: "rt", Operation: "Sync_fatal", Message: str})
 }
 
-func Sync_runtime_SemacquireWaitGroup(addr *uint32, _ bool) {
+func Sync_runtime_SemacquireWaitGroup(addr *uint32, synctestDurable bool) {
 	gosimruntime.Semacquire(addr, false)
 }
 
-func InternalSync_runtime_SemacquireMutex(addr *uint32, lifo bool, _ int) {
+func InternalSync_runtime_SemacquireMutex(addr *uint32, lifo bool, skipframes int) {
 	gosimruntime.Semacquire(addr, lifo)
 }
 
-func InternalSync_runtime_Semrelease(addr *uint32, _ bool, skipframes int) {
+func InternalSync_runtime_Semrelease(addr *uint32, handoff bool, skipframes int) {
 	gosimruntime.Semrelease(addr)
 }
 
-func InternalSync_runtime_canSpin(_ int) bool {
+func InternalSync_runtime_canSpin(i int) bool {
 	return false
 }
 

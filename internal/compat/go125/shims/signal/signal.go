@@ -23,12 +23,12 @@ func unsupported() {
 	)
 }
 
-func Notify(_ chan<- os.Signal, sig ...os.Signal) { unsupported() }
-func Stop(_ chan<- os.Signal)                     { unsupported() }
-func Reset(_ ...os.Signal)                        { unsupported() }
-func Ignore(_ ...os.Signal)                       { unsupported() }
-func Ignored(_ os.Signal) bool                    { unsupported(); return false }
-func NotifyContext(_ context.Context, signals ...os.Signal) (context.Context, context.CancelFunc) {
+func Notify(c chan<- os.Signal, sig ...os.Signal) { unsupported() }
+func Stop(c chan<- os.Signal)                     { unsupported() }
+func Reset(sig ...os.Signal)                      { unsupported() }
+func Ignore(sig ...os.Signal)                     { unsupported() }
+func Ignored(sig os.Signal) bool                  { unsupported(); return false }
+func NotifyContext(parent context.Context, signals ...os.Signal) (context.Context, context.CancelFunc) {
 	unsupported()
 	panic("abort returned")
 }

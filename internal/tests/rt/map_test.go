@@ -106,7 +106,7 @@ func TestMapIterNil(t *testing.T) {
 	}
 }
 
-func TestMapDeleteNil(_ *testing.T) {
+func TestMapDeleteNil(t *testing.T) {
 	var m map[int]int
 
 	delete(m, 0)

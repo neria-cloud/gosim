@@ -216,7 +216,7 @@ func (i *Instance) Pread(ctx contracts.CallContext, fd int, data abi.ByteView, o
 	return f.readAt(ctx, data, offset)
 }
 
-func (i *Instance) Sync(ctx contracts.CallContext, fd int, _ bool) error {
+func (i *Instance) Sync(ctx contracts.CallContext, fd int, dataOnly bool) error {
 	f, err := i.file(ctx, fd)
 	if err != nil {
 		return err
@@ -472,7 +472,7 @@ func (i *Instance) Mkdirat(ctx contracts.CallContext, dirfd int, path string, mo
 	return i.model.Mkdir(dir, path, mode, i.identity())
 }
 
-func (i *Instance) Flock(ctx contracts.CallContext, fd, _ int) error {
+func (i *Instance) Flock(ctx contracts.CallContext, fd, how int) error {
 	if _, err := i.file(ctx, fd); err != nil {
 		return err
 	}
@@ -480,14 +480,14 @@ func (i *Instance) Flock(ctx contracts.CallContext, fd, _ int) error {
 	return nil
 }
 
-func (i *Instance) FcntlInt(ctx contracts.CallContext, fd, _, arg int) (int, error) {
+func (i *Instance) FcntlInt(ctx contracts.CallContext, fd, command, arg int) (int, error) {
 	if _, err := i.file(ctx, fd); err != nil {
 		return 0, err
 	}
 	return 0, syscall.ENOSYS
 }
 
-func (i *Instance) FcntlLock(ctx contracts.CallContext, fd, _ int, lock *contracts.Lock) error {
+func (i *Instance) FcntlLock(ctx contracts.CallContext, fd, command int, lock *contracts.Lock) error {
 	if _, err := i.file(ctx, fd); err != nil {
 		return err
 	}
@@ -527,7 +527,7 @@ func (i *Instance) Map(
 	return address, nil
 }
 
-func (i *Instance) Unmap(ctx contracts.CallContext, addr, _ uintptr) error {
+func (i *Instance) Unmap(ctx contracts.CallContext, addr, length uintptr) error {
 	if err := i.validateCall(ctx); err != nil {
 		return err
 	}
@@ -542,7 +542,7 @@ func (i *Instance) Unmap(ctx contracts.CallContext, addr, _ uintptr) error {
 	return nil
 }
 
-func (i *Instance) Advise(ctx contracts.CallContext, _ abi.ByteView, advice int) error {
+func (i *Instance) Advise(ctx contracts.CallContext, data abi.ByteView, advice int) error {
 	if err := i.validateCall(ctx); err != nil {
 		return err
 	}

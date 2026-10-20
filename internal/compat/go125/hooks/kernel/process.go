@@ -84,11 +84,11 @@ func updateDebug() {
 	process.update("", value)
 }
 func InternalGodebug_setUpdate(update func(string, string)) { process.update = update; updateDebug() }
-func InternalGodebug_setNewIncNonDefault(_ func(string) func()) {
+func InternalGodebug_setNewIncNonDefault(newIncNonDefault func(string) func()) {
 	// Named stub: runtime metrics are not exposed; retain no callback.
 }
 
-func InternalGodebug_registerMetric(_ string, read func() uint64) {
+func InternalGodebug_registerMetric(name string, read func() uint64) {
 	// Named stub: no host runtime metric sampler or callback retention.
 }
 
@@ -111,7 +111,7 @@ func Syscall_Getpagesize() int       { return 4096 }
 func Os_runtime_rand() uint64        { return simrt.Fastrand64() }
 func Os_checkClonePidfd() error      { Reject("os.checkClonePidfd"); return contracts.ErrInvalidState }
 func Os_sigpipe()                    { Reject("os.sigpipe") }
-func Os_runtime_beforeExit(_ int) { Reject("os.Exit") }
+func Os_runtime_beforeExit(code int) { Reject("os.Exit") }
 
 // Os_Executable reports the absence of an executable image in a simulated
 // process. In particular, protobuf must not hash the host executable at init.

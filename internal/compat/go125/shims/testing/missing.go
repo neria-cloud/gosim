@@ -2,7 +2,7 @@
 
 package testing
 
-func AllocsPerRun(_ int, f func()) (avg float64) {
+func AllocsPerRun(runs int, f func()) (avg float64) {
 	panic("gosim go125 testing: unsupported operation")
 }
 
@@ -16,27 +16,27 @@ func Coverage() float64 {
 func Init() {}
 
 func Main(
-	_ func(pat, str string) (bool, error),
-	_ []InternalTest,
-	_ []InternalBenchmark,
-	_ []InternalExample,
+	matchString func(pat, str string) (bool, error),
+	tests []InternalTest,
+	benchmarks []InternalBenchmark,
+	examples []InternalExample,
 ) {
 	panic("gosim go125 testing: unsupported operation")
 }
 
-func RegisterCover(_ Cover) {
+func RegisterCover(c Cover) {
 	panic("gosim go125 testing: unsupported operation")
 }
 
-func RunBenchmarks(_ func(pat, str string) (bool, error), benchmarks []InternalBenchmark) {
+func RunBenchmarks(matchString func(pat, str string) (bool, error), benchmarks []InternalBenchmark) {
 	panic("gosim go125 testing: unsupported operation")
 }
 
-func RunExamples(_ func(pat, str string) (bool, error), examples []InternalExample) (ok bool) {
+func RunExamples(matchString func(pat, str string) (bool, error), examples []InternalExample) (ok bool) {
 	panic("gosim go125 testing: unsupported operation")
 }
 
-func RunTests(_ func(pat, str string) (bool, error), tests []InternalTest) (ok bool) {
+func RunTests(matchString func(pat, str string) (bool, error), tests []InternalTest) (ok bool) {
 	panic("gosim go125 testing: unsupported operation")
 }
 

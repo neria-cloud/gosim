@@ -192,7 +192,7 @@ func (s *sourceInspection) Import(path string) (*types.Package, error) {
 	return pkg, nil
 }
 
-func (s *sourceInspection) ImportFrom(path, dir string, _ types.ImportMode) (*types.Package, error) {
+func (s *sourceInspection) ImportFrom(path, dir string, mode types.ImportMode) (*types.Package, error) {
 	for _, pkg := range s.packages {
 		if pkg.Dir == dir && pkg.ImportMap[path] != "" {
 			path = pkg.ImportMap[path]

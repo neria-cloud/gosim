@@ -19,18 +19,18 @@ func rejectPrivate(operation string) {
 		},
 	)
 }
-func InternalAbi_FuncPCABI0(_ any) uintptr { rejectPrivate("internal/abi.FuncPCABI0"); return 0 }
-func InternalAbi_FuncPCABIInternal(_ any) uintptr {
+func InternalAbi_FuncPCABI0(f any) uintptr { rejectPrivate("internal/abi.FuncPCABI0"); return 0 }
+func InternalAbi_FuncPCABIInternal(f any) uintptr {
 	rejectPrivate("internal/abi.FuncPCABIInternal")
 	return 0
 }
 
-func InternalBytealg_abigen_runtime_memequal(_, b unsafe.Pointer, size uintptr) bool {
+func InternalBytealg_abigen_runtime_memequal(a, b unsafe.Pointer, size uintptr) bool {
 	rejectPrivate("internal/bytealg.abigen_runtime_memequal")
 	return false
 }
 
-func InternalBytealg_abigen_runtime_memequal_varlen(_, b unsafe.Pointer) bool {
+func InternalBytealg_abigen_runtime_memequal_varlen(a, b unsafe.Pointer) bool {
 	rejectPrivate("internal/bytealg.abigen_runtime_memequal_varlen")
 	return false
 }

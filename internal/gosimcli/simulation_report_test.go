@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-func TestSimulationReportProcess(_ *testing.T) {
+func TestSimulationReportProcess(t *testing.T) {
 	mode := os.Getenv("GOSIM_REPORT_TEST_CHILD")
 	if mode == "" {
 		return

@@ -35,12 +35,12 @@ func TestReflectedMapBoundary(t *testing.T) {
 			t.Fatalf("map lookup=%d", got)
 		}
 		keys, values := 0, int64(0)
-		value.Seq2()(func(_, v Value) bool { keys++; values += v.Int(); return true })
+		value.Seq2()(func(k, v Value) bool { keys++; values += v.Int(); return true })
 		if keys != 2 || values != 3 {
 			t.Fatalf("Seq2 keys=%d values=%d", keys, values)
 		}
 		keys = 0
-		value.Seq()(func(_ Value) bool { keys++; return false })
+		value.Seq()(func(k Value) bool { keys++; return false })
 		if keys != 1 {
 			t.Fatal("Seq ignored early stop")
 		}

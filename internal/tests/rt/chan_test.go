@@ -326,7 +326,7 @@ func TestChanLenCap(t *testing.T) {
 	}
 }
 
-func TestChanNilChanSend(_ *testing.T) {
+func TestChanNilChanSend(t *testing.T) {
 	var ch chan struct{}
 
 	go func() {
@@ -337,7 +337,7 @@ func TestChanNilChanSend(_ *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 }
 
-func TestChanNilChanSendSelectOne(_ *testing.T) {
+func TestChanNilChanSendSelectOne(t *testing.T) {
 	var ch chan struct{}
 
 	go func() {
@@ -350,7 +350,7 @@ func TestChanNilChanSendSelectOne(_ *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 }
 
-func TestChanNilChanSendSelectDefault(_ *testing.T) {
+func TestChanNilChanSendSelectDefault(t *testing.T) {
 	var ch chan struct{}
 
 	select {
@@ -360,7 +360,7 @@ func TestChanNilChanSendSelectDefault(_ *testing.T) {
 	}
 }
 
-func TestChanNilChanSendSelectMore(_ *testing.T) {
+func TestChanNilChanSendSelectMore(t *testing.T) {
 	var ch chan struct{}
 	chOk := make(chan struct{}, 1)
 
@@ -372,7 +372,7 @@ func TestChanNilChanSendSelectMore(_ *testing.T) {
 	}
 }
 
-func TestChanNilChanRecv(_ *testing.T) {
+func TestChanNilChanRecv(t *testing.T) {
 	var ch chan struct{}
 
 	go func() {
@@ -383,7 +383,7 @@ func TestChanNilChanRecv(_ *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 }
 
-func TestChanNilChanRecvOk(_ *testing.T) {
+func TestChanNilChanRecvOk(t *testing.T) {
 	var ch chan struct{}
 
 	go func() {
@@ -395,7 +395,7 @@ func TestChanNilChanRecvOk(_ *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 }
 
-func TestChanNilChanRecvSelectOne(_ *testing.T) {
+func TestChanNilChanRecvSelectOne(t *testing.T) {
 	var ch chan struct{}
 
 	go func() {
@@ -408,7 +408,7 @@ func TestChanNilChanRecvSelectOne(_ *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 }
 
-func TestChanNilChanRecvSelectDefault(_ *testing.T) {
+func TestChanNilChanRecvSelectDefault(t *testing.T) {
 	var ch chan struct{}
 
 	select {
@@ -418,7 +418,7 @@ func TestChanNilChanRecvSelectDefault(_ *testing.T) {
 	}
 }
 
-func TestChanNilChanRecvSelectMore(_ *testing.T) {
+func TestChanNilChanRecvSelectMore(t *testing.T) {
 	var ch chan struct{}
 	chOk := make(chan struct{}, 1)
 	chOk <- struct{}{}

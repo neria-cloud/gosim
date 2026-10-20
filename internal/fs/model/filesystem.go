@@ -393,7 +393,7 @@ type writeOp struct {
 	chunks []*refCountedChunk
 }
 
-func (o *writeOp) apply(fs *filesystemState, _ gcer) {
+func (o *writeOp) apply(fs *filesystemState, gcer gcer) {
 	file := fs.getFile(o.inode)
 	file.write(o.pos, o.size, o.chunks)
 }
@@ -446,7 +446,7 @@ func (o *reserveOp) String() string {
 	return fmt.Sprintf("reserve file:%d offset:%d length:%d", o.inode, o.offset, o.length)
 }
 
-func (o *resizeOp) apply(fs *filesystemState, _ gcer) {
+func (o *resizeOp) apply(fs *filesystemState, gcer gcer) {
 	file := fs.getFile(o.inode)
 	file.resize(o.size)
 }
@@ -526,7 +526,7 @@ type allocOp struct {
 	meta  inodeMetadata
 }
 
-func (o *allocOp) apply(fs *filesystemState, _ gcer) {
+func (o *allocOp) apply(fs *filesystemState, gcer gcer) {
 	if _, ok := fs.objects[o.inode]; ok {
 		panic("double alloc")
 	}
@@ -597,7 +597,7 @@ func (o *dirOp) addDeps(p *pendingOps, op *pendingOp) {
 
 type nilgc struct{}
 
-func (nilgc) maybeGC(_ int) {}
+func (nilgc) maybeGC(inode int) {}
 
 func tryGetLinkCount(s *filesystemState, inode int) (int, bool) {
 	switch file := s.objects[inode].(type) {
@@ -713,7 +713,7 @@ func (fs *Filesystem) Write(inode int, pos int64, buffer abi.ByteView, capacityB
 	return len, nil
 }
 
-func (fs *Filesystem) Truncate(inode int, pos int64, _ uint64) error {
+func (fs *Filesystem) Truncate(inode int, pos int64, capacityBytes uint64) error {
 	if pos < 0 || pos > int64(^uint(0)>>1) {
 		return syscall.EINVAL
 	}

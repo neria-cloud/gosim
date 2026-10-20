@@ -16,7 +16,7 @@ func TestClearNilMap(t *testing.T) {
 	}
 }
 
-func TestMapIterDeleteDuplicatesHappen(_ *testing.T) {
+func TestMapIterDeleteDuplicatesHappen(t *testing.T) {
 	for {
 		m := make(map[int]struct{})
 		m[0] = struct{}{}
@@ -36,7 +36,7 @@ func TestMapIterDeleteDuplicatesHappen(_ *testing.T) {
 	}
 }
 
-func TestMapIterClearDuplicatesHappen(_ *testing.T) {
+func TestMapIterClearDuplicatesHappen(t *testing.T) {
 	for {
 		m := make(map[int]struct{})
 		m[0] = struct{}{}
@@ -84,7 +84,7 @@ func checkMap(t *rapid.T) {
 		}
 	}
 
-	actions["clear"] = func(_ *rapid.T) {
+	actions["clear"] = func(t *rapid.T) {
 		m.Clear()
 		clear(model)
 		if haveIter {

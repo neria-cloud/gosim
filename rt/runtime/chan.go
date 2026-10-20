@@ -472,7 +472,7 @@ func (c Chan[V]) RecvSelector() ChanSelector {
 
 type nilChanSelector struct{}
 
-func (nilChanSelector) enqueue(_ *sudog)  {}
+func (nilChanSelector) enqueue(g *sudog)  {}
 func (nilChanSelector) ready() bool       { return false }
 func (nilChanSelector) exec() (any, bool) { panic("help") }
 func (nilChanSelector) complete(bool)     { panic("help") }

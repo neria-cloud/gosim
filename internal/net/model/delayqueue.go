@@ -28,7 +28,7 @@ func (h timedHeap) Swap(i, j int) {
 	h[i], h[j] = h[j], h[i]
 }
 
-func (h *timedHeap) Push(_ any) {
+func (h *timedHeap) Push(x any) {
 	panic("don't use")
 	// *h = append(*h, x.(timedPacket))
 }

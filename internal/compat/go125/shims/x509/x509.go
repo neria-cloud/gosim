@@ -122,62 +122,62 @@ type (
 	}
 )
 
-func (v *CertPool) Clone() *CertPool       { unsupported(); panic("abort returned") }
-func (v *CertPool) AddCert(_ *Certificate) { unsupported(); panic("abort returned") }
-func (v *CertPool) AppendCertsFromPEM(_ []byte) (ok bool) {
+func (v *CertPool) Clone() *CertPool          { unsupported(); panic("abort returned") }
+func (v *CertPool) AddCert(cert *Certificate) { unsupported(); panic("abort returned") }
+func (v *CertPool) AppendCertsFromPEM(pemCerts []byte) (ok bool) {
 	unsupported()
 	panic("abort returned")
 }
-func (v *CertPool) Subjects() [][]byte     { unsupported(); panic("abort returned") }
-func (v *CertPool) Equal(_ *CertPool) bool { unsupported(); panic("abort returned") }
-func (v *CertPool) AddCertWithConstraint(_ *Certificate, constraint func([]*Certificate) error) {
-	unsupported()
-	panic("abort returned")
-}
-
-func (v *Certificate) Verify(_ VerifyOptions) (chains [][]*Certificate, err error) {
-	unsupported()
-	panic("abort returned")
-}
-func (v *Certificate) VerifyHostname(_ string) error { unsupported(); panic("abort returned") }
-func (v *Certificate) Equal(_ *Certificate) bool     { unsupported(); panic("abort returned") }
-func (v *Certificate) CheckSignatureFrom(_ *Certificate) error {
+func (v *CertPool) Subjects() [][]byte         { unsupported(); panic("abort returned") }
+func (v *CertPool) Equal(other *CertPool) bool { unsupported(); panic("abort returned") }
+func (v *CertPool) AddCertWithConstraint(cert *Certificate, constraint func([]*Certificate) error) {
 	unsupported()
 	panic("abort returned")
 }
 
-func (v *Certificate) CheckSignature(_ SignatureAlgorithm, signed []byte, signature []byte) error {
+func (v *Certificate) Verify(opts VerifyOptions) (chains [][]*Certificate, err error) {
+	unsupported()
+	panic("abort returned")
+}
+func (v *Certificate) VerifyHostname(h string) error { unsupported(); panic("abort returned") }
+func (v *Certificate) Equal(other *Certificate) bool { unsupported(); panic("abort returned") }
+func (v *Certificate) CheckSignatureFrom(parent *Certificate) error {
 	unsupported()
 	panic("abort returned")
 }
 
-func (v *Certificate) CheckCRLSignature(_ *pkix.CertificateList) error {
+func (v *Certificate) CheckSignature(algo SignatureAlgorithm, signed []byte, signature []byte) error {
+	unsupported()
+	panic("abort returned")
+}
+
+func (v *Certificate) CheckCRLSignature(crl *pkix.CertificateList) error {
 	unsupported()
 	panic("abort returned")
 }
 
 func (v *Certificate) CreateCRL(
-	_ io.Reader,
-	_ any,
-	_ []pkix.RevokedCertificate,
-	_ time.Time,
-	_ time.Time,
+	rand io.Reader,
+	priv any,
+	revokedCerts []pkix.RevokedCertificate,
+	now time.Time,
+	expiry time.Time,
 ) (crlBytes []byte, err error) {
 	unsupported()
 	panic("abort returned")
 }
-func (v HostnameError) Error() string                   { unsupported(); panic("abort returned") }
-func (v OID) AppendText(_ []byte) ([]byte, error)       { unsupported(); panic("abort returned") }
-func (v OID) MarshalText() ([]byte, error)              { unsupported(); panic("abort returned") }
-func (v *OID) UnmarshalText(_ []byte) error             { unsupported(); panic("abort returned") }
-func (v OID) AppendBinary(_ []byte) ([]byte, error)     { unsupported(); panic("abort returned") }
-func (v OID) MarshalBinary() ([]byte, error)            { unsupported(); panic("abort returned") }
-func (v *OID) UnmarshalBinary(_ []byte) error           { unsupported(); panic("abort returned") }
-func (v OID) Equal(_ OID) bool                          { unsupported(); panic("abort returned") }
-func (v OID) EqualASN1OID(_ asn1.ObjectIdentifier) bool { unsupported(); panic("abort returned") }
-func (v OID) String() string                            { unsupported(); panic("abort returned") }
-func (v PublicKeyAlgorithm) String() string             { unsupported(); panic("abort returned") }
-func (v SignatureAlgorithm) String() string             { unsupported(); panic("abort returned") }
+func (v HostnameError) Error() string                       { unsupported(); panic("abort returned") }
+func (v OID) AppendText(b []byte) ([]byte, error)           { unsupported(); panic("abort returned") }
+func (v OID) MarshalText() ([]byte, error)                  { unsupported(); panic("abort returned") }
+func (v *OID) UnmarshalText(text []byte) error              { unsupported(); panic("abort returned") }
+func (v OID) AppendBinary(b []byte) ([]byte, error)         { unsupported(); panic("abort returned") }
+func (v OID) MarshalBinary() ([]byte, error)                { unsupported(); panic("abort returned") }
+func (v *OID) UnmarshalBinary(b []byte) error               { unsupported(); panic("abort returned") }
+func (v OID) Equal(other OID) bool                          { unsupported(); panic("abort returned") }
+func (v OID) EqualASN1OID(other asn1.ObjectIdentifier) bool { unsupported(); panic("abort returned") }
+func (v OID) String() string                                { unsupported(); panic("abort returned") }
+func (v PublicKeyAlgorithm) String() string                 { unsupported(); panic("abort returned") }
+func (v SignatureAlgorithm) String() string                 { unsupported(); panic("abort returned") }
 
 const (
 	DSA                                       PublicKeyAlgorithm = 2
@@ -227,8 +227,8 @@ const (
 	UnknownSignatureAlgorithm                 SignatureAlgorithm = 0
 )
 
-func NewCertPool() *CertPool                             { unsupported(); panic("abort returned") }
-func ParseCertificate(_ []byte) (*Certificate, error)    { unsupported(); panic("abort returned") }
-func ParseCertificates(_ []byte) ([]*Certificate, error) { unsupported(); panic("abort returned") }
-func ParsePKCS1PrivateKey(_ []byte) (any, error)         { unsupported(); panic("abort returned") }
-func ParsePKCS8PrivateKey(_ []byte) (key any, err error) { unsupported(); panic("abort returned") }
+func NewCertPool() *CertPool                               { unsupported(); panic("abort returned") }
+func ParseCertificate(der []byte) (*Certificate, error)    { unsupported(); panic("abort returned") }
+func ParseCertificates(der []byte) ([]*Certificate, error) { unsupported(); panic("abort returned") }
+func ParsePKCS1PrivateKey(der []byte) (any, error)         { unsupported(); panic("abort returned") }
+func ParsePKCS8PrivateKey(der []byte) (key any, err error) { unsupported(); panic("abort returned") }
