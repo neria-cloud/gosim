@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help build check-fmt fix-fmt go-generate certification-matrix certification-colima gosim-tool gosim-prepare-selftest go-test go-race-test test test-unit test-unit-race test-race test-large test-report-tools
+.PHONY: help build check-fmt fix-fmt lint lint-full fmt go-generate certification-matrix certification-colima gosim-tool gosim-prepare-selftest go-test go-race-test test test-unit test-unit-race test-race test-large test-report-tools
 
 # Independent test cases and package binaries run concurrently on the local host.
 UNIT_PARALLEL ?= 2
@@ -25,6 +25,15 @@ check-fmt: ## Check Go formatting
 
 fix-fmt: ## Format Go sources
 	./.ci/gofmt fix
+
+lint: ## Lint staged Go files
+	python3 -B .ci/lint-files.py staged
+
+lint-full: ## Lint the whole Go codebase
+	golangci-lint run ./...
+
+fmt: ## Format changed, added and untracked Go files
+	python3 -B .ci/gofmt-files.py
 
 go-generate: ## Generate Go adapters and filesystem model stringers
 	GOTOOLCHAIN=go1.25.14 go run ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=.

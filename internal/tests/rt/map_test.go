@@ -354,7 +354,7 @@ func TestMapSmallSimpleIter(t *testing.T) {
 		{3, 8},
 	}
 
-	var seen []pair
+	seen := make([]pair, 0, len(m))
 	for k, v := range m {
 		seen = append(seen, pair{key: k, value: v})
 	}
@@ -787,7 +787,7 @@ func TestMapClear(t *testing.T) {
 }
 
 func TestMapLiteralRange(t *testing.T) {
-	var seen []pair
+	seen := make([]pair, 0, 3)
 
 	for k, v := range map[int]int{
 		1: 3,

@@ -40,7 +40,8 @@ func prepareSelftest(cfg gosimtool.BuildConfig) error {
 			}
 		}
 		// do the build
-		args := []string{"test"}
+		args := make([]string, 0, 8)
+		args = append(args, "test")
 		args = append(args, "-ldflags=-checklinkname=0", "-tags=linkname")
 		args = append(args, "-race")
 		args = append(args, "-c")

@@ -14,7 +14,7 @@ import (
 
 func formatLogsWithExtra(logs []*gosimlog.Log) []string {
 	// TODO: share this code with prettylog somehow?
-	var lines []string
+	lines := make([]string, 0, len(logs))
 	for _, log := range logs {
 		line := fmt.Sprintf("%d %s/%d %s %s", log.Step, log.Machine, log.Goroutine, log.Level, log.Msg)
 		for _, kv := range log.Unknown {

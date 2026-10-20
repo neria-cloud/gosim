@@ -156,7 +156,7 @@ func TestPendingOps(t *testing.T) {
 					}
 					out = ops.processQueue(out)
 
-					flushOps := []int{}
+					flushOps := make([]int, 0, len(out))
 					for _, op := range out {
 						flushOps = append(flushOps, op.fsOp.(*allocOp).inode)
 					}

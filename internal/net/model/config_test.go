@@ -38,7 +38,8 @@ func TestConfigDefaultsValidation(t *testing.T) {
 	if DefaultConfig() != want {
 		t.Fatal(DefaultConfig())
 	}
-	bad := []Config{{}}
+	bad := make([]Config, 1, 21)
+	bad[0] = Config{}
 	for _, v := range []float64{-1, 2, math.NaN(), math.Inf(1), math.Inf(-1)} {
 		c := want
 		c.Loss.FailProbability = v

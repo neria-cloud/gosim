@@ -13,7 +13,6 @@ func TestGoMutexWaitGroup(t *testing.T) {
 	var order string
 
 	for i := 0; i < 5; i++ {
-		i := i
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

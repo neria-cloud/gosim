@@ -46,7 +46,7 @@ func TestSuiteCommandsOverlapWithinBudgetAndKeepAllResults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var commands []*exec.Cmd
+	commands := make([]*exec.Cmd, 0, 3)
 	for i := range 3 {
 		cmd := exec.Command(executable, "-test.run=^TestSuiteWorkerProcess$")
 		cmd.Env = append(os.Environ(), "GOSIM_SUITE_TEST_CHILD=1", "GOSIM_SUITE_TEST_DIR="+dir, "GOSIM_SUITE_TEST_NAME="+strconv.Itoa(i))

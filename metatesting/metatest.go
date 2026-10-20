@@ -22,7 +22,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/prettylog"
-	"github.com/neria-cloud/gosim/rt/runtime"
+	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 )
 
 // The structs below are copied from gosimruntime.runConfig and
@@ -418,7 +418,7 @@ func ParseLog(logs []byte) []map[string]any {
 }
 
 func SimplifyParsedLog(logs []map[string]any) []string {
-	var out []string
+	out := make([]string, 0, len(logs))
 	for _, log := range logs {
 		out = append(out, fmt.Sprintf("%s %s", log["level"], strings.Trim(log["msg"].(string), "\n")))
 	}
