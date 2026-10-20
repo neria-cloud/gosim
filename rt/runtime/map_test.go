@@ -131,7 +131,7 @@ func checkMap(t *rapid.T) {
 		}
 		// might be too high but not a problem
 		steps := rapid.IntRange(1, 1+len(model)).Draw(t, "steps")
-		for range steps {
+		for i := 0; i < steps; i++ {
 			k, v, ok := iter.Next()
 			if !ok {
 				t.Log("got iter finished")

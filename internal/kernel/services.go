@@ -63,26 +63,22 @@ func (k *Kernel) cleanupFailure(operation string, err error) {
 }
 
 func (k *Kernel) Ports() contracts.Ports {
-	ports := contracts.Ports{
-		Clock: clockPort{}, Events: eventPort{k}, Trace: tracePort{k},
-		RandomFor: func(feature contracts.Feature, ref contracts.MachineRef) contracts.Random {
-			if (feature != contracts.FS && feature != contracts.Net) || !k.features.Has(feature) {
-				k.invariant("provider requested an unowned random stream")
+	return contracts.Ports{Clock: clockPort{}, Events: eventPort{k}, Trace: tracePort{k}, RandomFor: func(feature contracts.Feature, ref contracts.MachineRef) contracts.Random {
+		if (feature != contracts.FS && feature != contracts.Net) || !k.features.Has(feature) {
+			k.invariant("provider requested an unowned random stream")
+			return nil
+		}
+		if ref.ID == 0 {
+			if ref.RunID != 0 && ref.RunID != k.runID {
+				k.invariant("wrong-run session random stream")
 				return nil
 			}
-			if ref.ID == 0 {
-				if ref.RunID != 0 && ref.RunID != k.runID {
-					k.invariant("wrong-run session random stream")
-					return nil
-				}
-			} else if _, err := k.Lookup(ref); err != nil {
-				k.invariant("invalid machine random stream")
-				return nil
-			}
-			return k.engine.RandomFor(featureName(feature), ref.ID)
-		},
-	}
-	return ports
+		} else if _, err := k.Lookup(ref); err != nil {
+			k.invariant("invalid machine random stream")
+			return nil
+		}
+		return k.engine.RandomFor(featureName(feature), ref.ID)
+	}}
 }
 
 func (p eventPort) Schedule(epoch contracts.EpochRef, when int64, callback func()) (contracts.EventID, error) {

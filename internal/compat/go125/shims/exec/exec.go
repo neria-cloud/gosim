@@ -52,21 +52,18 @@ type Cmd struct {
 }
 
 func unsupported() {
-	gosimruntime.Abort(abi.Diagnostic{
-		Kind: "UnsupportedOperation", Feature: "rt", Operation: "os/exec",
-		Message: "native processes are not available in simulation",
-	})
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "os/exec", Message: "native processes are not available in simulation"})
 }
-func Command(_ string, _ ...string) *Cmd                           { unsupported(); return nil }
-func CommandContext(_ context.Context, _ string, _ ...string) *Cmd { unsupported(); return nil }
-func LookPath(_ string) (string, error)                            { unsupported(); return "", nil }
-func (c *Cmd) String() string                                      { return c.Path }
-func (_ *Cmd) Run() error                                          { unsupported(); return nil }
-func (_ *Cmd) Start() error                                        { unsupported(); return nil }
-func (_ *Cmd) Wait() error                                         { unsupported(); return nil }
-func (_ *Cmd) Output() ([]byte, error)                             { unsupported(); return nil, nil }
-func (_ *Cmd) CombinedOutput() ([]byte, error)                     { unsupported(); return nil, nil }
-func (_ *Cmd) StdinPipe() (io.WriteCloser, error)                  { unsupported(); return nil, nil }
-func (_ *Cmd) StdoutPipe() (io.ReadCloser, error)                  { unsupported(); return nil, nil }
-func (_ *Cmd) StderrPipe() (io.ReadCloser, error)                  { unsupported(); return nil, nil }
-func (_ *Cmd) Environ() []string                                   { unsupported(); return nil }
+func Command(name string, arg ...string) *Cmd                             { unsupported(); return nil }
+func CommandContext(ctx context.Context, name string, arg ...string) *Cmd { unsupported(); return nil }
+func LookPath(file string) (string, error)                                { unsupported(); return "", nil }
+func (c *Cmd) String() string                                             { return c.Path }
+func (c *Cmd) Run() error                                                 { unsupported(); return nil }
+func (c *Cmd) Start() error                                               { unsupported(); return nil }
+func (c *Cmd) Wait() error                                                { unsupported(); return nil }
+func (c *Cmd) Output() ([]byte, error)                                    { unsupported(); return nil, nil }
+func (c *Cmd) CombinedOutput() ([]byte, error)                            { unsupported(); return nil, nil }
+func (c *Cmd) StdinPipe() (io.WriteCloser, error)                         { unsupported(); return nil, nil }
+func (c *Cmd) StdoutPipe() (io.ReadCloser, error)                         { unsupported(); return nil, nil }
+func (c *Cmd) StderrPipe() (io.ReadCloser, error)                         { unsupported(); return nil, nil }
+func (c *Cmd) Environ() []string                                          { unsupported(); return nil }

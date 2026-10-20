@@ -80,8 +80,7 @@ func TestTransportLifecycleAndRunIdentity(t *testing.T) {
 				if root.RunID == previous.RunID {
 					t.Fatal("run ID reused")
 				}
-				_, err := invoke(kernel.LabelRequest{Machine: previous}, kernel.DecodeLabelResult)
-				if !errors.Is(err, contracts.ErrWrongRun) {
+				if _, err := invoke(kernel.LabelRequest{Machine: previous}, kernel.DecodeLabelResult); !errors.Is(err, contracts.ErrWrongRun) {
 					t.Fatal(err)
 				}
 			}
@@ -130,16 +129,13 @@ func TestTransportLifecycleAndRunIdentity(t *testing.T) {
 				t.Fatal(exit)
 			}
 			must(t, kernel.DestroyRequest{Machine: child}, kernel.DecodeDestroyResult)
-			_, err := invoke(kernel.LabelRequest{Machine: child}, kernel.DecodeLabelResult)
-			if !errors.Is(err, contracts.ErrMachineNotFound) {
+			if _, err := invoke(kernel.LabelRequest{Machine: child}, kernel.DecodeLabelResult); !errors.Is(err, contracts.ErrMachineNotFound) {
 				t.Fatal(err)
 			}
-			_, err = invoke(kernel.StopRequest{Machine: root}, kernel.DecodeStopResult)
-			if !errors.Is(err, contracts.ErrSelfTransition) {
+			if _, err := invoke(kernel.StopRequest{Machine: root}, kernel.DecodeStopResult); !errors.Is(err, contracts.ErrSelfTransition) {
 				t.Fatal(err)
 			}
-			_, err = invoke(kernel.WaitRequest{Machine: root}, kernel.DecodeWaitResult)
-			if !errors.Is(err, contracts.ErrSelfTransition) {
+			if _, err := invoke(kernel.WaitRequest{Machine: root}, kernel.DecodeWaitResult); !errors.Is(err, contracts.ErrSelfTransition) {
 				t.Fatal(err)
 			}
 			info := must(t, kernel.InfoRequest{}, kernel.DecodeInfoResult)
@@ -151,8 +147,7 @@ func TestTransportLifecycleAndRunIdentity(t *testing.T) {
 			if must(t, kernel.InfoRequest{}, kernel.DecodeInfoResult).Features[0] != "rt" {
 				t.Fatal("run info leaked mutable state")
 			}
-			_, err = invoke(kernel.SetTimeoutRequest{}, kernel.DecodeSetTimeoutResult)
-			if !errors.Is(err, contracts.ErrInvalidConfig) {
+			if _, err := invoke(kernel.SetTimeoutRequest{}, kernel.DecodeSetTimeoutResult); !errors.Is(err, contracts.ErrInvalidConfig) {
 				t.Fatal(err)
 			}
 			must(t, kernel.SetTimeoutRequest{TimeoutNS: 1e6}, kernel.DecodeSetTimeoutResult)

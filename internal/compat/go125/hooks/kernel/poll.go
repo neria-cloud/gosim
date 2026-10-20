@@ -37,26 +37,15 @@ func InternalPoll_runtime_pollClose(ctx uintptr) {
 }
 
 func InternalPoll_runtime_pollWait(ctx uintptr, mode int) int {
-	result := checked(Call(
-		kernel.PollWaitRequest{Handle: uint64(ctx), Mode: pollMode(mode)},
-		kernel.DecodePollWaitResult,
-	))
-	return result.Code
+	return checked(Call(kernel.PollWaitRequest{Handle: uint64(ctx), Mode: pollMode(mode)}, kernel.DecodePollWaitResult)).Code
 }
 
 func InternalPoll_runtime_pollReset(ctx uintptr, mode int) int {
-	result := checked(Call(
-		kernel.PollResetRequest{Handle: uint64(ctx), Mode: pollMode(mode)},
-		kernel.DecodePollResetResult,
-	))
-	return result.Code
+	return checked(Call(kernel.PollResetRequest{Handle: uint64(ctx), Mode: pollMode(mode)}, kernel.DecodePollResetResult)).Code
 }
 
 func InternalPoll_runtime_pollSetDeadline(ctx uintptr, d int64, mode int) {
-	checked(Call(
-		kernel.PollDeadlineRequest{Handle: uint64(ctx), DeadlineNS: d, Mode: pollMode(mode)},
-		kernel.DecodePollDeadlineResult,
-	))
+	checked(Call(kernel.PollDeadlineRequest{Handle: uint64(ctx), DeadlineNS: d, Mode: pollMode(mode)}, kernel.DecodePollDeadlineResult))
 }
 
 func InternalPoll_runtime_pollUnblock(ctx uintptr) {
