@@ -22,7 +22,7 @@ def main() -> int:
         return 0
 
     subprocess.run(
-        ["go", "run", "golang.org/x/tools/cmd/goimports", "-local=github.com/neria-cloud/gosim", "-format-only", "-w", *files],
+        ["go", "run", "golang.org/x/tools/cmd/goimports", "-local=github.com/neria-cloud/gosim", "-w", *files],
         check=True,
     )
     subprocess.run(["go", "run", "mvdan.cc/gofumpt", "-w", *files], check=True)

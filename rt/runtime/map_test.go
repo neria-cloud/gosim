@@ -5,7 +5,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/neria-cloud/gosim/rt/runtime"
+	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func TestClearNilMap(t *testing.T) {

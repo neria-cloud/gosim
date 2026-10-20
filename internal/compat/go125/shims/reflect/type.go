@@ -12,7 +12,7 @@ import (
 	"reflect" //gosim:notranslate
 	"sync"    //gosim:notranslate
 
-	"github.com/neria-cloud/gosim/rt/runtime"
+	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
 

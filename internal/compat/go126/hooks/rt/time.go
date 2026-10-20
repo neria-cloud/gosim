@@ -6,7 +6,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/rt/runtime"
+	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func Time_now() (sec int64, nsec int32, mono int64) {

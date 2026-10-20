@@ -15,7 +15,7 @@ import (
 
 	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/internal/tests/testsupport"
-	"github.com/neria-cloud/gosim/rt/runtime"
+	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 )
 
 // EchoServer is a small TCP server that listens on 10.0.0.1:8080 and echoes

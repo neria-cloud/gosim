@@ -11,7 +11,7 @@ import (
 
 	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/internal/tests/testsupport"
-	"github.com/neria-cloud/gosim/rt/runtime"
+	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func TestMachineDestroyedHandle(t *testing.T) {

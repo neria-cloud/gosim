@@ -99,7 +99,9 @@ func InternalGodebug_write(fd uintptr, p unsafe.Pointer, n int32) int32 {
 	if n > 0 {
 		simrt.RaceReadRange(p, int(n))
 	}
-	result, err := Call(kernel.WriteRequest{FD: 2, From: abi.NewSliceView((*byte)(p), uintptr(n))}, kernel.DecodeWriteResult)
+	result, err := Call(kernel.WriteRequest{
+		FD: 2, From: abi.NewSliceView((*byte)(p), uintptr(n)),
+	}, kernel.DecodeWriteResult)
 	if err != nil {
 		return -1
 	}

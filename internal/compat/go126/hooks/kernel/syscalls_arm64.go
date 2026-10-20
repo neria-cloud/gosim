@@ -4,21 +4,24 @@
 package kernel
 
 import (
+	"strings"
+	"syscall"
+	"unsafe"
+
 	"github.com/neria-cloud/gosim/internal/contracts"
 	k "github.com/neria-cloud/gosim/internal/kernel"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
-	"strings"
-	"syscall"
-	"unsafe"
 )
 
-var _ = strings.IndexByte
-var _ = syscall.EINVAL
-var _ unsafe.Pointer
-var _ = abi.ByteView{}
-var _ = simrt.RaceEnabled
-var _ = contracts.RT
+var (
+	_ = strings.IndexByte
+	_ = syscall.EINVAL
+	_ unsafe.Pointer
+	_ = abi.ByteView{}
+	_ = simrt.RaceEnabled
+	_ = contracts.RT
+)
 
 func Syscall_Close(p0 int) error {
 	_, err := Call(k.CloseRequest{FD: p0}, k.DecodeCloseResult)
@@ -251,6 +254,7 @@ func fcntlInt(fd, command, argument int) (int, error) {
 	out, err := Call(k.FcntlIntRequest{FD: fd, Command: command, Argument: argument}, k.DecodeFcntlIntResult)
 	return out.Value, err
 }
+
 func writeUname(p unsafe.Pointer, info k.ProcessInfo) {
 	var out Utsname
 	put := func(dst []int8, value string) {

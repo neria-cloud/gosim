@@ -12,7 +12,7 @@ import (
 	"github.com/neria-cloud/gosim"
 	simfs "github.com/neria-cloud/gosim/fs"
 	"github.com/neria-cloud/gosim/internal/tests/testsupport"
-	"github.com/neria-cloud/gosim/rt/runtime"
+	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func TestCrashRestartPendingDisk(t *testing.T) {

@@ -5,7 +5,7 @@ package rt
 import (
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/rt/runtime"
+	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 )
 
 func HashMaphash_runtime_rand() uint64 {
