@@ -11,11 +11,15 @@ import (
 func validateConfig(config contracts.FSConfig) error     { return contracts.ValidateFSConfig(config) }
 func validateFault(config contracts.FSFaultConfig) error { return contracts.ValidateFSFault(config) }
 func (s *Session) ConfigureMachine(ref contracts.MachineRef, config contracts.FSConfig) error {
+	// TODO(not planned): filesystem resize is outside the configured startup capacity contract.
 	if err := s.checkRef(ref); err != nil {
 		return err
 	}
 	if err := validateConfig(config); err != nil {
 		return err
+	}
+	if config.CapacityBytes == 0 {
+		config.CapacityBytes = model.DefaultCapacityBytes
 	}
 	m := s.machines[ref.ID]
 	if m != nil && (m.started || m.prepared != nil || m.active != nil) {
@@ -35,6 +39,31 @@ func (s *Session) ConfigureMachine(ref contracts.MachineRef, config contracts.FS
 	}
 	s.machine(ref).config = config
 	return nil
+}
+
+func (s *Session) SetReadOnly(ref contracts.MachineRef, enabled bool) error {
+	if err := s.checkRef(ref); err != nil {
+		return err
+	}
+	s.machine(ref).readOnly = enabled
+	return nil
+}
+
+func (s *Session) Stats(ref contracts.MachineRef) (contracts.FSStorageStats, error) {
+	if err := s.checkRef(ref); err != nil {
+		return contracts.FSStorageStats{}, err
+	}
+	m := s.machine(ref)
+	disk := m.disk
+	if m.active != nil {
+		disk = m.active.model
+	}
+	if disk == nil {
+		disk = model.NewLinuxFilesystem()
+		defer disk.Release()
+	}
+	stats := disk.Stats(m.config.CapacityBytes)
+	return contracts.FSStorageStats{TotalBytes: stats.TotalBytes, FreeBytes: stats.FreeBytes, UsedBytes: stats.UsedBytes, BlockSize: stats.BlockSize, ReadOnly: m.readOnly}, nil
 }
 
 func (s *Session) SetCrashMode(ref contracts.MachineRef, mode uint8) error {

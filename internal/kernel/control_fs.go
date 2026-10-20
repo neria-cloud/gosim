@@ -67,6 +67,15 @@ func (c *filesystemControl) SetSyncFault(ref contracts.MachineRef, fault contrac
 	return c.call(ref, []State{StateNew, StateRunning, StateStopped, StateCrashed}, func(provider contracts.FSControl) error { return provider.SetSyncFault(ref, fault) })
 }
 
+func (c *filesystemControl) SetReadOnly(ref contracts.MachineRef, enabled bool) error {
+	return c.call(ref, []State{StateNew, StateRunning, StateStopped, StateCrashed}, func(provider contracts.FSControl) error { return provider.SetReadOnly(ref, enabled) })
+}
+
+func (c *filesystemControl) Stats(ref contracts.MachineRef) (stats contracts.FSStorageStats, err error) {
+	err = c.call(ref, []State{StateNew, StateRunning, StateStopped, StateCrashed}, func(provider contracts.FSControl) error { stats, err = provider.Stats(ref); return err })
+	return
+}
+
 func (c *filesystemControl) InspectInode(ref contracts.MachineRef, inode int) (info contracts.InodeInfo, err error) {
 	err = c.call(ref, []State{StateNew, StateRunning, StateStopped, StateCrashed}, func(provider contracts.FSControl) error { info, err = provider.InspectInode(ref, inode); return err })
 	return

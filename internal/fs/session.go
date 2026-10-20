@@ -21,6 +21,7 @@ type machine struct {
 	config    contracts.FSConfig
 	fault     contracts.FSFaultConfig
 	crashMode uint8
+	readOnly  bool
 	started   bool
 	disk      *model.Filesystem
 	crash     *model.CrashImage
@@ -52,7 +53,7 @@ func (s *Session) machine(ref contracts.MachineRef) *machine {
 		return m
 	}
 	s.runID = ref.RunID
-	m := &machine{ref: ref, config: contracts.FSConfig{WorkingDir: "/app"}}
+	m := &machine{ref: ref, config: contracts.FSConfig{WorkingDir: "/app", CapacityBytes: model.DefaultCapacityBytes}}
 	s.machines[ref.ID] = m
 	return m
 }

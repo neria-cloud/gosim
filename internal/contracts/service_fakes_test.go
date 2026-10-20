@@ -59,6 +59,8 @@ var _ FSControl = (*fakeFSControl)(nil)
 func (*fakeFSControl) ConfigureMachine(MachineRef, FSConfig) error  { return errInjected }
 func (*fakeFSControl) SetCrashMode(MachineRef, uint8) error         { return errInjected }
 func (*fakeFSControl) SetSyncFault(MachineRef, FSFaultConfig) error { return errInjected }
+func (*fakeFSControl) SetReadOnly(MachineRef, bool) error           { return errInjected }
+func (*fakeFSControl) Stats(MachineRef) (FSStorageStats, error)     { return FSStorageStats{}, errInjected }
 func (*fakeFSControl) InspectInode(MachineRef, int) (InodeInfo, error) {
 	return InodeInfo{}, errInjected
 }

@@ -625,6 +625,26 @@ func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
 		}
 		k.Require(ctx, p.Feature, p.Operation)
 		return controlRouteResult(out, nil)
+	case RouteFSSetReadOnly:
+		p := inv.Args[0].(FSSetReadOnlyRequest)
+		var out FSSetReadOnlyResult
+		service, serviceErr := k.FilesystemControl(ctx, p.Machine.RunID)
+		if serviceErr != nil {
+			return controlRouteResult(out, serviceErr)
+		}
+		var err error
+		err = service.SetReadOnly(p.Machine, p.Enabled)
+		return controlRouteResult(out, err)
+	case RouteFSStats:
+		p := inv.Args[0].(FSStatsRequest)
+		var out FSStatsResult
+		service, serviceErr := k.FilesystemControl(ctx, p.Machine.RunID)
+		if serviceErr != nil {
+			return controlRouteResult(out, serviceErr)
+		}
+		var err error
+		out.Stats, err = service.Stats(p.Machine)
+		return controlRouteResult(out, err)
 	}
 	return Result{}, false, invalidPayload(ctx, "unreachable route")
 }

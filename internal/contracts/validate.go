@@ -82,6 +82,9 @@ func ValidateFSConfig(config FSConfig) error {
 	if !path.IsAbs(config.WorkingDir) || strings.ContainsRune(config.WorkingDir, 0) {
 		return fmt.Errorf("%w: filesystem working directory must be an absolute path", ErrInvalidConfig)
 	}
+	if config.CapacityBytes%1024 != 0 || config.CapacityBytes > uint64(^uint(0)>>1) || config.LatencyNS < 0 {
+		return fmt.Errorf("%w: invalid filesystem capacity or latency", ErrInvalidConfig)
+	}
 	return nil
 }
 

@@ -152,6 +152,46 @@ type Filesystem struct {
 	persisted *filesystemState // XXX: rename to "disk"?
 }
 
+const (
+	StorageBlockSize     uint64 = chunkSize
+	DefaultCapacityBytes uint64 = 128 << 20
+)
+
+type StorageStats struct {
+	TotalBytes uint64
+	FreeBytes  uint64
+	UsedBytes  uint64
+	BlockSize  uint64
+}
+
+func (fs *Filesystem) UsedBlocks() uint64 {
+	var used uint64
+	for inode, obj := range fs.mem.objects {
+		file, ok := obj.(*backingFile)
+		if !ok || file.linkCount == 0 && fs.openCountByInode[inode] == 0 {
+			continue
+		}
+		for _, chunk := range file.file.chunks {
+			if chunk != nil {
+				used++
+			}
+		}
+	}
+	return used
+}
+
+func (fs *Filesystem) Stats(capacityBytes uint64) StorageStats {
+	if capacityBytes == 0 {
+		capacityBytes = DefaultCapacityBytes
+	}
+	used := fs.UsedBlocks() * StorageBlockSize
+	free := uint64(0)
+	if used < capacityBytes {
+		free = capacityBytes - used
+	}
+	return StorageStats{TotalBytes: capacityBytes, FreeBytes: free, UsedBytes: used, BlockSize: StorageBlockSize}
+}
+
 func (fs *Filesystem) apply(op fsOp) {
 	/*
 		switch op := op.(type) {
