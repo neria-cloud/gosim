@@ -112,6 +112,10 @@ func runCompare(ctx context.Context, args []string, stdout, stderr io.Writer) in
 		fmt.Fprintln(stderr, err)
 		return 2
 	}
+	if err := audit.PrepareOutput(*options.output); err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
 	report, draft, err := audit.Compare(ctx, audit.CompareRequest{
 		ParentProfile: *parent, ParentObservation: *observation, Output: *options.output, Arches: arches,
 	})
@@ -132,7 +136,10 @@ func finishComparison(ctx context.Context, result comparisonResult, stdout, stde
 		return 1
 	}
 	if report.Schema != 0 {
-		err = errors.Join(err, audit.WriteComparison(output, report, draft))
+		if writeErr := audit.WriteComparison(output, report, draft); writeErr != nil {
+			fmt.Fprintln(stderr, errors.Join(err, writeErr))
+			return 1
+		}
 		fmt.Fprintf(stdout, "complete=%t api_diff=%s findings=%d proposals=%d\n",
 			report.Complete, report.APIDiff, len(report.Findings), len(draft.Proposals))
 	}
@@ -161,6 +168,10 @@ func runObserve(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 2
+	}
+	if err := audit.PrepareOutput(*options.output); err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
 	}
 	snapshot, err := audit.Observe(ctx, audit.ObserveRequest{
 		Profile: *profile, Output: *options.output, Arches: arches,

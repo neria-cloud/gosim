@@ -205,7 +205,7 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 | Runtime modes | One active run per process; no native-scheduler virtual-I/O mode, mutable feature sets or runtime provider loading |
 | Additional platforms | Go families other than 1.25/1.26, Darwin AMD64, Windows and non-Linux simulated ABIs are unsupported |
 
-The reviewed [go125](internal/compat/go125/profile/capabilities.json) and [go126](internal/compat/go126/profile/capabilities.json) capability records distinguish implemented, limited, stub and rejected behavior. The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records remaining application requirements; modularization does not claim to implement them.
+The reviewed [go125](internal/compat/profiles/go125.json) and [go126](internal/compat/profiles/go126.json) capability records distinguish implemented, limited, stub and rejected behavior. The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records remaining application requirements; modularization does not claim to implement them.
 
 ## Development and test reports
 
@@ -276,11 +276,74 @@ Go family selectors, and uploads `test-reports`. It has no certification step.
 
 ## Generation and manual certification
 
+Compatibility implementation lives once in `internal/compat/{hooks,shims,host}`.
+`internal/compat/profiles/go125.json` is the baseline; `go126.json` contains only
+its changes. A future 1.27 definition would inherit **1.25 + 1.26 + 1.27**.
+An unchanged family needs an empty delta and a support declaration, with no copied
+implementation files. Generated selectors and guards enforce supported families;
+ordinary Go release constraints select source variants. Exact patches remain
+separate compiler/source identities, not support declarations.
+
+### Reviewing a new Go family
+
+Run the metadata-only generator with each compiler in a separate process. These
+commands inspect selected source; they do not execute race or cross-architecture
+tests. For the existing 1.25→1.26 transition:
+
+```sh
+GOTOOLCHAIN=go1.25.14 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen observe -profile=go125 -output=.gosim/compare/go125-observation.json
+GOTOOLCHAIN=go1.26.9 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen compare -parent=go125 -parent-observation=.gosim/compare/go125-observation.json -output=.gosim/compare/go126
+```
+
+Use fresh destinations on every run. The tool creates missing parent directories
+and rejects an existing destination before scanning; final publication is also
+exclusive. The destination filesystem must support hard links. `observe` requires
+the parent's recorded exact generation compiler. `compare` uses the running stable
+compiler, including an unregistered family, and requires the immediate next minor.
+Neither command downloads or runs a parent compiler. Parent snapshots bind the
+host/context inventory, inspector implementation, parent definition/origin and
+module inputs; use the same host and requested architectures for both runs.
+
+With a snapshot, `api_diff=inspected` reports actual upstream API and method-set
+changes. Omitting `-parent-observation` gives `skipped-no-parent`: declared contract
+and source checks still run, but API comparison is skipped. Failed inspections
+produce incomplete reports and exit 1; complete differences, including
+incompatibilities, exit 0. Invalid arguments exit 2. Race contexts describe source
+selection only. Source hash changes require behavioral review.
+
+Outputs are `report.md`, `delta.draft.json`, then `report.json` last. The Markdown
+groups repeated findings and places incompatible changes before review/information.
+An absent `report.json` means interrupted publication; `complete=false` means an
+incomplete scan. A draft cannot be loaded as a family definition and never enables
+support. Review findings, implement any necessary source variants, and author the
+new family's delta against its immediate parent. No automatic apply, baseline
+rebase or semantic-compatibility proof is provided.
+
+### Maintaining reviewed definitions and provenance
+
+`profiles` is the sole support-table, guard and adapter-revision maintenance entry:
+
+```sh
+go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen profiles -root=.
+go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen profiles -root=. -check
+```
+
+Write mode can bootstrap a reviewed definition before its origin exists. With the
+matching compiler, run flag-only generation with `-profile`, `-arches`, `-output=.`
+and explicit `-refresh-origin` to create/update independent provenance after
+contract validation. Then regenerate `profiles` and run metadata and generation
+checks under both recorded baselines. Existing checks:
+
+```sh
+GOTOOLCHAIN=go1.25.14 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=. -check
+GOTOOLCHAIN=go1.26.9 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -arches=amd64,arm64 -output=. -check
+```
+
 Generation baselines are reproducible provenance, not caller compiler pins.
-`cmd/gosim-gen` uses explicit toolchain/profile/architecture flags; `-check`
-reproduces the recorded baseline without modifying files. An intentional
-`-refresh-origin` validates contracts before recording a different baseline.
-`make go-generate` generates adapters and filesystem-model stringer output.
+`make go-generate` regenerates shared adapters, metadata and the filesystem-model
+stringer output, then checks shared adapters independently under both compilers.
+Origins remain separate files; historical evidence remains in `profiles/evidence.json`.
+Neither is an ordinary support allowlist. See [design and storage accounting](docs/design.md#compatibility-storage-accounting).
 
 Manual certification is independent of tests and CI. Its matrix defaults to
 Go 1.25.14 and Go 1.26.9 on Linux/Darwin ARM64, with four feature sets and no race

@@ -108,9 +108,19 @@ func TestSourceObservationsThroughPrivateModule(t *testing.T) {
 	write(base)
 	req.Family.Declarations[0].Hook.Package = "internal/gosim_missing_package"
 	failed, err = spec.CollectSourceObservations(t.Context(), c.Toolchain(), dir, req)
-	if err == nil || len(failed.Records) != 0 || failed.Contexts[0].Complete {
-		t.Fatal("failed load fabricated absence", failed, err)
+	if err != nil || !failed.Contexts[0].Complete {
+		t.Fatal("absent standard package aborted inspection", err)
 	}
+	if got := get(failed, "declaration"); got.Present {
+		t.Fatal("missing package declaration present")
+	}
+	req.Family.Declarations[0].Hook.Package = pkg
+	write("package observation\nimport _ \"example.org/observation/missing\"\n")
+	failed, err = spec.CollectSourceObservations(t.Context(), c.Toolchain(), dir, req)
+	if err == nil || failed.Contexts[0].Complete {
+		t.Fatal("load failure accepted")
+	}
+	write(base)
 	req.Family.Declarations[0].Hook.Package = pkg
 	req.IncludeStdlibInventory = true
 	inventory := collect()

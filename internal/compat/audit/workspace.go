@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"slices"
 	"strings"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
@@ -55,7 +54,8 @@ func prepareAuditWorkspace(ctx context.Context, tc buildspec.Toolchain, director
 		return nil, err
 	}
 	for _, selection := range contexts {
-		if err := w.preparePackages(ctx, tc, selection, inspectionPaths(parent, selection)); err != nil {
+		_, paths, _ := spec.ObservationInventory(parent, selection, true)
+		if err := w.preparePackages(ctx, tc, selection, append(paths, "std")); err != nil {
 			return nil, err
 		}
 	}
@@ -87,32 +87,6 @@ func prepareAuditWorkspace(ctx context.Context, tc buildspec.Toolchain, director
 	return w, nil
 }
 
-func inspectionPaths(parent spec.ResolvedFamily, selection spec.SourceContext) []string {
-	var paths []string
-	for _, d := range parent.Declarations {
-		if len(d.Arches) != 0 && !slices.Contains(d.Arches, selection.Arch) {
-			continue
-		}
-		if !selection.Native || d.Hook.Context == "host" || selection.Race && d.Hook.Context == "host-race" {
-			paths = append(paths, d.Hook.Package)
-		}
-	}
-	if !selection.Native {
-		for _, b := range parent.Bridges {
-			paths = append(paths, b.Package)
-		}
-		for _, l := range parent.Architectures[selection.Arch].Layouts {
-			paths = append(paths, l.Package)
-		}
-		for _, c := range parent.Architectures[selection.Arch].Constants {
-			paths = append(paths, c.Package)
-		}
-	}
-	paths = slices.DeleteFunc(paths, func(path string) bool { return path == frameworkModule || strings.HasPrefix(path, frameworkModule+"/") })
-	slices.Sort(paths)
-	return slices.Compact(paths)
-}
-
 func commandEnv(cmd *exec.Cmd, key, value string) {
 	for i, entry := range cmd.Env {
 		if strings.HasPrefix(entry, key+"=") {
@@ -136,7 +110,7 @@ func (w *inspectionWorkspace) preparePackages(ctx context.Context, tc buildspec.
 			cgo = "1"
 		}
 	}
-	args := append([]string{"list", "-mod=mod", "-deps", "-json", "-tags=" + tags}, paths...)
+	args := append([]string{"list", "-mod=mod", "-deps", "-json", "-e", "-tags=" + tags}, paths...)
 	cmd := buildspec.SourceInspectionCommand(ctx, tc, w.Directory, args...)
 	commandEnv(cmd, "GOOS", selection.OS)
 	commandEnv(cmd, "GOARCH", selection.Arch)

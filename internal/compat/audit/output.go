@@ -7,9 +7,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 )
 
 func RenderReport(report ComparisonReport) ([]byte, error) {
+	if _, err := json.Marshal(report); err != nil {
+		return nil, err
+	}
 	var out bytes.Buffer
 	fmt.Fprintf(&out, "# Go compatibility comparison\n\nCandidate: %s; parent: %s\n\nComplete: %t; API diff: %s; findings: %d\n\n", report.Candidate.Version, report.ParentFamily, report.Complete, report.APIDiff, len(report.Findings))
 	out.WriteString("Source inspection does not establish semantic compatibility or approve support. Race contexts describe source selection only.\n\n")
@@ -19,8 +24,20 @@ func RenderReport(report ComparisonReport) ([]byte, error) {
 			fmt.Fprintf(&out, "  - %s\n", e)
 		}
 	}
-	for _, f := range report.Findings {
-		fmt.Fprintf(&out, "\n## %s: %s %s\n\n%s\n\nContext: %s\n", f.Severity, f.Kind, recordKey(f.Key), f.Message, contextKey(f.Context))
+	groups := groupFindings(report.Findings)
+	out.WriteString("\n| Severity | Distinct findings |\n| --- | ---: |\n")
+	for _, severity := range []string{"incomplete", "incompatible", "review", "information"} {
+		count := 0
+		for _, group := range groups {
+			if group.Finding.Severity == severity {
+				count++
+			}
+		}
+		fmt.Fprintf(&out, "| %s | %d |\n", severity, count)
+	}
+	for _, group := range groups {
+		f := group.Finding
+		fmt.Fprintf(&out, "\n## %s: %s %s\n\n%s\n\nContexts: `%s`\n", f.Severity, f.Kind, recordKey(f.Key), f.Message, auditJSON(group.Contexts))
 		if len(f.Before) > 0 {
 			fmt.Fprintf(&out, "\nBefore: `%s`\n", f.Before)
 		}
@@ -162,4 +179,72 @@ func WriteObservation(path string, snapshot ParentObservation) error {
 		return err
 	}
 	return publishExclusive(path, data)
+}
+
+type findingGroup struct {
+	Finding  Finding
+	Contexts []InspectedContext
+}
+
+func groupFindings(findings []Finding) []findingGroup {
+	groups := map[string]findingGroup{}
+	for _, f := range findings {
+		key := string(auditJSON([]any{f.Kind, f.Key, f.Before, f.After, f.Severity, f.Message}))
+		group, ok := groups[key]
+		if !ok {
+			group.Finding = f
+			group.Finding.Locations = slices.Clone(f.Locations)
+		}
+		if !slices.Contains(group.Contexts, f.Context) {
+			group.Contexts = append(group.Contexts, f.Context)
+		}
+		for _, location := range f.Locations {
+			if !slices.Contains(group.Finding.Locations, location) {
+				group.Finding.Locations = append(group.Finding.Locations, location)
+			}
+		}
+		groups[key] = group
+	}
+	out := make([]findingGroup, 0, len(groups))
+	for _, group := range groups {
+		slices.SortFunc(group.Contexts, func(a, b InspectedContext) int { return strings.Compare(contextKey(a), contextKey(b)) })
+		out = append(out, group)
+	}
+	priority := map[string]int{"incomplete": 0, "incompatible": 1, "review": 2, "information": 3}
+	slices.SortFunc(out, func(a, b findingGroup) int {
+		if difference := priority[a.Finding.Severity] - priority[b.Finding.Severity]; difference != 0 {
+			return difference
+		}
+		return strings.Compare(string(auditJSON(a.Finding)), string(auditJSON(b.Finding)))
+	})
+	return out
+}
+
+// PrepareOutput checks destinations before expensive compiler discovery. Only
+// parent directories are created; final publication still claims paths exclusively.
+func PrepareOutput(path string) (resultErr error) {
+	if _, err := os.Lstat(path); !os.IsNotExist(err) {
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("output already exists: %s", path)
+	}
+	parent := filepath.Dir(path)
+	if err := os.MkdirAll(parent, 0o700); err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(parent, ".gosim-audit-probe-*")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	link := name + ".link"
+	defer func() { resultErr = errors.Join(resultErr, os.Remove(name)) }()
+	if err := f.Close(); err != nil {
+		return err
+	}
+	if err := os.Link(name, link); err != nil {
+		return fmt.Errorf("audit destination requires exclusive hard-link publication: %w", err)
+	}
+	return os.Remove(link)
 }

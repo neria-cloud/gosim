@@ -129,7 +129,7 @@ tools, and `make test-lint-tools` verifies selection and snapshot behavior.
 | `internal/buildspec`, `internal/buildcfg`, `internal/buildrun`, `internal/gosimtool` | Host build identities, resolved compilers, cache and artifact handling |
 | `internal/tests/{rt,fs,net,integration}`, `nemesis`, `examples` | Applicable positive suites; full integration needs all features |
 
-The four valid immutable feature sets are `rt`, `rt,fs`, `rt,net`, `rt,fs,net`. Kernel/contracts/public controls cannot import concrete providers; providers cannot import each other. The old `gosimruntime` import path, monolithic `internal/simulation`, old hook trees and shared compatibility shims have been removed.
+The four valid immutable feature sets are `rt`, `rt,fs`, `rt,net`, `rt,fs,net`. Kernel/contracts/public controls cannot import concrete providers; providers cannot import each other. The old `gosimruntime` import path, monolithic `internal/simulation`, old version-owned hook/shim trees have been removed. Shared implementations live under `internal/compat/{hooks,shims,host}`.
 
 ## Implementation invariants
 
@@ -138,9 +138,25 @@ The four valid immutable feature sets are `rt`, `rt,fs`, `rt,net`, `rt,fs,net`. 
 - Lifecycle preparation is staged and non-yielding. Abort cannot flush disks, publish packets or consume another provider's stream. Commit publishes before init; teardown continues through cleanup errors.
 - Memory views are borrowed for an invocation only. Cancellation/completion clears them. Poll and packet callbacks carry epoch/generation checks.
 - Disabled features abort the simulation even if application code ignores errors or recovers. Do not add host-I/O fallbacks or generic successful stubs.
-- Keep Go-sensitive code in its selected family or document and verify a stable shared helper. Never select executable family code through runtime switches or manual release tags.
+- Keep Go-sensitive changes in bounded release-constrained variants of the shared implementation. Definitions inherit the Go 1.25 baseline and every intermediate delta. Never select executable family code through runtime switches or manual release tags.
 - Preserve `-ldflags=-checklinkname=0 -tags=linkname` on host builds/tests. Simulated source is loaded with Linux source ABI and application cgo disabled; native host race/SQLite tooling may use cgo.
 - Source/profile/config changes invalidate artifacts and certification. Do not promote skipped, compile-only or stale results. Status/evidence metadata alone is excluded from executable digests.
+
+## Compatibility maintenance
+
+Author only changed metadata in each immediate-child family definition under
+`internal/compat/profiles`; do not copy full implementation trees. `profiles`
+generates support tables/guards and revisions. Independent `.origin.json` files
+record exact generation baselines; `evidence.json` is historical data. Ordinary
+support remains `1.X.*`, while compiler patches keep distinct artifact identities.
+
+For onboarding, use the [observe → compare → review workflow](README.md#reviewing-a-new-go-family).
+The metadata-only generator may inspect the running stable unregistered compiler;
+ordinary builds still reject it. Snapshots require the recorded parent compiler
+and matching host/context inventory. Use fresh output paths. API diffing without
+a snapshot is explicitly skipped; incomplete or interrupted reports are not passes.
+Reports and drafts never enable support. Race/other-architecture source inspection
+is not execution validation and does not authorize restricted suites.
 
 ## Generation and manual certification
 

@@ -144,7 +144,7 @@ func checkInspectionArgs(args []string) error {
 			}
 			seen[key] = true
 			switch {
-			case arg == "-json", arg == "-m", arg == "-deps":
+			case arg == "-json", arg == "-m", arg == "-deps", arg == "-e":
 			case key == "-mod" && (value == "readonly" || value == "mod"):
 			case key == "-tags" && (value == "linkname" || value == "linkname,race" || value == TranslatedSourceTags(false) || value == TranslatedSourceTags(true)):
 			default:
@@ -154,7 +154,7 @@ func checkInspectionArgs(args []string) error {
 		if !seen["-json"] || len(paths) == 0 {
 			return bad
 		}
-		if seen["-m"] && (seen["-deps"] || seen["-tags"] || len(paths) != 1 || paths[0] != "all") {
+		if seen["-m"] && (seen["-deps"] || seen["-tags"] || seen["-e"] || len(paths) != 1 || paths[0] != "all") {
 			return bad
 		}
 		return nil

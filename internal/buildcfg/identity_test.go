@@ -133,9 +133,18 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 	if after := build(); !reflect.DeepEqual(before, after) {
 		t.Fatal("promotion, worktree location, docs or output changed executable fingerprint")
 	}
+	for _, path := range []string{"internal/compat/profiles/go125.json", "internal/compat/hooks/rt/hook.go", "internal/compat/shims/runtime/shim.go"} {
+		write(path, "changed executable input")
+		if after := build(); after.TranslatorDigest == before.TranslatorDigest {
+			t.Fatal("ancestor/shared source not fingerprinted", path)
+		}
+		if err := os.Remove(filepath.Join(root, path)); err != nil {
+			t.Fatal(err)
+		}
+	}
 	write("internal/compat/profiles/go125.origin.json", `{"origin":"changed"}`)
-	if after := build(); after.TranslatorDigest == before.TranslatorDigest {
-		t.Fatal("origin not fingerprinted")
+	if after := build(); after.TranslatorDigest == before.TranslatorDigest || after.AdapterRevision != before.AdapterRevision {
+		t.Fatal("origin must change whole-source identity without changing adapter revision")
 	}
 	write("internal/compat/profiles/go125.origin.json", `{}`)
 	write("internal/compat/profiles/nested/evidence.json", `{}`)

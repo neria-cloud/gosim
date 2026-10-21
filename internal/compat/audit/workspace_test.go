@@ -109,12 +109,16 @@ func TestAuditWorkspaceInputsAndCleanup(t *testing.T) {
 	if _, err := os.Stat(w.Directory); !os.IsNotExist(err) {
 		t.Fatal("workspace retained", err)
 	}
-	// A failed source lookup cleans the already-created private module.
+	// Missing standard packages do not prevent preparation; cleanup still owns the module.
 	tmp := t.TempDir()
 	t.Setenv("TMPDIR", tmp)
 	parent.Declarations[0].Hook.Package = "internal/gosim_missing_package"
-	if _, err := prepareAuditWorkspace(ctx, c.Toolchain(), root, parent, contexts); err == nil {
-		t.Fatal("bad source accepted")
+	missing, err := prepareAuditWorkspace(ctx, c.Toolchain(), root, parent, contexts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := missing.Close(); err != nil {
+		t.Fatal(err)
 	}
 	entries, err := os.ReadDir(tmp)
 	if err != nil || len(entries) != 0 {

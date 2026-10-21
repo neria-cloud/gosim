@@ -22,7 +22,7 @@
 
 Implement the reviewed shared-package design, Go 1.25 baseline plus cumulative metadata/source changes, stable `1.X.*` admission, and comparison/report/draft tooling. Go 1.27 is a hypothetical fixture, not a newly supported release in this plan. Keep the four existing immutable feature sets and all runtime/determinism/native-boundary invariants.
 
-The source of design decisions is target revision 3.1. Existing README, AGENTS.md and docs/design.md describe today's family-owned trees and will be updated after migration; their current build/test restrictions continue to apply throughout. There is no `project.txt`, `architecture/` or `docs/architecture/` in this checkout. `docs/brainstorms` is an ignored ordinary directory, not a symlink or nested repository. The plan is tracked in the existing branch; do not create another repository or force-add ignored brainstorm files.
+The source of design decisions is target revision 3.1. README, AGENTS.md and docs/design.md now describe the shared implementation and cumulative metadata; their build/test restrictions continue to apply throughout. There is no `project.txt`, `architecture/` or `docs/architecture/` in this checkout. `docs/brainstorms` is an ignored ordinary directory, not a symlink or nested repository. The plan is tracked in the existing branch; do not create another repository or force-add ignored brainstorm files.
 
 - Execute tasks in order, batching two consecutive tasks per commit (user direction, 2026-10-21). Validate both tasks before committing; retain separate completion records. Each task ends with build and focused verification; fix any failures encountered, including unrelated failures in commands actually run, before reporting that gate green. Record unexpected changes and evidence in the sections below.
 - Each task budgets **at most 550 lines of authored Go implementation and test edits**. Pure file renames, verified deletion of an identical second copy, generated JSON/Go and fixture relocation are separately reported mechanical changes, not hidden inside the authored-code estimate. Preserve moved bodies; do not rewrite large files. If the authored portion exceeds its bound, split it into consecutively numbered, buildable subtasks before execution and update references.
@@ -744,14 +744,14 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤450 authored Go/test lines; split fixture-only batches if needed. **Dependencies:** 28.
 
-- [ ] Finish fixture substitutions for shared paths, generated registry/revisions and exact compiler/worker identities. Preserve patch/features/race manifest matching and launcher-selected worker behavior.
-- [ ] Add/retain meaningful regressions for cache invalidation from ancestor/shared source, origin-only TranslatorDigest changes, evidence-only stability and corrupt/stale cache rejection with unchanged schemas.
-- [ ] Preserve SQLite table/index/value formats, seven-day retention/hourly touches and content-addressed contract cache behavior. Do not introduce old-format decode or a new persistent audit cache.
-- [ ] Update candidate/CLI fixtures without executing large-gated cases; record such migrated fixtures as unexecuted. Run worker-dependent ordinary tests only through prepared source-matched workflow.
+- [x] Finish fixture substitutions for shared paths, generated registry/revisions and exact compiler/worker identities. Preserve patch/features/race manifest matching and launcher-selected worker behavior.
+- [x] Add/retain meaningful regressions for cache invalidation from ancestor/shared source, origin-only TranslatorDigest changes, evidence-only stability and corrupt/stale cache rejection with unchanged schemas.
+- [x] Preserve SQLite table/index/value formats, seven-day retention/hourly touches and content-addressed contract cache behavior. Do not introduce old-format decode or a new persistent audit cache.
+- [x] Update candidate/CLI fixtures without executing large-gated cases; record such migrated fixtures as unexecuted. Run worker-dependent ordinary tests only through prepared source-matched workflow.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused non-worker tests pass; V-ORDINARY covers applicable worker/protocol tests. Record restricted skips without promoting them to passes.
+- [x] V-REVISIONS, V-BUILD and focused non-worker tests pass; V-ORDINARY covers applicable worker/protocol tests. Record restricted skips without promoting them to passes.
 
 ### Task 30: Document the supported workflow and measure compaction
 
@@ -761,15 +761,15 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤100 authored Go lines (normally zero); documentation only. **Dependencies:** 29.
 
-- [ ] Update package ownership, cumulative constraints/deltas, independent origins, sole profiles maintenance entry and ordinary stable-family admission; remove retired catalog/genprofile and old capabilities-file links.
-- [ ] Document recommended observe→compare→reviewed definition/code→profiles→matching compiler origin generation→checks workflow, skipped API semantics and partial-output interpretation.
-- [ ] Preserve all existing race/large/certification/lint restrictions. Add comments for intentionally unsupported automatic rebase/apply/semantic-proof behavior at the relevant tool boundary only; no runtime warning or stub.
-- [ ] Measure production file/byte totals across compat, hostabi, support registry, generator and audit; report test/doc and ignored report/generated bytes separately. Compare against 195 files/1,785,064 bytes in the original family trees without hiding the new subsystem costs.
-- [ ] Update existing architecture documentation to implemented facts and resolve stale shared-shim retirement wording; do not create a separate proposal document.
+- [x] Update package ownership, cumulative constraints/deltas, independent origins, sole profiles maintenance entry and ordinary stable-family admission; remove retired catalog/genprofile and old capabilities-file links.
+- [x] Document recommended observe→compare→reviewed definition/code→profiles→matching compiler origin generation→checks workflow, skipped API semantics and partial-output interpretation.
+- [x] Preserve all existing race/large/certification/lint restrictions. Add comments for intentionally unsupported automatic rebase/apply/semantic-proof behavior at the relevant tool boundary only; no runtime warning or stub.
+- [x] Measure production file/byte totals across compat, hostabi, support registry, generator and audit; report test/doc and ignored report/generated bytes separately. Compare against 195 files/1,785,064 bytes in the original family trees without hiding the new subsystem costs.
+- [x] Update existing architecture documentation to implemented facts and resolve stale shared-shim retirement wording; do not create a separate proposal document.
 
 #### Verification
 
-- [ ] V-DOCS passes; V-BUILD remains green if any command documentation required code adjustment. All advertised command names/paths exist.
+- [x] V-DOCS passes; V-BUILD remains green if any command documentation required code adjustment. All advertised command names/paths exist.
 
 ### Task 31: Run final ordinary and generation validation
 
@@ -817,6 +817,8 @@ Compare implemented code, data and real entry-point flows with the target, not j
 Review findings were corrected before execution (see review thread 2 and progress log); no unresolved architectural gap is currently accepted. Unchecked tasks above are pending implementation, not completed gaps. Add discrepancies found during execution here with task/target reference, evidence, fix and verification; use `[_]` for an unresolved item.
 
 ## NOT PLANNED CHANGES
+
+- Peer checkpoint 4: missing upstream std packages now produce complete missing-package/contract findings; genuine load errors remain incomplete reports. Unified inventory derivation in spec, added collector and generator dependency boundary checks, grouped report/draft findings with package inventory diffs and spelling-only signature handling, and preflighted output destinations before scanning. Added focused missing-package/parse-error publication coverage. Fixed two existing diagram links while checking documentation. These corrections share the Tasks 29–30 commit; no runtime, persistent-cache or support policy expansion.
 
 - Tasks 27–28: publish closed audit temporary files with an atomic exclusive hard link followed by temporary-name removal, instead of rename. Plain rename could overwrite a concurrently created destination. The final manifest remains last, all writes/close/cleanup failures propagate, and only invocation-owned paths are removed. Target §6/§11 updated to this equivalent no-overwrite publication. No output locks or overwrite mode added.
 

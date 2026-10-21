@@ -73,6 +73,11 @@ func TestInspectionConsumerBoundary(t *testing.T) {
 					return true
 				}
 				switch id.Name {
+				case "CollectSourceObservations":
+					seen[id.Name] = true
+					if !(rel == "internal/compat/spec/observation.go" && function == "CollectSourceObservations") && !strings.HasPrefix(rel, "internal/compat/audit/") {
+						t.Errorf("collector used outside audit: %s:%s", rel, function)
+					}
 				case "SourceInspectionCommand", "SourceInspectionApplicationCommand", "ResolveInspectionModuleGraph", "SourceInspectionModuleFiles", "PrepareSourceInspectionContext", "DiscoverInspection":
 					seen[id.Name] = true
 					if !inspectionReferenceAllowed(rel, function) {
@@ -87,7 +92,7 @@ func TestInspectionConsumerBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(seen) != 6 {
+	if len(seen) != 7 {
 		t.Fatal("boundary scan did not visit all wrappers", seen)
 	}
 	for _, path := range []string{"internal/buildcfg/toolchain.go", "internal/buildrun/build.go", "internal/compat/selected/selection.go", "internal/compat/spec/contracts.go", "internal/compat/spec/hooks.go"} {

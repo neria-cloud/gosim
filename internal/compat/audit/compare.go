@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go/token"
+	"go/types"
 	"io"
 	"os"
 	"path/filepath"
@@ -148,19 +150,6 @@ func observationContexts(tc buildspec.Toolchain, parent spec.ResolvedFamily, arc
 }
 
 func contextKey(value InspectedContext) string { data, _ := json.Marshal(value); return string(data) }
-func apiPackages(parent spec.ResolvedFamily) []string {
-	var paths []string
-	for _, d := range parent.Declarations {
-		paths = append(paths, d.Hook.Package)
-	}
-	for _, b := range parent.Bridges {
-		paths = append(paths, b.Package)
-	}
-	paths = slices.DeleteFunc(paths, func(path string) bool { return path == frameworkModule || strings.HasPrefix(path, frameworkModule+"/") })
-	slices.Sort(paths)
-	return slices.Compact(paths)
-}
-
 func validateParentObservation(snapshot ParentObservation, parent spec.ResolvedFamily, origin spec.Origin, inspector string, modules []buildspec.Revision, contexts []spec.SourceContext) error {
 	if snapshot.Schema != 1 || !snapshot.Complete || snapshot.Family != parent.Family {
 		return fmt.Errorf("invalid/incomplete parent snapshot")
@@ -182,7 +171,7 @@ func validateParentObservation(snapshot ParentObservation, parent spec.ResolvedF
 	if snapshot.DefinitionDigest != parent.DefinitionDigest || snapshot.OriginDigest != originDigest(origin) || snapshot.InspectorDigest != inspector || !reflect.DeepEqual(snapshot.ModuleInputs, modules) {
 		return fmt.Errorf("stale parent snapshot: definition, origin, inspector or module inputs differ")
 	}
-	if !reflect.DeepEqual(snapshot.Observations.APIPackages, apiPackages(parent)) {
+	if !reflect.DeepEqual(snapshot.Observations.APIPackages, spec.ObservationAPIPackages(parent)) {
 		return fmt.Errorf("parent snapshot API inventory mismatch")
 	}
 	if len(snapshot.Observations.Contexts) != len(contexts) {
@@ -230,7 +219,8 @@ func validateParentObservation(snapshot ParentObservation, parent spec.ResolvedF
 				return fmt.Errorf("parent contract inventory incomplete")
 			}
 		}
-		for _, pkg := range inspectionPaths(parent, c) {
+		_, packages, _ := spec.ObservationInventory(parent, c, true)
+		for _, pkg := range packages {
 			if !keys["package"+contextKey(context)+recordKey([]string{pkg})] {
 				return fmt.Errorf("parent package inventory incomplete: %s", pkg)
 			}
@@ -244,9 +234,6 @@ func validateParentObservation(snapshot ParentObservation, parent spec.ResolvedF
 	return nil
 }
 
-func declarationInContext(d spec.Declaration, c spec.SourceContext) bool {
-	return (len(d.Arches) == 0 || slices.Contains(d.Arches, c.Arch)) && ((!c.Native && d.Hook.Context == "") || c.Native && (d.Hook.Context == "host" || c.Race && d.Hook.Context == "host-race"))
-}
 func recordKey(key []string) string { data, _ := json.Marshal(key); return string(data) }
 
 type CompareRequest struct {
@@ -370,8 +357,12 @@ func Compare(ctx context.Context, req CompareRequest) (report ComparisonReport, 
 	}
 	report = ComparisonReport{Schema: 1, Candidate: CompilerRecord{Version: tc.Version, HostOS: tc.HostOS, HostArch: tc.HostArch, Fingerprints: compiler.Fingerprints()}, ParentFamily: parent.Family, ParentDefinitionDigest: parent.DefinitionDigest, ParentOriginDigest: originDigest(origin), ParentObservationUsed: before != nil, APIDiff: apiDiff, InspectorDigest: w.InspectorDigest, ModuleInputs: slices.Clone(w.ModuleInputs), Complete: complete, Contexts: after.Contexts, Findings: findings}
 	draft = DraftDelta{Schema: 1, Kind: "gosim-profile-draft", Family: fmt.Sprintf("%d.%d", candidate.Major, candidate.Minor), Parent: parent.Family, Complete: complete, Proposals: proposals, Unresolved: []Finding{}}
-	for _, f := range findings {
-		if f.Severity != "information" {
+	for _, group := range groupFindings(findings) {
+		if group.Finding.Severity != "information" {
+			f := group.Finding
+			if len(group.Contexts) > 1 {
+				f.Message += "; contexts: " + string(auditJSON(group.Contexts))
+			}
 			draft.Unresolved = append(draft.Unresolved, f)
 		}
 	}
@@ -386,10 +377,8 @@ func expectedContracts(parent spec.ResolvedFamily, c InspectedContext) map[strin
 		r := spec.Observation{Kind: kind, Key: key, Context: c, Present: true, Value: auditJSON(value)}
 		result[kind+recordKey(key)] = r
 	}
-	for _, d := range parent.Declarations {
-		if !declarationInContext(d, spec.SourceContext(c)) {
-			continue
-		}
+	declarations, _, _ := spec.ObservationInventory(parent, spec.SourceContext(c), false)
+	for _, d := range declarations {
 		scope := "*"
 		if len(d.Arches) == 1 {
 			scope = d.Arches[0]
@@ -493,7 +482,11 @@ func CompareObservations(parent spec.ResolvedFamily, origin spec.Origin, before 
 			if !got.Present {
 				kind = "missing"
 			}
-			emit(kind, "incompatible", "Declared contract differs; implementation review required", want, got)
+			severity, message := "incompatible", "Declared contract differs; implementation review required"
+			if kind == "signature" && spellingOnly(want.Value, got.Value) {
+				severity, message = "information", "Equivalent signature spelling; update metadata only"
+			}
+			emit(kind, severity, message, want, got)
 			if proposal, ok := contractProposal(parent, got); ok {
 				candidates[identity] = proposal
 			}
@@ -515,11 +508,14 @@ func CompareObservations(parent spec.ResolvedFamily, origin spec.Origin, before 
 					emit("source", "review", "Source inventory/hash changed; behavior requires review", old, got)
 				}
 			case "package":
+				old, existed := prior[contextKey(c.Context)+"package"+recordKey(got.Key)]
 				policy, _ := (spec.Profile{Packages: parent.Packages}).Policy(got.Key[0], true)
 				if !got.Present {
-					emit("package", "incompatible", "Required package is absent", spec.Observation{}, got)
+					emit("package", "incompatible", "Required package is absent", old, got)
+				} else if before != nil && (!existed || !old.Present) {
+					emit("package", "review", "Package added to candidate inventory", old, got)
 				} else if policy.Path == "" {
-					emit("package", "review", "Package has no reviewed policy", spec.Observation{}, got)
+					emit("package", "information", "Existing package has no reviewed policy", old, got)
 				}
 			case "api":
 				if before == nil {
@@ -538,19 +534,22 @@ func CompareObservations(parent spec.ResolvedFamily, origin spec.Origin, before 
 		}
 		if before != nil {
 			for _, old := range before.Observations.Records {
-				if old.Context != c.Context || !old.Present || old.Kind != "api" && old.Kind != "source" {
+				if old.Context != c.Context || !old.Present || old.Kind != "api" && old.Kind != "source" && old.Kind != "package" {
 					continue
 				}
 				got, exists := records[old.Kind+recordKey(old.Key)]
 				if exists && got.Present {
 					continue
 				}
-				if old.Kind == "source" && exists {
+				if (old.Kind == "source" || old.Kind == "package") && exists {
 					continue
 				}
 				kind, message := "api-removed", "Exported API removed"
 				if old.Kind == "source" {
 					kind, message = "source", "Previously selected source is no longer selected; review behavior"
+				}
+				if old.Kind == "package" {
+					kind, message = "package", "Package removed from candidate inventory"
 				}
 				emit(kind, "review", message, old, spec.Observation{Kind: old.Kind, Key: old.Key, Context: c.Context})
 			}
@@ -588,6 +587,10 @@ func contractProposal(parent spec.ResolvedFamily, r spec.Observation) (DeltaProp
 				p.Operation = "remove"
 				return p, true
 			}
+			if spellingOnly(auditJSON(d.Hook.Signature), r.Value) {
+				p.NeedsImplementation = false
+				p.Reason = "Equivalent signature spelling; update metadata only"
+			}
 			if json.Unmarshal(r.Value, &d.Hook.Signature) != nil {
 				return p, false
 			}
@@ -612,4 +615,19 @@ func contractProposal(parent spec.ResolvedFamily, r spec.Observation) (DeltaProp
 		}
 	}
 	return p, false
+}
+
+// Universe-only types can be compared without inventing package name bindings.
+// Unknown named types retain the conservative implementation-review requirement.
+func spellingOnly(a, b json.RawMessage) bool {
+	var x, y string
+	if json.Unmarshal(a, &x) != nil || json.Unmarshal(b, &y) != nil {
+		return false
+	}
+	left, err := types.Eval(token.NewFileSet(), nil, token.NoPos, x)
+	if err != nil {
+		return false
+	}
+	right, err := types.Eval(token.NewFileSet(), nil, token.NoPos, y)
+	return err == nil && left.IsType() && right.IsType() && types.Identical(left.Type, right.Type)
 }

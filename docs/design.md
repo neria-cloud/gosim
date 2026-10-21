@@ -1,7 +1,7 @@
 # Gosim architecture
 
-[Architecture diagram](diagrams/gosim-architecture.svg) shows translation,
-bridges, and native execution. [Animated test workflows](diagrams/gosim-test-workflows.svg)
+[Architecture diagram](diagrams/architecture.svg) shows translation,
+bridges, and native execution. [Animated test workflows](diagrams/test-workflows.svg)
 show network and filesystem scenarios and their assertions.
 
 Gosim translates application Go code into a deterministic simulation. A binary explicitly selects `rt`, `rt,fs`, `rt,net`, or `rt,fs,net`. Filesystem and network providers require the runtime. The selection is immutable before application initialization and shared by all machines in that binary.
@@ -25,13 +25,14 @@ The root API owns machine lifecycle. `fs`, `net`, and `rt` own their public cont
 | `internal/compose` | Generates the selected provider/hook composition before package loading |
 | `internal/translate` | AST transformations, selected policies and translation cache |
 | `internal/buildspec`, `internal/buildcfg`, `internal/buildrun`, `internal/gosimtool` | Host configuration, identities, toolchain validation, builds and artifact handling |
-| `internal/compat/{go125,go126}` | Family-owned hooks, shims, host ABI and reviewed profile metadata |
+| `internal/compat/{hooks,shims,host}` | Shared translated hooks/shims and native ABI implementation |
+| `internal/compat/{profiles,spec,audit}` | Cumulative definitions, metadata contracts and explicit source-inspection tooling |
 | `internal/compat/selected`, `internal/hostabi` | Compile-time profile selection and native ABI facade |
 
 ```mermaid
 flowchart TD
     App[Translated application and public controls] --> Control[Control transport]
-    Hooks[Selected version hooks] --> Kernel[Kernel]
+    Hooks[Shared selected hooks] --> Kernel[Kernel]
     Control --> Kernel
     Compose[Generated composition] --> Kernel
     Compose --> FS[Filesystem provider]
@@ -67,7 +68,7 @@ Machine IDs and epochs increase monotonically; failed starts consume their reser
 
 Scheduler, application, filesystem and network randomness use named, owned streams. Adding a draw in one provider does not advance another provider's stream. Reproduction requires the same complete build identity, replay revision and seed; it is not promised across toolchain, feature, source, host architecture or race-mode changes. The engine retains the single-active-run guard.
 
-The host ABI facade selects version-owned native coroutine and race implementations using ordinary release bounds: Go 1.25 files exclude 1.26, and Go 1.26 files exclude 1.27. Other families fail explicitly. There is no blocking-channel coroutine fallback. The shared upcall wrapper contains ordinary Go state and selected facade calls, and is verified on both pinned families. Race object annotations carry one opaque native type pointer and preserve object-size/range behavior.
+The host ABI facade uses shared native coroutine and race implementations selected by ordinary Go source constraints. Generated family guards reject unsupported families. A changed implementation closes the prior variant's release interval and starts a new variant inherited by later minors; there are no runtime family switches or manual release tags. There is no blocking-channel coroutine fallback. The shared upcall wrapper contains ordinary Go state and selected facade calls, and is verified on both recorded families. Race object annotations carry one opaque native type pointer and preserve object-size/range behavior.
 
 ## Lifecycle transactions
 
@@ -126,7 +127,15 @@ Packets include destination epochs and connection generations. Queue order and d
 
 The support registry accepts stable Go 1.25.* / go125 and Go 1.26.* / go126 releases on linux/amd64, linux/arm64 and darwin/arm64, with four feature sets and independently selected race instrumentation. Go tooling resolves the compiler in the caller's context. Family source selection remains a compile-time boundary; exact compiler and source fingerprints distinguish artifacts.
 
-Each family owns hooks split by rt/kernel/fs/net, replacement shims, native ABI, source origins, private layouts, module pins and capability/policy manifests. Generation reads a recorded baseline compiler and x/sys declarations for both Linux source architectures; it rejects missing or changed required symbols and verifies generated output. Baseline origin and adapter records describe generation provenance, not a caller admission list. Ordinary builds check actual hook signatures, layouts and constants against family contracts, with successful checks cached by compiler/source content. Adding a family requires its registry/catalog entries, compile-time adapters, contracts and representative native tests, not a per-patch checksum ledger. The old hook/shared-shim trees and retired generation path are absent.
+Go 1.25 is the complete authored metadata baseline. Each later `profiles/go1NN.json` declares an immediate parent, support status and typed add/replace/remove operations. Resolution folds every intermediate delta in order: 1.27 would inherit 1.25 + 1.26 + 1.27. Missing ancestry, overlapping declarations and invalid operations fail. Both architecture contracts are resolved in memory; expanded profile JSON is not stored. Shared hooks remain split by rt/kernel/fs/net. Common code has one implementation; only changed functions or interfaces need bounded source variants. Retiring support does not remove retained ancestry.
+
+`gosim-gen profiles` derives support tables, selectors, guards and conservative adapter revisions directly from definitions. It can repair generated metadata without first loading it and can bootstrap before origin creation. Check mode requires complete independent origins. Generation uses each family's recorded exact compiler and x/sys declarations for both Linux source architectures. Shared adapter outputs have version-neutral headers; conflicting generated bytes require an explicit source variant. Origins are on disk, not embedded in the runtime; immutable historical evidence is consolidated separately. Ordinary builds still verify actual hooks/layouts/constants, with successful checks cached by compiler/source content.
+
+The metadata-only `gosim-gen` dependency closure excludes selected/native ABI and executable hooks/shims/runtime. Explicit `observe` and `compare` use restricted source-query commands with the actual running stable compiler; normal worker/build admission is unchanged. A shared inventory derives context-specific contracts/packages and the finite exported API surface from declarations and bridges. Successful standard-library listing distinguishes an absent package from a loader failure. Missing required packages become findings; parse/type/load errors make affected contexts incomplete. Compare requires the immediate next minor and never silently launches an older compiler.
+
+A parent snapshot binds its exact baseline compiler, parent definition/origin, inspector source, selected external module inputs and requested host/architecture/source contexts. Target definitions/support outputs alone do not stale it. With a snapshot, reports compare actual exported APIs and package/source inventories; without one, API coverage is explicitly skipped. Identity/module/source rechecks precede completeness. Output paths are checked early and exclusively published, with the closed JSON manifest linked last. Markdown groups equal findings across contexts and prioritizes incompatibilities. Draft operations require review and cannot be loaded as definitions. Audit results do not certify support. See the [onboarding commands](../README.md#reviewing-a-new-go-family).
+
+Adapter revisions bind canonical ancestry and conservative compatibility/hostabi/buildspec inputs, excluding origins, exact history, tests and generated revision constants. Whole-framework TranslatorDigest includes origins, tests and scripts, while excluding documentation and designated evidence. InspectorDigest instead binds non-test inspection implementation and request construction independently of the building compiler, excluding target data/generated support. External module graphs, module/workspace files and relevant replacement source are bound separately. Audit artifacts are explicit outputs, never a persistent cache.
 
 Package policies distinguish translated code, reviewed native-pure helpers, explicit bridges and rejected packages. Host compiler/runner networking is separate from simulated application imports. Disabled-feature wrappers remain linkable but enter the fatal feature gate and import no disabled model. Application recovery cannot convert that abort into success.
 
@@ -175,8 +184,49 @@ The explicit manual certification matrix defaults to 16 tuples: two representati
 
 The suite applicability registry separates runtime, fs, net and full integration/nemesis/examples. Reduced-feature jobs execute their applicable positive tests and native model units; full jobs execute all applicable native tests. Manual certification requires explicit large-suite coverage. Its reporter runs the already-prepared tuple rather than repeating an internal feature/toolchain sweep, and requires terminal passes for the selected tests. Ordinary reports never claim certification.
 
+## Compatibility storage accounting
+
+Measured against starting revision `550d5e3`, using file contents (not filesystem
+allocation or Git object storage). The original two family trees contained **195
+files / 1,785,064 bytes**, including their tests and metadata. The new shared
+`hooks`, `shims` and `host` trees contain **96 files / 310,136 bytes**, including
+tests. That narrow comparison excludes metadata and tooling; the complete scope
+below includes those costs.
+
+| Production and data scope | Before files / bytes | After files / bytes |
+| --- | ---: | ---: |
+| `internal/compat` (including audit/spec/profiles) | 177 / 1,725,538 | 103 / 1,020,833 |
+| `internal/hostabi` | 12 / 9,728 | 8 / 5,056 |
+| `internal/buildspec` (including support registry) | 9 / 30,322 | 10 / 33,624 |
+| `internal/buildcfg` (including inspection discovery) | 5 / 21,307 | 6 / 25,075 |
+| `internal/routegen` | 12 / 73,782 | 13 / 78,980 |
+| `cmd/gosim-gen` | 1 / 2,567 | 2 / 8,834 |
+| **Total production and data** | **216 / 1,863,244** | **142 / 1,172,402** |
+
+Production/data decreases by **74 files and 690,842 bytes (37.1%)**. Independent
+origins and consolidated history remain **3 files / 238,626 bytes**, included in
+the totals. The entire audit directory, including its tests, costs **9 files /
+78,215 bytes**. The baseline definition is 367,659 bytes; its 1.26 delta is 8,894
+bytes. Adding an unchanged future family copies zero implementation files;
+selectors, support guards and revisions are generated from its small definition.
+
+Tests/fixtures in the same scope, plus the shared test helper, increase from
+**78 files / 558,144 bytes** to **95 files / 632,461 bytes**. The existing scoped
+document remains 1 file / 2,346 bytes. Thus the whole scoped tree decreases from
+**295 files / 2,423,734 bytes** to **238 files / 1,807,209 bytes**, including tests.
+README, agent guidance, this design, diagram and tracked plan/progress documentation
+are reported separately in the execution record; they are excluded from the
+production figures. Untracked peer discussions and ignored brainstorms are not
+committed implementation.
+
+Ignored generated provenance/check records and explicit audit outputs are separate
+local costs, not needed to store support for another family. A six-context parent
+snapshot can occupy tens of megabytes; audit reports may also be large. The
+execution record lists the measured artifact directories and bytes. No expanded
+resolved profiles or audit snapshots are committed.
+
 ## Scope and supporting records
 
 The design does not include mutable/per-machine feature sets, concurrent independent engines, native scheduling with virtual fs/net, external provider plugins, extra host platforms, non-Linux simulation, or complete HTTP/HTTPS and syscall-model semantics beyond the documented supported scope.
 
-The [usage guide](../README.md) describes current APIs and commands. The [historical syscall audit](reports/syscall-support-for-gquorum.md) records application requirements that remain outside this refactor. Family [go125](../internal/compat/go125/profile/capabilities.json) and [go126](../internal/compat/go126/profile/capabilities.json) capability manifests retain the distinction between modeled, limited, stub and rejected behavior. Passing a simulator test does not establish correctness for an application that relies on a known missing semantic.
+The [usage guide](../README.md) describes current APIs and commands. The [historical syscall audit](reports/syscall-support-for-gquorum.md) records application requirements that remain outside this refactor. Family [go125](../internal/compat/profiles/go125.json) and [go126](../internal/compat/profiles/go126.json) capability manifests retain the distinction between modeled, limited, stub and rejected behavior. Passing a simulator test does not establish correctness for an application that relies on a known missing semantic.

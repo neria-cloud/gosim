@@ -9,7 +9,7 @@ import (
 
 // API scope follows reviewed upstream surfaces, independently of the number of
 // declared shim bindings. Policy wildcards are not an upstream API inventory.
-func observationAPIPackages(r ResolvedFamily) []string {
+func ObservationAPIPackages(r ResolvedFamily) []string {
 	var paths []string
 	add := func(path string) {
 		if path != module && !strings.HasPrefix(path, module+"/") {
@@ -72,7 +72,7 @@ func (s *sourceInspection) observeAPIs(paths []string, context InspectedContext)
 // inventory belongs to translated contexts. Both scans record the same union.
 func observationAPIContextPackages(r ResolvedFamily, selection SourceContext) []string {
 	if !selection.Native {
-		return observationAPIPackages(r)
+		return ObservationAPIPackages(r)
 	}
 	var paths []string
 	for _, d := range observationDeclarations(r, selection) {
@@ -82,4 +82,32 @@ func observationAPIContextPackages(r ResolvedFamily, selection SourceContext) []
 	}
 	slices.Sort(paths)
 	return slices.Compact(paths)
+}
+
+// ObservationInventory is the single context-specific inventory used by
+// preparation, collection and snapshot validation. API scope remains finite.
+func ObservationInventory(r ResolvedFamily, selection SourceContext, includeAPIs bool) (declarations []Declaration, packages, apiPackages []string) {
+	declarations = observationDeclarations(r, selection)
+	for _, d := range declarations {
+		packages = append(packages, d.Hook.Package)
+	}
+	if !selection.Native {
+		for _, b := range r.Bridges {
+			if b.Package != module && !strings.HasPrefix(b.Package, module+"/") {
+				packages = append(packages, b.Package)
+			}
+		}
+		for _, l := range r.Architectures[selection.Arch].Layouts {
+			packages = append(packages, l.Package)
+		}
+		for _, c := range r.Architectures[selection.Arch].Constants {
+			packages = append(packages, c.Package)
+		}
+	}
+	if includeAPIs {
+		apiPackages = observationAPIContextPackages(r, selection)
+		packages = append(packages, apiPackages...)
+	}
+	slices.Sort(packages)
+	return declarations, slices.Compact(packages), apiPackages
 }

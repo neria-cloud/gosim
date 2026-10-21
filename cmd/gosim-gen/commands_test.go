@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -150,6 +152,49 @@ func TestComparisonExitAndCancellation(t *testing.T) {
 		}
 		if _, err := os.Stat(output); !os.IsNotExist(err) {
 			t.Fatal("cancelled publication", err)
+		}
+	}
+}
+
+func TestGeneratorMetadataOnlyClosure(t *testing.T) {
+	cmd := exec.CommandContext(t.Context(), filepath.Join(runtime.GOROOT(), "bin", "go"),
+		"list", "-deps", "-tags=linkname", ".")
+	output, err := cmd.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	const module = "github.com/neria-cloud/gosim/"
+	for _, pkg := range strings.Fields(string(output)) {
+		for _, forbidden := range []string{
+			"internal/compat/selected", "internal/compat/host", "internal/compat/hooks",
+			"internal/compat/shims", "internal/hostabi", "rt/runtime",
+		} {
+			if pkg == module+forbidden || strings.HasPrefix(pkg, module+forbidden+"/") {
+				t.Fatal("executable compatibility import", pkg)
+			}
+		}
+	}
+}
+
+func TestAuditDestinationPreflight(t *testing.T) {
+	const fileMode = 0o600
+	const observeCommand = "observe"
+	output := filepath.Join(t.TempDir(), "nested", "output")
+	if err := audit.PrepareOutput(output); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(output, []byte("owned by caller"), fileMode); err != nil {
+		t.Fatal(err)
+	}
+	for _, command := range []string{observeCommand, "compare"} {
+		var stdout, stderr bytes.Buffer
+		family := "-parent=go125"
+		if command == observeCommand {
+			family = "-profile=go125"
+		}
+		code := runCLI(t.Context(), []string{command, family, "-output=" + output}, &stdout, &stderr)
+		if code != 1 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "already exists") {
+			t.Fatal(code, stdout.String(), stderr.String())
 		}
 	}
 }

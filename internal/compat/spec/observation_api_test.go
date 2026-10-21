@@ -15,7 +15,7 @@ import (
 
 func TestObservedAPIScopeAndMethodSets(t *testing.T) {
 	r := ResolvedFamily{Declarations: []Declaration{{Hook: Hook{Package: "runtime", Context: "host"}}, {Hook: Hook{Package: "reflect"}}, {Hook: Hook{Package: module + "/rt/runtime"}}}, Bridges: []Bridge{{Package: "crypto/tls", Replacement: "shim"}, {Package: "runtime/metrics", NativeSymbols: []string{"Read"}}, {Package: module + "/internal/kernel"}}, Packages: []PackagePolicy{{Path: "net/..."}}}
-	if got := observationAPIPackages(r); !reflect.DeepEqual(got, []string{"crypto/tls", "reflect", "runtime", "runtime/metrics"}) {
+	if got := ObservationAPIPackages(r); !reflect.DeepEqual(got, []string{"crypto/tls", "reflect", "runtime", "runtime/metrics"}) {
 		t.Fatal(got)
 	}
 	// A whole-package bridge with no declarations still contributes every API.
@@ -80,8 +80,8 @@ func TestObservedAPIScopeAndMethodSets(t *testing.T) {
 	r.Bridges[0].Package = "internal/gosim_missing_api_package"
 	req.Family = r
 	failed, err := CollectSourceObservations(context.Background(), tc, dir, req)
-	if err == nil || failed.Contexts[0].Complete || len(failed.Records) != 0 {
-		t.Fatal("failed API load manufactured results", failed, err)
+	if err != nil || !failed.Contexts[0].Complete || len(api(failed)) != 0 {
+		t.Fatal("absent API package was not represented as a complete empty inventory", failed, err)
 	}
 }
 

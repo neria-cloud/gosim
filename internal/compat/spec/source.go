@@ -52,15 +52,18 @@ type sourceInspection struct {
 }
 
 func inspectSources(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string) (*sourceInspection, error) {
-	return inspectSourcesWithCommand(ctx, tc, dir, selection, deps, paths, buildspec.OutputCommand)
+	return inspectSourcesWithCommand(ctx, tc, dir, selection, deps, paths, false, buildspec.OutputCommand)
 }
 
 func inspectSourcesForObservation(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string) (*sourceInspection, error) {
-	return inspectSourcesWithCommand(ctx, tc, dir, selection, deps, paths, buildspec.SourceInspectionCommand)
+	return inspectSourcesWithCommand(ctx, tc, dir, selection, deps, paths, true, buildspec.SourceInspectionCommand)
 }
 
-func inspectSourcesWithCommand(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string, command func(context.Context, buildspec.Toolchain, string, ...string) *exec.Cmd) (*sourceInspection, error) {
+func inspectSourcesWithCommand(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string, observation bool, command func(context.Context, buildspec.Toolchain, string, ...string) *exec.Cmd) (*sourceInspection, error) {
 	args := []string{"list", "-mod=mod", "-json", "-tags=linkname"}
+	if observation {
+		args = append(args, "-e")
+	}
 	if deps {
 		args = append(args, "-deps")
 	}
@@ -113,6 +116,11 @@ func inspectSourcesWithCommand(ctx context.Context, tc buildspec.Toolchain, dir 
 			return nil, err
 		}
 		if pkg.Error != nil {
+			// The successful std inventory plus Go's explicit not-in-std result
+			// establishes absence. Other loader errors remain incomplete inspection.
+			if observation && slices.Contains(paths, "std") && slices.Contains(paths, pkg.ImportPath) && pkg.Module == nil && strings.HasPrefix(pkg.Error.Err, "package "+pkg.ImportPath+" is not in std (") {
+				continue
+			}
 			return nil, fmt.Errorf("inspect %s: %s", pkg.ImportPath, pkg.Error.Err)
 		}
 		result.packages[pkg.ImportPath] = pkg
@@ -121,7 +129,7 @@ func inspectSourcesWithCommand(ctx context.Context, tc buildspec.Toolchain, dir 
 		if path == "std" && len(result.packages) != 0 {
 			continue
 		}
-		if _, ok := result.packages[path]; !ok {
+		if _, ok := result.packages[path]; !ok && !observation {
 			return nil, fmt.Errorf("missing source package %s", path)
 		}
 	}

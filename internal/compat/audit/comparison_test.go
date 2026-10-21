@@ -236,3 +236,63 @@ func TestNoChangeFamilyOnboarding(t *testing.T) {
 		t.Logf("%s hypothetical %s admission tests: %s", runtime.Version(), future.Family, out)
 	}
 }
+
+func TestCandidateMissingPackageAndIncompleteReport(t *testing.T) {
+	if !strings.HasPrefix(runtime.Version(), "go1.26.") {
+		t.Skip("actual next-minor fixture uses running Go 1.26")
+	}
+	t.Parallel()
+	root := testutil.CopySource(t, "../../..")
+	path := filepath.Join(root, "internal/compat/profiles/go125.json")
+	original, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, broken := range []bool{false, true} {
+		definition, err := spec.DecodeDefinition(original)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pkg := "internal/synctestmoved"
+		if broken {
+			pkg = frameworkModule + "/internal/auditbroken"
+			dir := filepath.Join(root, "internal/auditbroken")
+			if err := os.Mkdir(dir, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(dir, "broken.go"), []byte("package auditbroken\nfunc Broken(\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		for i, d := range definition.Delta.Declarations.Add {
+			if d.Hook.Package == "internal/synctest" {
+				definition.Delta.Declarations.Add[i].Hook.Package = pkg
+			}
+		}
+		if err := os.WriteFile(path, auditJSON(definition), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		report, draft, err := Compare(t.Context(), CompareRequest{Directory: root, ParentProfile: "go125", Arches: []string{runtime.GOARCH}})
+		if broken {
+			if err == nil || report.Complete || report.Schema != 1 {
+				t.Fatal("parse failure lost incomplete report", err)
+			}
+		} else {
+			if err != nil || !report.Complete {
+				t.Fatal("missing package aborted comparison", err)
+			}
+			for _, kind := range []string{"package", "missing", "signature", "source"} {
+				if !slices.ContainsFunc(report.Findings, func(f Finding) bool { return f.Kind == kind }) {
+					t.Fatal("missing finding", kind)
+				}
+			}
+		}
+		dir := filepath.Join(t.TempDir(), "report")
+		if err := WriteComparison(dir, report, draft); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(filepath.Join(dir, "report.json")); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

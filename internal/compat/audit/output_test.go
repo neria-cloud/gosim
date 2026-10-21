@@ -68,8 +68,31 @@ func TestExclusiveAuditPublication(t *testing.T) {
 	if err := WriteComparison(filepath.Join(t.TempDir(), "invalid"), report, draft); err == nil {
 		t.Fatal("published invalid JSON")
 	}
+	report.Findings[0].After = nil
 	markdown, err := RenderReport(report)
 	if err != nil || !strings.Contains(string(markdown), "API diff: skipped-no-parent") {
 		t.Fatal(string(markdown), err)
+	}
+}
+
+func TestReportGroupingAndSignatureSpelling(t *testing.T) {
+	c := InspectedContext{OS: "linux", Arch: "arm64"}
+	findings := []Finding{
+		{Kind: "source", Key: []string{"a"}, Severity: "review", Context: c},
+		{Kind: "signature", Key: []string{"b"}, Severity: "incompatible", Context: c},
+	}
+	duplicate := findings[0]
+	duplicate.Context.Race = true
+	findings = append(findings, duplicate)
+	report, err := RenderReport(ComparisonReport{Findings: findings})
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(report)
+	if strings.Count(text, "## review: source") != 1 || strings.Index(text, "## incompatible") > strings.Index(text, "## review") {
+		t.Fatal(text)
+	}
+	if !spellingOnly(auditJSON("func(interface{}) uintptr"), auditJSON("func(any) uintptr")) || spellingOnly(auditJSON("func(int)"), auditJSON("func(uint)")) {
+		t.Fatal("incorrect signature equivalence")
 	}
 }

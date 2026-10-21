@@ -70,7 +70,7 @@ func CollectSourceObservations(ctx context.Context, tc buildspec.Toolchain, dir 
 		return result, fmt.Errorf("no observation contexts requested")
 	}
 	if req.IncludeAPIs {
-		result.APIPackages = observationAPIPackages(req.Family)
+		result.APIPackages = ObservationAPIPackages(req.Family)
 	}
 	seen := map[SourceContext]bool{}
 	var failures []error
@@ -160,39 +160,14 @@ func collectContext(ctx context.Context, tc buildspec.Toolchain, dir string, req
 	if selection.Arch != "amd64" && selection.Arch != "arm64" || !selection.Native && selection.OS != "linux" || selection.Native && (selection.OS != tc.HostOS || selection.Arch != tc.HostArch) {
 		return nil, fmt.Errorf("invalid source context %+v", selection)
 	}
-	decls := observationDeclarations(req.Family, selection)
-	paths := []string{}
-	for _, d := range decls {
-		paths = append(paths, d.Hook.Package)
-	}
+	decls, paths, apiPaths := ObservationInventory(req.Family, selection, req.IncludeAPIs)
 	arch := req.Family.Architectures[selection.Arch]
-	if !selection.Native {
-		for _, l := range arch.Layouts {
-			paths = append(paths, l.Package)
-		}
-		for _, c := range arch.Constants {
-			paths = append(paths, c.Package)
-		}
-		for _, b := range req.Family.Bridges {
-			if !strings.HasPrefix(b.Package, module+"/") {
-				paths = append(paths, b.Package)
-			}
-		}
-	}
-	if req.IncludeAPIs {
-		paths = append(paths, observationAPIContextPackages(req.Family, selection)...)
-	}
-	slices.Sort(paths)
-	paths = slices.Compact(paths)
 	for _, path := range paths {
 		if !validContractPackage(path) {
 			return nil, fmt.Errorf("invalid observation package %q", path)
 		}
 	}
-	query := slices.Clone(paths)
-	if req.IncludeStdlibInventory {
-		query = append(query, "std")
-	}
+	query := append(slices.Clone(paths), "std")
 	if len(query) == 0 {
 		return nil, fmt.Errorf("no reviewed packages for context %+v", selection)
 	}
@@ -218,8 +193,11 @@ func collectContext(ctx context.Context, tc buildspec.Toolchain, dir string, req
 		files[file.Path] = filepath.Join(tc.GOROOT, filepath.FromSlash(file.Path))
 	}
 	for _, path := range paths {
-		pkg := sources.packages[path]
-		add("package", []string{path}, true, path)
+		pkg, present := sources.packages[path]
+		add("package", []string{path}, present, path)
+		if !present {
+			continue
+		}
 		for _, name := range append(slices.Clone(pkg.GoFiles), pkg.CgoFiles...) {
 			filename := filepath.Join(pkg.Dir, name)
 			rel, _ := filepath.Rel(tc.GOROOT, filename)
@@ -252,6 +230,10 @@ func collectContext(ctx context.Context, tc buildspec.Toolchain, dir string, req
 	}
 	if !selection.Native {
 		for _, l := range arch.Layouts {
+			if _, ok := sources.packages[l.Package]; !ok {
+				add("layout", []string{selection.Arch, l.Package, l.Type}, false, nil)
+				continue
+			}
 			pkg, err := sources.Import(l.Package)
 			if err != nil {
 				return nil, err
@@ -275,6 +257,10 @@ func collectContext(ctx context.Context, tc buildspec.Toolchain, dir string, req
 			add("layout", []string{selection.Arch, l.Package, l.Type}, present, value)
 		}
 		for _, c := range arch.Constants {
+			if _, ok := sources.packages[c.Package]; !ok {
+				add("constant", []string{selection.Arch, c.Package, c.Symbol}, false, nil)
+				continue
+			}
 			pkg, err := sources.Import(c.Package)
 			if err != nil {
 				return nil, err
@@ -290,7 +276,7 @@ func collectContext(ctx context.Context, tc buildspec.Toolchain, dir string, req
 		}
 	}
 	if req.IncludeAPIs {
-		api, err := sources.observeAPIs(observationAPIContextPackages(req.Family, selection), InspectedContext(selection))
+		api, err := sources.observeAPIs(slices.DeleteFunc(apiPaths, func(path string) bool { _, ok := sources.packages[path]; return !ok }), InspectedContext(selection))
 		if err != nil {
 			return nil, err
 		}
