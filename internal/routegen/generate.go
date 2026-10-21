@@ -12,7 +12,6 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -73,14 +72,6 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 	if support.Profile != profileID {
 		return nil, fmt.Errorf("generation requires source compiler matching profile %s", profileID)
 	}
-	profile, err := profiles.Descriptor(profileID, tc.HostArch)
-	if err != nil {
-		return nil, err
-	}
-	policies, err := profiles.Policy(profileID)
-	if err != nil {
-		return nil, err
-	}
 	if output == "" || len(arches) == 0 {
 		return nil, fmt.Errorf("explicit output and architectures are required")
 	}
@@ -100,32 +91,33 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 		return nil, fmt.Errorf("generation requires a module context")
 	}
 	root := filepath.Dir(moduleFile)
-	origin, err := spec.LoadOrigin(os.DirFS(filepath.Join(root, "internal/compat/profiles")), profileID)
+	defs, err := spec.LoadDefinitions(os.DirFS(filepath.Join(root, "internal/compat/profiles")))
 	if err != nil {
 		return nil, err
 	}
-	if err := profile.Validate(); err != nil {
+	resolved, err := spec.ResolveDefinitions(defs, version.Family())
+	if err != nil {
 		return nil, err
 	}
-	if err := policies.Validate(profile); err != nil {
-		return nil, err
+	if !resolved.Supported || resolved.ProfileID != support.Profile {
+		return nil, fmt.Errorf("checkout definition disagrees with generated support for %s", profileID)
 	}
-	// Baseline reproduction and intentional refresh have separate provenance rules.
-	if !options.RefreshOrigin {
-		if err := spec.VerifyBaselineOrigin(tc, origin); err != nil {
+	origin, err := spec.LoadOrigin(os.DirFS(filepath.Join(root, "internal/compat/profiles")), profileID)
+	if err != nil {
+		if !options.RefreshOrigin || !os.IsNotExist(err) {
 			return nil, err
 		}
-		for _, arch := range arches {
-			manifest, err := profile.Contracts(arch)
-			if err != nil {
-				return nil, err
-			}
-			if err := spec.VerifyFamilyContracts(context.Background(), buildspec.Resolution{Toolchain: tc}, manifest, buildspec.BuildOptions{}); err != nil {
-				return nil, err
-			}
-		}
+		origin = spec.Origin{Schema: 2, Family: resolved.Family, BaselineToolchain: tc.Version}
 	}
 	if options.RefreshOrigin {
+		revision, err := spec.SourceRevision(root, profileID)
+		if err != nil {
+			return nil, err
+		}
+		profile, err := resolved.Descriptor(tc.HostArch, revision)
+		if err != nil {
+			return nil, err
+		}
 		var manifests []spec.ContractManifest
 		for _, arch := range []string{"amd64", "arm64"} {
 			manifest, err := profile.Contracts(arch)
@@ -139,14 +131,7 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 			return nil, err
 		}
 	}
-	if err := spec.VerifyModules(tc, root, policies.Modules); err != nil {
-		return nil, err
-	}
-	m, err := Load()
-	if err != nil {
-		return nil, err
-	}
-	outputs, err := renderOutputs(tc.Version, profileID, arches, m, origin, policies.Modules)
+	outputs, err := renderProfileOutputs(tc, resolved, origin, arches, root)
 	if err != nil {
 		return nil, err
 	}
@@ -157,8 +142,63 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 		}
 		outputs["internal/compat/profiles/"+profileID+".origin.json"] = append(data, '\n')
 	}
+	return outputs, nil
+}
+
+func renderProfileOutputs(tc buildspec.Toolchain, r spec.ResolvedFamily, origin spec.Origin, arches []string, root string) (map[string][]byte, error) {
+	if err := buildcfg.ValidateWorker(tc); err != nil {
+		return nil, err
+	}
+	version, err := buildspec.ParseGoVersion(tc.Version)
+	if err != nil {
+		return nil, err
+	}
+	if !r.Supported || version.Family() != r.Family || origin.Family != r.Family {
+		return nil, fmt.Errorf("generation family mismatch")
+	}
+	revision, err := spec.SourceRevision(root, r.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+	profile, err := r.Descriptor(tc.HostArch, revision)
+	if err != nil {
+		return nil, err
+	}
+	if err := profile.Validate(); err != nil {
+		return nil, err
+	}
+	policies := r.PolicyManifest()
+	if err := policies.Validate(profile); err != nil {
+		return nil, err
+	}
+	if err := spec.VerifyModules(tc, root, policies.Modules); err != nil {
+		return nil, err
+	}
+	if err := spec.VerifyBaselineOrigin(tc, origin); err != nil {
+		return nil, err
+	}
 	for _, arch := range arches {
-		profile, err = profiles.Descriptor(profileID, arch)
+		manifest, err := profile.Contracts(arch)
+		if err != nil {
+			return nil, err
+		}
+		if err := spec.VerifyFamilyContracts(context.Background(), buildspec.Resolution{Toolchain: tc}, manifest, buildspec.BuildOptions{}); err != nil {
+			return nil, err
+		}
+		if err := spec.VerifyShimBindings(root, r, spec.SourceContext{OS: "linux", Arch: arch}); err != nil {
+			return nil, err
+		}
+	}
+	m, err := Load()
+	if err != nil {
+		return nil, err
+	}
+	outputs, err := renderOutputs(tc.Version, r.ProfileID, arches, m, origin, policies.Modules)
+	if err != nil {
+		return nil, err
+	}
+	for _, arch := range arches {
+		profile, err = r.Descriptor(arch, revision)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +209,7 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 		if len(adapters) == 0 {
 			continue
 		}
-		recordPath := generationRecordPath(profileID, arch)
+		recordPath := generationRecordPath(r.ProfileID, arch)
 		var record GenerationRecord
 		if err := json.Unmarshal(outputs[recordPath], &record); err != nil {
 			return nil, err

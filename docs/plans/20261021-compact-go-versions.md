@@ -504,15 +504,15 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤500 authored Go/test lines. **Dependencies:** 18.
 
-- [ ] Finalize `renderProfileOutputs(tc,r,origin,arches,root)` using ResolvedFamily and selected authored destination files. Retain strict module/contracts/bindings checks and independent process identity.
-- [ ] Explicit RefreshOrigin may seed only a missing new-family origin with schema/family/current exact baseline, then replace it after successful checks. Normal generation/check requires a complete existing origin.
-- [ ] Use the same SourceRevision as profiles; delete any provisional generation-only revision algorithm. Rebuilt gosim-gen sees newly generated support tables before normal contract validation.
-- [ ] Write only selected shared outputs, this family's origin and ignored provenance records; refresh of one origin must not modify another. Shared writes are accepted only after every supported selecting family's check succeeds.
-- [ ] Exercise actual first-origin bootstrap with the CURRENT running compiler from ResolveRunningProcess, following routegen/family_test.go. In a temporary source copy remove only that family's origin, run profiles write mode, require profiles -check to reject missing provenance, run explicit -refresh-origin with the SAME compiler, regenerate profiles if source bytes changed, then require profiles/check and generation check to pass. Refresh records the running patch even when it differs from the repository baseline. Assert the other family's origin bytes are unchanged. Do not launch/download another family from an ordinary test. Keep hypothetical unchanged-family fixtures separate.
+- [x] Finalize `renderProfileOutputs(tc,r,origin,arches,root)` using ResolvedFamily and selected authored destination files. Retain strict module/contracts/bindings checks and independent process identity.
+- [x] Explicit RefreshOrigin may seed only a missing new-family origin with schema/family/current exact baseline, then replace it after successful checks. Normal generation/check requires a complete existing origin.
+- [x] Use the same SourceRevision as profiles; delete any provisional generation-only revision algorithm. Rebuilt gosim-gen sees newly generated support tables before normal contract validation.
+- [x] Write only selected shared outputs, this family's origin and ignored provenance records; refresh of one origin must not modify another. Shared writes are accepted only after every supported selecting family's check succeeds.
+- [x] Exercise actual first-origin bootstrap with the CURRENT running compiler from ResolveRunningProcess, following routegen/family_test.go. In a temporary source copy remove only that family's origin, run profiles write mode, require profiles -check to reject missing provenance, run explicit -refresh-origin with the SAME compiler, regenerate profiles if source bytes changed, then require profiles/check and generation check to pass. Refresh records the running patch even when it differs from the repository baseline. Assert the other family's origin bytes are unchanged. Do not launch/download another family from an ordinary test. Keep hypothetical unchanged-family fixtures separate.
 
 #### Verification
 
-- [ ] V-REVISIONS, both-family V-BUILD, routegen tests and V-GENERATION pass. Check mode needs no ignored artifact and performs no publication.
+- [x] V-REVISIONS, both-family V-BUILD, routegen tests and V-GENERATION pass. Check mode needs no ignored artifact and performs no publication.
 
 ### Task 20: Remove migration admission and complete consumer-path cleanup
 
