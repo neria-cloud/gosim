@@ -8,26 +8,27 @@
 
 **Branch / starting revision:** `feat/compact-go-versions` / `550d5e3`
 
-**Target Architecture:** [revision 3](../brainstorms/20261021-compact-go-versions-target.md)
+**Target Architecture:** [revision 3.1](../brainstorms/20261021-compact-go-versions-target.md)
 
 **Brainstorm session:** [complete log](../brainstorms/20261021-compact-go-versions.md)
 
 **Design review:** [thread 1](../review/feat_compact-go-versions.md)
 
-**Plan review:** thread 2 in the same review file; pending Claude review.
+**Plan review:** thread 2 in the same review file; first findings incorporated, focused re-review requested.
 
-**Status:** plan only; no implementation task has started.
+**Status:** revised after plan review; no implementation task has started.
 
 ## Scope and execution rules
 
 Implement the reviewed shared-package design, Go 1.25 baseline plus cumulative metadata/source changes, stable `1.X.*` admission, and comparison/report/draft tooling. Go 1.27 is a hypothetical fixture, not a newly supported release in this plan. Keep the four existing immutable feature sets and all runtime/determinism/native-boundary invariants.
 
-The source of design decisions is target revision 3. Existing README, AGENTS.md and docs/design.md describe today's family-owned trees and will be updated after migration; their current build/test restrictions continue to apply throughout. There is no `project.txt`, `architecture/` or `docs/architecture/` in this checkout. `docs/brainstorms` is an ignored ordinary directory, not a symlink or nested repository. The plan is tracked in the existing branch; do not create another repository or force-add ignored brainstorm files.
+The source of design decisions is target revision 3.1. Existing README, AGENTS.md and docs/design.md describe today's family-owned trees and will be updated after migration; their current build/test restrictions continue to apply throughout. There is no `project.txt`, `architecture/` or `docs/architecture/` in this checkout. `docs/brainstorms` is an ignored ordinary directory, not a symlink or nested repository. The plan is tracked in the existing branch; do not create another repository or force-add ignored brainstorm files.
 
 - Execute tasks in order. Each task ends with build and focused verification; fix any failures encountered, including unrelated failures in commands actually run, before reporting that gate green. Record unexpected changes and evidence in the sections below.
 - Each task budgets **at most 550 lines of authored Go implementation and test edits**. Pure file renames, verified deletion of an identical second copy, generated JSON/Go and fixture relocation are separately reported mechanical changes, not hidden inside the authored-code estimate. Preserve moved bodies; do not rewrite large files. If the authored portion exceeds its bound, split it into consecutively numbered, buildable subtasks before execution and update references.
 - Migration tasks may temporarily retain existing old metadata/admission until their consumers move. This is an ordered checkout transition, not a new compatibility feature. Add no forwarding packages, runtime family switches, manual release tags, legacy cache decoder or successful runtime stub. Final retirement removes every transition rule.
-- Task 1 may expose explicit command-not-yet-implemented errors while later tasks supply handlers. They must never claim success, affect ordinary Gosim commands or remain after Task 26. Deferred features use a concise `// TODO(not planned): ...` at the relevant maintenance boundary where useful; do not add warnings or runtime stubs for hypothetical features.
+- Update both families' root `shims/guard_test.go` and `guards_test.go` imports in the same task as every moved dependency (starting with runtimebridge in Task 9); do not defer these importers until guard consolidation in Task 14.
+- Task 1 may expose explicit command-not-yet-implemented errors while later tasks supply handlers. They must never claim success, affect ordinary Gosim commands or remain after Task 27. Deferred features use a concise `// TODO(not planned): ...` at the relevant maintenance boundary where useful; do not add warnings or runtime stubs for hypothetical features.
 - Regenerate affected revision outputs at the end of every source-changing task. Through Task 17 use the existing genprofile command for active old descriptors; Task 18 switches to `gosim-gen profiles`. Both hashing paths must include shared inputs during the transition. Do not leave normal test fixtures reading stale revision constants.
 - No new third-party dependency or database migration is needed. SQLite DDL, CacheEntryV2 and contract-cache schemas/retention remain exactly as target §5; fingerprint changes invalidate artifacts without new cache formats.
 - Race, large, cross-architecture execution, Docker/Colima and certification are **not** part of this plan's validation. Do not enable their environment gates, call their fixtures directly, or substitute tags-only race compilation. Source selection/contract inspection for another architecture or race context is reported as inspection only. Lint remains scoped to cmd/examples.
@@ -44,10 +45,10 @@ flowchart TD
   Prep --> Move[8–14 shared host, hooks, shims]
   Move --> Metadata[15–19 profile data, maintenance and cutover]
   Metadata --> Boundary[20–21 retirement and compiled graph]
-  Boundary --> Inspect[22–24 stable compiler inspection and observation]
-  Inspect --> Compare[25–27 comparison, publication and onboarding checks]
-  Compare --> Finish[28–30 integration, docs and ordinary validation]
-  Finish --> Delta[31 architectural delta and actual wiring]
+  Boundary --> Inspect[22–25 stable compiler inspection and observation]
+  Inspect --> Compare[26–28 comparison, publication and onboarding checks]
+  Compare --> Finish[29–31 integration, docs and ordinary validation]
+  Finish --> Delta[32 architectural delta and actual wiring]
 ```
 
 Intermediate generated/shared code must work under both currently supported families. A path move updates its imports, selected profile target strings, policy permissions, generation destinations and fixture expectations together. Do not move only one side of a type-universe boundary and leave an unbuildable task.
@@ -144,7 +145,7 @@ Use separate report roots so the second run cannot overwrite the first. Read eac
 
 ### V-AUDIT: real known-family comparison
 
-After Tasks 22–26, use a new output directory for each invocation:
+After Tasks 22–27, use a new output directory for each invocation:
 
 ```sh
 GOTOOLCHAIN=go1.25.14 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen observe -profile=go125 -output=.gosim/compact-go-audit/go125-observation.json
@@ -168,14 +169,14 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤300 authored Go lines. **Dependencies:** none.
 
-- [ ] Refactor process-global flag handling into `runCLI(ctx context.Context, args []string, stdout, stderr io.Writer) int`, preserving existing flag-only generation and `-check`/`-refresh-origin` exclusion.
+- [ ] Refactor process-global flag handling into `runCLI(ctx context.Context, args []string, stdout, stderr io.Writer) int`, preserving existing flag-only generation and `-check`/`-refresh-origin` exclusion. Dispatch subcommands before legacy `run()` or buildcfg.Resolve; profiles maintenance must not require supported-compiler discovery. It still requires a compiler capable of building the tool itself.
 - [ ] Add `runProfiles`, `runCompare`, `runObserve` with the same handler signature. Initially return an explicit nonzero unavailable error for new subcommands; route existing generation unchanged. Do not expose a successful placeholder.
 - [ ] Define help/argument contracts from target §6, including required destinations and stable-family terminology. Keep normal gosim application CLI unchanged.
 - [ ] Test dispatch, invalid arguments, errors reaching stderr and legacy generation argument preservation with injected command-level fakes; no generator execution is needed for argument tests.
 
 #### Verification
 
-- [ ] V-BUILD and V-FOCUS for cmd/gosim-gen pass; existing behavior remains reachable and placeholders fail explicitly.
+- [ ] V-BUILD, V-FOCUS for cmd/gosim-gen and changed-file `make lint` pass; existing behavior remains reachable and placeholders fail explicitly. Test that profiles dispatch never invokes normal compiler discovery.
 
 ### Task 2: Add strict family-definition types and decoding
 
@@ -243,7 +244,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 - [ ] Allow shared targets through the same reviewed metadata permissions while still recognizing the existing selected family's paths during migration. Do not admit another family's executable target or unknown compat metadata into translated code.
 - [ ] Adapt composition/translation path validation to support incremental package moves without adding forwarding packages or runtime family selection. Retain existing native islands, feature and provider rules.
 - [ ] Broaden the active SourceRevision input inventory to include shared compatibility paths as they appear, while old profiles remain active. Exclude all generated revision constants to avoid self-reference. Final origin-independent chain hash replaces this transitional inventory in Task 17.
-- [ ] Capture old normalized profile/source inventory and measured baseline counts in ignored migration evidence for later equivalence checks. No committed copy of expanded profiles.
+- [ ] Record base revision `550d5e3`, original counts and inventory acquisition command for the one-time migration comparison in Task 15. Optional ignored captures are maintainer evidence only; no committed test may read them or require Git history. No committed expanded-profile copy.
 
 #### Verification
 
@@ -251,7 +252,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 ### Task 6: Select only active shim source bindings
 
-**Files:** spec/shims.go, source-selection helpers and focused tests.
+**Files:** spec/shims.go, source-selection helpers, declaration_ledger_test.go, runtime_families_test.go and focused tests.
 
 **References:** target §3 binding defect; §7 VerifyShimBindings; §11 binding/destination selection.
 
@@ -260,7 +261,8 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 - [ ] Implement a private explicit go/build.Context selector with family release tags, OS/arch/filename tags and approved source predicates. Do not inherit the maintenance process's release tags.
 - [ ] Use selected files in existing shim checks; update callers atomically. Final public signature is `VerifyShimBindings(root string, r ResolvedFamily, source SourceContext) error`; while old descriptors remain active, share the private selection implementation rather than inventing a public compatibility facade.
 - [ ] Preserve duplicate rejection in readHookDeclarations; inactive files must neither satisfy required bindings nor trigger false duplicates.
-- [ ] Test selected/inactive variants, methods, filename predicates and hypothetical next-minor inheritance. Translated checks are cgo-off; preserve native race source context separately.
+- [ ] Replace TestExecutableAdaptersHaveBoundedFamilySelection and ownedDeclarations traversal in declaration_ledger_test.go with family/context-aware selected-declaration checks. Inspect shared roots plus still-live old roots during migration; require nonempty expected inventories, complete bindings and no duplicate selected declaration. Common files may serve both families and additions/replacements must select only their intended contexts; do not require every variant to select in every family or prohibit cumulative 1.27 source selection. Test unsupported-family guard reachability separately. Preserve the immutable declaration_ledger.json payload/digests.
+- [ ] Prepare runtime_families_test.go to validate selected signatures/permissions rather than physical `/<profile>/` ownership; Task 9 updates its exact target expectations when paths move. Test selected/inactive variants, methods, filename predicates and hypothetical next-minor inheritance. Translated checks are cgo-off; preserve native race source context separately.
 
 #### Verification
 
@@ -276,9 +278,9 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] Factor rendering into a pure output map stage that receives current profile inputs; CheckProfile compares only committed selected outputs without requiring ignored records or writing final outputs.
 - [ ] Enforce running compiler equals inspected compiler before parsing. Keep each test/process on its selected compiler; update tests that previously implied cross-family parsing.
-- [ ] Replace exact-version generated source comments with version-neutral text. Keep exact version/fingerprints in origin/generation records. Remove test normalization that would hide source-header discrepancies.
+- [ ] Replace exact-version generated source comments with version-neutral text. Keep exact version/fingerprints in origin/generation records. Remove test normalization that would hide source-header discrepancies. Keep legacy committed profile/routes_*.json frozen only until Task 18 removes the old embeds/trees; stop treating them as current outputs. Update routegen/family_test.go, current_test.go, go126_test.go and generate_test.go to verify in-memory rendered/ignored records and independent other-origin/architecture isolation instead of old routes-file ownership.
 - [ ] Add `selectedGeneratedPath(root,packagePath,stem string,source SourceContext,family string) (string,error)` using Task 6's selection semantics and one selected destination requirement. Rendering preserves authored constraints instead of recomputing a family ceiling.
-- [ ] Until moves complete, support selected existing destinations through explicit current profile targets; no guessed shared path or automatic copied tree. Update generator expectations and regenerate affected comments for both families.
+- [ ] Until moves complete, support selected existing destinations through explicit current profile targets; no guessed shared path or automatic copied tree. Resolve authored destination selection from the input source root independently of the publication output root, so an empty temporary output tree still works. Update generator expectations and regenerate affected comments for both families.
 
 #### Verification
 
@@ -292,7 +294,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤350 authored Go lines plus verified moves/deletions. **Dependencies:** 7.
 
-- [ ] Move the identical host implementations once, delete the verified duplicate, preserve unsafe/linkname/race semantics and update hostabi imports and profile native target paths together.
+- [ ] Move the identical host implementations once, delete the verified duplicate, preserve unsafe/linkname/race semantics and update hostabi imports and profile native target paths together. Rewrite only Gosim-side Hook.Target fields inside each origin file to the shared host path; preserve upstream paths/signatures/file digests/exact baseline. These target annotations are not upstream content hashes. Test the unchanged provenance fields explicitly.
 - [ ] Add direct compat/host unsupported guard using the current supported intervals; keep hostabi/selected rejection. Task 18 takes over guard generation.
 - [ ] Remove union support ceilings from the six shared hostabi facade/test files named in target §2; preserve fixed floor and race predicates. Collapse identical family facade files into shared implementations without forwarding packages.
 - [ ] Update linkname/closure tests and confirm maps/synctest leaf packages do not need native metadata imports to reject unsupported simulations.
@@ -301,15 +303,16 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] V-REVISIONS, V-BUILD under both families, focused hostabi/spec checks and V-GENERATION pass. Record source-only guard checks separately from execution.
 
-### Task 9: Consolidate runtime hooks with the StoreReluintptr variant
+### Task 9: Consolidate runtime hooks and their runtimebridge dependency
 
-**Files:** compat/{go125,go126}/hooks/rt → compat/hooks/rt; old profile targets/permissions; related tests.
+**Files:** both hooks/rt and shims/runtimebridge copies → shared packages; profile hooks/bridges/permissions; runtime_families_test.go, hooks_test.go and root shim guard-test imports.
 
 **References:** target §2 variants; §3 declarations; §5 permissions; §9 behavior preservation.
 
 **Budget:** ≤400 authored Go lines plus verified moves/deletions. **Dependencies:** 8.
 
-- [ ] Move common runtime hook bodies once and normalize imports, retaining approved non-release constraints and full union of tests.
+- [ ] Move normalized-identical shims/runtimebridge together with hooks/rt: runtime.go/race.go import that package, so a shared hook cannot retain either bounded family import. Update both families' runtime/internal-race bridge rewrites and root shim guard-test imports atomically. Preserve the full test union and non-release predicates.
+- [ ] Move common runtime hook bodies once and normalize imports; replace hooks_test.go/runtime_families_test.go physical-family target assertions with shared target plus selected signature/permission assertions.
 - [ ] Extract StoreReluintptr into the two small signature variants: bounded baseline and cumulative go1.26 replacement. Do not unify incompatible return signatures with runtime branching.
 - [ ] Update both active family metadata sets, runtime bridge references and exact sync/atomic/native permissions in the same task; preserve simulator scheduling/atomic semantics.
 - [ ] Test family-specific signature/source selection and inherited 1.26 selection for a hypothetical 1.27 context, without declaring support for it.
@@ -387,7 +390,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 ### Task 14: Consolidate remaining unchanged shims and test guards
 
-**Files:** remaining shims including debug, exec, httppprof, maps, metrics, ocsp, pprof, runtimebridge, signal, syncmap, synctest, tls, user, x509; shared guard tests.
+**Files:** remaining shims including debug, exec, httppprof, maps, metrics, ocsp, pprof, signal, syncmap, synctest, tls, user, x509 (runtimebridge moved in Task 9); shared guard tests.
 
 **References:** target §2 layout; §3 derived categories; §5 boundaries; §9 union-of-tests requirement.
 
@@ -395,7 +398,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] Move each normalized-identical package once, verify and delete its second implementation, and update imports/profile targets as a coherent package batch. Keep genuine differing declarations bounded rather than erasing them.
 - [ ] Preserve complete package replacements, guarded aborts and exact native permissions. Sparse contract ledgers must not change bridge classification.
-- [ ] Consolidate shared guard/runtimebridge/synctest tests without dropping assertions or compiling sim-only tests as native proofs.
+- [ ] Consolidate root guard and synctest tests without dropping assertions or compiling sim-only tests as native proofs. Their imports have already followed moved dependencies in each earlier task; runtimebridge itself was moved with runtime hooks in Task 9.
 - [ ] Confirm there are no executable hooks/shims/host left in old family directories; old metadata remains temporarily until cutover.
 
 #### Verification
@@ -404,31 +407,32 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 ### Task 15: Convert existing metadata to baseline and cumulative delta
 
-**Files:** new profiles/go125.json, go126.json; spec conversion/equivalence tests; ignored migration inventory.
+**Files:** new profiles/go125.json, go126.json; durable spec resolution/contract tests; one-time base-revision comparison artifact.
 
 **References:** target §3 complete schema/key rules; §4 origin separation; §9 migration/accounting.
 
 **Budget:** ≤450 authored Go/test lines; JSON is generated/reviewed data. **Dependencies:** 14.
 
 - [ ] Convert current reviewed metadata into one full baseline and only actual 1.26 replacements/additions/removals. Normalize already-shared paths; derive architecture applicability and remove redundant contracts/hooks/shims duplication.
-- [ ] Use a bounded one-time conversion script or test helper under ignored migration output, not a permanent second profile-generation tool. Review every delta against the original inventories.
-- [ ] Materialize both families and compare canonical semantic records to the captured originals after path normalization. Explicitly account for nine added shim contracts, source corrections and any genuinely changed metadata; no blanket golden update.
+- [ ] Use a bounded one-time conversion/comparison command under ignored migration output, not a committed test or permanent second generator. Read original family metadata directly from base commit `550d5e3` with `git show`/a temporary archive, materialize converted records with the resolver, and record exact command, revision, normalization rules, differences and exit status in this plan. Review every delta.
+- [ ] Run the one-time canonical old-to-new semantic comparison after path normalization; explicitly account for nine added shim contracts, Gosim-side origin target annotations and any genuinely changed metadata. Re-run it before old-tree deletion in Task 18 if intervening edits change metadata. Do not wire this base-history/ignored-artifact dependency into tests, CI or ordinary snapshots.
 - [ ] Assert empty future delta inherits all intermediate changes in fixtures. Keep future-family fixture support isolated from the actual registry.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and spec conversion/resolution tests pass. Existing callers still use old metadata until the facade is ready.
+- [ ] V-REVISIONS, V-BUILD and durable spec resolution/contract tests pass, plus the one-time comparison succeeds with recorded explained differences. Committed tests remain self-contained after old trees and ignored captures disappear. Existing callers still use old metadata until the facade is ready.
 
 ### Task 16: Add the profiles facade and independent on-disk provenance
 
-**Files:** profiles/profiles.go, initial revisions_gen.go; spec origin loader; profiles/*.origin.json, evidence.json; Go/Python exclusions and tests.
+**Files:** profiles/profiles.go, initial revisions_gen.go; spec origin loader; old profile embed/VerificationOrigin and catalog callback; routegen origin reads/writes/tests; profiles/*.origin.json, evidence.json; Go/Python exclusions/tests.
 
 **References:** target §4 origin/evidence; §5 hashes/cache; §7 profiles/LoadOrigin; §8 metadata flows.
 
 **Budget:** ≤500 authored Go/test lines plus lossless data moves. **Dependencies:** 15.
 
 - [ ] Implement Definitions, Resolve, Descriptor, Policy, Shims and Revision signatures from target §7; embed only `go*[0-9].json`, use lazy immutable metadata and return independent values.
-- [ ] Implement `LoadOrigin(fs.FS,profileID string) (Origin,error)` for checkout readers. Move complete original origin payloads to independent files without inheriting/relabeling source hashes.
+- [ ] Implement `LoadOrigin(fs.FS,profileID string) (Origin,error)` for checkout readers. COPY complete origin payloads to the new independent paths first; do not remove an embedded file while its old profile still compiles. Preserve Task 8's normalized Gosim targets and all upstream provenance.
+- [ ] In the same task remove origin.json from both old embed lists, change their temporary VerificationOrigin callback to take an explicit repository root and return errors, and update catalog.Origin plus every caller/test accordingly. Read with LoadOrigin at the source root; do not infer it from arbitrary cwd. Routegen must resolve source root before loading origin and publish RefreshOrigin only at `internal/compat/profiles/goNNN.origin.json` relative to output root. Old origin copies remain frozen/unread until deletion in Task 18. There must be only one live read/write authority, so refresh between Tasks 16 and 19 cannot drift two copies.
 - [ ] Preserve the complete old evidence/tuple JSON values in the consolidated schema-1 history envelope. During coexistence exclude both old evidence paths and the new exact path from executable identities; never exclude origins from whole-source hashes.
 - [ ] Seed the new revisions output from current valid values only as an unused transition artifact; Task 17 replaces it using the final algorithm before production selection switches. New facade tests use explicit fixture revisions where appropriate and cannot claim cutover readiness yet.
 - [ ] Test no origin/evidence runtime embed, cloned records, origin filename/family validation and lossless historical payload migration; update Python exclusion unit coverage without invoking certification.
@@ -457,7 +461,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 ### Task 18: Switch production selection and remove duplicate metadata entry points
 
-**Files:** selected/selection.go and selectors; buildspec/family.go/families_gen.go; cmd/gosim-gen profiles handler; catalog callers/tests; old profile/genprofile removal.
+**Files:** selected/selection.go and selectors; buildspec/family.go/families_gen.go; cmd/gosim-gen profiles handler; Makefile go-generate; catalog callers/tests; old profile/genprofile removal.
 
 **References:** target §§3, 5 admission, §7 selected/profiles/buildspec, §8 bootstrap; all associated method signatures.
 
@@ -467,12 +471,13 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 - [ ] Move FamilySupport to `{Family,Profile string}`, remove unused patch minimum/exclusions, and source the support table from definitions. Update affected constructors/tests atomically.
 - [ ] Wire `runProfiles` to GenerateMetadata. Now generate final support files/revisions in the real tree and verify agreement. The generator dependency closure must remain metadata-only.
 - [ ] Replace catalog and version-profile imports in production and compile-required fixtures with profiles functions and LoadOrigin from the checkout. Update currentGeneration/test helpers and origin reads together; no callback/forwarding package survives.
-- [ ] Remove catalog, genprofile and the old family profile source/data once all references are migrated. Retain the consolidated history and independent origins. Remove old revision files so the final source fingerprint cannot include stale generated outputs, then regenerate final revisions.
+- [ ] Update declaration_ledger_test.go/runtime_families_test.go to use final shared roots/resolved profiles, with nonempty inventories; update all routegen family/current/generate/go126 tests to final record/origin paths. Re-run Task 15's one-time comparison if metadata changed. Remove catalog, genprofile and the old family profile source/data once all references are migrated. Retain the consolidated history and independent origins. Remove old revision files so the final source fingerprint cannot include stale generated outputs, then regenerate final revisions.
+- [ ] Update Makefile go-generate to run profiles write mode before family generators (new support bootstrap), both matching-compiler generators, then profiles write/check after generated source changes; preserve filesystem-model stringer generation. The real first-origin flow still uses explicit RefreshOrigin, not an automatic missing-origin bypass.
 - [ ] Remove legacy evidence exclusions only after their files are gone; keep the exact consolidated evidence exclusion and all origin inputs in TranslatorDigest/Python identities.
 
 #### Verification
 
-- [ ] V-REVISIONS using only the new entry, both-family V-BUILD, profiles/spec/buildcfg/routegen focused tests and V-GENERATION pass. No code reference to the retired packages or active old descriptor remains.
+- [ ] V-REVISIONS using only the new entry, both-family V-BUILD, profiles/spec/buildcfg/routegen focused tests, V-GENERATION and changed-file make lint pass. No code reference to the retired packages or active old descriptor remains.
 
 ### Task 19: Finish shared generation and first-origin bootstrap
 
@@ -486,7 +491,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 - [ ] Explicit RefreshOrigin may seed only a missing new-family origin with schema/family/current exact baseline, then replace it after successful checks. Normal generation/check requires a complete existing origin.
 - [ ] Use the same SourceRevision as profiles; delete any provisional generation-only revision algorithm. Rebuilt gosim-gen sees newly generated support tables before normal contract validation.
 - [ ] Write only selected shared outputs, this family's origin and ignored provenance records; refresh of one origin must not modify another. Shared writes are accepted only after every supported selecting family's check succeeds.
-- [ ] Test a fixture with a new unchanged definition: profiles writes support/revisions before origin; explicit generation produces first origin; final -check passes. Use controlled metadata/compiler fixtures for unavailable releases and the real compiler for actual source checks.
+- [ ] Exercise actual first-origin bootstrap in a temporary source copy with the real available go1.26.9 compiler: remove only go126.origin.json, run profiles write mode, require profiles -check to reject missing provenance, run the matching compiler generator with explicit -refresh-origin, regenerate profiles if source bytes changed, then require profiles/check and family generation check to pass. Ensure go125 origin bytes stay unchanged. Keep hypothetical unchanged-family fixtures separately for ancestry/empty-delta behavior; do not treat fake 1.27 as real parser execution.
 
 #### Verification
 
@@ -537,23 +542,40 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 - [ ] Implement SourceInspectionCommand restricted to required env/version/list queries with canonical stable versions, installation/environment controls and local exact toolchain execution. Reject build/run/test and arbitrary flags in this entry.
 - [ ] Implement InspectionCompiler state plus DiscoverInspection, Toolchain, Fingerprints and Recheck. Require running compiler equals inspected exact version and verified installation; an explicit override is an equality assertion.
 - [ ] Factor private discovery/fingerprint helpers without weakening normal Discover/Fingerprint/OutputCommand/ApplicationCommand family checks. Unknown stable inspection succeeds only on the inspection path; prerelease/devel/custom still fail.
-- [ ] Test mismatched executable/runtime identity, changed installation, unsupported family ordinary rejection and inspection-only acceptance using controlled fixtures. Do not simulate support by editing the real registry.
+- [ ] Test mismatched executable/runtime identity, changed installation, unsupported family ordinary rejection and inspection-only acceptance using controlled fixtures. Task 23 adds full module-preparation coverage, not merely constructor tests. Do not simulate support by editing the real registry.
 
 #### Verification
 
 - [ ] V-REVISIONS, V-BUILD and focused buildspec/buildcfg tests pass; normal caller admission behavior remains unchanged.
 
-### Task 23: Collect bounded source observations with the matching compiler
+### Task 23: Prepare private modules through the inspection command path
 
-**Files:** spec/source.go and observation types/collector; origin inspection reuse; focused source tests.
+**Files:** buildspec/command.go, modules.go; spec/hooks.go private inspection workspace helper; buildcfg discovery/source fixtures.
+
+**References:** target §6 inspection/private module boundary; §7 source inspection/module signatures; §8 comparison failure behavior; §11 Observe/Compare prerequisites.
+
+**Budget:** ≤450 authored Go/test lines. **Dependencies:** 22.
+
+- [ ] Factor module graph decoding and command selection privately. Add fixed inspection wrappers `SourceInspectionApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec.Cmd` and `ResolveInspectionModuleGraph(ctx context.Context, r Resolution) ([]Module,error)` in buildspec. Do not export an injectable command factory or weaken normal ApplicationCommand/ResolveModuleGraph.
+- [ ] Preserve caller GOWORK/module/read-only semantics for env GOMOD and list -m -json all; the generated private context sets GOWORK=off and permits only the existing needed source list -mod=mod behavior. Reuse ModuleFiles and MatchModuleGraph unchanged where pure; validate replacements/selected graph equality before inspection.
+- [ ] Add fixed `spec.PrepareSourceInspectionContext(ctx context.Context, r buildspec.Resolution) (string,func() error,error)` and refactor hookInspectionContext internally so ordinary verification still uses strict commands while audit preparation uses the fixed inspection wrappers for EVERY caller and private-module query. The whole path must accept an unregistered stable family before source parsing without permitting build/run/test.
+- [ ] Extend fakeDiscoveryGo-style fixtures through caller/private module graphs, list responses, a small source parse, workspace/local replacement, command/env capture and cleanup errors. Keep fake identity tests honest: a fake future version cannot pass production runtime.Version equality. Test mismatch rejection separately, and use the real current compiler for the full discovery→private-module→collector path. Task 28 additionally removes that available family from the generated registry in a private fixture copy to exercise truly unregistered admission without any production version override or real-checkout registry change.
+
+#### Verification
+
+- [ ] V-REVISIONS, V-BUILD and focused buildspec/buildcfg/spec tests pass. A full preparation-chain fixture succeeds for an unregistered stable identity only on inspection entry points; normal calls still reject it and caller module files remain unchanged.
+
+### Task 24: Collect bounded source observations with the matching compiler
+
+**Files:** spec/source.go and observation types/collector; private module preparation from Task 23; origin inspection reuse; focused source tests.
 
 **References:** target §§6–7 ObservationRequest/ObservationSet/CollectSourceObservations; §11 collector.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 22.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 23.
 
 - [ ] Add the exact observation/context schemas from target §6 in spec; no duplicate audit wire structs. Add ObservationRequest with resolved parent, origin, contexts, IncludeAPIs and IncludeStdlibInventory.
 - [ ] Refactor the source loader with private command selection. Export `CollectSourceObservations(ctx,tc,dir,req) (ObservationSet,error)` using fixed SourceInspectionCommand, independently enforcing stable/running identity and installation/environment rules.
-- [ ] Collect declared symbols, layouts/constants, package inventory and tracked/selected source hashes for explicit contexts; preserve private source-matched module handling, cleanup and no caller module rewrite.
+- [ ] Collect declared symbols, layouts/constants, package inventory and tracked/selected source hashes for explicit contexts; use the inspection-safe private module preparation implemented in the preceding task, preserving cleanup and no caller module rewrite. Connect the full discovery→caller module→private module→source list→parse regression through the collector.
 - [ ] Record context errors and missingness correctly: failed package loading is incomplete, never a missing-symbol record. Preserve native race cgo-on versus translated cgo-off selection without building those race contexts.
 - [ ] Test signature/layout/constant absence/change and source hash drift, errors/cancellation and deterministic records. Ordinary VerifyContracts continues using strict OutputCommand.
 
@@ -561,16 +583,16 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] V-REVISIONS, V-BUILD and focused spec/buildcfg tests pass under each running family compiler; no in-process other-family parsing.
 
-### Task 24: Capture parent API inventories and validate snapshots
+### Task 25: Capture parent API inventories and validate snapshots
 
 **Files:** spec API observation helpers; audit/compare.go snapshot types/Observe; inspector digest helper/tests.
 
 **References:** target §6 API scope/ParentObservation/InspectorDigest; §7 Observe; §11 Observe.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 23.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 24.
 
 - [ ] Implement the finite API package inventory derived from parent declarations and reviewed bridges, including complete replacements and symbol bridges; exclude Gosim implementation packages and wildcard-wide unrelated inventories.
-- [ ] Enumerate exported declarations/method sets in both parent/candidate contexts through Task 23, recording APIPackages. Do not classify sparse shim manifests as partial bridges.
+- [ ] Enumerate exported declarations/method sets in both parent/candidate contexts through Task 24, recording APIPackages. Do not classify sparse shim manifests as partial bridges.
 - [ ] Implement `Observe(ctx,ObserveRequest) (ParentObservation,error)` at the parent's exact recorded compiler. Require complete requested observations and unchanged compiler/source/module identities before returning a usable snapshot.
 - [ ] Implement InspectorDigest over non-test implementation Go source, excluding data/generated support/revision artifacts; bind parent definition/origin and relevant module/replacement inputs separately.
 - [ ] Validate snapshot schema, family, exact baseline, digests and requested inventories; test target-definition/support-only edits preserve usability while parent or inspector implementation edits invalidate.
@@ -579,13 +601,13 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] V-REVISIONS, V-BUILD and spec/audit snapshot tests pass. Observe remains data-only and does not enable support.
 
-### Task 25: Compute actionable comparison findings and draft operations
+### Task 26: Compute actionable comparison findings and draft operations
 
 **Files:** audit/compare.go and focused diff/proposal tests.
 
 **References:** target §6 report/draft schema and coverage; §7 Compare/CompareObservations; §11 comparison algorithms.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 24.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.
 
 - [ ] Implement CompareRequest, ComparisonReport, Finding, DeltaProposal and DraftDelta exactly as target §6; use spec observation records without mirrors.
 - [ ] Implement Compare and CompareObservations, enforcing stable immediate next minor, complete parent resolution and optional validated parent snapshot; no hidden parent compiler download.
@@ -597,13 +619,13 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] V-REVISIONS, V-BUILD and audit tests pass for empty delta, inherited parent changes, incompatibilities, skipped API coverage, incomplete contexts, stale snapshots and non-installable draft decoding.
 
-### Task 26: Publish audit artifacts and wire all generator handlers
+### Task 27: Publish audit artifacts and wire all generator handlers
 
 **Files:** audit/output.go; cmd/gosim-gen/commands.go; focused publication/CLI tests.
 
 **References:** target §6 publication/exits; §7 CLI/output signatures; §11 WriteComparison.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 26.
 
 - [ ] Implement RenderReport, WriteComparison and WriteObservation. Exclusively create destinations; report.md and delta.draft.json close before final report.json publication. An absent report.json means interrupted publication; incomplete scans may publish Complete=false.
 - [ ] Refuse existing files/directories, handle cancellation/write/close errors, and clean only invocation-owned outputs. No locks/report-digest/finding-ID protocol or overwrite mode.
@@ -612,18 +634,19 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD, cmd/audit tests and V-AUDIT pass. Verify no profile/support/source mutation from either audit command.
+- [ ] V-REVISIONS, V-BUILD, cmd/audit tests, changed-file make lint and V-AUDIT pass. Verify no profile/support/source mutation from either audit command.
 
-### Task 27: Verify real version changes and no-change onboarding
+### Task 28: Verify real version changes and no-change onboarding
 
 **Files:** audit/profiles/routegen focused integration fixtures and tests; ignored audit artifacts.
 
 **References:** target §§1, 8 onboarding, 9 acceptance; §11 end-to-end algorithms.
 
-**Budget:** ≤450 authored Go/test lines. **Dependencies:** 26.
+**Budget:** ≤450 authored Go/test lines. **Dependencies:** 27.
 
 - [ ] Exercise the known 1.25→1.26 comparison in separate compiler processes, expecting selected signature/API changes and crypto source review, while unchanged layouts/constants stay unchanged.
 - [ ] Test hypothetical unchanged next-family metadata with empty delta through support/gate/revision rendering and explicit origin bootstrap fixtures; assert zero copied implementation files and cumulative inherited variants.
+- [ ] Under the available go1.26 ordinary job, make a private source fixture whose generated support table omits 1.26 while retaining parent 1.25; rebuild the metadata-only tool there with the SAME real go1.26 compiler. Run observe/compare or the full discovery/preparation/collector entry and verify it reaches actual parsing; ordinary admission for that fixture still rejects 1.26. Do not mutate the working checkout, install a future compiler, or spoof runtime.Version. The go1.25 job may explicitly skip this candidate-specific fixture; the go1.26 final job must execute it.
 - [ ] Test unchanged family authoring does not stale a captured parent snapshot merely through new data/support artifacts; actual source edits do invalidate it.
 - [ ] Verify adding/retiring support does not allow runtime switching or gaps in ancestry, and normal unregistered compiler admission stays rejected. Do not add real 1.27 support or claim execution with unavailable compiler fixtures.
 
@@ -631,13 +654,13 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] V-REVISIONS, V-BUILD and focused onboarding tests pass; archive V-AUDIT results and state actual versus fixture-based coverage separately.
 
-### Task 28: Migrate worker, artifact and metatesting fixtures
+### Task 29: Migrate worker, artifact and metatesting fixtures
 
 **Files:** internal/{workerboot,gosimtool,candidate,buildcfg,translate} fixtures/tests; metatesting/protocol_test.go; .ci metadata utilities where affected.
 
 **References:** target §5 complete identities/caches; §7 consumer inventory; §8 ordinary cache/worker flows.
 
-**Budget:** ≤450 authored Go/test lines; split fixture-only batches if needed. **Dependencies:** 27.
+**Budget:** ≤450 authored Go/test lines; split fixture-only batches if needed. **Dependencies:** 28.
 
 - [ ] Finish fixture substitutions for shared paths, generated registry/revisions and exact compiler/worker identities. Preserve patch/features/race manifest matching and launcher-selected worker behavior.
 - [ ] Add/retain meaningful regressions for cache invalidation from ancestor/shared source, origin-only TranslatorDigest changes, evidence-only stability and corrupt/stale cache rejection with unchanged schemas.
@@ -648,13 +671,13 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] V-REVISIONS, V-BUILD and focused non-worker tests pass; V-ORDINARY covers applicable worker/protocol tests. Record restricted skips without promoting them to passes.
 
-### Task 29: Document the supported workflow and measure compaction
+### Task 30: Document the supported workflow and measure compaction
 
 **Files:** README.md, AGENTS.md/CLAUDE.md where present, docs/design.md, relevant existing diagrams/command guidance; this plan's accounting.
 
 **References:** target §§1–2, 6 commands, 9 file/storage accounting, 10 exclusions.
 
-**Budget:** ≤100 authored Go lines (normally zero); documentation only. **Dependencies:** 28.
+**Budget:** ≤100 authored Go lines (normally zero); documentation only. **Dependencies:** 29.
 
 - [ ] Update package ownership, cumulative constraints/deltas, independent origins, sole profiles maintenance entry and ordinary stable-family admission; remove retired catalog/genprofile and old capabilities-file links.
 - [ ] Document recommended observe→compare→reviewed definition/code→profiles→matching compiler origin generation→checks workflow, skipped API semantics and partial-output interpretation.
@@ -666,13 +689,13 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] V-DOCS passes; V-BUILD remains green if any command documentation required code adjustment. All advertised command names/paths exist.
 
-### Task 30: Run final ordinary and generation validation
+### Task 31: Run final ordinary and generation validation
 
 **Files:** only fixes justified by failed gates; plan progress/evidence.
 
 **References:** target §9 acceptance and limitations; §5 identities; §8 success/failure flows.
 
-**Budget:** ≤400 authored Go/test lines for fixes; split any larger correction. **Dependencies:** 29.
+**Budget:** ≤400 authored Go/test lines for fixes; split any larger correction. **Dependencies:** 30.
 
 - [ ] Run V-REVISIONS check, V-GENERATION for both exact baselines and V-BUILD under both families on the completed source.
 - [ ] Run V-ORDINARY separately for both families with distinct report roots, read reports/timelines/logs and record exact tested source, exits, totals and skips. Run V-AUDIT if not already verified against the final inspector source; stale earlier reports are not final evidence.
@@ -683,13 +706,13 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] All selected gates pass on the final source. Applicable ordinary tests pass; excluded suites remain explicitly unexecuted. Record report locations and checksum/source identity evidence.
 
-### Task 31: Architectural delta verification and actual-use audit
+### Task 32: Architectural delta verification and actual-use audit
 
 **Files:** completed implementation and this plan's gap/evidence records.
 
-**References:** target revision 3 — **ALL sections**, including full schemas and every method inventory/pseudocode.
+**References:** target revision 3.1 — **ALL sections**, including full schemas and every method inventory/pseudocode.
 
-**Budget:** ≤400 authored Go/test lines for small corrections; split larger fixes before completing. **Dependencies:** 30.
+**Budget:** ≤400 authored Go/test lines for small corrections; split larger fixes before completing. **Dependencies:** 31.
 
 #### Verification requirement
 
@@ -709,7 +732,7 @@ Compare implemented code, data and real entry-point flows with the target, not j
 
 ## NOT IMPLEMENTED GAPS
 
-None discovered during planning that changes the accepted architecture. All tasks above are pending implementation, not completed gaps. Add discrepancies found during execution here with task/target reference, evidence, fix and verification; use `[_]` for an unresolved item.
+Review findings were corrected before execution (see review thread 2 and progress log); no unresolved architectural gap is currently accepted. All tasks above are pending implementation, not completed gaps. Add discrepancies found during execution here with task/target reference, evidence, fix and verification; use `[_]` for an unresolved item.
 
 ## NOT PLANNED CHANGES
 
@@ -722,13 +745,14 @@ None. Record any necessary execution-time departure or unrelated failure fix wit
 - [potential-improvement] Interactive draft installation, automatic implementation generation and persistent audit cache. Drafts remain non-installable data and existing destinations cannot be overwritten.
 - [postponed] Actual support for a new real Go family, beta/RC/custom compilers, or extra host platforms. This plan preserves 1.25/1.26 and tests future metadata only with fixtures; prereleases remain rejected.
 - [postponed] Race/large suites and certification/crossarch execution require explicit separate instructions. Their exclusion is not a code defect and must not be replaced by a successful stub or bypass.
-- User selection of this target for go-plan authorizes planning from revision 3; previous brainstorm confirmation bookkeeping is not an implementation feature. Plan review remains pending; no implementation is started here.
+- User selection of this target for go-plan authorizes planning from revision 3; previous brainstorm confirmation bookkeeping is not an implementation feature. Focused plan re-review remains pending; no implementation is started here.
 
 ## Progress and verification log
 
 | Date | Task | Change / evidence | Result |
 | --- | --- | --- | --- |
-| 2026-10-21 | Planning | Read target revision 3, current source/README/design/repository guidance; created bounded ordered tasks and peer request | No implementation/build/test/generation performed |
+| 2026-10-21 | Review corrections | Fixed hook/runtimebridge ordering, coordinated origin authority, invariant-test migration and one-time equivalence evidence; added a bounded private-module preparation task, lint/Makefile gates and real bootstrap test | Documentation only; 32 tasks, focused re-review requested |
+| 2026-10-21 | Planning | Read target revision 3.1, current source/README/design/repository guidance; created bounded ordered tasks and peer request | No implementation/build/test/generation performed |
 
 ## Plan consistency checklist
 
