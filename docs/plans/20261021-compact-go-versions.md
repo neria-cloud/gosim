@@ -633,21 +633,37 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 - [x] V-REVISIONS, V-BUILD and focused spec/API tests pass under both compilers; no in-process other-family parsing.
 
-### Task 25.2: Bind inspector implementation and module inputs
+### Task 25.2.1: Bind inspector implementation and module inputs
 
 **Files:** audit identity/workspace helpers and tests.
 
 **References:** target §6 InspectorDigest/ModuleInputs and private-module boundary; §11 Observe/Compare input snapshots.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.1.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.1. Split hashing from workspace preparation before execution to preserve the authored-code limit.
 
-- [ ] Implement InspectorDigest over the non-test Go inspection implementation dependency closure, including request construction; exclude definition/origin/evidence data and generated registry/selector/guard/revision artifacts. Make it independent of the compiler building the inspector.
-- [ ] Bind resolved external module graph, module files and relevant replacement source inputs separately. Do not hash the whole Gosim tree into ModuleInputs or reintroduce excluded onboarding-data/support dependencies.
-- [ ] Snapshot/recheck private workspace and caller module inputs, preserving workspace semantics and cleanup. Prove source/module drift changes identity while target data/support-only edits do not.
+- [x] Implement InspectorDigest over the non-test Go inspection implementation dependency closure, including request construction; exclude definition/origin/evidence data and generated registry/selector/guard/revision artifacts. Make it independent of the compiler building the inspector.
+- [x] Bind resolved external module graph, module files and relevant replacement source inputs separately. Do not hash the whole Gosim tree into ModuleInputs or reintroduce excluded onboarding-data/support dependencies.
+- [x] Prove inspector/source/module drift changes identity while target data/support-only edits do not; keep persisted module identity independent of generated private directories and compiler-specific go directives.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused audit identity/workspace tests pass; snapshots use inspection-only commands and never enable support.
+- [x] V-REVISIONS, V-BUILD and focused audit identity/workspace tests pass; snapshots use inspection-only commands and never enable support.
+
+### Task 25.2.2: Prepare and recheck audit workspaces
+
+**Files:** audit workspace helper and focused tests.
+
+**References:** target §6 private module and snapshot boundary; §11 Observe/Compare.
+
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.2.1.
+
+- [ ] Resolve caller context through fixed inspection wrappers, preserve its selected graph, and prepare a private source module. Resolve inspection dependencies in that copy before snapshotting generated files, then require graph equality.
+- [ ] Bind inspector and external module inputs using Task 25.2.1; snapshot/recheck caller and private module inputs without adding compiler-specific private go directives to persisted parent/candidate identity.
+- [ ] Reject drift and propagate cleanup errors. Test workspace replacements, caller immutability, preparation failure cleanup and target-data/support-only stability.
+
+#### Verification
+
+- [ ] V-REVISIONS, V-BUILD and focused audit workspace tests pass under both compilers.
 
 ### Task 25.3: Capture and validate parent observations
 
@@ -655,7 +671,7 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **References:** target §6 ParentObservation and validation; §7 Observe; §11 Observe.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.2.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.2.2.
 
 - [ ] Implement the exact ParentObservation schema (reuse spec observation records) and ObserveRequest/Observe at the parent's recorded exact compiler.
 - [ ] Require complete requested API/source observations and unchanged compiler, inspector and module inputs before returning a usable snapshot; join cleanup failures.
