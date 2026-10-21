@@ -12,7 +12,7 @@
 
 **Target architecture:** [implemented runtime-maintenance architecture](../design.md#go-compatibility-and-capabilities), [package ownership](../design.md#package-ownership), [maintainer guide](../MAINTAINER_GUIDE.md). Restoration-specific structures, interfaces and flows are specified in A1–A9 below. The input is an investigation, not a method-level target specification; there is no separate restoration target file. This plan is the only new document produced by this planning session.
 
-**Status:** Planned; no restoration implementation or validation suite executed in this session. Historical reproduction is evidence for scope, not proof of current support.
+**Status:** Implemented and ordinarily verified on Go 1.25.14 and Go 1.26.9. Manual certification, race, large, and other-platform suites remain outside this plan's execution scope.
 
 ## Objective and execution rules
 
@@ -549,17 +549,17 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A1, A7–A9; all implemented task contracts.
 **Estimated authored changes:** fix-driven; split any substantial corrective work.
 
-- [ ] Run `V-ORDINARY` separately for Go 1.25.14 and Go 1.26.9 with separate report roots. Read reports, timelines, skips and failure logs; ensure actual positive etcd and replay metatest inclusion.
-- [ ] Run `V-ETCD` and `V-HTTP` for each family on the final source identity if the ordinary records do not already establish the same exact scenario/seed coverage.
-- [ ] Verify existing simple/Bolt/network examples and nested NATS/gRPC examples remain successful on both families. Run the filesystem example with its documented Go 1.25.2 requirement. Reuse unchanged-source evidence only if it actually matches the final executable inputs.
-- [ ] Check that unsupported-operation tests still terminate the simulation and that disabled-feature selection excludes unrelated models before loading.
-- [ ] Fix every observed failure, record not-planned changes, and repeat only invalidated gates needed for final evidence. Do not substitute longer deadlines, skipped assertions or fresh-worker-only execution.
-- [ ] Record input identities, compiler versions, executed commands, pass/fail/skip counts and elapsed times. Explicitly state that large/race/certification/other platforms were not run.
+- [x] Run `V-ORDINARY` separately for Go 1.25.14 and Go 1.26.9 with separate report roots. Read reports, timelines, skips and failure logs; ensure actual positive etcd and replay metatest inclusion.
+- [x] Run `V-ETCD` and `V-HTTP` for each family on the final source identity if the ordinary records do not already establish the same exact scenario/seed coverage.
+- [x] Verify existing simple/Bolt/network examples and nested NATS/gRPC examples remain successful on both families. Run the filesystem example with its documented Go 1.25.2 requirement. Reuse unchanged-source evidence only if it actually matches the final executable inputs.
+- [x] Check that unsupported-operation tests still terminate the simulation and that disabled-feature selection excludes unrelated models before loading.
+- [x] Fix every observed failure, record not-planned changes, and repeat only invalidated gates needed for final evidence. Do not substitute longer deadlines, skipped assertions or fresh-worker-only execution.
+- [x] Record input identities, compiler versions, executed commands, pass/fail/skip counts and elapsed times. Explicitly state that large/race/certification/other platforms were not run.
 
 #### Verification
 
-- [ ] Both ordinary suites exit 0, applicable positive examples and multi-seed checks pass, generation checks match final source, and source manifests identify the reviewed inputs.
-- [ ] No source-changing required gap remains before architectural verification.
+- [x] Both ordinary suites exit 0, applicable positive examples and multi-seed checks pass, generation checks match final source, and source manifests identify the reviewed inputs.
+- [x] No source-changing required gap remains before architectural verification.
 
 ### Task 12: Architectural delta verification and actual wiring
 
@@ -567,20 +567,20 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A1–A9 in full; current design/maintainer architecture; historical study restoration scope.
 **Estimated authored changes:** verification-driven; split substantive fixes before completion.
 
-- [ ] Verify A1 acceptance: real three-node plaintext cluster, partition/repair progress, snapshot/WAL exactness, bounded cleanup, both families and repeated-worker behavior exist and execute.
-- [ ] Verify A2 ownership and maintenance: shared implementation only, baseline inheritance, genuine deltas, both architecture contracts, independent origins, generated revisions/selectors and exact compiler artifact separation.
-- [ ] Verify A3 crypto/tracing types, callable signatures and dispositions against the completed finite inventory. No missing facade method may be covered by a successful placeholder or native entropy fallback.
-- [ ] Verify A4 reflect2 type/config structures, canonicalization, kind-specific interfaces and translated cache ownership; private ABI/value operations remain explicitly guarded and initialization is genuinely implemented.
-- [ ] Verify A5 lifecycle interfaces and every startup/cancel/error/stop path, with no process signal/exit fallback and observed graceful exits.
-- [ ] Verify A6 HTTP/storage/protobuf ownership: translated I/O, real provider calls, corrected descriptor lifetime where required, no per-seed worker workaround and no stronger locking/durability claim.
-- [ ] Verify A7 happy/error flows and A8 unchanged DB/cache/config schemas, identity invalidation, lifecycle cleanup, random streams and any justified replay-revision change.
-- [ ] Verify A9 algorithm behavior, negative-operation fixtures, ordinary applicability/preparation, documented exclusions, and executed report evidence. Compare signatures in this plan with final code; record any justified adjustment here.
-- [ ] Audit every entry in `NOT IMPLEMENTED GAPS`. Fix required gaps according to this architecture, or record an explicitly approved alternative. Mark any unresolved item `[_]` and leave the plan incomplete; do not silently defer a positive-path requirement.
-- [ ] **Last: verify actual wiring from real entry points.** Launcher selects the family; effective baseline/delta metadata selects the new shared replacements; composition includes them; typed loading uses their declarations; real etcd calls reach simulated HTTP/TCP/storage and the embedded lifecycle helper; ordinary preparation builds matching workers; the suite registry runs positive etcd and the same-worker replay test. Every planned component must be reachable through this flow, not merely declared or referenced by a unit test.
+- [x] Verify A1 acceptance: real three-node plaintext cluster, partition/repair progress, snapshot/WAL exactness, bounded cleanup, both families and repeated-worker behavior exist and execute.
+- [x] Verify A2 ownership and maintenance: shared implementation only, baseline inheritance, genuine deltas, both architecture contracts, independent origins, generated revisions/selectors and exact compiler artifact separation.
+- [x] Verify A3 crypto/tracing types, callable signatures and dispositions against the completed finite inventory. No missing facade method may be covered by a successful placeholder or native entropy fallback.
+- [x] Verify A4 reflect2 type/config structures, canonicalization, kind-specific interfaces and translated cache ownership; private ABI/value operations remain explicitly guarded and initialization is genuinely implemented.
+- [x] Verify A5 lifecycle interfaces and every startup/cancel/error/stop path, with no process signal/exit fallback and observed graceful exits.
+- [x] Verify A6 HTTP/storage/protobuf ownership: translated I/O, real provider calls, corrected descriptor lifetime where required, no per-seed worker workaround and no stronger locking/durability claim.
+- [x] Verify A7 happy/error flows and A8 unchanged DB/cache/config schemas, identity invalidation, lifecycle cleanup, random streams and any justified replay-revision change.
+- [x] Verify A9 algorithm behavior, negative-operation fixtures, ordinary applicability/preparation, documented exclusions, and executed report evidence. Compare signatures in this plan with final code; record any justified adjustment here.
+- [x] Audit every entry in `NOT IMPLEMENTED GAPS`. Fix required gaps according to this architecture, or record an explicitly approved alternative. Mark any unresolved item `[_]` and leave the plan incomplete; do not silently defer a positive-path requirement.
+- [x] **Last: verify actual wiring from real entry points.** Launcher selects the family; effective baseline/delta metadata selects the new shared replacements; composition includes them; typed loading uses their declarations; real etcd calls reach simulated HTTP/TCP/storage and the embedded lifecycle helper; ordinary preparation builds matching workers; the suite registry runs positive etcd and the same-worker replay test. Every planned component must be reachable through this flow, not merely declared or referenced by a unit test.
 
 #### Verification
 
-- [ ] Build is green, all required final gates pass on the reviewed source, no required gap remains, and claims in the plan/documentation match actual execution.
+- [x] Build is green, all required final gates pass on the reviewed source, no required gap remains, and claims in the plan/documentation match actual execution.
 
 ## Validation Commands
 
@@ -683,11 +683,11 @@ The subshell stops on the first failed command. Preserve its exit status when ca
 
 Planning-time unresolved implementation facts are bounded by explicit tasks, not waived requirements:
 
-- [ ] Exact complete callable/field inventory beyond A3's core set — resolve in Task 1 and verify both families in Tasks 2–4/10.
-- [ ] Any executed reflect2 need beyond canonical type introspection — determine with actual initialization/cluster execution; implement required semantics before Tasks 8/12 can pass.
-- [ ] Exact current HTTP defect set — establish with the restored real test in Task 6; no native transport shortcut.
-- [ ] Exact source of the historical protobuf cross-run descriptor mismatch, and whether it remains in the current implementation — resolve through Tasks 7–9, with same-worker execution required.
-- [ ] Any additional startup, storage, observability or shutdown operation actually needed by plaintext etcd — trace and implement its owner contract; optional feature exclusions cannot excuse a required-path failure.
+- [x] The finite callable/field inventory is recorded in `internal/compat/spec/testdata/etcd_contract.md`; exact facade signatures, generator contracts and translated positive/guard fixtures pass on both families.
+- [x] The accepted plaintext initialization and cluster execution need reflect2 type metadata only. Real jsoniter initialization, three-node runs and repeated-worker runs pass; excluded pointer/value operations remain fatal.
+- [x] The restored translated HTTP test passes body, reuse, stream, cancellation, deadline and shutdown assertions on seeds 1–3 under both compilers. No HTTP provider defect required a route change or native shortcut.
+- [x] The historical protobuf descriptor mismatch is not reproduced in the current implementation. Both the focused status/detail fixture and full etcd cluster pass seeds 1, 2, 3, 1 in one worker, with equal seed-1 checksums and a fresh-worker comparison. The historical root cause remains unproven, so no production cache change is claimed.
+- [x] Required plaintext startup, storage, observability initialization and shutdown paths execute in the positive tests on both families. Invalid config and pre-readiness cancellation are covered; active optional operations remain guarded.
 
 Use `[_]` for an unresolved required gap at attempted completion. The plan cannot be marked complete while such an entry remains.
 
@@ -746,12 +746,14 @@ Use `[_]` for an unresolved required gap at attempted completion. The plan canno
 | --- | --- | --- | --- |
 | 2026-10-21 | Planning | Read user-specified historical report, current shared-profile implementation, maintained architecture/guide, selected dependency initialization, and actual candidate/applicability code | Plan only; restoration not executed |
 | 2026-10-21 | Tasks 1–2 | Pinned module verification on both compilers; exact baseline profile and origin generation/checks; translated crypto fixture and fatal-guard fixture on both compilers; `make test` | 1,998 pass, 20 skip, 0 fail/error in 84 reports. Etcd now advances to reflect2 rejection; positive etcd remains pending. |
+| 2026-10-21 | Tasks 3–10 | Shared metadata/reflect2/tracing facades, embedded lifecycle, translated HTTP, positive etcd and repeated-worker tests, baseline inheritance and docs | Paired implementation commits `6d1eb94`, `7000dda`, `dd43385`, `67eea50`; detailed commands and results in [progress](../progress/20261021-restore-etcd.md). |
+| 2026-10-21 | Tasks 11–12 | Exact-family ordinary suites, final seed 1–3 HTTP/etcd, existing examples, expected-abort guards, generation and architecture wiring audit | Go 1.25.14: 2,031 pass / 18 skip; Go 1.26.9: 2,047 pass / 16 skip; 0 fail/error in 87 reports each. See [final evidence](../progress/20261021-restore-etcd.md#tasks-1112--exact-family-acceptance-and-architecture-audit). |
 
 ## Plan consistency checklist
 
-- [ ] Task 1 completes the finite contract inventory without changing dependency versions or broad admission rules.
-- [ ] Each task cites A-sections and existing architecture, has a bounded change set, and includes build/focused verification.
-- [ ] All common work is baseline/shared; no independent Go-family copy or runtime version switch is planned.
-- [ ] Positive application execution and deterministic repeated-worker coverage are required on both families.
-- [ ] Unsupported operations remain explicit, with no successful placeholder or host fallback.
-- [ ] Final task audits every subsystem and ends by verifying real entry-point wiring.
+- [x] Task 1 completes the finite contract inventory without changing dependency versions or broad admission rules.
+- [x] Each task cites A-sections and existing architecture, has a bounded change set, and includes build/focused verification.
+- [x] All common work is baseline/shared; no independent Go-family copy or runtime version switch is planned.
+- [x] Positive application execution and deterministic repeated-worker coverage are required on both families.
+- [x] Unsupported operations remain explicit, with no successful placeholder or host fallback.
+- [x] Final task audits every subsystem and ends by verifying real entry-point wiring.

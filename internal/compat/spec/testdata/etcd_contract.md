@@ -7,14 +7,15 @@ OpenTelemetry SDK v1.20.0. `go mod verify` succeeds under both compilers.
 Existing `go.sum` checksums and module pins remain the authority; do not fork or
 upgrade dependencies while restoring this scenario.
 
-The profile traversal starts at the sim-only example, stops at existing bridge
-and native-pure boundaries, and yields the same five rejected application
-packages for both families. The Go 1.26 raw-list-only
+The initial profile traversal started at the sim-only example, stopped at existing bridge
+and native-pure boundaries, and yielded the same five rejected application
+packages for both families. Those packages now have exact, limited replacement
+rules in the Go 1.25 baseline, inherited by Go 1.26. The Go 1.26 raw-list-only
 `internal/runtime/syscall/linux` item is removed by the actual syscall hook
 composition; it is not a newly authorized package. The first translator error
-remains `crypto/ecdsa` through etcd transport. This inventory is an admission
-frontier; after admission, typed loading and simulation execution remain the
-authority for further required method bodies.
+at that frontier was `crypto/ecdsa` through etcd transport. This inventory
+records the admission frontier; typed loading and simulation execution establish
+the current required method bodies.
 
 | Package | Pinned source reference | Required declarations | Disposition |
 | --- | --- | --- | --- |
@@ -30,15 +31,16 @@ initialization calls `TypeOfPtr(...).Elem()` for JSON RawMessage, interfaces,
 numeric types, string and marshal interfaces; these calls must return real,
 canonical, comparable type wrappers. Its encoding/decoding paths call
 `RTypeOf`, `PtrOf`, `Unsafe*` methods and concrete type assertions. Whether
-those paths execute in the accepted plaintext cluster is an execution fact to
-test, not a license for success-shaped pointer stubs. If they execute, provide
-safe translated semantics and extend the plan before claiming Task 3 complete.
+those paths execute in the accepted plaintext cluster is an execution fact:
+the final three-node and repeated-worker runs on both compilers passed without
+them. They remain fatal guards, not success-shaped pointer stubs.
 
 `crypto/ecdsa.GenerateKey(elliptic.P521(), rand.Reader)` is in transport's
 self-signed certificate branch. JWT signing and verification are registered
 at initialization but require auth to be enabled. OpenTelemetry's
-`recordingSpan.runtimeTrace` checks `IsEnabled` before `NewTask`. These are
-source-level branch observations; Task 8 must prove the live plaintext path.
+`recordingSpan.runtimeTrace` checks `IsEnabled` before `NewTask`. The positive
+plaintext runs on both compilers establish that their guarded branches stayed
+inactive for the accepted scenario.
 
 Pinned jsoniter also imports `github.com/modern-go/concurrent`, whose dormant
 panic handler calls `runtime/debug.Stack`. The selected debug facade provides
@@ -65,12 +67,11 @@ cleanup. `RunEmbedded(ctx,cfg,ready)` and `nodeHandle` have their signatures in
 plan A5. Fixture homes are: `examples/etcd` for real startup and storage,
 `internal/compat/shims` for recovery-resistant guarded operations,
 `internal/tests/net` for translated HTTP, and `internal/tests/integration` for
-same-worker protobuf/replay coverage. Positive etcd tests remain outside the
-ordinary feature registry until the required facades and transport work.
+same-worker protobuf/replay coverage. Positive etcd tests are now in the
+ordinary `rt,fs,net` feature registry.
 
-The baseline profile retains whole-package rejections through Task 1. Future
-admission uses exact package/bridge records and `limited` capabilities for
-guarded executable symbols. Unknown crypto, private reflection and active
-tracing stay rejected. Go 1.26 inherits the common declarations; only verified
-signature or behavior differences belong in its delta. Both Linux source
-architectures must pass independent generator checks when the boundary changes.
+The baseline profile uses exact package/bridge records and `limited`
+capabilities for guarded executable symbols. Unknown crypto, private reflection
+and active tracing stay rejected or abort on execution. Go 1.26 inherits the
+common declarations; only verified signature or behavior differences belong in
+its delta. Both Linux source architectures pass independent generator checks.

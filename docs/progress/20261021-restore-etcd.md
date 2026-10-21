@@ -113,3 +113,26 @@ Verified
 - Focused exact-compiler same-worker/fresh-worker etcd metatests pass. The artifact lookup rejected an older prebuilt identity after source changed, then passed after a source-matched build.
 - `make lint`, `./.ci/gofmt check`, `git diff --check` and local documentation link checks pass. Existing TLS, crypto, reflection, signal and feature guards remain in place; no large, race or certification suite was enabled.
 - `make test`: 87 reports, 2,013 passed, 20 skipped, no failures/errors; wall time 282 seconds. The report includes five positive etcd simulation tests and the native `TestEtcdReplayAfterInterveningRuns` plus protobuf replay metatest. The ordinary compiler was selected by Go tooling; Task 11 runs separate exact-compiler ordinary gates.
+
+## Tasks 11–12 — exact-family acceptance and architecture audit
+
+Date: 2026-10-21. Pair commit contains this entry and closes the plan.
+
+Final executable source was commit `67eea50` before this evidence/documentation-only pair. Ordinary verification used isolated source snapshots and recorded these identities:
+
+| Compiler | Input digest | Ordinary report | Pass | Fail | Error | Skip | Wall |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Go 1.25.14 | `b0cf247a2444b76305187d09a8455613a69b94a7cec8c69fd86a1d2b47e56363` | `.gosim/etcd-validation/go125/unit/latest/report.md` | 2,031 | 0 | 0 | 18 | 296.508s |
+| Go 1.26.9 | `f222c32ab774eba919ae8480afec435a4fe56406dc0a552ad3e18435f432d4de` | `.gosim/etcd-validation/go126/unit/latest/report.md` | 2,047 | 0 | 0 | 16 | 321.942s |
+
+Both `GOSIM_TOOLCHAIN=<compiler> TEST_REPORTS_DIR="$PWD/.gosim/etcd-validation/<family>" make test` commands exited 0 with 87 reports each. The reports and timelines identify actual positive `TestEtcd`, `TestSnapshotter`, `TestWal`, `TestNetTcpHttp`, `TestEtcdReplayAfterInterveningRuns` and `TestProtobufStatusReplayAfterInterveningRuns` execution, not skips. The Go 1.25 verification record notes unrelated checkout changes to `.gitignore` and two `.DS_Store` files outside its source snapshot; its snapshot inputs stayed unchanged and status is `passed`. The Go 1.26 record has no concurrent checkout changes and status `passed`.
+
+On the same final executable source, `gosimtool test -features rt,net -seeds 1-3 -v -run '^TestNetTcp(Http|Grpc)$' ./internal/tests/net` passed 6/6 records per compiler. `gosimtool test -features rt,fs,net -seeds 1-3 -v ./examples/etcd` passed 15/15 records per compiler, including every cluster, snapshot and WAL seed. The ordinary native metatests additionally ran seeds 1, 2, 3, 1 in one worker and a fresh seed 1, with matching replay identity and seed-1 checksums on both families.
+
+Existing example regression commands passed seeds 1–3 for `examples/simple` (`rt`), `examples/bolt` (`rt,fs`), `examples/network/machines` and `examples/network/latency` (`rt,net`), nested `examples/network/nats` (`rt,fs,net`) and nested `examples/network/grpc` (`rt,net`) on both exact compilers. The standalone `examples/filesystem` command passed with its documented Go 1.25.2 compiler. Individual command logs are under `.gosim/etcd-validation/examples/`.
+
+Final Go 1.25.14 and Go 1.26.9 `make build` commands passed. Independent AMD64/ARM64 adapter checks, profile revision checks and focused spec/profile/feature tests passed under both compilers; logs are under `.gosim/etcd-validation/checks/`. `make lint`, `./.ci/gofmt check` and `git diff --check` passed before this documentation-only audit. Fatal guard fixtures for ECDSA generation, reflect2 raw pointers, active runtime tracing, host metrics and mutex profiling each exited 1 with the named `UnsupportedOperation` diagnostic under both compilers; no attempted recovery reached its success path. Ordinary feature applicability tests passed and exclude etcd before loading when `fs` or `net` is disabled.
+
+Architecture audit: the launcher resolves the selected compiler and feature identity; the effective Go 1.25 baseline adds the five limited replacements, which Go 1.26 inherits without copied implementations. Composition imports the selected runtime packages; typed loading and translated fixture execution establish their reachability. Real etcd invokes embedded lifecycle, translated HTTP/gRPC/TCP and simulated filesystem storage; the ordinary registry includes the positive package only for `rt,fs,net`, and preparation builds matching native replay workers. No historical protobuf descriptor lifetime bug reproduced, so no production cache change or `ReplayRevision` increment was justified. Existing translation DB/cache schemas and provider contracts remain unchanged. The finite inventory document now describes the implemented state. All required gap entries in the plan are resolved or bounded by executed evidence.
+
+No large suite, race suite, manual certification, Docker/Colima job or other-platform test was run. These passing local commands do not certify those tuples. The only source changes in this pair are documentation and plan/progress evidence; unrelated staged and working-tree user edits were left alone.
