@@ -1,4 +1,4 @@
-//go:build go1.26 && !go1.27
+//go:build go1.25
 
 // Copyright 2009 The Go Authors. All rights reserved.  Use of this source code
 // is governed by a BSD-style license that can be found at
@@ -32,10 +32,10 @@ type Value struct {
 
 func wrapValue(inner reflect.Value) Value {
 	if inner.IsValid() && isRuntimeChan(inner.Type()) {
-		panic("gosim go126 reflect: reflected channel operations are unsupported")
+		panic("gosim reflect: reflected channel operations are unsupported")
 	}
 	if inner.Kind() == reflect.Map || inner.Kind() == reflect.Chan {
-		panic("gosim go126 reflect: native map/channel crossed the simulation boundary")
+		panic("gosim reflect: native map/channel crossed the simulation boundary")
 	}
 
 	if inner.Kind() == reflect.Struct && inner.NumField() == 1 {
@@ -107,7 +107,7 @@ type SelectCase struct {
 }
 
 func Select(cases []SelectCase) (chosen int, recv Value, recvOK bool) {
-	panic("gosim go126 reflect: unsupported operation")
+	panic("gosim reflect: unsupported operation")
 }
 
 func MakeSlice(typ Type, len, cap int) Value {
@@ -115,7 +115,7 @@ func MakeSlice(typ Type, len, cap int) Value {
 }
 
 func MakeChan(typ Type, buffer int) Value {
-	panic("gosim go126 reflect: unsupported operation")
+	panic("gosim reflect: unsupported operation")
 }
 
 func getDecriptor(typ Type) gosimruntime.ReflectMapType {
@@ -374,11 +374,11 @@ func (iter *MapIter) Next() bool {
 type zeroIter struct{}
 
 func (z zeroIter) Value() reflect.Value {
-	panic("gosim go126 reflect: unsupported operation")
+	panic("gosim reflect: unsupported operation")
 }
 
 func (z zeroIter) Key() reflect.Value {
-	panic("gosim go126 reflect: unsupported operation")
+	panic("gosim reflect: unsupported operation")
 }
 
 func (z zeroIter) Next() bool {
@@ -538,11 +538,11 @@ func (v Value) String() string {
 }
 
 func (v Value) TryRecv() (x Value, ok bool) {
-	panic("gosim go126 reflect: unsupported operation")
+	panic("gosim reflect: unsupported operation")
 }
 
 func (v Value) TrySend(x Value) bool {
-	panic("gosim go126 reflect: unsupported operation")
+	panic("gosim reflect: unsupported operation")
 }
 
 func (v Value) Type() Type {

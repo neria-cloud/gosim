@@ -3,11 +3,14 @@ package spec_test
 import (
 	"bytes"
 	"go/ast"
+	"go/build"
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
@@ -25,9 +28,14 @@ func TestPinnedPublicShimInterfaces(t *testing.T) {
 	}
 	family := support.Profile
 
-	for _, item := range []struct{ pkg, name, source string }{{"reflect", "Type", "type.go"}, {"testing", "TB", "testing.go"}} {
-		want := interfaceMethods(t, filepath.Join(runtime.GOROOT(), "src", item.pkg, item.source), item.name)
-		got := interfaceMethods(t, filepath.Join("..", family, "shims", item.pkg, item.source), item.name)
+	ctx := sourceContext(family, runtime.GOARCH)
+	for _, item := range []struct{ pkg, name string }{{"reflect", "Type"}, {"testing", "TB"}} {
+		want := interfaceMethods(t, filepath.Join(runtime.GOROOT(), "src", item.pkg), item.name, ctx)
+		dir := filepath.Join("..", family, "shims", item.pkg)
+		if item.pkg == "reflect" {
+			dir = filepath.Join("..", "shims", item.pkg)
+		}
+		got := interfaceMethods(t, dir, item.name, ctx)
 		if len(got) != len(want) {
 			t.Errorf("%s method count: got %d want %d", item.name, len(got), len(want))
 		}
@@ -39,23 +47,60 @@ func TestPinnedPublicShimInterfaces(t *testing.T) {
 	}
 }
 
-func interfaceMethods(t *testing.T, path, name string) map[string]string {
+func interfaceMethods(t *testing.T, dir, name string, ctx build.Context) map[string]string {
 	t.Helper()
-	file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
+	interfaces := map[string]*ast.InterfaceType{}
+	for _, entry := range entries {
+		if !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+			continue
+		}
+		active, err := ctx.MatchFile(dir, entry.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !active {
+			continue
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), filepath.Join(dir, entry.Name()), nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			typ, ok := node.(*ast.TypeSpec)
+			if !ok {
+				return true
+			}
+			if iface, ok := typ.Type.(*ast.InterfaceType); ok {
+				if interfaces[typ.Name.Name] != nil {
+					t.Fatalf("duplicate interface %s in %s", typ.Name.Name, dir)
+				}
+				interfaces[typ.Name.Name] = iface
+			}
+			return false
+		})
+	}
 	result := make(map[string]string)
-	ast.Inspect(file, func(node ast.Node) bool {
-		typ, ok := node.(*ast.TypeSpec)
-		if !ok || typ.Name.Name != name {
-			return true
+	seen := map[string]bool{}
+	var visit func(string)
+	visit = func(name string) {
+		iface := interfaces[name]
+		if iface == nil || seen[name] {
+			t.Fatalf("missing or repeated interface %s in %s", name, dir)
 		}
-		iface, ok := typ.Type.(*ast.InterfaceType)
-		if !ok {
-			t.Fatalf("%s is not an interface", name)
-		}
+		seen[name] = true
 		for _, method := range iface.Methods.List {
+			if len(method.Names) == 0 {
+				embedded, ok := method.Type.(*ast.Ident)
+				if !ok {
+					t.Fatalf("unhandled interface embedding %T", method.Type)
+				}
+				visit(embedded.Name)
+				continue
+			}
 			if len(method.Names) != 1 || !method.Names[0].IsExported() {
 				continue
 			}
@@ -84,8 +129,8 @@ func interfaceMethods(t *testing.T, path, name string) map[string]string {
 			}
 			result[method.Names[0].Name] = output.String()
 		}
-		return false
-	})
+	}
+	visit(name)
 	if len(result) == 0 {
 		t.Fatalf("no public methods found for %s", name)
 	}

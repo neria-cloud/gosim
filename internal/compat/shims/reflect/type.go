@@ -1,4 +1,4 @@
-//go:build go1.26 && !go1.27
+//go:build go1.25
 
 // Copyright 2009 The Go Authors. All rights reserved.  Use of this source code
 // is governed by a BSD-style license that can be found at
@@ -9,7 +9,6 @@
 package reflect
 
 import (
-	"iter"    //gosim:notranslate
 	"reflect" //gosim:notranslate
 	"sync"    //gosim:notranslate
 
@@ -26,10 +25,7 @@ func makeMapType() reflect.Type {
 var mapInterfaceType reflect.Type = makeMapType()
 
 type Type interface {
-	Fields() iter.Seq[StructField]
-	Methods() iter.Seq[Method]
-	Ins() iter.Seq[Type]
-	Outs() iter.Seq[Type]
+	typeExtension
 	Align() int
 	FieldAlign() int
 	Method(int) Method
@@ -94,10 +90,10 @@ func wrapType(typ reflect.Type) Type {
 		return nil
 	}
 	if typ.Kind() == reflect.Map || typ.Kind() == reflect.Chan {
-		panic("gosim go126 reflect: native map/channel crossed the simulation boundary")
+		panic("gosim reflect: native map/channel crossed the simulation boundary")
 	}
 	if isRuntimeChan(typ) {
-		panic("gosim go126 reflect: reflected channel operations are unsupported")
+		panic("gosim reflect: reflected channel operations are unsupported")
 	}
 
 	known, ok := jankHashMap.Load(typ)
@@ -417,13 +413,13 @@ func PointerTo(t Type) Type {
 }
 
 func ChanOf(dir ChanDir, t Type) Type {
-	panic("gosim go126 reflect: unsupported operation")
+	panic("gosim reflect: unsupported operation")
 	// return wrapType(reflect.ChanOf(dir, t.(*typeImpl).inner))
 }
 
 func MapOf(key, elem Type) Type {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "reflect.MapOf", Message: "dynamic map type construction is not modeled"})
-	panic("gosim go126 reflect: unsupported operation")
+	panic("gosim reflect: unsupported operation")
 }
 
 func FuncOf(in, out []Type, variadic bool) Type {
@@ -435,7 +431,7 @@ func SliceOf(t Type) Type {
 }
 
 func StructOf(fields []StructField) Type {
-	panic("gosim go126 reflect: unsupported operation")
+	panic("gosim reflect: unsupported operation")
 }
 
 func ArrayOf(length int, elem Type) Type {

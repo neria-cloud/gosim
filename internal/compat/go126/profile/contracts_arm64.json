@@ -960,1071 +960,1071 @@
       "package": "reflect",
       "symbol": "*MapIter.Key",
       "signature": "func() Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*MapIter.Key",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*MapIter.Key",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*MapIter.Next",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*MapIter.Next",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*MapIter.Next",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*MapIter.Reset",
       "signature": "func(Value)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*MapIter.Reset",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*MapIter.Reset",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*MapIter.Value",
       "signature": "func() Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*MapIter.Value",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*MapIter.Value",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Align",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Align",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Align",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.AssignableTo",
       "signature": "func(Type) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.AssignableTo",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.AssignableTo",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Bits",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Bits",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Bits",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.CanSeq",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.CanSeq",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.CanSeq",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.CanSeq2",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.CanSeq2",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.CanSeq2",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.ChanDir",
       "signature": "func() ChanDir",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.ChanDir",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.ChanDir",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Comparable",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Comparable",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Comparable",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.ConvertibleTo",
       "signature": "func(Type) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.ConvertibleTo",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.ConvertibleTo",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Elem",
       "signature": "func() Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Elem",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Elem",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Field",
       "signature": "func(int) StructField",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Field",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Field",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.FieldAlign",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.FieldAlign",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.FieldAlign",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.FieldByIndex",
       "signature": "func([]int) StructField",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.FieldByIndex",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.FieldByIndex",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.FieldByName",
       "signature": "func(string) (StructField, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.FieldByName",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.FieldByName",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.FieldByNameFunc",
       "signature": "func(func(string) bool) (StructField, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.FieldByNameFunc",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.FieldByNameFunc",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Fields",
       "signature": "func() iter.Seq[StructField]",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Fields",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Fields",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Implements",
       "signature": "func(Type) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Implements",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Implements",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.In",
       "signature": "func(int) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.In",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.In",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Ins",
       "signature": "func() iter.Seq[Type]",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Ins",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Ins",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.IsVariadic",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.IsVariadic",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.IsVariadic",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Key",
       "signature": "func() Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Key",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Key",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Kind",
       "signature": "func() Kind",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Kind",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Kind",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Len",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Len",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Len",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Method",
       "signature": "func(int) Method",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Method",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Method",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.MethodByName",
       "signature": "func(string) (Method, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.MethodByName",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.MethodByName",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Methods",
       "signature": "func() iter.Seq[Method]",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Methods",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Methods",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Name",
       "signature": "func() string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Name",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Name",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.NumField",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.NumField",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.NumField",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.NumIn",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.NumIn",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.NumIn",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.NumMethod",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.NumMethod",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.NumMethod",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.NumOut",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.NumOut",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.NumOut",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Out",
       "signature": "func(int) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Out",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Out",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Outs",
       "signature": "func() iter.Seq[Type]",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Outs",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Outs",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.OverflowComplex",
       "signature": "func(complex128) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.OverflowComplex",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.OverflowComplex",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.OverflowFloat",
       "signature": "func(float64) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.OverflowFloat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.OverflowFloat",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.OverflowInt",
       "signature": "func(int64) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.OverflowInt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.OverflowInt",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.OverflowUint",
       "signature": "func(uint64) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.OverflowUint",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.OverflowUint",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.PkgPath",
       "signature": "func() string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.PkgPath",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.PkgPath",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.Size",
       "signature": "func() uintptr",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.Size",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Size",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "*rtype.String",
       "signature": "func() string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.*typeImpl.String",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.String",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Append",
       "signature": "func(Value, ...Value) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Append",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Append",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "AppendSlice",
       "signature": "func(Value, Value) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.AppendSlice",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.AppendSlice",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "ArrayOf",
       "signature": "func(int, Type) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.ArrayOf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.ArrayOf",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "ChanOf",
       "signature": "func(ChanDir, Type) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.ChanOf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.ChanOf",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Copy",
       "signature": "func(Value, Value) int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Copy",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Copy",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "DeepEqual",
       "signature": "func(any, any) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.DeepEqual",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.DeepEqual",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "FuncOf",
       "signature": "func([]Type, []Type, bool) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.FuncOf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.FuncOf",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Indirect",
       "signature": "func(Value) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Indirect",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Indirect",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "MakeChan",
       "signature": "func(Type, int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.MakeChan",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.MakeChan",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "MakeFunc",
       "signature": "func(Type, func(args []Value) (results []Value)) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.MakeFunc",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.MakeFunc",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "MakeMap",
       "signature": "func(Type) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.MakeMap",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.MakeMap",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "MakeMapWithSize",
       "signature": "func(Type, int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.MakeMapWithSize",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.MakeMapWithSize",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "MakeSlice",
       "signature": "func(Type, int, int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.MakeSlice",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.MakeSlice",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "MapOf",
       "signature": "func(Type, Type) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.MapOf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.MapOf",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Method.IsExported",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Method.IsExported",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Method.IsExported",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "New",
       "signature": "func(Type) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.New",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.New",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "NewAt",
       "signature": "func(Type, unsafe.Pointer) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.NewAt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.NewAt",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "PointerTo",
       "signature": "func(Type) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.PointerTo",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.PointerTo",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "PtrTo",
       "signature": "func(Type) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.PtrTo",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.PtrTo",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Select",
       "signature": "func([]SelectCase) (int, Value, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Select",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Select",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "SliceAt",
       "signature": "func(Type, unsafe.Pointer, int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.SliceAt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.SliceAt",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "SliceOf",
       "signature": "func(Type) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.SliceOf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.SliceOf",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "StructField.IsExported",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.StructField.IsExported",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.StructField.IsExported",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "StructOf",
       "signature": "func([]StructField) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.StructOf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.StructOf",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Swapper",
       "signature": "func(any) func(i, j int)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Swapper",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Swapper",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "TypeAssert",
       "signature": "func[T any](Value) (T, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.TypeAssert",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.TypeAssert",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "TypeFor",
       "signature": "func[T any]() Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.TypeFor",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.TypeFor",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "TypeOf",
       "signature": "func(any) Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.TypeOf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.TypeOf",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Addr",
       "signature": "func() Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Addr",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Addr",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Bool",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Bool",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Bool",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Bytes",
       "signature": "func() []byte",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Bytes",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Bytes",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Call",
       "signature": "func([]Value) []Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Call",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Call",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.CallSlice",
       "signature": "func([]Value) []Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.CallSlice",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.CallSlice",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.CanAddr",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.CanAddr",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.CanAddr",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.CanComplex",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.CanComplex",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.CanComplex",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.CanConvert",
       "signature": "func(Type) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.CanConvert",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.CanConvert",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.CanFloat",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.CanFloat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.CanFloat",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.CanInt",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.CanInt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.CanInt",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.CanInterface",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.CanInterface",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.CanInterface",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.CanSet",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.CanSet",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.CanSet",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.CanUint",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.CanUint",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.CanUint",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Cap",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Cap",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Cap",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Clear",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Clear",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Clear",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Close",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Close",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Close",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Comparable",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Comparable",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Comparable",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Complex",
       "signature": "func() complex128",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Complex",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Complex",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Convert",
       "signature": "func(Type) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Convert",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Convert",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Elem",
       "signature": "func() Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Elem",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Elem",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Equal",
       "signature": "func(Value) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Equal",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Equal",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Field",
       "signature": "func(int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Field",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Field",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.FieldByIndex",
       "signature": "func([]int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.FieldByIndex",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.FieldByIndex",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.FieldByIndexErr",
       "signature": "func([]int) (Value, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.FieldByIndexErr",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.FieldByIndexErr",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.FieldByName",
       "signature": "func(string) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.FieldByName",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.FieldByName",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.FieldByNameFunc",
       "signature": "func(func(string) bool) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.FieldByNameFunc",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.FieldByNameFunc",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Fields",
       "signature": "func() iter.Seq2[StructField, Value]",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Fields",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Fields",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Float",
       "signature": "func() float64",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Float",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Float",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Grow",
       "signature": "func(int)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Grow",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Grow",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Index",
       "signature": "func(int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Index",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Index",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Int",
       "signature": "func() int64",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Int",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Int",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Interface",
       "signature": "func() any",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Interface",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Interface",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.InterfaceData",
       "signature": "func() [2]uintptr",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.InterfaceData",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.InterfaceData",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.IsNil",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.IsNil",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.IsNil",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.IsValid",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.IsValid",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.IsValid",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.IsZero",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.IsZero",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.IsZero",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Kind",
       "signature": "func() Kind",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Kind",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Kind",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Len",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Len",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Len",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.MapIndex",
       "signature": "func(Value) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.MapIndex",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.MapIndex",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.MapKeys",
       "signature": "func() []Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.MapKeys",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.MapKeys",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.MapRange",
       "signature": "func() *MapIter",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.MapRange",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.MapRange",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Method",
       "signature": "func(int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Method",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Method",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.MethodByName",
       "signature": "func(string) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.MethodByName",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.MethodByName",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Methods",
       "signature": "func() iter.Seq2[Method, Value]",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Methods",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Methods",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.NumField",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.NumField",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.NumField",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.NumMethod",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.NumMethod",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.NumMethod",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.OverflowComplex",
       "signature": "func(complex128) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.OverflowComplex",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.OverflowComplex",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.OverflowFloat",
       "signature": "func(float64) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.OverflowFloat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.OverflowFloat",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.OverflowInt",
       "signature": "func(int64) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.OverflowInt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.OverflowInt",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.OverflowUint",
       "signature": "func(uint64) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.OverflowUint",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.OverflowUint",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Pointer",
       "signature": "func() uintptr",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Pointer",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Pointer",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Recv",
       "signature": "func() (Value, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Recv",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Recv",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Send",
       "signature": "func(Value)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Send",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Send",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Seq",
       "signature": "func() iter.Seq[Value]",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Seq",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Seq",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Seq2",
       "signature": "func() iter.Seq2[Value, Value]",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Seq2",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Seq2",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Set",
       "signature": "func(Value)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Set",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Set",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetBool",
       "signature": "func(bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetBool",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetBool",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetBytes",
       "signature": "func([]byte)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetBytes",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetBytes",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetCap",
       "signature": "func(int)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetCap",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetCap",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetComplex",
       "signature": "func(complex128)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetComplex",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetComplex",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetFloat",
       "signature": "func(float64)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetFloat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetFloat",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetInt",
       "signature": "func(int64)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetInt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetInt",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetIterKey",
       "signature": "func(*MapIter)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetIterKey",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetIterKey",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetIterValue",
       "signature": "func(*MapIter)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetIterValue",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetIterValue",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetLen",
       "signature": "func(int)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetLen",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetLen",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetMapIndex",
       "signature": "func(Value, Value)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetMapIndex",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetMapIndex",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetPointer",
       "signature": "func(unsafe.Pointer)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetPointer",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetPointer",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetString",
       "signature": "func(string)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetString",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetString",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetUint",
       "signature": "func(uint64)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetUint",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetUint",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.SetZero",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.SetZero",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.SetZero",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Slice",
       "signature": "func(int, int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Slice",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Slice",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Slice3",
       "signature": "func(int, int, int) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Slice3",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Slice3",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.String",
       "signature": "func() string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.String",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.String",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.TryRecv",
       "signature": "func() (Value, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.TryRecv",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.TryRecv",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.TrySend",
       "signature": "func(Value) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.TrySend",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.TrySend",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Type",
       "signature": "func() Type",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Type",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Type",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.Uint",
       "signature": "func() uint64",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.Uint",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Uint",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.UnsafeAddr",
       "signature": "func() uintptr",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.UnsafeAddr",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.UnsafeAddr",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Value.UnsafePointer",
       "signature": "func() unsafe.Pointer",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Value.UnsafePointer",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.UnsafePointer",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "ValueOf",
       "signature": "func(any) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.ValueOf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.ValueOf",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "VisibleFields",
       "signature": "func(Type) []StructField",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.VisibleFields",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.VisibleFields",
       "owner": "rt"
     },
     {
       "package": "reflect",
       "symbol": "Zero",
       "signature": "func(Type) Value",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect.Zero",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Zero",
       "owner": "rt"
     },
     {

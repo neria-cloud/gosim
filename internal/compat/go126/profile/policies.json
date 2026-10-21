@@ -69,7 +69,7 @@
 {"path":"github.com/neria-cloud/gosim/internal/compat/hooks/rt","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/go126/shims/cryptorand","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/go126/shims/maps","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
-{"path":"github.com/neria-cloud/gosim/internal/compat/go126/shims/reflect","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
+{"path":"github.com/neria-cloud/gosim/internal/compat/shims/reflect","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/go126/shims/synctest","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/go126/shims/testing","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/hostabi","mode":"reject","reason":"Private native facade is reachable only through the original public rt/runtime bridge."},

@@ -106,7 +106,7 @@ func TestFamiliesNativeBridges(t *testing.T) {
 			}
 			for _, path := range []string{"reflect", "testing", "internal/synctest", "crypto/rand", "crypto/tls", "crypto/x509", "os/exec", "os/signal", "runtime/pprof"} {
 				target, err := m.ResolveSymbol(p, path, "TypeFor", true)
-				if err != nil || !strings.Contains(target.Package, "/"+family+"/shims/") {
+				if err != nil || spec.ClassifyCompatPackage(target.Package) != spec.CompatShims {
 					t.Fatalf("whole shim %s: %+v %v", path, target, err)
 				}
 			}

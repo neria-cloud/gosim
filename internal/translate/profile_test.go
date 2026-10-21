@@ -52,8 +52,7 @@ func TestPoliciesSelectedMetadata(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			family := s.Identity.Profile
-			if policies.packages["reflect"] != gosimtool.Module+"/internal/compat/"+family+"/shims/reflect" {
+			if policies.packages["reflect"] != gosimtool.Module+"/internal/compat/shims/reflect" {
 				t.Fatal("wrong reflect substitution")
 			}
 			for _, hook := range policies.hooks {
@@ -227,7 +226,7 @@ func TestHookedSourceAndOwnedNativeImports(t *testing.T) {
 	if err := ValidateBoundary(replaced, p); err != nil {
 		t.Fatal(err)
 	}
-	shim := gosimtool.Module + "/internal/compat/" + s.Identity.Profile + "/shims/reflect"
+	shim := gosimtool.Module + "/internal/compat/shims/reflect"
 	source := `package reflect; import "reflect" //gosim:notranslate
 var X=reflect.TypeOf(1)`
 	if err := ValidateBoundary(typedBoundary(t, shim, source, false), p); err != nil {

@@ -1,4 +1,4 @@
-//go:build go1.26 && !go1.27
+//go:build go1.25
 
 package reflect
 
@@ -8,15 +8,15 @@ import "unsafe"
 // to let the package compile. make all of them panic to prevent usage.
 
 func unsafe_New(rtype unsafe.Pointer) unsafe.Pointer {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }
 
 func typedmemmove(rtype unsafe.Pointer, dst, src unsafe.Pointer) {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }
 
 func unsafe_NewArray(rtype unsafe.Pointer, length int) unsafe.Pointer {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }
 
 type noSliceHeader struct {
@@ -26,15 +26,15 @@ type noSliceHeader struct {
 }
 
 func typedslicecopy(elemType unsafe.Pointer, dst, src noSliceHeader) int {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }
 
 func mapassign(rtype unsafe.Pointer, m unsafe.Pointer, key, val unsafe.Pointer) {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }
 
 func mapaccess(rtype unsafe.Pointer, m unsafe.Pointer, key unsafe.Pointer) (val unsafe.Pointer) {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }
 
 type noHiter struct {
@@ -44,17 +44,17 @@ type noHiter struct {
 }
 
 func mapiterinit(rtype unsafe.Pointer, m unsafe.Pointer) *noHiter {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }
 
 func mapiternext(it *noHiter) {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }
 
 func ifaceE2I(rtype unsafe.Pointer, src interface{}, dst unsafe.Pointer) {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }
 
 func makemap(rtype unsafe.Pointer, cap int) (m unsafe.Pointer) {
-	panic("gosim go126 reflect: unsupported private reflect2 ABI")
+	panic("gosim reflect: unsupported private reflect2 ABI")
 }

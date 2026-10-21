@@ -346,14 +346,14 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤450 authored Go lines plus verified moves/deletions. **Dependencies:** 10.
 
-- [ ] Preserve shared reflect bodies/type identity and isolate 1.26 Type/Value iterator additions under cumulative constraints.
-- [ ] Try the target's small extension-interface composition only with a meaningful translated-interface fixture. If unsupported, use the allowed small whole-interface variants and record that outcome; do not alter translator semantics solely to avoid a short duplicate declaration.
-- [ ] Update active bridge replacements, shim targets and native reflect/sync/iter permissions together; reject native object/type-universe escapes.
-- [ ] Preserve shared implementation assertions and add focused tests for exact selected interfaces and iterator behavior where ordinary simulation supports them.
+- [x] Preserve shared reflect bodies/type identity and isolate 1.26 Type/Value iterator additions under cumulative constraints.
+- [x] Try the target's small extension-interface composition only with a meaningful translated-interface fixture. If unsupported, use the allowed small whole-interface variants and record that outcome; do not alter translator semantics solely to avoid a short duplicate declaration.
+- [x] Update active bridge replacements, shim targets and native reflect/sync/iter permissions together; reject native object/type-universe escapes.
+- [x] Preserve shared implementation assertions and add focused tests for exact selected interfaces and iterator behavior where ordinary simulation supports them.
 
 #### Verification
 
-- [ ] V-REVISIONS, both-family V-BUILD, spec/boundary checks and ordinary prepared translated fixture validation pass. Record whether embedding or short interface variants were selected.
+- [x] V-REVISIONS, both-family V-BUILD, spec/boundary checks and ordinary prepared translated fixture validation pass. Record whether embedding or short interface variants were selected.
 
 ### Task 12: Consolidate testing with small API and temporary-root variants
 

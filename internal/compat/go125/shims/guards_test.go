@@ -8,8 +8,8 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/compat/go125/shims/debug"
 	"github.com/neria-cloud/gosim/internal/compat/go125/shims/metrics"
-	"github.com/neria-cloud/gosim/internal/compat/go125/shims/reflect"
 	"github.com/neria-cloud/gosim/internal/compat/go125/shims/tls"
+	"github.com/neria-cloud/gosim/internal/compat/shims/reflect"
 	"github.com/neria-cloud/gosim/internal/compat/shims/runtimebridge"
 	simrt "github.com/neria-cloud/gosim/rt/runtime"
 )
