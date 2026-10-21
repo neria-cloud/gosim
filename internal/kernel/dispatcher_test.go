@@ -35,6 +35,53 @@ func TestControlErrorCopiesProviderDiagnostic(t *testing.T) {
 	}
 }
 
+type partialWriteResource struct{ dataResource }
+
+func (*partialWriteResource) Write(_ contracts.CallContext, from abi.ByteView) (int, error) {
+	if from.Len() == 0 {
+		return 0, syscall.EAGAIN
+	}
+	return 1, nil
+}
+
+func TestSyscallWritevDoesNotRequireFilesystem(t *testing.T) {
+	var log []string
+	_, network, _ := providersFor(&log)
+	_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.Net), []contracts.Provider{network}, func(k *Kernel) {
+		ref := createFor(t, k, "writev", idleMain)
+		counterCheck(t, k.Start(ref))
+		counterCheck(t, k.SetSyscallCounting(ref, true))
+		for _, owner := range []contracts.Feature{contracts.RT, contracts.Net} {
+			// Shared I/O uses descriptor ownership, with no concrete provider call.
+			fd, err := k.machineByID[ref.ID].current.descriptors.Allocate(&partialWriteResource{dataResource: dataResource{owner: owner}})
+			counterCheck(t, err)
+			start := k.Ports().Clock.NowNanos()
+			result := counterDispatch(k, ref, WritevRequest{FD: fd, From: abi.ByteView{Ptr: []byte("abc")}})
+			got, err := DecodeWritevResult(result)
+			if err != nil || got.Count != 1 {
+				t.Fatal("partial result", got, err)
+			}
+			result = counterDispatch(k, ref, WritevRequest{FD: fd})
+			if _, err := DecodeWritevResult(result); !errors.Is(err, syscall.EAGAIN) {
+				t.Fatal(err)
+			}
+			if k.Ports().Clock.NowNanos() != start || len(k.dispatcher.timers) != 0 {
+				t.Fatal("non-FS writev delayed")
+			}
+		}
+		rows := counterRows(t, k, ref)
+		if len(rows) != 2 {
+			t.Fatal(rows)
+		}
+		for i, owner := range []string{"rt", "net"} {
+			if rows[i].Name != "writev" || rows[i].Group != "rt" || rows[i].DescriptorGroup != owner || rows[i].Count != 2 {
+				t.Fatal(rows)
+			}
+		}
+	})
+	counterCheck(t, err)
+}
+
 func currentContext(k *Kernel) contracts.CallContext {
 	token := simrt.CurrentMachineToken()
 	return contracts.CallContext{Epoch: contracts.EpochRef{Machine: contracts.MachineRef{RunID: k.runID, ID: token.ID}, Epoch: token.Epoch}}
