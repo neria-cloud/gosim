@@ -24,7 +24,7 @@ Implement the reviewed shared-package design, Go 1.25 baseline plus cumulative m
 
 The source of design decisions is target revision 3.1. Existing README, AGENTS.md and docs/design.md describe today's family-owned trees and will be updated after migration; their current build/test restrictions continue to apply throughout. There is no `project.txt`, `architecture/` or `docs/architecture/` in this checkout. `docs/brainstorms` is an ignored ordinary directory, not a symlink or nested repository. The plan is tracked in the existing branch; do not create another repository or force-add ignored brainstorm files.
 
-- Execute tasks in order. Each task ends with build and focused verification; fix any failures encountered, including unrelated failures in commands actually run, before reporting that gate green. Record unexpected changes and evidence in the sections below.
+- Execute tasks in order, batching two consecutive tasks per commit (user direction, 2026-10-21). Validate both tasks before committing; retain separate completion records. Each task ends with build and focused verification; fix any failures encountered, including unrelated failures in commands actually run, before reporting that gate green. Record unexpected changes and evidence in the sections below.
 - Each task budgets **at most 550 lines of authored Go implementation and test edits**. Pure file renames, verified deletion of an identical second copy, generated JSON/Go and fixture relocation are separately reported mechanical changes, not hidden inside the authored-code estimate. Preserve moved bodies; do not rewrite large files. If the authored portion exceeds its bound, split it into consecutively numbered, buildable subtasks before execution and update references.
 - Migration tasks may temporarily retain existing old metadata/admission until their consumers move. This is an ordered checkout transition, not a new compatibility feature. Add no forwarding packages, runtime family switches, manual release tags, legacy cache decoder or successful runtime stub. Final retirement removes every transition rule.
 - Update both families' root `shims/guard_test.go` and `guards_test.go` imports in the same task as every moved dependency (starting with runtimebridge in Task 9); do not defer these importers until guard consolidation in Task 14.
@@ -32,7 +32,7 @@ The source of design decisions is target revision 3.1. Existing README, AGENTS.m
 - Regenerate affected revision outputs at the end of every source-changing task. Through Task 17 use the existing genprofile command for active old descriptors; Task 18 switches to `gosim-gen profiles`. Both hashing paths must include shared inputs during the transition. Do not leave normal test fixtures reading stale revision constants.
 - No new third-party dependency or database migration is needed. SQLite DDL, CacheEntryV2 and contract-cache schemas/retention remain exactly as target §5; fingerprint changes invalidate artifacts without new cache formats.
 - Race, large, cross-architecture execution, Docker/Colima and certification are **not** part of this plan's validation. Do not enable their environment gates, call their fixtures directly, or substitute tags-only race compilation. Source selection/contract inspection for another architecture or race context is reported as inspection only. Lint remains scoped to cmd/examples.
-- Execution authorized 2026-10-21: commit each completed task (two small tasks may share a commit), request Claude review every eight implementation commits, and pass ordinary tests before final architectural verification. Certification is authorized only after final review and only on native Darwin ARM64; race and large suites remain excluded.
+- Execution authorized 2026-10-21: commit each pair of completed tasks, request Claude review every eight implementation commits, and pass ordinary tests before final architectural verification. Certification is authorized only after final review and only on native Darwin ARM64; race and large suites remain excluded.
 
 ## Architecture and task ordering
 
@@ -673,14 +673,14 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.2.2.
 
-- [ ] Implement the exact ParentObservation schema (reuse spec observation records) and ObserveRequest/Observe at the parent's recorded exact compiler.
-- [ ] Require complete requested API/source observations and unchanged compiler, inspector and module inputs before returning a usable snapshot; join cleanup failures.
-- [ ] Validate snapshot schema/completeness, family, exact baseline, digests and requested package/context inventories; reject stale or mismatched snapshots explicitly.
-- [ ] Test target definition/support-only changes preserve usability while parent/origin/inspector/module edits invalidate; Observe remains data-only.
+- [x] Implement the exact ParentObservation schema (reuse spec observation records) and ObserveRequest/Observe at the parent's recorded exact compiler.
+- [x] Require complete requested API/source observations and unchanged compiler, inspector and module inputs before returning a usable snapshot; join cleanup failures.
+- [x] Validate snapshot schema/completeness, family, exact baseline, digests and requested package/context inventories; reject stale or mismatched snapshots explicitly.
+- [x] Test target definition/support-only changes preserve usability while parent/origin/inspector/module edits invalidate; Observe remains data-only.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and spec/audit snapshot tests pass under both compilers, with complete actual parent observations.
+- [x] V-REVISIONS, V-BUILD and spec/audit snapshot tests pass under both compilers, with complete actual parent observations.
 
 ### Task 26: Compute actionable comparison findings and draft operations
 
@@ -688,17 +688,17 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **References:** target §6 report/draft schema and coverage; §7 Compare/CompareObservations; §11 comparison algorithms.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.3.
+**Budget:** ≤550 authored Go/test lines (batched with 25.3 per user direction). **Dependencies:** 25.3.
 
-- [ ] Implement CompareRequest, ComparisonReport, Finding, DeltaProposal and DraftDelta exactly as target §6; use spec observation records without mirrors.
-- [ ] Implement Compare and CompareObservations, enforcing stable immediate next minor, complete parent resolution and optional validated parent snapshot; no hidden parent compiler download.
-- [ ] With a snapshot, report actual upstream API changes. Without one, inspect declared contracts/source and report APIDiff skipped-no-parent without an old-API finding flood. Record incomplete requested API scans distinctly.
-- [ ] Propose only unambiguous typed add/replace/remove operations. Mark missing implementations and source-only behavior review unresolved; no automatically approved origin, support declaration or executable patch.
-- [ ] Sort deterministic findings/proposals, keep completed differences separate from operational errors, and recheck compiler/module/source identities before assigning Complete.
+- [x] Implement CompareRequest, ComparisonReport, Finding, DeltaProposal and DraftDelta exactly as target §6; use spec observation records without mirrors.
+- [x] Implement Compare and CompareObservations, enforcing stable immediate next minor, complete parent resolution and optional validated parent snapshot; no hidden parent compiler download.
+- [x] With a snapshot, report actual upstream API changes. Without one, inspect declared contracts/source and report APIDiff skipped-no-parent without an old-API finding flood. Record incomplete requested API scans distinctly.
+- [x] Propose only unambiguous typed add/replace/remove operations. Mark missing implementations and source-only behavior review unresolved; no automatically approved origin, support declaration or executable patch.
+- [x] Sort deterministic findings/proposals, keep completed differences separate from operational errors, and recheck compiler/module/source identities before assigning Complete.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and audit tests pass for empty delta, inherited parent changes, incompatibilities, skipped API coverage, incomplete contexts, stale snapshots and non-installable draft decoding.
+- [x] V-REVISIONS, V-BUILD and audit tests pass for empty delta, inherited parent changes, incompatibilities, skipped API coverage, incomplete contexts, stale snapshots and non-installable draft decoding.
 
 ### Task 27: Publish audit artifacts and wire all generator handlers
 

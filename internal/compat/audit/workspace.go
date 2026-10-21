@@ -27,39 +27,13 @@ type inspectionWorkspace struct {
 }
 
 func prepareAuditWorkspace(ctx context.Context, tc buildspec.Toolchain, directory string, parent spec.ResolvedFamily, contexts []spec.SourceContext) (w *inspectionWorkspace, resultErr error) {
-	directory, err := filepath.Abs(directory)
-	if err != nil {
-		return nil, err
-	}
-	r := buildspec.Resolution{Toolchain: tc, Context: buildspec.ModuleContext{Directory: directory}}
-	data, err := buildspec.SourceInspectionApplicationCommand(ctx, r, "env", "-json", "GOMOD", "GOWORK").Output()
-	if err != nil {
-		return nil, err
-	}
-	var info struct{ GOMOD, GOWORK string }
-	if err := json.Unmarshal(data, &info); err != nil {
-		return nil, err
-	}
-	r.Context.GoMod, r.Context.GoWork = info.GOMOD, info.GOWORK
-	if r.Context.GoWork == "" {
-		r.Context.GoWork = "off"
-	}
-	modules, err := buildspec.ResolveInspectionModuleGraph(ctx, r)
+	r, modules, root, err := auditCaller(ctx, tc, directory)
 	if err != nil {
 		return nil, err
 	}
 	before, err := moduleInputs(ctx, r, modules, nil)
 	if err != nil {
 		return nil, err
-	}
-	root := ""
-	for _, m := range modules {
-		if m.Path == frameworkModule {
-			root = m.Effective().Dir
-		}
-	}
-	if root == "" {
-		return nil, fmt.Errorf("selected graph has no Gosim source module")
 	}
 	inspector, err := inspectorDigest(ctx, root)
 	if err != nil {
@@ -245,3 +219,38 @@ func (w *inspectionWorkspace) Recheck(ctx context.Context) error {
 }
 
 func (w *inspectionWorkspace) Close() error { return w.cleanup() }
+
+func auditCaller(ctx context.Context, tc buildspec.Toolchain, directory string) (buildspec.Resolution, []buildspec.Module, string, error) {
+	var r buildspec.Resolution
+	directory, err := filepath.Abs(directory)
+	if err != nil {
+		return r, nil, "", err
+	}
+	r = buildspec.Resolution{Toolchain: tc, Context: buildspec.ModuleContext{Directory: directory}}
+	data, err := buildspec.SourceInspectionApplicationCommand(ctx, r, "env", "-json", "GOMOD", "GOWORK").Output()
+	if err != nil {
+		return r, nil, "", err
+	}
+	var info struct{ GOMOD, GOWORK string }
+	if err := json.Unmarshal(data, &info); err != nil {
+		return r, nil, "", err
+	}
+	r.Context.GoMod, r.Context.GoWork = info.GOMOD, info.GOWORK
+	if r.Context.GoWork == "" {
+		r.Context.GoWork = "off"
+	}
+	modules, err := buildspec.ResolveInspectionModuleGraph(ctx, r)
+	if err != nil {
+		return r, nil, "", err
+	}
+	root := ""
+	for _, m := range modules {
+		if m.Path == frameworkModule {
+			root = m.Effective().Dir
+		}
+	}
+	if root == "" {
+		return r, nil, "", fmt.Errorf("selected graph has no Gosim source module")
+	}
+	return r, modules, root, nil
+}
