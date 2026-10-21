@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	p125 "github.com/neria-cloud/gosim/internal/compat/go125/profile"
-	p126 "github.com/neria-cloud/gosim/internal/compat/go126/profile"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -18,9 +16,9 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			p, m := p125.Descriptor(), p125.PolicyManifest()
+			p, m := fixtureProfile(t, "go125"), fixturePolicy(t, "go125")
 			if family == "go126" {
-				p, m = p126.Descriptor(), p126.PolicyManifest()
+				p, m = fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 			}
 			if err := p.Validate(); err != nil {
 				t.Fatal(err)
@@ -84,9 +82,9 @@ func TestFamiliesNativeBridges(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			p, m := p125.Descriptor(), p125.PolicyManifest()
+			p, m := fixtureProfile(t, "go125"), fixturePolicy(t, "go125")
 			if family == "go126" {
-				p, m = p126.Descriptor(), p126.PolicyManifest()
+				p, m = fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 			}
 			for _, symbol := range []string{"Gosched", "GOOS", "SetFinalizer", "NumCPU", "GOMAXPROCS", "ReadMemStats", "AddCleanup", "SetBlockProfileRate"} {
 				target, err := m.ResolveSymbol(p, "runtime", symbol, true)
@@ -133,9 +131,9 @@ func TestMinimalImportInitClassification(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			m := p125.PolicyManifest()
+			m := fixturePolicy(t, "go125")
 			if family == "go126" {
-				m = p126.PolicyManifest()
+				m = fixturePolicy(t, "go126")
 			}
 			for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
 				for _, item := range []struct {
@@ -190,9 +188,9 @@ func TestPolicyFixtures(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			p, m := p125.Descriptor(), p125.PolicyManifest()
+			p, m := fixtureProfile(t, "go125"), fixturePolicy(t, "go125")
 			if family == "go126" {
-				p, m = p126.Descriptor(), p126.PolicyManifest()
+				p, m = fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 			}
 			fixtures, err := filepath.Glob("testdata/policy/*.go")
 			if err != nil {
@@ -264,9 +262,9 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			p, m := p125.Descriptor(), p125.PolicyManifest()
+			p, m := fixtureProfile(t, "go125"), fixturePolicy(t, "go125")
 			if family == "go126" {
-				p, m = p126.Descriptor(), p126.PolicyManifest()
+				p, m = fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 			}
 			for _, entry := range m.NativeImports {
 				if err := m.AllowNativeImport(p, entry.From, entry.Package, true); err != nil {
@@ -334,7 +332,7 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 
 func TestPolicyManifestRejectsInvalidOwnership(t *testing.T) {
 	t.Parallel()
-	p := p125.Descriptor()
+	p := fixtureProfile(t, "go125")
 	cases := []func(*spec.PolicyManifest){
 		func(m *spec.PolicyManifest) { m.SharedGlobals[0].Package = "example.test/application" },
 		func(m *spec.PolicyManifest) {
@@ -347,7 +345,7 @@ func TestPolicyManifestRejectsInvalidOwnership(t *testing.T) {
 		func(m *spec.PolicyManifest) { m.Modules[0].Version = "" },
 	}
 	for _, change := range cases {
-		m := p125.PolicyManifest()
+		m := fixturePolicy(t, "go125")
 		change(&m)
 		if err := m.Validate(p); err == nil {
 			t.Fatal("invalid policy manifest accepted")
@@ -373,7 +371,7 @@ func TestInitProbeSourceEvidence(t *testing.T) {
 	for _, source := range fixtureOrigin(t, "go125").Files {
 		sources[source.Path] = true
 	}
-	for _, probe := range p125.PolicyManifest().Probes {
+	for _, probe := range fixturePolicy(t, "go125").Probes {
 		if !sources[probe.Source] {
 			t.Errorf("probe %s.%s lacks pinned source evidence: %s", probe.Package, probe.Symbol, probe.Source)
 		}

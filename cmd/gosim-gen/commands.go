@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 )
 
 type commandRunner struct {
@@ -71,10 +73,10 @@ func (r commandRunner) generation(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func runProfiles(_ context.Context, args []string, stdout, stderr io.Writer) int {
+func runProfiles(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("gosim-gen profiles", flag.ContinueOnError)
 	root := flags.String("root", ".", "repository root containing family definitions")
-	flags.Bool("check", false, "verify support tables, gates and revisions without writing")
+	check := flags.Bool("check", false, "verify support tables, gates and revisions without writing")
 	if code := parseFlags(flags, args, stdout, stderr); code >= 0 {
 		return code
 	}
@@ -82,7 +84,11 @@ func runProfiles(_ context.Context, args []string, stdout, stderr io.Writer) int
 		fmt.Fprintln(stderr, "profiles requires a nonempty -root")
 		return 2
 	}
-	return unavailable("profiles", stderr)
+	if err := profiles.GenerateMetadata(ctx, *root, *check); err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	return 0
 }
 
 func runCompare(_ context.Context, args []string, stdout, stderr io.Writer) int {

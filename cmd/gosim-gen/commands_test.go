@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -16,7 +18,7 @@ func TestDispatch(t *testing.T) {
 		code int
 		text string
 	}{
-		{"profiles -root=. -check", 1, "profiles: command not yet implemented"},
+		{"profiles -root=/nonexistent-gosim-profile-fixture -check", 1, "no such file"},
 		{"compare -parent=go125 -output=new-dir", 1, "compare: command not yet implemented"},
 		{"observe -profile=go125 -output=new-file", 1, "observe: command not yet implemented"},
 		{"profiles -root=", 2, "nonempty -root"},
@@ -83,5 +85,30 @@ func TestCommandHelp(t *testing.T) {
 				t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 			}
 		})
+	}
+}
+
+func TestProfilesMaintenanceBootstrap(t *testing.T) {
+	const directoryMode = 0o755
+	const fileMode = 0o644
+	const definition = `{"schema":1,"family":"1.25","supported":true,"delta":{}}`
+	root := t.TempDir()
+	directory := filepath.Join(root, "internal/compat/profiles")
+	if err := os.MkdirAll(directory, directoryMode); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "go125.json"), []byte(definition), fileMode); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	if code := runCLI(t.Context(), []string{"profiles", "-root=" + root}, &stdout, &stderr); code != 0 {
+		t.Fatalf("bootstrap %d: %s", code, &stderr)
+	}
+	if _, err := os.Stat(filepath.Join(root, "internal/buildspec/families_gen.go")); err != nil {
+		t.Fatal(err)
+	}
+	code := runCLI(t.Context(), []string{"profiles", "-root=" + root, "-check"}, &stdout, &stderr)
+	if code != 1 || !strings.Contains(stderr.String(), "origin.json") {
+		t.Fatalf("readiness %d: %s", code, &stderr)
 	}
 }

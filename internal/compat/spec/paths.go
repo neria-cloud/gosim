@@ -47,7 +47,7 @@ func ClassifyCompatPackage(path string) CompatPackageKind {
 		if rest == "" {
 			return CompatMetadata
 		}
-	case "audit", "genprofile", "catalog":
+	case "audit":
 		if rest == "" {
 			return CompatTooling
 		}

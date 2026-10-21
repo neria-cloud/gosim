@@ -3,6 +3,9 @@ package selected
 import (
 	"fmt"
 	"reflect"
+	"runtime"
+
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
@@ -23,9 +26,25 @@ func Resolve(selection buildspec.Selection) (spec.Profile, spec.PolicyManifest, 
 	if !reflect.DeepEqual(expected, selection) {
 		return spec.Profile{}, spec.PolicyManifest{}, fmt.Errorf("selection differs from canonical %s profile metadata", p.ID)
 	}
-	m := policyManifest()
+	m, err := policyManifest()
+	if err != nil {
+		return spec.Profile{}, spec.PolicyManifest{}, err
+	}
 	if err := m.Validate(p); err != nil {
 		return spec.Profile{}, spec.PolicyManifest{}, err
 	}
 	return p, m, nil
 }
+
+func Profile() spec.Profile {
+	p, err := descriptorForArch(runtime.GOARCH)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
+func descriptorForArch(arch string) (spec.Profile, error) {
+	return profiles.Descriptor(selectedProfile, arch)
+}
+func policyManifest() (spec.PolicyManifest, error) { return profiles.Policy(selectedProfile) }

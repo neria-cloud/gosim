@@ -47,8 +47,11 @@ test-lint-tools: ## Check changed-file selection and staged lint isolation
 	python3 -B -m unittest discover -s scripts -p 'lint_test.py'
 
 go-generate: ## Generate Go adapters and filesystem model stringers
-	GOTOOLCHAIN=go1.25.14 go run ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=.
-	GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -arches=amd64,arm64 -output=.
+	go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen profiles -root=.
+	GOTOOLCHAIN=go1.25.14 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=.
+	GOTOOLCHAIN=go1.26.9 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -arches=amd64,arm64 -output=.
+	go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen profiles -root=.
+	go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen profiles -root=. -check
 	go generate ./internal/fs/model
 
 certification-matrix: ## Run the manual native certification matrix

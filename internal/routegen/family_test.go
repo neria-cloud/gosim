@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/compat/catalog"
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -23,7 +24,7 @@ func TestCurrentFamilyOriginRefresh(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := catalog.Descriptor(v.Family(), r.Toolchain.HostArch)
+	p, err := profiles.Descriptor("go1"+strconv.Itoa(v.Minor), r.Toolchain.HostArch)
 	if err != nil {
 		t.Fatal(err)
 	}

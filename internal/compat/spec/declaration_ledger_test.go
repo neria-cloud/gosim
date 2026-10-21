@@ -18,8 +18,7 @@ import (
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	p125 "github.com/neria-cloud/gosim/internal/compat/go125/profile"
-	p126 "github.com/neria-cloud/gosim/internal/compat/go126/profile"
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -154,26 +153,16 @@ func ownedDeclarations(t *testing.T, pkg string, ctx build.Context) map[string]s
 // package layout without changing historical inventory or its digest.
 func currentLedgerTarget(t *testing.T, target, family string) string {
 	t.Helper()
-	pkg, _, _ := strings.Cut(target, ".")
-	if _, err := os.Stat(filepath.Join("../../..", pkg)); err == nil {
-		return target
-	} else if !os.IsNotExist(err) {
-		t.Fatal(err)
-	}
 	return strings.Replace(target, "internal/compat/"+family+"/", "internal/compat/", 1)
 }
 
 func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 	t.Parallel()
 	ledger := readDeclarationLedger(t)
-	for _, family := range []struct {
-		name           string
-		descriptor     func(string) (spec.Profile, error)
-		policyManifest func() spec.PolicyManifest
-	}{{"go125", p125.DescriptorForArch, p125.PolicyManifest}, {"go126", p126.DescriptorForArch, p126.PolicyManifest}} {
+	for _, family := range []string{"go125", "go126"} {
 		for _, arch := range []string{"amd64", "arm64"} {
-			t.Run(family.name+"/"+arch, func(t *testing.T) {
-				p, err := family.descriptor(arch)
+			t.Run(family+"/"+arch, func(t *testing.T) {
+				p, err := profiles.Descriptor(family, arch)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -182,7 +171,7 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 					hooks[h.Package+"."+h.Symbol] = h
 				}
 				bridges := map[string]string{}
-				for _, bridge := range family.policyManifest().Bridges {
+				for _, bridge := range fixturePolicy(t, family).Bridges {
 					bridges[bridge.Package] = bridge.Replacement
 				}
 				packages := map[string]map[string]string{}
@@ -201,9 +190,9 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 					if !slices.Contains([]string{"hook", "moved-hook", "binding", "replacement"}, d.Disposition) {
 						t.Fatal("unreviewed disposition", label)
 					}
-					target := currentLedgerTarget(t, strings.ReplaceAll(d.Target, "{family}", family.name), family.name)
+					target := currentLedgerTarget(t, strings.ReplaceAll(d.Target, "{family}", family), family)
 					key := d.Package + "." + d.Symbol
-					if len(d.Arches) > 0 && !slices.Contains(d.Arches, arch) || slices.Contains(d.AbsentIn, family.name) {
+					if len(d.Arches) > 0 && !slices.Contains(d.Arches, arch) || slices.Contains(d.AbsentIn, family) {
 						if _, ok := hooks[key]; ok {
 							t.Error("absent declaration selected", label)
 						}
@@ -225,7 +214,7 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 						t.Fatal("invalid target", target)
 					}
 					if packages[pkg] == nil {
-						packages[pkg] = ownedDeclarations(t, pkg, sourceContext(family.name, arch))
+						packages[pkg] = ownedDeclarations(t, pkg, sourceContext(family, arch))
 					}
 					if got := packages[pkg][symbol]; got != d.Kind {
 						t.Error("missing/wrong declaration kind", label, target, got, d.Kind)
@@ -264,10 +253,7 @@ func TestSelectedCompatibilityInventories(t *testing.T) {
 		for _, arch := range []string{"amd64", "arm64"} {
 			for _, race := range []bool{false, true} {
 				count := 0
-				for _, root := range []string{"../hooks", "../shims", "../host", "../" + family + "/hooks", "../" + family + "/shims", "../" + family + "/host"} {
-					if _, err := os.Stat(root); os.IsNotExist(err) {
-						continue
-					}
+				for _, root := range []string{"../hooks", "../shims", "../host"} {
 					ctx := sourceContext(family, arch)
 					if strings.HasSuffix(root, "/host") {
 						ctx.GOOS = runtime.GOOS
@@ -349,7 +335,7 @@ func TestAuditedShimLimitationsAreNamed(t *testing.T) {
 	for _, family := range []struct {
 		p spec.Profile
 		m spec.PolicyManifest
-	}{{p125.Descriptor(), p125.PolicyManifest()}, {p126.Descriptor(), p126.PolicyManifest()}} {
+	}{{fixtureProfile(t, "go125"), fixturePolicy(t, "go125")}, {fixtureProfile(t, "go126"), fixturePolicy(t, "go126")}} {
 		for _, symbol := range []string{"StructOf", "unsafe_New", "typedmemmove", "unsafe_NewArray", "typedslicecopy", "mapassign", "mapaccess", "mapiterinit", "mapiternext", "ifaceE2I", "makemap"} {
 			if _, err := family.m.ResolveSymbol(family.p, "reflect", symbol, true); err == nil {
 				t.Error("private/unimplemented reflection admitted", family.p.ID, symbol)

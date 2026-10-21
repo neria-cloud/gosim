@@ -24,10 +24,6 @@ def source_files(root):
                 continue
             if rel == "internal/compat/profiles/evidence.json":
                 continue
-            if (path.name in {"tuples.json", "evidence.json"}
-                    and path.parent.name == "profile"
-                    and rel.startswith("internal/compat/")):
-                continue
             if path.is_symlink() or not path.is_file():
                 raise RuntimeError(f"unsupported source input {rel}")
             files[rel] = hashlib.sha256(path.read_bytes()).hexdigest()

@@ -10,7 +10,7 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/compat/catalog"
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -30,15 +30,11 @@ func currentGeneration(t *testing.T) (buildspec.Toolchain, spec.Profile, Generat
 	if err != nil {
 		t.Fatal(err)
 	}
-	entry, err := catalog.Lookup(family.Profile)
+	p, err := profiles.Descriptor(family.Profile, r.Toolchain.HostArch)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := entry.Descriptor(r.Toolchain.HostArch)
-	if err != nil {
-		t.Fatal(err)
-	}
-	origin, err := entry.Origin("../..")
+	origin, err := spec.LoadOrigin(os.DirFS("../compat/profiles"), family.Profile)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	p125 "github.com/neria-cloud/gosim/internal/compat/go125/profile"
-	p126 "github.com/neria-cloud/gosim/internal/compat/go126/profile"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -18,7 +16,7 @@ func TestRuntimeFamilyABIDelta(t *testing.T) {
 		p      spec.Profile
 		result string
 	}{
-		{p125.Descriptor(), " uintptr"}, {p126.Descriptor(), ""},
+		{fixtureProfile(t, "go125"), " uintptr"}, {fixtureProfile(t, "go126"), ""},
 	} {
 		if err := item.p.Validate(); err != nil {
 			t.Fatal(err)
@@ -60,7 +58,7 @@ func TestRuntimeFamilyABIDelta(t *testing.T) {
 
 func TestGo126RuntimePolicy(t *testing.T) {
 	t.Parallel()
-	p, m := p126.Descriptor(), p126.PolicyManifest()
+	p, m := fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 	if err := m.Validate(p); err != nil {
 		t.Fatal(err)
 	}

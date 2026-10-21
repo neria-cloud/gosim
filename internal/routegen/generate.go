@@ -12,7 +12,7 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/compat/catalog"
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -73,16 +73,14 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 	if support.Profile != profileID {
 		return nil, fmt.Errorf("generation requires source compiler matching profile %s", profileID)
 	}
-	entry, err := catalog.Lookup(profileID)
+	profile, err := profiles.Descriptor(profileID, tc.HostArch)
 	if err != nil {
 		return nil, err
 	}
-	descriptor := entry.Descriptor
-	profile, err := descriptor(tc.HostArch)
+	policies, err := profiles.Policy(profileID)
 	if err != nil {
 		return nil, err
 	}
-	policies := entry.Policy()
 	if output == "" || len(arches) == 0 {
 		return nil, fmt.Errorf("explicit output and architectures are required")
 	}
@@ -102,7 +100,7 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 		return nil, fmt.Errorf("generation requires a module context")
 	}
 	root := filepath.Dir(moduleFile)
-	origin, err := entry.Origin(root)
+	origin, err := spec.LoadOrigin(os.DirFS(filepath.Join(root, "internal/compat/profiles")), profileID)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +158,7 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 		outputs["internal/compat/profiles/"+profileID+".origin.json"] = append(data, '\n')
 	}
 	for _, arch := range arches {
-		profile, err = descriptor(arch)
+		profile, err = profiles.Descriptor(profileID, arch)
 		if err != nil {
 			return nil, err
 		}

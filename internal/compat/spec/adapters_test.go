@@ -8,14 +8,13 @@ import (
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	p125 "github.com/neria-cloud/gosim/internal/compat/go125/profile"
-	p126 "github.com/neria-cloud/gosim/internal/compat/go126/profile"
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
 func TestAdapterMetadataAndFingerprints(t *testing.T) {
 	t.Parallel()
-	for _, p := range []spec.Profile{p125.Descriptor(), p126.Descriptor()} {
+	for _, p := range []spec.Profile{fixtureProfile(t, "go125"), fixtureProfile(t, "go126")} {
 		t.Run(p.ID, func(t *testing.T) {
 			if err := p.Validate(); err != nil {
 				t.Fatal(err)
@@ -29,14 +28,14 @@ func TestAdapterMetadataAndFingerprints(t *testing.T) {
 				t.Fatal(err)
 			}
 			if digest != p.Revision {
-				t.Fatal("stale adapter fingerprint; run go run ./internal/compat/genprofile")
+				t.Fatal("stale adapter fingerprint; run go run ./cmd/gosim-gen profiles")
 			}
 		})
 	}
-	p := p125.Descriptor()
+	p := fixtureProfile(t, "go125")
 	p.Hooks[0].Symbol = "mutation"
 	p.Support.Family = "mutation"
-	if p125.Descriptor().Hooks[0].Symbol == "mutation" || p125.Descriptor().Support.Family == "mutation" {
+	if fixtureProfile(t, "go125").Hooks[0].Symbol == "mutation" || fixtureProfile(t, "go125").Support.Family == "mutation" {
 		t.Fatal("descriptor state leaked")
 	}
 }
@@ -49,10 +48,9 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 	t.Parallel()
 	tc := currentToolchain()
 	for _, candidate := range []struct {
-		p          spec.Profile
-		origin     spec.Origin
-		descriptor func(string) (spec.Profile, error)
-	}{{p125.Descriptor(), fixtureOrigin(t, "go125"), p125.DescriptorForArch}, {p126.Descriptor(), fixtureOrigin(t, "go126"), p126.DescriptorForArch}} {
+		p      spec.Profile
+		origin spec.Origin
+	}{{fixtureProfile(t, "go125"), fixtureOrigin(t, "go125")}, {fixtureProfile(t, "go126"), fixtureOrigin(t, "go126")}} {
 		t.Run(candidate.p.ID, func(t *testing.T) {
 			origin := candidate.origin
 			if origin.BaselineToolchain != tc.Version {
@@ -67,7 +65,7 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 			for _, arch := range []string{"amd64", "arm64"} {
 				sourceTC := tc
 				sourceTC.HostArch = arch
-				p, err := candidate.descriptor(arch)
+				p, err := profiles.Descriptor(candidate.p.ID, arch)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -121,7 +119,7 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 	}
 	// This declaration exists on both development and pinned families. VerifyHooks
 	// must reject a changed signature even before strict patch selection is wired.
-	hooks := p126.Descriptor().Hooks
+	hooks := fixtureProfile(t, "go126").Hooks
 	hooks[0].Signature = "func(int)"
 	if err := spec.VerifyHooks(tc, hooks); err == nil || !strings.Contains(err.Error(), "ABI drift") {
 		t.Fatalf("signature drift: %v", err)
@@ -161,7 +159,7 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 		}
 		write(path, "original")
 	}
-	for _, path := range []string{"internal/compat/host/coro_test.go", "internal/compat/go125/profile/revision.go", "internal/compat/go125/profile/tuples.json", "internal/compat/go125/profile/evidence.json"} {
+	for _, path := range []string{"internal/compat/host/coro_test.go", "internal/compat/profiles/revisions_gen.go", "internal/compat/profiles/evidence.json"} {
 		write(path, "not source for this identity")
 	}
 	if digest() != original {
@@ -177,7 +175,7 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 
 func TestGo125ShimBindings(t *testing.T) {
 	t.Parallel()
-	shims := p125.ShimManifest()
+	shims := fixtureShims(t, "go125")
 	if err := spec.VerifyShimBindings("../../..", shimFamily("1.25", "go125", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +184,7 @@ func TestGo125ShimBindings(t *testing.T) {
 		t.Fatal("changed shim signature accepted")
 	}
 	if strings.HasPrefix(runtime.Version(), "go1.25.") {
-		if err := spec.VerifyHooks(currentToolchain(), p125.ShimManifest()); err != nil {
+		if err := spec.VerifyHooks(currentToolchain(), fixtureShims(t, "go125")); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -194,7 +192,7 @@ func TestGo125ShimBindings(t *testing.T) {
 
 func TestGo126ShimBindings(t *testing.T) {
 	t.Parallel()
-	shims := p126.ShimManifest()
+	shims := fixtureShims(t, "go126")
 	if err := spec.VerifyShimBindings("../../..", shimFamily("1.26", "go126", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +201,7 @@ func TestGo126ShimBindings(t *testing.T) {
 		t.Fatal("changed shim signature accepted")
 	}
 	if strings.HasPrefix(runtime.Version(), "go1.26.") {
-		if err := spec.VerifyHooks(currentToolchain(), p126.ShimManifest()); err != nil {
+		if err := spec.VerifyHooks(currentToolchain(), fixtureShims(t, "go126")); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -225,4 +223,31 @@ func fixtureOrigin(t *testing.T, profileID string) spec.Origin {
 		t.Fatal(err)
 	}
 	return origin
+}
+
+func fixtureProfile(t *testing.T, id string) spec.Profile {
+	t.Helper()
+	p, err := profiles.Descriptor(id, runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func fixturePolicy(t *testing.T, id string) spec.PolicyManifest {
+	t.Helper()
+	p, err := profiles.Policy(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func fixtureShims(t *testing.T, id string) []spec.Hook {
+	t.Helper()
+	p, err := profiles.Shims(id, runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
 }

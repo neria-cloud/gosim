@@ -73,7 +73,7 @@ func TestSharedRevisionInputs(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, dir := range []string{"internal/compat/go125", "internal/compat/go126", "internal/hostabi", "internal/compat/selected", "internal/compat/spec", "internal/buildspec"} {
+	for _, dir := range []string{"internal/compat/hooks", "internal/compat/shims", "internal/hostabi", "internal/compat/selected", "internal/compat/spec", "internal/buildspec"} {
 		write(dir+"/input.go", "package fixture")
 	}
 	write("internal/compat/profiles/go125.json", `{"schema":1,"family":"1.25","supported":true,"delta":{}}`)
@@ -133,7 +133,7 @@ func TestSharedRevisionInputs(t *testing.T) {
 		}
 	}
 	before = revision()
-	for _, name := range []string{"internal/compat/profiles/go125.origin.json", "internal/compat/profiles/go126.origin.json", "internal/compat/profiles/evidence.json", "internal/compat/profiles/revisions_gen.go", "internal/compat/go125/profile/revision.go", "internal/compat/hooks/rt/shared_test.go", "internal/compat/shims/testing/testdata/input.go"} {
+	for _, name := range []string{"internal/compat/profiles/go125.origin.json", "internal/compat/profiles/go126.origin.json", "internal/compat/profiles/evidence.json", "internal/compat/profiles/revisions_gen.go", "internal/compat/hooks/rt/shared_test.go", "internal/compat/shims/testing/testdata/input.go"} {
 		write(name, strings.Repeat("x", 64))
 	}
 	if revision() != before {

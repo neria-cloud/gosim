@@ -9,14 +9,13 @@ import (
 
 	"golang.org/x/mod/sumdb/dirhash"
 
-	p125 "github.com/neria-cloud/gosim/internal/compat/go125/profile"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
 func TestPinnedModuleGraphAndSources(t *testing.T) {
 	t.Parallel()
 	tc := currentToolchain()
-	pins := p125.PolicyManifest().Modules
+	pins := fixturePolicy(t, "go125").Modules
 	if err := spec.VerifyModules(tc, "../../..", pins); err != nil {
 		t.Fatal(err)
 	}

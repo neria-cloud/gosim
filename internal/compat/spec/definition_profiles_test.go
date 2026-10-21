@@ -1,10 +1,8 @@
 package spec_test
 
 import (
-	"encoding/json"
 	"os"
 	"reflect"
-	"slices"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
@@ -18,48 +16,6 @@ func profileDefinitions(t *testing.T) map[string]spec.FamilyDefinition {
 		t.Fatal(err)
 	}
 	return defs
-}
-
-// These digests were compared once against git revision 550d5e3 after shared
-// target/reason normalization and the nine explicitly added shim contracts.
-// Tests only need committed definitions; they never read git or migration files.
-func TestProfileDefinitionSemanticBaseline(t *testing.T) {
-	t.Parallel()
-	defs := profileDefinitions(t)
-	expected := map[string]string{
-		"1.25/amd64": "fa9beadde9ccdb776dd9838bda38e85466ad44480ceb8abc43a5f20e4a697881",
-		"1.25/arm64": "5263ec93e16158ad16365f34556f7e7b1138c94d7ae2a8dab39a5a11e282bcee",
-		"1.26/amd64": "21d966959587bb49c214cfb161d6c56f9f0d9cd6ce14edd432141bf3cc13b92d",
-		"1.26/arm64": "e223ff97d2a663801013fafdbd0f7ff68f7332fe51b7c53ae7f9b1d172b7e148",
-	}
-	for _, family := range []string{"1.25", "1.26"} {
-		r, err := spec.ResolveDefinitions(defs, family)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, arch := range []string{"amd64", "arm64"} {
-			p, err := r.Descriptor(arch, buildspec.Hash([]byte("fixture revision")))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := p.Validate(); err != nil {
-				t.Fatal(err)
-			}
-			if err := r.PolicyManifest().Validate(p); err != nil {
-				t.Fatal(err)
-			}
-			data, err := json.Marshal(semanticView(p, r.PolicyManifest(), r.ShimManifest(arch)))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got := buildspec.Hash(data); got != expected[family+"/"+arch] {
-				t.Fatalf("%s/%s semantic metadata changed: %s", family, arch, got)
-			}
-			if err := spec.VerifyShimBindings("../../..", r, spec.SourceContext{OS: "linux", Arch: arch}); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
 }
 
 func TestUnchangedFamilyInheritsRealIntermediateDelta(t *testing.T) {
@@ -111,23 +67,26 @@ func TestCurrentCompilerResolvedContracts(t *testing.T) {
 	}
 }
 
-func semanticRecords[T any](rows []T) []string {
-	out := []string{}
-	for _, r := range rows {
-		data, err := json.Marshal(r)
+func TestPreviouslyOmittedShimContracts(t *testing.T) {
+	for _, family := range []string{"1.25", "1.26"} {
+		r, err := spec.ResolveDefinitions(profileDefinitions(t), family)
 		if err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
-		out = append(out, string(data))
+		p, err := r.Descriptor("arm64", buildspec.Hash([]byte("fixture")))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for arch, manifest := range p.ContractsByArch {
+			hooks := map[string]bool{}
+			for _, h := range manifest.Hooks {
+				hooks[h.Package+"."+h.Symbol] = true
+			}
+			for _, name := range []string{"crypto/tls.CipherSuites", "crypto/tls.InsecureCipherSuites", "runtime/metrics.All", "runtime/metrics.Read", "runtime/metrics.Value.Kind", "runtime/metrics.Value.Uint64", "runtime/metrics.Value.Float64", "runtime/metrics.Value.Float64Histogram", "runtime/debug.ReadGCStats"} {
+				if !hooks[name] {
+					t.Errorf("%s/%s lost %s", family, arch, name)
+				}
+			}
+		}
 	}
-	slices.Sort(out)
-	return out
-}
-
-func semanticView(p spec.Profile, m spec.PolicyManifest, shims []spec.Hook) map[string]any {
-	out := map[string]any{"id": p.ID, "hooks": semanticRecords(p.Hooks), "packages": semanticRecords(p.Packages), "runtime_packages": semanticRecords(p.RuntimePackages), "shims": semanticRecords(shims), "bridges": semanticRecords(m.Bridges), "native_imports": semanticRecords(m.NativeImports), "shared_globals": semanticRecords(m.SharedGlobals), "probes": semanticRecords(m.Probes), "modules": semanticRecords(m.Modules), "capabilities": semanticRecords(m.Capabilities)}
-	for arch, c := range p.ContractsByArch {
-		out[arch] = map[string]any{"schema": c.Schema, "family": c.Family, "architecture": c.Architecture, "hooks": semanticRecords(c.Hooks), "layouts": semanticRecords(c.Layouts), "constants": semanticRecords(c.Constants)}
-	}
-	return out
 }

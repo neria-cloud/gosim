@@ -107,7 +107,6 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 		write(dir+"/source.go", "package fixture\n")
 	}
 	write("go.mod", "module github.com/neria-cloud/gosim\n")
-	write("internal/compat/go126/profile/tuples.json", `[]`)
 	write("internal/compat/profiles/evidence.json", `{}`)
 	write("internal/compat/profiles/go125.origin.json", `{}`)
 	write("docs/architecture.md", "old docs")
@@ -127,7 +126,6 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 		return id
 	}
 	before := build()
-	write("internal/compat/go126/profile/tuples.json", `[{"status":"certified"}]`)
 	write("internal/compat/profiles/evidence.json", `{"history":"changed"}`)
 	write("docs/architecture.md", "new docs")
 	write(".gosim/output", "new artifact")
@@ -151,7 +149,7 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 	if after := build(); after.ProviderRevisions[0].Digest == before.ProviderRevisions[0].Digest || after.TranslatorDigest == before.TranslatorDigest {
 		t.Fatal("provider/source change failed to invalidate evidence")
 	}
-	write("internal/compat/go126/profile/hooks.json", `[{"symbol":"changed"}]`)
+	write("internal/compat/profiles/go126.json", `[{"symbol":"changed"}]`)
 	if after := build(); after.TranslatorDigest == before.TranslatorDigest {
 		t.Fatal("ABI policy not fingerprinted")
 	}

@@ -67,9 +67,7 @@ func SourceRevision(root, profileID string) (string, error) {
 			}
 			rel = filepath.ToSlash(rel)
 			name := entry.Name()
-			// Legacy exclusions disappear with the old metadata trees in Task 18.
-			legacy := strings.HasPrefix(rel, "internal/compat/go") && strings.Contains(rel, "/profile/")
-			if strings.HasSuffix(name, "_test.go") || strings.HasSuffix(name, ".md") || name == "revisions_gen.go" || rel == "internal/compat/profiles/evidence.json" || strings.HasPrefix(rel, "internal/compat/profiles/go") && strings.HasSuffix(name, ".origin.json") || legacy && (name == "revision.go" || name == "origin.json" || name == "tuples.json" || name == "evidence.json") {
+			if strings.HasSuffix(name, "_test.go") || strings.HasSuffix(name, ".md") || name == "revisions_gen.go" || rel == "internal/compat/profiles/evidence.json" || strings.HasPrefix(rel, "internal/compat/profiles/go") && strings.HasSuffix(name, ".origin.json") {
 				return nil
 			}
 			if !entry.Type().IsRegular() {
