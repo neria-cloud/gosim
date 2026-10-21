@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/neria-cloud/gosim/internal/testutil"
+
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
@@ -77,10 +79,10 @@ func TestDefinitionsOnlyEmbedAndIndependentViews(t *testing.T) {
 			t.Fatal("shared shim state", err)
 		}
 	}
-	if _, err := Descriptor("go127", "amd64"); err == nil {
+	if _, err := Descriptor(testutil.UnregisteredGo().Profile, "amd64"); err == nil {
 		t.Fatal("unregistered descriptor accepted")
 	}
-	if _, err := Revision("go127"); err == nil {
+	if _, err := Revision(testutil.UnregisteredGo().Profile); err == nil {
 		t.Fatal("unregistered revision accepted")
 	}
 	if _, err := Shims("go125", "invalid"); err == nil {

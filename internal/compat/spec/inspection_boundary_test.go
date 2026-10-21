@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"io/fs"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -49,6 +50,15 @@ func TestInspectionConsumerBoundary(t *testing.T) {
 		file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
 		if err != nil {
 			return err
+		}
+		for _, imp := range file.Imports {
+			name, err := strconv.Unquote(imp.Path.Value)
+			if err != nil {
+				return err
+			}
+			if strings.HasPrefix(name, "github.com/neria-cloud/gosim/internal/compat/audit") && !strings.HasPrefix(rel, "cmd/gosim-gen/") {
+				t.Errorf("audit package imported outside generator: %s", rel)
+			}
 		}
 		for _, decl := range file.Decls {
 			function := ""

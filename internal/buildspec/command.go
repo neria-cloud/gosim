@@ -177,6 +177,18 @@ func ApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec
 // Before discovery, empty GoWork preserves the caller's Go workspace selection.
 func SourceInspectionApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec.Cmd {
 	cmd := SourceInspectionCommand(ctx, r.Toolchain, r.Context.Directory, args...)
+	// Caller module queries must never authorize module-file updates. Source
+	// loading with -mod=mod belongs exclusively to the prepared private copy.
+	if len(args) > 0 && args[0] == "list" {
+		for _, arg := range args {
+			if arg == "-mod=mod" {
+				cmd.Err = fmt.Errorf("caller inspection requires read-only module queries")
+			}
+		}
+		if !InWorkspace(r) && (len(args) < 2 || args[1] != "-mod=readonly") {
+			cmd.Err = fmt.Errorf("caller inspection requires explicit -mod=readonly outside a resolved workspace")
+		}
+	}
 	work := r.Context.GoWork
 	if work == "" {
 		work = os.Getenv("GOWORK")

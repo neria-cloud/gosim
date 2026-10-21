@@ -664,6 +664,7 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 **Budget:** ≤450 authored Go/test lines. **Dependencies:** 27.
 
 - [ ] Exercise the known 1.25→1.26 comparison in separate compiler processes, expecting selected signature/API changes and crypto source review, while unchanged layouts/constants stay unchanged.
+- [ ] In a private copy, register a no-change next family, run profiles, then the focused buildspec/buildcfg/spec/profiles/hostabi suites; no edits to negative admission tests should be needed.
 - [ ] Test hypothetical unchanged next-family metadata with empty delta through support/gate/revision rendering and explicit origin bootstrap fixtures; assert zero copied implementation files and cumulative inherited variants.
 - [ ] Extend Task 24's private fixture under the RUNNING go1.26 ordinary job: omit 1.26 from its generated support table AND set its go126.json supported=false (retain parent 1.25), keeping fixture registry/definition state consistent. Rebuild the metadata-only tool with that same real compiler executable and GOTOOLCHAIN=local; never download another toolchain. Run compare -parent=go125 with one host architecture, no parent observation, an explicit 5-minute timeout and cleanup; require api_diff=skipped-no-parent and evidence that actual source parsing occurred. Assert ordinary admission rejects 1.26 through THIS fixture-built binary's legacy flag-only generation path reaching buildcfg.Resolve, not an in-process call in the original test binary. Do not mutate the working checkout or spoof runtime.Version. Record runtime; the go1.25 job explicitly skips this candidate-specific case and the go1.26 final job must execute it.
 - [ ] Test unchanged family authoring does not stale a captured parent snapshot merely through new data/support artifacts; actual source edits do invalidate it.
@@ -754,6 +755,8 @@ Compare implemented code, data and real entry-point flows with the target, not j
 Review findings were corrected before execution (see review thread 2 and progress log); no unresolved architectural gap is currently accepted. Unchecked tasks above are pending implementation, not completed gaps. Add discrepancies found during execution here with task/target reference, evidence, fix and verification; use `[_]` for an unresolved item.
 
 ## NOT PLANNED CHANGES
+
+- Peer checkpoint 3: derive unregistered test families from the registry, preserve contiguous synthetic ancestry, restrict caller inspection to read-only lists, reject stray revision inputs and narrow the generated-file exclusion, atomically replace metadata, add independent generation checks to Makefile, strengthen workspace/audit boundary tests, and correct stale live AGENTS.md paths. Detailed findings, diffs and verification are in review thread 5 and the correction commit. Task 28 now includes the no-change next-family focused-suite acceptance check.
 
 - Task 21: full ordinary validation exposed a stale diagnostic-name assertion in `internal/hostabi/coro_test.go` after Task 18 generated support guards. Updated only the expected marker; explicit source-selection assertions remain unchanged. Diff: `GOSIM_UNSUPPORTED_GO_FAMILY_USE_GO125_OR_GO126` → `GOSIM_UNSUPPORTED_GO_FAMILY`. Focused hostabi tests pass under both baselines; final ordinary reruns are recorded in the execution log.
 

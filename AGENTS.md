@@ -121,7 +121,7 @@ tools, and `make test-lint-tools` verifies selection and snapshot behavior.
 | `internal/control`, `internal/kernel` | Translated transport, lifecycle transactions, dispatcher, descriptors and polling |
 | `internal/fs`, `internal/fs/model` | Filesystem provider and storage algorithms |
 | `internal/net`, `internal/net/model` | Network provider and TCP/fault algorithms |
-| `internal/compat/go125`, `internal/compat/go126` | Version-owned hooks, shims, host ABI and profile metadata |
+| `internal/compat/{hooks,shims,host,profiles}` | Shared implementations and cumulative family metadata |
 | `internal/hostabi`, `internal/compat/selected` | Compile-time selection; unsupported families fail |
 | `cmd/gosim`, `internal/workerboot` | Independent launcher and caller-selected worker bootstrap/cache |
 | `cmd/gosim-worker`, `internal/gosimcli` | Direct native worker and command implementation |
@@ -152,7 +152,7 @@ GOTOOLCHAIN=go1.26.9 go run ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -
 ./.ci/crossarch-tests/run-matrix.sh --platform all --dry-run
 ```
 
-These exact versions are recorded generation baselines, not caller requirements. Omit `-check` only when intentionally regenerating adapters; `-refresh-origin` validates contracts before updating baseline provenance. Run `go run ./internal/compat/genprofile` when version-owned source/facade inputs change. The filesystem model's separate stringer generation remains supported.
+These exact versions are recorded generation baselines, not caller requirements. Omit `-check` only when intentionally regenerating adapters; `-refresh-origin` validates contracts before updating baseline provenance. Run `go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen profiles -root=.` when compatibility source/facade inputs change. The filesystem model's separate stringer generation remains supported.
 
 Explicit manual certification currently defaults to 16 tuples: 2 exact patches × 2 ARM64 host tuples (Linux and Darwin) × 4 feature sets, without race instrumentation. CI runs ordinary native tests and publishes `test-reports`; it never invokes certification. AMD64 and race certification remain disabled in the manual matrix runner and certification workers/commands. Ordinary validation and explicitly requested race tests remain available; they do not certify these excluded tuples. Use `run-matrix.sh --native --platform OS/arm64` on an actual matching native worker. The Colima route uses `--context colima --platform linux/arm64` from Darwin ARM64. Preserve observed architecture and image metadata. The runner replaces `.gosim/certification/matrix/` on each invocation, retains logs and reports, and removes source snapshots after use. It copies evidence through Docker's API and does not recreate the VM. Historical AMD64/race evidence does not authorize new certification jobs.
 

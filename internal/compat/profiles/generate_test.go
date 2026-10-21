@@ -179,3 +179,54 @@ func TestRevisionTableMatchesCurrentSources(t *testing.T) {
 		}
 	}
 }
+
+func TestMetadataReplacementPreservesCompleteFile(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "generated.go")
+	if err := os.WriteFile(path, []byte("old complete content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := replaceMetadata(ctx, path, []byte("new complete content")); err == nil {
+		t.Fatal("cancellation ignored")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || string(data) != "old complete content" {
+		t.Fatal("canceled write destroyed old file", err)
+	}
+	if err := replaceMetadata(t.Context(), path, []byte("new complete content")); err != nil {
+		t.Fatal(err)
+	}
+	data, err = os.ReadFile(path)
+	if err != nil || string(data) != "new complete content" {
+		t.Fatal("replacement failed", err)
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil || len(entries) != 1 {
+		t.Fatal("temporary output leaked", entries, err)
+	}
+}
+
+func TestRevisionRejectsStraysAndUsesExactGeneratedExclusion(t *testing.T) {
+	root, _, write := metadataFixture(t)
+	before, err := spec.SourceRevision(root, "go127")
+	if err != nil {
+		t.Fatal(err)
+	}
+	write("internal/compat/hooks/revisions_gen.go", []byte("executable source"))
+	after, err := spec.SourceRevision(root, "go127")
+	if err != nil || after == before {
+		t.Fatal("overbroad generated exclusion", err)
+	}
+	for _, name := range []string{".DS_Store", ".source.go.swp", "source.go~"} {
+		path := "internal/compat/hooks/" + name
+		write(path, []byte("stray"))
+		if _, err := spec.SourceRevision(root, "go127"); err == nil || !strings.Contains(err.Error(), name) {
+			t.Fatal("stray input not diagnosed", name, err)
+		}
+		if err := os.Remove(filepath.Join(root, path)); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

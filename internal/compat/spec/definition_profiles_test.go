@@ -1,9 +1,12 @@
 package spec_test
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/neria-cloud/gosim/internal/testutil"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
@@ -20,19 +23,21 @@ func profileDefinitions(t *testing.T) map[string]spec.FamilyDefinition {
 
 func TestUnchangedFamilyInheritsRealIntermediateDelta(t *testing.T) {
 	defs := profileDefinitions(t)
-	defs["1.27"] = spec.FamilyDefinition{Schema: 1, Family: "1.27", Parent: "1.26", Supported: false}
-	before, err := spec.ResolveDefinitions(defs, "1.26")
+	future := testutil.UnregisteredGo()
+	parent := fmt.Sprintf("1.%d", future.Minor-1)
+	defs[future.Family] = spec.FamilyDefinition{Schema: 1, Family: future.Family, Parent: parent, Supported: false}
+	before, err := spec.ResolveDefinitions(defs, parent)
 	if err != nil {
 		t.Fatal(err)
 	}
-	after, err := spec.ResolveDefinitions(defs, "1.27")
+	after, err := spec.ResolveDefinitions(defs, future.Family)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(after.Chain, []string{"1.25", "1.26", "1.27"}) || after.DefinitionDigest == before.DefinitionDigest {
+	if !reflect.DeepEqual(after.Chain, append(append([]string(nil), before.Chain...), future.Family)) || after.DefinitionDigest == before.DefinitionDigest {
 		t.Fatal("lost ancestry identity")
 	}
-	if _, err := buildspec.LookupFamily(buildspec.GoVersion{Major: 1, Minor: 27}); err == nil {
+	if _, err := buildspec.LookupFamily(buildspec.GoVersion{Major: 1, Minor: future.Minor}); err == nil {
 		t.Fatal("fixture enabled production support")
 	}
 	after.Family, after.ProfileID, after.Supported = before.Family, before.ProfileID, before.Supported

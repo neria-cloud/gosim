@@ -12,6 +12,12 @@ import (
 )
 
 func TestRunningInspectionPreservesWorkspace(t *testing.T) {
+	for _, mode := range []string{"explicit", "auto"} {
+		t.Run(mode, func(t *testing.T) { testRunningInspectionWorkspace(t, mode) })
+	}
+}
+
+func testRunningInspectionWorkspace(t *testing.T, mode string) {
 	root := t.TempDir()
 	inputs := map[string]string{
 		"app/go.mod": "module example.org/app\ngo 1.25\nrequire example.org/dep v1.0.0\n",
@@ -29,7 +35,11 @@ func TestRunningInspectionPreservesWorkspace(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	t.Setenv("GOWORK", filepath.Join(root, "go.work"))
+	work := ""
+	if mode == "explicit" {
+		work = filepath.Join(root, "go.work")
+	}
+	t.Setenv("GOWORK", work)
 	c, err := DiscoverInspection(t.Context(), filepath.Join(root, "app"), runtime.Version())
 	if err != nil {
 		t.Fatal(err)

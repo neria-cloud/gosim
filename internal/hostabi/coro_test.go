@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neria-cloud/gosim/internal/testutil"
+
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
@@ -93,13 +95,14 @@ func TestUnsupportedFamilyGuardSelection(t *testing.T) {
 		if err != nil || !strings.Contains(string(guard), "GOSIM_UNSUPPORTED_GO_FAMILY") {
 			t.Fatal(pkg, err)
 		}
-		for _, minor := range []int{24, 25, 26, 27} {
+		for minor := 24; minor <= testutil.UnregisteredGo().Minor; minor++ {
 			ctx := build.Context{GOOS: runtime.GOOS, GOARCH: runtime.GOARCH, Compiler: "gc"}
 			for release := 1; release <= minor; release++ {
 				ctx.ReleaseTags = append(ctx.ReleaseTags, fmt.Sprintf("go1.%d", release))
 			}
 			matches, err := ctx.MatchFile(dir, "unsupported.go")
-			if err != nil || matches != (minor == 24 || minor == 27) {
+			_, supportErr := buildspec.LookupFamily(buildspec.GoVersion{Major: 1, Minor: minor})
+			if err != nil || matches != (supportErr != nil) {
 				t.Fatal(pkg, minor, matches, err)
 			}
 		}

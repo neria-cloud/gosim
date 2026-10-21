@@ -1,10 +1,13 @@
 package spec
 
 import (
+	"fmt"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/neria-cloud/gosim/internal/testutil"
 )
 
 func resolvedFixture() ResolvedFamily {
@@ -106,9 +109,11 @@ func TestMaterializeBothArchitectureContracts(t *testing.T) {
 
 func TestPureMaterializationKeepsProductionAdmissionStrict(t *testing.T) {
 	r := resolvedFixture()
-	r.Family = "1.27"
-	r.ProfileID = "go127"
-	r.Chain = append(r.Chain, "1.27")
+	r.Family = testutil.UnregisteredGo().Family
+	r.ProfileID = testutil.UnregisteredGo().Profile
+	for minor := 25 + len(r.Chain); minor <= testutil.UnregisteredGo().Minor; minor++ {
+		r.Chain = append(r.Chain, fmt.Sprintf("1.%d", minor))
+	}
 	r.Supported = false
 	p, err := r.Descriptor("arm64", strings.Repeat("a", 64))
 	if err != nil {

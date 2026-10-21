@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neria-cloud/gosim/internal/testutil"
+
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
@@ -28,7 +30,7 @@ func TestInspectionCompilerIdentityAndRecheck(t *testing.T) {
 	if err := changed.Recheck(ctx); err == nil || !strings.Contains(err.Error(), "changed") {
 		t.Fatal(err)
 	}
-	if _, err := DiscoverInspection(ctx, ".", "go1.27.1"); err == nil {
+	if _, err := DiscoverInspection(ctx, ".", testutil.UnregisteredGo().Version); err == nil {
 		t.Fatal("accepted override mismatch")
 	}
 	cancelled, cancel := context.WithCancel(ctx)
@@ -47,8 +49,8 @@ func TestInspectionCompilerIdentityAndRecheck(t *testing.T) {
 
 func TestInspectionFixturesDoNotSpoofRunningCompiler(t *testing.T) {
 	ctx := context.Background()
-	root, _, _ := fakeDiscoveryGo(t, "go1.27.1")
-	tc := buildspec.Toolchain{Executable: filepath.Join(root, "bin", "go"), GOROOT: root, Version: "go1.27.1", HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
+	root, _, _ := fakeDiscoveryGo(t, testutil.UnregisteredGo().Version)
+	tc := buildspec.Toolchain{Executable: filepath.Join(root, "bin", "go"), GOROOT: root, Version: testutil.UnregisteredGo().Version, HostOS: runtime.GOOS, HostArch: runtime.GOARCH}
 	if _, err := buildspec.SourceInspectionCommand(ctx, tc, root, "version").Output(); err != nil {
 		t.Fatal(err)
 	}
@@ -67,18 +69,18 @@ func TestInspectionFixturesDoNotSpoofRunningCompiler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data = []byte(strings.Replace(string(data), "go version go1.27.1", "go version go1.27.2", 1))
+	data = []byte(strings.Replace(string(data), "go version "+testutil.UnregisteredGo().Version, "go version invalid", 1))
 	if err := os.WriteFile(tc.Executable, data, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	tc.Version = "go1.27.1"
+	tc.Version = testutil.UnregisteredGo().Version
 	cmd := buildspec.SourceInspectionCommand(ctx, tc, root, "env", "-json", "GOVERSION", "GOROOT", "GOHOSTOS", "GOHOSTARCH")
 	if _, err := resolveDiscovery(ctx, cmd, func(v string) error { _, err := buildspec.ParseGoVersion(v); return err }); err == nil || !strings.Contains(err.Error(), "identity mismatch") {
 		t.Fatal(err)
 	}
 	// Normal discovery still rejects unknown stable versions before fingerprinting.
 	t.Setenv("PATH", filepath.Join(root, "bin")+string(os.PathListSeparator)+os.Getenv("PATH"))
-	if _, err := Discover(ctx, root, "go1.27.1"); err == nil {
+	if _, err := Discover(ctx, root, testutil.UnregisteredGo().Version); err == nil {
 		t.Fatal("ordinary discovery admitted future")
 	}
 }

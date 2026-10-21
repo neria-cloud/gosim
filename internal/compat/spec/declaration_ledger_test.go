@@ -17,6 +17,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neria-cloud/gosim/internal/testutil"
+
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
@@ -316,13 +318,15 @@ func TestUnsupportedFamilyGuards(t *testing.T) {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			continue
 		}
-		for _, family := range []string{"go124", "go125", "go126", "go127"} {
+		for minor := 24; minor <= testutil.UnregisteredGo().Minor; minor++ {
+			family := fmt.Sprintf("go1%d", minor)
 			ctx := sourceContext(family, "arm64")
 			selected, err := ctx.MatchFile(dir, "unsupported.go")
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := family == "go124" || family == "go127"
+			_, supportErr := buildspec.LookupFamily(buildspec.GoVersion{Major: 1, Minor: minor})
+			want := supportErr != nil
 			if selected != want {
 				t.Fatal("wrong direct support guard", dir, family, selected)
 			}

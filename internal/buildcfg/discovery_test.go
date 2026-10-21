@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neria-cloud/gosim/internal/testutil"
+
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
@@ -104,7 +106,7 @@ func TestDiscoveryExplicitOverrideAndCancellation(t *testing.T) {
 }
 
 func TestDiscoveryRejectsUnsupportedFamily(t *testing.T) {
-	root, _, _ := fakeDiscoveryGo(t, "go1.27.1")
+	root, _, _ := fakeDiscoveryGo(t, testutil.UnregisteredGo().Version)
 	t.Setenv("PATH", filepath.Join(root, "bin")+string(os.PathListSeparator)+os.Getenv("PATH"))
 	if _, err := Discover(context.Background(), root, ""); err == nil || !strings.Contains(err.Error(), "unsupported Go family") {
 		t.Fatal(err)

@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/neria-cloud/gosim/internal/testutil"
+
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
@@ -75,7 +77,7 @@ func TestConfigRejectsInvalidInput(t *testing.T) {
 			t.Fatalf("accepted features %v", features)
 		}
 	}
-	for _, version := range []string{"auto", "go1.26", "go1.26.9+auto", "devel go1.26", "go1.27.0", "go1.26.09"} {
+	for _, version := range []string{"auto", "go1.26", "go1.26.9+auto", "devel go1.26", testutil.UnregisteredGo().Version, "go1.26.09"} {
 		if _, err := Load("", Overrides{Toolchain: &version}); err == nil {
 			t.Fatalf("accepted override %q", version)
 		}

@@ -55,6 +55,10 @@ func SourceRevision(root, profileID string) (string, error) {
 			if err != nil {
 				return err
 			}
+			name := entry.Name()
+			if name != ".gosim" && (strings.HasPrefix(name, ".") || strings.HasSuffix(name, "~") || strings.HasSuffix(name, ".swp")) {
+				return fmt.Errorf("unexpected hidden/backup compatibility input %s; remove it before generating revisions", filename)
+			}
 			if entry.IsDir() {
 				if entry.Name() == "testdata" || entry.Name() == ".gosim" {
 					return filepath.SkipDir
@@ -66,8 +70,7 @@ func SourceRevision(root, profileID string) (string, error) {
 				return err
 			}
 			rel = filepath.ToSlash(rel)
-			name := entry.Name()
-			if strings.HasSuffix(name, "_test.go") || strings.HasSuffix(name, ".md") || name == "revisions_gen.go" || rel == "internal/compat/profiles/evidence.json" || strings.HasPrefix(rel, "internal/compat/profiles/go") && strings.HasSuffix(name, ".origin.json") {
+			if strings.HasSuffix(name, "_test.go") || strings.HasSuffix(name, ".md") || rel == "internal/compat/profiles/revisions_gen.go" || rel == "internal/compat/profiles/evidence.json" || strings.HasPrefix(rel, "internal/compat/profiles/go") && strings.HasSuffix(name, ".origin.json") {
 				return nil
 			}
 			if !entry.Type().IsRegular() {

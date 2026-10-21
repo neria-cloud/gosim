@@ -106,11 +106,34 @@ func publishMetadata(ctx context.Context, root string, outputs map[string][]byte
 		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
 			return err
 		}
-		if err := os.WriteFile(filename, outputs[name], 0o644); err != nil {
+		if err := replaceMetadata(ctx, filename, outputs[name]); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func replaceMetadata(ctx context.Context, filename string, data []byte) error {
+	file, err := os.CreateTemp(filepath.Dir(filename), ".gosim-profiles-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+	if _, err := file.Write(data); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Chmod(0o644); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return os.Rename(file.Name(), filename)
 }
 
 func orderedDefinitions(defs map[string]spec.FamilyDefinition) ([]spec.ResolvedFamily, error) {

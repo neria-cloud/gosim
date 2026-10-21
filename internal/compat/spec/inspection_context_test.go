@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neria-cloud/gosim/internal/testutil"
+
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
@@ -71,7 +73,7 @@ case "$1" in
 esac
 `, quote(filepath.Join(root, "commands")), quote(string(info)), quote(filepath.Join(app, "go.mod")), quote(app), quote(filepath.Join(root, "input.json")), quote(filepath.Join(root, "private")), quote(filepath.Join(root, "output.json")), quote(string(source)))
 			write("bin/go", script)
-			r := buildspec.Resolution{Toolchain: buildspec.Toolchain{Version: "go1.27.1", GOROOT: root, Executable: filepath.Join(root, "bin/go"), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, Context: buildspec.ModuleContext{Directory: app, GoWork: work}}
+			r := buildspec.Resolution{Toolchain: buildspec.Toolchain{Version: testutil.UnregisteredGo().Version, GOROOT: root, Executable: filepath.Join(root, "bin/go"), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, Context: buildspec.ModuleContext{Directory: app, GoWork: work}}
 			if _, _, err := hookInspectionContext(t.Context(), r); err == nil {
 				t.Fatal("ordinary preparation admitted future family")
 			}
@@ -92,7 +94,7 @@ esac
 				}
 			})
 			mod, err := os.ReadFile(filepath.Join(dir, "go.mod"))
-			if err != nil || !strings.Contains(string(mod), "go 1.27.1") || !strings.Contains(string(mod), dep) {
+			if err != nil || !strings.Contains(string(mod), strings.TrimPrefix(testutil.UnregisteredGo().Version, "go")) || !strings.Contains(string(mod), dep) {
 				t.Fatal(string(mod), err)
 			}
 			sum, err := os.ReadFile(filepath.Join(dir, "go.sum"))
