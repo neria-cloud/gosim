@@ -299,6 +299,9 @@ func normalizeDefinitionValue(value any) error {
 				if !ok {
 					return fmt.Errorf("%s must be an array", name)
 				}
+				if name == "arches" && len(list) == 0 {
+					return fmt.Errorf("arches must not be empty; omit it for both architectures")
+				}
 				seen := map[string]bool{}
 				for _, item := range list {
 					text, ok := item.(string)

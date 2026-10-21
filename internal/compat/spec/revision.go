@@ -42,15 +42,16 @@ func SourceRevision(root, family string) (string, error) {
 				return nil
 			}
 			name := entry.Name()
-			if name == "revisions_gen.go" || strings.HasSuffix(name, "_test.go") || name == "revision.go" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) || name == "tuples.json" || name == "evidence.json" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) {
+			if filepath.ToSlash(path) == filepath.ToSlash(filepath.Join(root, "internal/compat/profiles/evidence.json")) || name == "revisions_gen.go" || strings.HasSuffix(name, "_test.go") || name == "revision.go" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) || name == "tuples.json" || name == "evidence.json" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) {
 				return nil
 			}
 			if !strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, ".json") {
 				return nil
 			}
-			// Shared facade selection includes only this family's implementation.
+			// Legacy facade selection includes only this family's implementation.
+			// Shared definitions include ancestors and must all affect the revision.
 			for _, other := range buildspec.SupportedFamilies() {
-				if other.Profile != family && strings.Contains(name, other.Profile) {
+				if dir != "internal/compat/profiles" && other.Profile != family && strings.Contains(name, other.Profile) {
 					return nil
 				}
 			}

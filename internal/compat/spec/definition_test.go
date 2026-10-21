@@ -77,7 +77,7 @@ func TestRejectDefinition(t *testing.T) {
 	for _, delta := range deltas {
 		cases = append(cases, strings.Replace(emptyDefinition, `"delta":{}`, `"delta":`+delta, 1))
 	}
-	for _, arches := range []string{`["amd64","amd64"]`, `["mips"]`, `null`, `[false]`} {
+	for _, arches := range []string{`[]`, `["amd64","amd64"]`, `["mips"]`, `null`, `[false]`} {
 		delta := `{"declarations":{"add":[{"hook":{"package":"runtime","symbol":"F"},"arches":` + arches + `}]}}`
 		cases = append(cases, strings.Replace(emptyDefinition, `"delta":{}`, `"delta":`+delta, 1))
 	}

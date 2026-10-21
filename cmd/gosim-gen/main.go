@@ -4,7 +4,9 @@ package main
 import (
 	"context"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
@@ -62,5 +64,8 @@ func run(options commandOptions) error {
 }
 
 func main() {
-	os.Exit(runCLI(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	code := runCLI(ctx, os.Args[1:], os.Stdout, os.Stderr)
+	stop()
+	os.Exit(code)
 }

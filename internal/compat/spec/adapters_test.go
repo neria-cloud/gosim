@@ -141,7 +141,7 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, path := range []string{"internal/compat/go125/host/coro.go", "internal/compat/go125/profile/policies.json", "internal/hostabi/coro_go125.go", "internal/compat/selected/go125.go", "internal/compat/spec/profile.go", "internal/buildspec/modules.go"} {
+	for _, path := range []string{"internal/compat/host/coro.go", "internal/compat/go125/profile/policies.json", "internal/hostabi/native.go", "internal/compat/selected/go125.go", "internal/compat/spec/profile.go", "internal/buildspec/modules.go"} {
 		write(path, "original")
 	}
 	digest := func() string {
@@ -153,20 +153,20 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 		return d
 	}
 	original := digest()
-	for _, path := range []string{"internal/compat/go125/host/coro.go", "internal/compat/go125/profile/policies.json", "internal/hostabi/coro_go125.go", "internal/compat/selected/go125.go", "internal/compat/spec/profile.go", "internal/buildspec/modules.go"} {
+	for _, path := range []string{"internal/compat/host/coro.go", "internal/compat/go125/profile/policies.json", "internal/hostabi/native.go", "internal/compat/selected/go125.go", "internal/compat/spec/profile.go", "internal/buildspec/modules.go"} {
 		write(path, "modified")
 		if digest() == original {
 			t.Fatalf("revision ignores %s", path)
 		}
 		write(path, "original")
 	}
-	for _, path := range []string{"internal/hostabi/coro_go126.go", "internal/compat/go125/host/coro_test.go", "internal/compat/go125/profile/revision.go", "internal/compat/go125/profile/tuples.json", "internal/compat/go125/profile/evidence.json"} {
+	for _, path := range []string{"internal/hostabi/coro_go126.go", "internal/compat/host/coro_test.go", "internal/compat/go125/profile/revision.go", "internal/compat/go125/profile/tuples.json", "internal/compat/go125/profile/evidence.json"} {
 		write(path, "not source for this identity")
 	}
 	if digest() != original {
 		t.Fatal("other family, tests or evidence changed source identity")
 	}
-	if err := os.Rename(filepath.Join(root, "internal/compat/go125/host/coro.go"), filepath.Join(root, "internal/compat/go125/host/moved.go")); err != nil {
+	if err := os.Rename(filepath.Join(root, "internal/compat/host/coro.go"), filepath.Join(root, "internal/compat/host/moved.go")); err != nil {
 		t.Fatal(err)
 	}
 	if digest() == original {

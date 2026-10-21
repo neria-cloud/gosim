@@ -108,10 +108,41 @@ func TestSharedRevisionInputs(t *testing.T) {
 		}
 		before = after
 	}
-	for _, name := range []string{"internal/compat/profiles/revisions_gen.go", "internal/compat/go125/profile/revision.go", "internal/compat/hooks/rt/shared_test.go", "internal/compat/shims/testing/testdata/input.go"} {
+	for _, changed := range []string{"go125", "go126"} {
+		prior := map[string]string{}
+		for _, family := range []string{"go125", "go126"} {
+			value, err := SourceRevision(root, family)
+			if err != nil {
+				t.Fatal(err)
+			}
+			prior[family] = value
+		}
+		write("internal/compat/profiles/"+changed+".json", `{"changed":true}`)
+		for family, old := range prior {
+			value, err := SourceRevision(root, family)
+			if err != nil || value == old {
+				t.Fatalf("%s ignored shared definition %s: %v", family, changed, err)
+			}
+		}
+	}
+	before = revision()
+	for _, name := range []string{"internal/compat/profiles/evidence.json", "internal/compat/profiles/revisions_gen.go", "internal/compat/go125/profile/revision.go", "internal/compat/hooks/rt/shared_test.go", "internal/compat/shims/testing/testdata/input.go"} {
 		write(name, strings.Repeat("x", 64))
 	}
 	if revision() != before {
 		t.Fatal("tests/generated revision output fed into source hash")
+	}
+}
+
+func TestRewriteRejectsNativeCompatibilityPackages(t *testing.T) {
+	p, _ := fixture()
+	p.Packages = []PackagePolicy{{Path: "reflect", Mode: "bridge", Reason: "fixture"}}
+	for _, suffix := range []string{"hooks/rt", "shims/reflect", "host", "spec", "profiles", "unknown"} {
+		target := module + "/internal/compat/" + suffix
+		m := PolicyManifest{Bridges: []Bridge{{Package: "reflect", Reason: "fixture", Rewrites: []SymbolRewrite{{Symbol: "F", Package: target, Target: "F"}}}}}
+		want := suffix == "hooks/rt" || suffix == "shims/reflect"
+		if err := m.Validate(p); (err == nil) != want {
+			t.Fatalf("rewrite into %s: %v", target, err)
+		}
 	}
 }

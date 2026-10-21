@@ -124,3 +124,11 @@ Both source-matched ordinary runs passed, exit 0, with input digest ca4587016619
 Reports/timelines: .gosim/compact-go-validation/{go125,go126}/unit/latest/. Skips include large/race gates; no restricted suite or certification ran.
 
 Claude's first implementation checkpoint found no P1/P2 and six P3/simplification points. The direct adapter build gap is now closed and recorded in V-BUILD. Remaining small verified findings will receive a separate corrective commit before Task 11. Two implementation commits since the first eight-commit checkpoint.
+
+## First peer checkpoint — corrections
+
+Date: 2026-10-21. Implementation commit 11 (this commit).
+
+Closed review thread 3 after verifying and fixing all six P3/simplification points: reject explicit empty arches; include all shared definitions in both transitional revisions and exclude exactly relocated evidence; reject native host/metadata rewrites at manifest validation; signal-cancel generator command context; update stale revision fixture paths; merge identical hostabi forwarding files into instrumentation.go with unchanged host implementation selection. Mutation/admission regressions cover the concrete bugs. CLI cleanup handlers still arrive with Task 27. The optional facade merge removes one file; no race instrumentation or execution was used.
+
+Verified spec/hostabi/gosim-gen focused suites and command/compatibility/hostabi builds under both baseline compilers, refreshed revisions, passed cmd-scoped make lint and full repository formatting. Task 10's ordinary reports predate these small review fixes; no new full-suite coverage is claimed here. Review disposition and evidence limitations are in the local peer thread. Three implementation commits since the first eight-commit checkpoint; next scheduled checkpoint after five more.

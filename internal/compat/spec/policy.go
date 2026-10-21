@@ -147,6 +147,9 @@ func (m PolicyManifest) Validate(p Profile) error {
 			if rewrite.Symbol == "" || rewrite.Package == "" || rewrite.Target == "" || symbols[rewrite.Symbol] {
 				return fmt.Errorf("invalid rewrite %s.%s", bridge.Package, rewrite.Symbol)
 			}
+			if ClassifyCompatPackage(rewrite.Package) != CompatOutside && !p.translatedCompatPackage(rewrite.Package) {
+				return fmt.Errorf("invalid translated rewrite package %s", rewrite.Package)
+			}
 			if err := p.checkPackage(rewrite.Package); err != nil {
 				return err
 			}

@@ -2,7 +2,7 @@
 // is governed by a BSD-style license that can be found at
 // https://go.googlesource.com/go/+/refs/heads/master/LICENSE.
 
-//go:build go1.25 && race
+//go:build go1.25
 
 package hostabi
 

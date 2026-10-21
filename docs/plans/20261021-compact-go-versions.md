@@ -739,7 +739,7 @@ Review findings were corrected before execution (see review thread 2 and progres
 ## NOT PLANNED CHANGES
 
 - Task 10: the ordinary formatting gate exposed unsorted Task 9 guard imports in both `internal/compat/go12{5,6}/shims/{guard,guards}_test.go` and missing gofumpt formatting in `internal/compat/spec/resolve_test.go`. Applied import sorting and a blank line/expanded composite literal only (no behavioral changes). Verified repository formatting and both ordinary suites.
-- Peer checkpoint 1: add direct native compatibility/hostabi builds to move-task validation, since host command closures omit adapters.
+- Peer checkpoint 1: add direct native compatibility/hostabi builds to move-task validation, since host command closures omit adapters. Correct strict decoding, transitional definition/evidence hashing and rewrite admission; update stale fixtures; pull signal context wiring forward; combine identical hostabi instrumentation facades. These are verified review corrections, not new runtime behavior. See progress/review thread 3.
 
 ## NOT CONSIDERED & TODO
 
