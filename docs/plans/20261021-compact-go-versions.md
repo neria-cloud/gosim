@@ -396,14 +396,14 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤450 authored Go lines; process mechanical moves in package-sized batches. **Dependencies:** 13.
 
-- [ ] Move each normalized-identical package once, verify and delete its second implementation, and update imports/profile targets as a coherent package batch. Keep genuine differing declarations bounded rather than erasing them.
-- [ ] Preserve complete package replacements, guarded aborts and exact native permissions. Sparse contract ledgers must not change bridge classification.
-- [ ] Consolidate root guard and synctest tests without dropping assertions or compiling sim-only tests as native proofs. Their imports have already followed moved dependencies in each earlier task; runtimebridge itself was moved with runtime hooks in Task 9.
-- [ ] Confirm there are no executable hooks/shims/host left in old family directories; old metadata remains temporarily until cutover.
+- [x] Move each normalized-identical package once, verify and delete its second implementation, and update imports/profile targets as a coherent package batch. Keep genuine differing declarations bounded rather than erasing them.
+- [x] Preserve complete package replacements, guarded aborts and exact native permissions. Sparse contract ledgers must not change bridge classification.
+- [x] Consolidate root guard and synctest tests without dropping assertions or compiling sim-only tests as native proofs. Their imports have already followed moved dependencies in each earlier task; runtimebridge itself was moved with runtime hooks in Task 9.
+- [x] Confirm there are no executable hooks/shims/host left in old family directories; old metadata remains temporarily until cutover.
 
 #### Verification
 
-- [ ] Each mechanical batch compiles with relevant focused checks; task completion requires V-REVISIONS, both-family V-BUILD, V-GENERATION and ordinary validation of the fully shared executable tree.
+- [x] Each mechanical batch compiles with relevant focused checks; task completion requires V-REVISIONS, both-family V-BUILD, V-GENERATION and ordinary validation of the fully shared executable tree.
 
 ### Task 15: Convert existing metadata to baseline and cumulative delta
 

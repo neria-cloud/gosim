@@ -160,3 +160,18 @@ Date: 2026-10-21. Implementation commit 14 (this commit).
 Compared common rand/text/prime/Int sources; the algorithm is unchanged. Shared Prime calls a small version-selected reader helper after the existing invalid-bit check. Go 1.25 returns its caller reader; Go 1.26 preserves last-setting-wins cryptocustomrand parsing from translated machine environment and otherwise returns the internal deterministic reader. No native entropy fallback. Both profile replacements/bindings/contracts now reference shared cryptorand. Preserved the full native test union and added a bounded Go 1.25 default-reader assertion.
 
 Verified revision refresh, both baseline command/compatibility/hostabi builds, shared cryptorand/spec suites and repository formatting. Prepared rt-only simulations passed custom-reader and crypto Read tests for seeds 1 and 2 under both compilers; Go 1.26 additionally passed the internal-default regression with failing public and supplied readers. Existing replay tests verify same-seed determinism; cross-family Read log bytes also matched for both seeds. Authored changes below 150 lines plus mechanical moves/metadata/revisions. No algorithm/linter-driven edits, restricted suite or certification. Six implementation commits since checkpoint 1.
+
+## Task 14 — Complete executable shim consolidation
+
+Date: 2026-10-21. Implementation commit 15 (this commit).
+
+Verified normalized equality and moved debug, exec, httppprof, maps, metrics, ocsp, pprof, signal, syncmap, synctest, tls, user and x509 one package at a time. Each batch updated both active metadata sets/root guard imports and passed its native package checks under both baselines before proceeding. Consolidated identical root guard tests and preserved all synctest assertions. No executable hooks/shims/host files remain in either old family tree; profile metadata remains active until the planned cutover. Most changes are mechanical; fewer than 30 authored lines change test path expectations/normalization and neutral diagnostics.
+
+Verified revisions, both baseline command/compatibility/hostabi builds, full shared shim/spec suites, repository formatting and independent generation -check. The first full ordinary runs found three stale translator golden paths for testing/syncmap. Replaced SELECTED paths with literal shared paths and removed the obsolete family-path normalizer, then passed focused TestTranslate under both compilers and repeated both complete ordinary runs.
+
+Final reports/timelines in .gosim/compact-go-validation/{go125,go126}/unit/latest/:
+- Go 1.25.14: 82 reports, 1,964 tests, 1,948 passed, 0 failed, 0 errors, 16 skipped; exit 0, 212.430 s.
+- Go 1.26.9: 82 reports, 1,978 tests, 1,962 passed, 0 failed, 0 errors, 16 skipped; exit 0, 213.576 s.
+Both tested input digest 8540538ec79ea23c6bc3e5a5e20395e1891941a9fe770b40889931a52bbe8be6 with no checkout changes. Native and simulation checks cover the fully shared executable tree; large/race gates remain skipped and no certification ran.
+
+Read-only preparation for metadata conversion confirmed all current profile JSON except intentionally frozen generation records equals base commit 550d5e3 after compatibility target-path normalization. Both architectures still omit exactly the same nine known shim contracts; Task 15 accounts for that intended coverage addition. Seven implementation commits since checkpoint 1; Task 15 will complete the next eight-commit review range.

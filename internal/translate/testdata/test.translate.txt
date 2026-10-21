@@ -22,7 +22,7 @@ func TestFoo(t *testing.T) {
 package basictest
 
 import (
-	"translated/github.com/neria-cloud/gosim/internal_/compat/SELECTED/shims/testing"
+	"translated/github.com/neria-cloud/gosim/internal_/compat/shims/testing"
 	"translated/time"
 )
 

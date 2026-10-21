@@ -778,63 +778,63 @@
       "package": "internal/synctest",
       "symbol": "*Bubble.Release",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest.*Bubble.Release",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/synctest.*Bubble.Release",
       "owner": "rt"
     },
     {
       "package": "internal/synctest",
       "symbol": "*Bubble.Run",
       "signature": "func(func())",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest.*Bubble.Run",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/synctest.*Bubble.Run",
       "owner": "rt"
     },
     {
       "package": "internal/synctest",
       "symbol": "Acquire",
       "signature": "func() *Bubble",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest.Acquire",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/synctest.Acquire",
       "owner": "rt"
     },
     {
       "package": "internal/synctest",
       "symbol": "Associate",
       "signature": "func[T any](*T) Association",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest.Associate",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/synctest.Associate",
       "owner": "rt"
     },
     {
       "package": "internal/synctest",
       "symbol": "Disassociate",
       "signature": "func[T any](*T)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest.Disassociate",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/synctest.Disassociate",
       "owner": "rt"
     },
     {
       "package": "internal/synctest",
       "symbol": "IsAssociated",
       "signature": "func[T any](*T) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest.IsAssociated",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/synctest.IsAssociated",
       "owner": "rt"
     },
     {
       "package": "internal/synctest",
       "symbol": "IsInBubble",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest.IsInBubble",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/synctest.IsInBubble",
       "owner": "rt"
     },
     {
       "package": "internal/synctest",
       "symbol": "Run",
       "signature": "func(func())",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest.Run",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/synctest.Run",
       "owner": "rt"
     },
     {
       "package": "internal/synctest",
       "symbol": "Wait",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest.Wait",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/synctest.Wait",
       "owner": "rt"
     },
     {
