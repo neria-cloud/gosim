@@ -16,7 +16,7 @@
 
 **Plan review:** thread 2 closed after final re-review; all verified findings incorporated. Final small corrections were not sent for another peer round.
 
-**Status:** implementation in progress; see task checkboxes and the execution log.
+**Status:** Tasks 1–32 implemented and verified; final peer review pending. Authorized native certification has not started.
 
 ## Scope and execution rules
 
@@ -779,14 +779,14 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤400 authored Go/test lines for fixes; split any larger correction. **Dependencies:** 30.
 
-- [ ] Run V-REVISIONS check, V-GENERATION for both exact baselines and V-BUILD under both families on the completed source.
-- [ ] Run V-ORDINARY separately for both families with distinct report roots, read reports/timelines/logs and record exact tested source, exits, totals and skips. Run V-AUDIT if not already verified against the final inspector source; stale earlier reports are not final evidence.
-- [ ] Fix every observed failure before completion; log unrelated fixes in NOT PLANNED CHANGES. Repeat only the gates needed to cover the correction and any source snapshot invalidation.
-- [ ] Verify no ordinary workflow triggers certification, race/large suites, crossarch execution or Docker. Keep unavailable/excluded coverage explicit; do not obtain green status by weakening guards or expectations.
+- [x] Run V-REVISIONS check, V-GENERATION for both exact baselines and V-BUILD under both families on the completed source.
+- [x] Run V-ORDINARY separately for both families with distinct report roots, read reports/timelines/logs and record exact tested source, exits, totals and skips. Run V-AUDIT if not already verified against the final inspector source; stale earlier reports are not final evidence.
+- [x] Fix every observed failure before completion; log unrelated fixes in NOT PLANNED CHANGES. Repeat only the gates needed to cover the correction and any source snapshot invalidation.
+- [x] Verify no ordinary workflow triggers certification, race/large suites, crossarch execution or Docker. Keep unavailable/excluded coverage explicit; do not obtain green status by weakening guards or expectations.
 
 #### Verification
 
-- [ ] All selected gates pass on the final source. Applicable ordinary tests pass; excluded suites remain explicitly unexecuted. Record report locations and checksum/source identity evidence.
+- [x] All selected gates pass on the final source. Applicable ordinary tests pass; excluded suites remain explicitly unexecuted. Record report locations and checksum/source identity evidence.
 
 ### Task 32: Architectural delta verification and actual-use audit
 
@@ -800,21 +800,21 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 Compare implemented code, data and real entry-point flows with the target, not just test outcomes. Any correction repeats its relevant focused/build/identity checks and final ordinary coverage when affected. Put every discrepancy in NOT IMPLEMENTED GAPS, fix it, and link the fix/evidence; `[_]` means unresolved and prevents claiming full completion. Explicit user-approved deferrals must be recorded as such. The final checkbox below is the wiring audit and must be completed last.
 
-- [ ] Verify shared hooks/shims/native host, authored cumulative constraints, signature/interface variants, test union and direct/support guards match target §2; no full per-family source copies, forwarding packages or runtime family dispatch remain.
-- [ ] Verify schema/strict decoding/natural-key operations/ancestry/deep copies/derived both-architecture contracts match §3 and all associated §7/§11 methods; account explicitly for nine added contracts.
-- [ ] Verify independent on-disk origins, lossless historical envelope, absence of runtime origin/evidence embeds and provenance refresh isolation match §4.
-- [ ] Verify path classifier, original/relocated nodes, positive native-island edges, unconditional native-hook/shim rejection and provider/feature boundaries match §5 with a real output-graph fixture.
-- [ ] Verify Identity schema, AdapterRevision/TranslatorDigest/InspectorDigest scopes, SQLite DDL/CacheEntryV2/contract-cache schemas, TTL/locking/publication and exact compiler separation match §5; no database/ORM/cache schema change was introduced.
-- [ ] Verify stable inspection, snapshot schemas/scope, actual API inventory diffs, report/draft completeness and publication, exit codes and command flags match §6; source-only inspections are not reported as execution validation.
-- [ ] Verify every created/updated §7 signature/component has an implementation and every retired entry/consumer has migrated; no exported command injection or incomplete command placeholder remains.
-- [ ] Verify normal startup/cache hit/miss, generation/check, bootstrap, observe/compare/adoption, cancellation/cleanup and failure paths match §8/§11, including clean-checkout generation without ignored records.
-- [ ] Verify §9 validation evidence and storage accounting cover the actual final source; documentation matches implemented behavior and §10 exclusions remain intentional without successful stubs.
-- [ ] Reconcile every NOT IMPLEMENTED GAPS item now: fix it to the target, document an equivalent working approach, or record an explicit user-approved deferral. Mark unresolved hard items `[_]`; do not silently remove or check them off.
-- [ ] **Verify all methods/components are wired for actual use:** cmd/gosim-gen routes invoke real profiles/observe/compare/generation handlers; selected/hostabi/runtime use generated support and shared code; compose/translate/buildrun consume resolved permissions; launcher/worker/cache identities include intended inputs; origin/audit writers are reachable from real tools. Verify this through real entry-point flows and call/dependency inspection, not only isolated tests. No target component is merely defined or test-only.
+- [x] Verify shared hooks/shims/native host, authored cumulative constraints, signature/interface variants, test union and direct/support guards match target §2; no full per-family source copies, forwarding packages or runtime family dispatch remain.
+- [x] Verify schema/strict decoding/natural-key operations/ancestry/deep copies/derived both-architecture contracts match §3 and all associated §7/§11 methods; account explicitly for nine added contracts.
+- [x] Verify independent on-disk origins, lossless historical envelope, absence of runtime origin/evidence embeds and provenance refresh isolation match §4.
+- [x] Verify path classifier, original/relocated nodes, positive native-island edges, unconditional native-hook/shim rejection and provider/feature boundaries match §5 with a real output-graph fixture.
+- [x] Verify Identity schema, AdapterRevision/TranslatorDigest/InspectorDigest scopes, SQLite DDL/CacheEntryV2/contract-cache schemas, TTL/locking/publication and exact compiler separation match §5; no database/ORM/cache schema change was introduced.
+- [x] Verify stable inspection, snapshot schemas/scope, actual API inventory diffs, report/draft completeness and publication, exit codes and command flags match §6; source-only inspections are not reported as execution validation.
+- [x] Verify every created/updated §7 signature/component has an implementation and every retired entry/consumer has migrated; no exported command injection or incomplete command placeholder remains.
+- [x] Verify normal startup/cache hit/miss, generation/check, bootstrap, observe/compare/adoption, cancellation/cleanup and failure paths match §8/§11, including clean-checkout generation without ignored records.
+- [x] Verify §9 validation evidence and storage accounting cover the actual final source; documentation matches implemented behavior and §10 exclusions remain intentional without successful stubs.
+- [x] Reconcile every NOT IMPLEMENTED GAPS item now: fix it to the target, document an equivalent working approach, or record an explicit user-approved deferral. Mark unresolved hard items `[_]`; do not silently remove or check them off.
+- [x] **Verify all methods/components are wired for actual use:** cmd/gosim-gen routes invoke real profiles/observe/compare/generation handlers; selected/hostabi/runtime use generated support and shared code; compose/translate/buildrun consume resolved permissions; launcher/worker/cache identities include intended inputs; origin/audit writers are reachable from real tools. Verify this through real entry-point flows and call/dependency inspection, not only isolated tests. No target component is merely defined or test-only.
 
 ## NOT IMPLEMENTED GAPS
 
-Review findings were corrected before execution (see review thread 2 and progress log); no unresolved architectural gap is currently accepted. Unchecked tasks above are pending implementation, not completed gaps. Add discrepancies found during execution here with task/target reference, evidence, fix and verification; use `[_]` for an unresolved item.
+No unresolved implementation gap is accepted. Checkpoint findings through thread 6 are corrected and verified. Task 32 reconciled two implementation details with the target: audit manifests use exclusive hard-link publication instead of overwrite-capable rename (documented under NOT PLANNED CHANGES); detailed policy validation stays at existing Descriptor/selected.Resolve/generator consumption boundaries while pure resolution validates ancestry, delta algebra and overlap, preserving metadata bootstrap and partial synthetic fixtures. Real production consumers validate before use; both ordinary jobs and invalid-policy tests pass. Final peer review must assess this boundary equivalence and the completed implementation. Review/certification gates remain pending outside the implemented task checklist.
 
 ## NOT PLANNED CHANGES
 
