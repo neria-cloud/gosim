@@ -205,7 +205,7 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 | Runtime modes | One active run per process; no native-scheduler virtual-I/O mode, mutable feature sets or runtime provider loading |
 | Additional platforms | Go families other than 1.25/1.26, Darwin AMD64, Windows and non-Linux simulated ABIs are unsupported |
 
-The reviewed [go125](internal/compat/profiles/go125.json) and [go126](internal/compat/profiles/go126.json) capability records distinguish implemented, limited, stub and rejected behavior. The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records remaining application requirements; modularization does not claim to implement them.
+The reviewed [Go 1.25 baseline](internal/compat/profiles/go125.json) distinguishes implemented, limited, stub and rejected behavior. Effective Go 1.26 capabilities combine that baseline with the [Go 1.26 delta](internal/compat/profiles/go126.json). The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records remaining application requirements; modularization does not claim to implement them.
 
 ## Development and test reports
 
@@ -306,9 +306,10 @@ module inputs; use the same host and requested architectures for both runs.
 
 With a snapshot, `api_diff=inspected` reports actual upstream API and method-set
 changes. Omitting `-parent-observation` gives `skipped-no-parent`: declared contract
-and source checks still run, but API comparison is skipped. Failed inspections
-produce incomplete reports and exit 1; complete differences, including
-incompatibilities, exit 0. Invalid arguments exit 2. Race contexts describe source
+and source checks still run, but API comparison is skipped. Without a parent
+snapshot, unreviewed packages are informational; the tool cannot determine which
+packages are newly added. Failed inspections produce incomplete reports and exit 1;
+complete differences, including incompatibilities, exit 0. Invalid arguments exit 2. Race contexts describe source
 selection only. Source hash changes require behavioral review.
 
 Outputs are `report.md`, `delta.draft.json`, then `report.json` last. The Markdown

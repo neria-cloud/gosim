@@ -38,13 +38,13 @@ func TestDefinitionsOnlyEmbedAndIndependentViews(t *testing.T) {
 	if err != nil || next["1.25"].Delta.Declarations.Add[0].Hook.Symbol != original {
 		t.Fatal("shared definition state", err)
 	}
-	for _, family := range []string{"1.25", "1.26"} {
-		r, err := Resolve(family)
+	for _, family := range buildspec.SupportedFamilies() {
+		r, err := Resolve(family.Family)
 		if err != nil {
 			t.Fatal(err)
 		}
 		r.Declarations[0].Hook.Symbol = "mutated"
-		again, err := Resolve(family)
+		again, err := Resolve(family.Family)
 		if err != nil || again.Declarations[0].Hook.Symbol == "mutated" {
 			t.Fatal("shared resolved state", err)
 		}

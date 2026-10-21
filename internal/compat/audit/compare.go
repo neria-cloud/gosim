@@ -96,7 +96,23 @@ func loadParent(root, profile string) (spec.ResolvedFamily, spec.Origin, error) 
 		return spec.ResolvedFamily{}, origin, err
 	}
 	parent, err := spec.ResolveDefinitions(defs, origin.Family)
-	return parent, origin, err
+	if err != nil {
+		return parent, origin, err
+	}
+	// Inspection also accepts retained or unregistered parents. Descriptor checks
+	// metadata structure without Profile.Validate's execution-support admission.
+	// Its revision is only an identity placeholder; no executable is produced.
+	policy := parent.PolicyManifest()
+	for _, arch := range []string{"amd64", "arm64"} {
+		p, err := parent.Descriptor(arch, parent.DefinitionDigest)
+		if err == nil {
+			err = policy.Validate(p)
+		}
+		if err != nil {
+			return parent, origin, fmt.Errorf("invalid parent %s (%s): %w", profile, arch, err)
+		}
+	}
+	return parent, origin, nil
 }
 
 func originDigest(origin spec.Origin) string {
@@ -515,7 +531,11 @@ func CompareObservations(parent spec.ResolvedFamily, origin spec.Origin, before 
 				} else if before != nil && (!existed || !old.Present) {
 					emit("package", "review", "Package added to candidate inventory", old, got)
 				} else if policy.Path == "" {
-					emit("package", "information", "Existing package has no reviewed policy", old, got)
+					message := "Existing package has no reviewed policy"
+					if before == nil {
+						message = "Package has no reviewed policy; new-package detection requires a parent observation"
+					}
+					emit("package", "information", message, old, got)
 				}
 			case "api":
 				if before == nil {

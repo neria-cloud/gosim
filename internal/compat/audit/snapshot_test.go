@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +16,50 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 	"github.com/neria-cloud/gosim/internal/testutil"
 )
+
+func TestLoadParentValidatesPoliciesWithoutSupportAdmission(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "internal/compat/profiles")
+	if err := os.CopyFS(dir, os.DirFS("../profiles")); err != nil {
+		t.Fatal(err)
+	}
+	parent, origin, err := loadParent(root, "go125")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defs, err := spec.LoadDefinitions(os.DirFS(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseline := defs[parent.Family]
+	baseline.Supported = false
+	write := func(name string, value any) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(dir, name), auditJSON(value), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("go125.json", baseline)
+	if retired, _, err := loadParent(root, "go125"); err != nil || retired.Supported {
+		t.Fatal("valid retired parent rejected", err)
+	}
+	future := testutil.UnregisteredGo()
+	write(future.Profile+".json", spec.FamilyDefinition{Schema: 1, Family: future.Family, Parent: fmt.Sprintf("1.%d", future.Minor-1)})
+	origin.Family, origin.BaselineToolchain = future.Family, fmt.Sprintf("go1.%d.0", future.Minor)
+	write(future.Profile+".origin.json", origin)
+	if _, _, err := loadParent(root, future.Profile); err != nil {
+		t.Fatal("valid unregistered parent rejected", err)
+	}
+	baseline.Delta.Bridges.Add = slices.DeleteFunc(baseline.Delta.Bridges.Add, func(b spec.Bridge) bool {
+		return b.Package == "crypto/subtle"
+	})
+	write("go125.json", baseline)
+	for _, profile := range []string{"go125", "go126", future.Profile} {
+		if _, _, err := loadParent(root, profile); err == nil || !strings.Contains(err.Error(), "bridge crypto/subtle lacks a boundary contract") {
+			t.Fatalf("%s accepted invalid inherited policy: %v", profile, err)
+		}
+	}
+}
 
 func TestActualParentSnapshotAndValidation(t *testing.T) {
 	t.Parallel()

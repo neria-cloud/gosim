@@ -16,7 +16,7 @@
 
 **Plan review:** thread 2 closed after final re-review; all verified findings incorporated. Final small corrections were not sent for another peer round.
 
-**Status:** Tasks 1–32 implemented and verified; final peer review pending. Authorized native certification has not started.
+**Status:** Tasks 1–32 implemented and verified; final peer review closed; both minor findings corrected and final checks passed. Native certification has not started: its mandatory large-suite coverage needs explicit authorization under AGENTS.md.
 
 ## Scope and execution rules
 
@@ -814,9 +814,11 @@ Compare implemented code, data and real entry-point flows with the target, not j
 
 ## NOT IMPLEMENTED GAPS
 
-No unresolved implementation gap is accepted. Checkpoint findings through thread 6 are corrected and verified. Task 32 reconciled two implementation details with the target: audit manifests use exclusive hard-link publication instead of overwrite-capable rename (documented under NOT PLANNED CHANGES); detailed policy validation stays at existing Descriptor/selected.Resolve/generator consumption boundaries while pure resolution validates ancestry, delta algebra and overlap, preserving metadata bootstrap and partial synthetic fixtures. Real production consumers validate before use; both ordinary jobs and invalid-policy tests pass. Final peer review must assess this boundary equivalence and the completed implementation. Review/certification gates remain pending outside the implemented task checklist.
+No unresolved implementation gap is accepted. Checkpoint findings through thread 6 are corrected and verified. Final review thread 7 confirmed execution consumption validates correctly, but found that audit parent loading lacked policy validation. Both Observe and Compare now validate effective parent structure and policies for both architectures before collecting observations. Descriptor supplies structural validation without Profile.Validate's support-registry admission, preserving inspection of retired/unregistered parents. Pure resolution still validates ancestry, delta algebra and overlap, preserving metadata bootstrap and partial synthetic fixtures. Audit manifests use exclusive hard-link publication instead of overwrite-capable rename (documented under NOT PLANNED CHANGES). Final correction validation is recorded in progress. Native certification cannot run under the current large-suite exclusion: worker.py passes -large and certify.go invokes make test-large; separate explicit authorization is required by AGENTS.md.
 
 ## NOT PLANNED CHANGES
+
+- Final review thread 7: validate effective parent descriptors and policies in audit.loadParent for both architectures without execution admission; reject invalid inherited bridge policies while retaining unsupported-parent inspection. Iterate the support registry in profile policy tests. Clarify cumulative capability records and unknown package age without a parent snapshot; refresh measured accounting. Both findings are one corrective batch. Native certification requires large-suite coverage and remains unstarted pending explicit authorization.
 
 - Peer checkpoint 4: missing upstream std packages now produce complete missing-package/contract findings; genuine load errors remain incomplete reports. Unified inventory derivation in spec, added collector and generator dependency boundary checks, grouped report/draft findings with package inventory diffs and spelling-only signature handling, and preflighted output destinations before scanning. Added focused missing-package/parse-error publication coverage. Fixed two existing diagram links while checking documentation. These corrections share the Tasks 29–30 commit; no runtime, persistent-cache or support policy expansion.
 

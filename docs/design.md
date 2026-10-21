@@ -195,25 +195,25 @@ below includes those costs.
 
 | Production and data scope | Before files / bytes | After files / bytes |
 | --- | ---: | ---: |
-| `internal/compat` (including audit/spec/profiles) | 177 / 1,725,538 | 103 / 1,020,833 |
+| `internal/compat` (including audit/spec/profiles) | 177 / 1,725,538 | 103 / 1,021,584 |
 | `internal/hostabi` | 12 / 9,728 | 8 / 5,056 |
 | `internal/buildspec` (including support registry) | 9 / 30,322 | 10 / 33,624 |
 | `internal/buildcfg` (including inspection discovery) | 5 / 21,307 | 6 / 25,075 |
 | `internal/routegen` | 12 / 73,782 | 13 / 78,980 |
 | `cmd/gosim-gen` | 1 / 2,567 | 2 / 8,834 |
-| **Total production and data** | **216 / 1,863,244** | **142 / 1,172,402** |
+| **Total production and data** | **216 / 1,863,244** | **142 / 1,173,153** |
 
-Production/data decreases by **74 files and 690,842 bytes (37.1%)**. Independent
+Production/data decreases by **74 files and 690,091 bytes (37.0%)**. Independent
 origins and consolidated history remain **3 files / 238,626 bytes**, included in
 the totals. The entire audit directory, including its tests, costs **9 files /
-78,215 bytes**. The baseline definition is 367,659 bytes; its 1.26 delta is 8,894
+80,676 bytes**. The baseline definition is 367,659 bytes; its 1.26 delta is 8,894
 bytes. Adding an unchanged future family copies zero implementation files;
 selectors, support guards and revisions are generated from its small definition.
 
 Tests/fixtures in the same scope, plus the shared test helper, increase from
-**78 files / 558,144 bytes** to **95 files / 632,461 bytes**. The existing scoped
+**78 files / 558,144 bytes** to **95 files / 634,190 bytes**. The existing scoped
 document remains 1 file / 2,346 bytes. Thus the whole scoped tree decreases from
-**295 files / 2,423,734 bytes** to **238 files / 1,807,209 bytes**, including tests.
+**295 files / 2,423,734 bytes** to **238 files / 1,809,689 bytes**, including tests.
 README, agent guidance, this design, diagram and tracked plan/progress documentation
 are reported separately in the execution record; they are excluded from the
 production figures. Untracked peer discussions and ignored brainstorms are not
