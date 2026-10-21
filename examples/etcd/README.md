@@ -10,14 +10,19 @@ From the repository root:
 
 ```sh
 make build
-./.gosim/gosimtool test -features rt,fs,net -seeds 1-3 -v ./examples/etcd
+./.gosim/gosimtool -C examples/etcd test -features rt,fs,net -seeds 1-3 -v .
 ```
 
 Stable Go 1.25.* and 1.26.* releases are supported. Go tooling selects the
-compiler; `GOTOOLCHAIN` can select an exact patch. The full-feature ordinary
-`make test` suite includes these tests. A native integration metatest also runs
-`TestEtcd` with seeds 1, 2, 3, then 1 in one worker and compares seed 1 with a
-fresh matching worker.
+compiler; `GOTOOLCHAIN` can select an exact patch. This module owns its etcd
+and logging dependencies and replaces Gosim with the current checkout. Root
+`make test` excludes example modules; `make test-examples` runs them separately.
+The native replay metatest lives here too. It runs `TestEtcd` with seeds 1, 2, 3,
+then 1 in one worker and compares seed 1 with a fresh matching worker:
+
+```sh
+(cd examples/etcd && go test -ldflags=-checklinkname=0 -tags=linkname -run TestEtcdReplayAfterInterveningRuns -v .)
+```
 
 The fixture uses explicit machine lifecycle, static plaintext listeners, bounded
 simulated deadlines and per-node data directories. It disables auto-TLS,

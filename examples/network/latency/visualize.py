@@ -72,10 +72,10 @@ def main():
         output = args.log.read_text()
     else:
         command = [
-            str(ROOT / ".gosim/gosimtool"), "test", "-features", "rt,net",
+            str(ROOT / ".gosim/gosimtool"), "-C", "examples/network/latency", "test", "-features", "rt,net",
             "-v", "-logformat", "raw", "-seeds", "1",
             "-run", "^(" + "|".join(names) + ")$",
-            "./examples/network/latency",
+            ".",
         ]
         print("Building and recording ping/pong simulations before timed playback...", flush=True)
         result = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)

@@ -448,7 +448,8 @@ type-checks every use of a foreign object in a translated package:
 ## 4. Rewrite catalogue (with real output)
 
 All examples below come from running
-`go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim translate ./examples/simple`
+`make build` followed by
+`./.gosim/gosimtool -C examples/simple translate -features rt .`
 and reading `.gosim/translated/`.
 
 ### 4.1 Imports and identifiers

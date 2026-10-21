@@ -182,7 +182,7 @@ CI runs `make test` and report-tool checks on native ARM64 Linux workers with Go
 
 The explicit manual certification matrix defaults to 16 tuples: two representative patches, Linux ARM64 and Darwin ARM64, four feature sets, without race instrumentation. AMD64 and race certification remain disabled in matrix selection, the worker, and direct `certify -large` execution. Colima is an explicit manual route from Darwin ARM64 to Linux ARM64. Wrong architecture, incomplete/skipped suites, failed tests or stale source fail a manual report. Docker reports/artifacts are copied through the API; image digests and bounded concurrency remain recorded.
 
-The suite applicability registry separates runtime, fs, net and full integration/nemesis/examples. Reduced-feature jobs execute their applicable positive tests and native model units; full jobs execute all applicable native tests. Manual certification requires explicit large-suite coverage. Its reporter runs the already-prepared tuple rather than repeating an internal feature/toolchain sweep, and requires terminal passes for the selected tests. Ordinary reports never claim certification.
+The suite applicability registry separates runtime, fs, net and full integration/nemesis packages. Reduced-feature jobs execute their applicable positive tests and native model units; full jobs execute all applicable native tests. Manual certification requires explicit large-suite coverage. Its reporter runs the already-prepared tuple rather than repeating an internal feature/toolchain sweep, and requires terminal passes for the selected tests. Ordinary reports never claim certification.
 
 ## Compatibility storage accounting
 

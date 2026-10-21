@@ -17,10 +17,10 @@ import (
 func TestFeatureApplicabilityAndPreservedInventory(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct{ features, packages []string }{
-		{[]string{"rt"}, []string{"./internal/tests/rt", "./examples/simple"}},
-		{[]string{"rt", "fs"}, []string{"./internal/tests/rt", "./internal/tests/fs", "./examples/simple", "./examples/bolt"}},
-		{[]string{"rt", "net"}, []string{"./internal/tests/rt", "./internal/tests/net", "./examples/simple", "./examples/network/machines", "./examples/network/latency"}},
-		{[]string{"rt", "fs", "net"}, []string{"./internal/tests/rt", "./internal/tests/fs", "./internal/tests/net", "./internal/tests/integration", "./nemesis", "./examples/simple", "./examples/bolt", "./examples/network/machines", "./examples/network/latency", "./examples/etcd"}},
+		{[]string{"rt"}, []string{"./internal/tests/rt"}},
+		{[]string{"rt", "fs"}, []string{"./internal/tests/rt", "./internal/tests/fs"}},
+		{[]string{"rt", "net"}, []string{"./internal/tests/rt", "./internal/tests/net"}},
+		{[]string{"rt", "fs", "net"}, []string{"./internal/tests/rt", "./internal/tests/fs", "./internal/tests/net", "./internal/tests/integration", "./nemesis"}},
 	} {
 		got, err := Packages(test.features)
 		if err != nil || !slices.Equal(got, test.packages) {
@@ -91,7 +91,7 @@ func TestNativeUnitsExcludeDisabledModels(t *testing.T) {
 	}
 }
 
-func TestMetatestPackagesExcludeSimOnlyExamples(t *testing.T) {
+func TestMetatestPackagesStayInRootModule(t *testing.T) {
 	t.Parallel()
 	for _, names := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
 		packages, err := MetatestPackages(names)
@@ -103,7 +103,7 @@ func TestMetatestPackagesExcludeSimOnlyExamples(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, pkg := range packages {
-			if !slices.Contains(positive, pkg) || strings.HasPrefix(pkg, "./examples/") && pkg != "./examples/simple" {
+			if !slices.Contains(positive, pkg) {
 				t.Fatalf("invalid native metatest package %s for %v", pkg, names)
 			}
 		}
@@ -113,11 +113,13 @@ func TestMetatestPackagesExcludeSimOnlyExamples(t *testing.T) {
 		if output, err := command.CombinedOutput(); err != nil {
 			t.Fatalf("native metatest packages: %v: %s", err, output)
 		}
-		if !slices.Contains(packages, "./internal/tests/rt") || !slices.Contains(packages, "./examples/simple") {
+		if !slices.Contains(packages, "./internal/tests/rt") {
 			t.Fatalf("lost runtime metatest coverage: %v", packages)
 		}
-		if slices.Contains(packages, "./examples/etcd") {
-			t.Fatalf("sim-only etcd package selected for native tests: %v", names)
+		for _, pkg := range positive {
+			if strings.HasPrefix(pkg, "./examples/") {
+				t.Fatalf("example module selected for root tests: %s", pkg)
+			}
 		}
 	}
 }

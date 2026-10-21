@@ -4,22 +4,20 @@
 
 | Tuple | Positive packages |
 | --- | --- |
-| rt | internal/tests/rt, examples/simple |
-| rt,fs | internal/tests/rt, internal/tests/fs, examples/simple, examples/bolt |
-| rt,net | internal/tests/rt, internal/tests/net, examples/simple, examples/network/machines, examples/network/latency |
-| rt,fs,net | all four feature packages, nemesis, examples/simple, examples/bolt, examples/network/machines, examples/network/latency, examples/etcd |
+| rt | internal/tests/rt |
+| rt,fs | internal/tests/rt, internal/tests/fs |
+| rt,net | internal/tests/rt, internal/tests/net |
+| rt,fs,net | all four feature packages, nemesis |
 
-Example cases are separate packages, selected by their required features.
-The three-node plaintext etcd cluster, snapshot and WAL tests require all three
-features. Reduced-feature selections exclude the package before loading.
+Examples are independent modules, excluded from this root package registry.
+`make test-examples` runs each module with its required features and a local
+replacement for the current Gosim checkout. The etcd module owns its native
+replay metatest, which runs seeds 1, 2, 3, then 1 in one matching worker and
+compares a fresh worker's seed 1.
 
 Native metatests are selected separately using the registry's `Native` field.
-The sim-only bolt, network/machines, network/latency and etcd examples are built and
-executed in simulation, but are not passed to native `go test`. The other
-positive packages retain native checks for deterministic replay, seeds and execution.
-The integration native metatest runs `TestEtcd` seeds 1, 2, 3, then 1 in one
-matching worker and compares a fresh worker's seed 1. Expected unsupported
-operations have separate fatal-guard assertions. The race oracle runs only for
+The positive packages retain native checks for deterministic replay, seeds and execution.
+Expected unsupported operations have separate fatal-guard assertions. The race oracle runs only for
 full-feature race tuples, with its native harness checking intentional race
 reports. The translated HTTP and gRPC tests exercise the supported plaintext
 paths; TLS and unreviewed HTTP surfaces remain outside their scope. The old
