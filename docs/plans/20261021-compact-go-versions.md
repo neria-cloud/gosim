@@ -276,15 +276,15 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤500 authored Go lines. **Dependencies:** 6.
 
-- [ ] Factor rendering into a pure output map stage that receives current profile inputs; CheckProfile compares only committed selected outputs without requiring ignored records or writing final outputs.
-- [ ] Enforce running compiler equals inspected compiler before parsing. Keep each test/process on its selected compiler; update tests that previously implied cross-family parsing.
-- [ ] Replace exact-version generated source comments with version-neutral text. Keep exact version/fingerprints in origin/generation records. Remove test normalization that would hide source-header discrepancies. Keep legacy committed profile/routes_*.json frozen only until Task 18 removes the old embeds/trees; stop treating them as current outputs. Update routegen/family_test.go, current_test.go, go126_test.go and generate_test.go to verify in-memory rendered/ignored records and independent other-origin/architecture isolation instead of old routes-file ownership.
-- [ ] Add `selectedGeneratedPath(root,packagePath,stem string,source SourceContext,family string) (string,error)` using Task 6's selection semantics and one selected destination requirement. Rendering preserves authored constraints instead of recomputing a family ceiling.
-- [ ] Until moves complete, support selected existing destinations through explicit current profile targets; no guessed shared path or automatic copied tree. Resolve authored destination selection from the input source root independently of the publication output root, so an empty temporary output tree still works. Update generator expectations and regenerate affected comments for both families.
+- [x] Factor rendering into a pure output map stage that receives current profile inputs; CheckProfile compares only committed selected outputs without requiring ignored records or writing final outputs.
+- [x] Enforce running compiler equals inspected compiler before parsing. Keep each test/process on its selected compiler; update tests that previously implied cross-family parsing.
+- [x] Replace exact-version generated source comments with version-neutral text. Keep exact version/fingerprints in origin/generation records. Remove test normalization that would hide source-header discrepancies. Keep legacy committed profile/routes_*.json frozen only until Task 18 removes the old embeds/trees; stop treating them as current outputs. Update routegen/family_test.go, current_test.go, go126_test.go and generate_test.go to verify in-memory rendered/ignored records and independent other-origin/architecture isolation instead of old routes-file ownership.
+- [x] Add `selectedGeneratedPath(root,packagePath,stem string,source SourceContext,family string) (string,error)` using Task 6's selection semantics and one selected destination requirement. Rendering preserves authored constraints instead of recomputing a family ceiling.
+- [x] Until moves complete, support selected existing destinations through explicit current profile targets; no guessed shared path or automatic copied tree. Resolve authored destination selection from the input source root independently of the publication output root, so an empty temporary output tree still works. Update generator expectations and regenerate affected comments for both families.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD, routegen focused tests and V-GENERATION pass. Check mode leaves mtimes/bytes unchanged and works with ignored generation records absent.
+- [x] V-REVISIONS, V-BUILD, routegen focused tests and V-GENERATION pass. Check mode leaves mtimes/bytes unchanged and works with ignored generation records absent.
 
 ### Task 8: Consolidate native host ABI and its facades
 

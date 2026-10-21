@@ -19,9 +19,12 @@ func TestCheckProfileDoesNotRepairStaleFiles(t *testing.T) {
 	if err := GenerateProfile(tc, profile.ID, []string{"arm64"}, expected, options); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.RemoveAll(filepath.Join(out, ".gosim")); err != nil {
+		t.Fatal(err)
+	}
 	check := func() error {
 		if options.RefreshOrigin {
-			return compareGeneratedOutputs(expected, out)
+			return compareGeneratedOutputs(readOutputTree(t, expected), out)
 		}
 		return CheckProfile(tc, profile.ID, []string{"arm64"}, out)
 	}

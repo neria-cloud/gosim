@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/catalog"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
@@ -36,127 +37,11 @@ type GenerationRecord struct {
 type GenerateOptions struct{ RefreshOrigin bool }
 
 func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, output string, options GenerateOptions) error {
-	version, err := buildspec.ParseGoVersion(tc.Version)
+	outputs, err := prepareProfileOutputs(tc, profileID, arches, output, options)
 	if err != nil {
 		return err
 	}
-	support, err := buildspec.LookupFamily(version)
-	if err != nil {
-		return err
-	}
-	if support.Profile != profileID {
-		return fmt.Errorf("generation requires source compiler matching profile %s", profileID)
-	}
-	entry, err := catalog.Lookup(profileID)
-	if err != nil {
-		return err
-	}
-	descriptor := entry.Descriptor
-	profile, err := descriptor(tc.HostArch)
-	if err != nil {
-		return err
-	}
-	origin, policies := entry.Origin(), entry.Policy()
-	if output == "" || len(arches) == 0 {
-		return fmt.Errorf("explicit output and architectures are required")
-	}
-	seen := map[string]bool{}
-	for _, arch := range arches {
-		if !slices.Contains([]string{"amd64", "arm64"}, arch) || seen[arch] {
-			return fmt.Errorf("unsupported/duplicate simulation architecture %q", arch)
-		}
-		seen[arch] = true
-	}
-	modPath, err := buildspec.GoCommand(tc, "", "env", "GOMOD").Output()
-	if err != nil {
-		return err
-	}
-	moduleFile := strings.TrimSpace(string(modPath))
-	if moduleFile == "" || moduleFile == os.DevNull {
-		return fmt.Errorf("generation requires a module context")
-	}
-	root := filepath.Dir(moduleFile)
-	if err := profile.Validate(); err != nil {
-		return err
-	}
-	if err := policies.Validate(profile); err != nil {
-		return err
-	}
-	// Baseline reproduction and intentional refresh have separate provenance rules.
-	if !options.RefreshOrigin {
-		if err := spec.VerifyBaselineOrigin(tc, origin); err != nil {
-			return err
-		}
-		for _, arch := range arches {
-			manifest, err := profile.Contracts(arch)
-			if err != nil {
-				return err
-			}
-			if err := spec.VerifyFamilyContracts(context.Background(), buildspec.Resolution{Toolchain: tc}, manifest, buildspec.BuildOptions{}); err != nil {
-				return err
-			}
-		}
-	}
-	if options.RefreshOrigin {
-		var manifests []spec.ContractManifest
-		for _, arch := range []string{"amd64", "arm64"} {
-			manifest, err := profile.Contracts(arch)
-			if err != nil {
-				return err
-			}
-			manifests = append(manifests, manifest)
-		}
-		origin, err = spec.RefreshOrigin(context.Background(), buildspec.Resolution{Toolchain: tc}, origin, manifests)
-		if err != nil {
-			return err
-		}
-	}
-	if err := spec.VerifyModules(tc, root, policies.Modules); err != nil {
-		return err
-	}
-	m, err := Load()
-	if err != nil {
-		return err
-	}
-	outputs, err := renderOutputs(tc.Version, profileID, arches, m, origin, policies.Modules)
-	if err != nil {
-		return err
-	}
-	if options.RefreshOrigin {
-		data, err := json.MarshalIndent(origin, "", "  ")
-		if err != nil {
-			return err
-		}
-		outputs["internal/compat/"+profileID+"/profile/origin.json"] = append(data, '\n')
-	}
-	for _, arch := range arches {
-		profile, err = descriptor(arch)
-		if err != nil {
-			return err
-		}
-		adapters, err := renderAdapters(tc, profile, arch, m)
-		if err != nil {
-			return err
-		}
-		if len(adapters) == 0 {
-			continue
-		}
-		recordPath := "internal/compat/" + profileID + "/profile/routes_" + arch + ".json"
-		var record GenerationRecord
-		if err := json.Unmarshal(outputs[recordPath], &record); err != nil {
-			return err
-		}
-		record.Stage = "typed-adapters"
-		record.AdapterDigest = adaptersDigest(adapters)
-		data, err := json.MarshalIndent(record, "", "  ")
-		if err != nil {
-			return err
-		}
-		outputs[recordPath] = append(data, '\n')
-		for name, data := range adapters {
-			outputs[name] = data
-		}
-	}
+
 	// Validate/render all inputs before the first write, then write in stable order.
 	names := make([]string, 0, len(outputs))
 	for name := range outputs {
@@ -169,6 +54,136 @@ func GenerateProfile(tc buildspec.Toolchain, profileID string, arches []string, 
 		}
 	}
 	return nil
+}
+
+// Validation and rendering finish before publication; check uses this same map.
+func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []string, output string, options GenerateOptions) (map[string][]byte, error) {
+	if err := buildcfg.ValidateWorker(tc); err != nil {
+		return nil, err
+	}
+
+	version, err := buildspec.ParseGoVersion(tc.Version)
+	if err != nil {
+		return nil, err
+	}
+	support, err := buildspec.LookupFamily(version)
+	if err != nil {
+		return nil, err
+	}
+	if support.Profile != profileID {
+		return nil, fmt.Errorf("generation requires source compiler matching profile %s", profileID)
+	}
+	entry, err := catalog.Lookup(profileID)
+	if err != nil {
+		return nil, err
+	}
+	descriptor := entry.Descriptor
+	profile, err := descriptor(tc.HostArch)
+	if err != nil {
+		return nil, err
+	}
+	origin, policies := entry.Origin(), entry.Policy()
+	if output == "" || len(arches) == 0 {
+		return nil, fmt.Errorf("explicit output and architectures are required")
+	}
+	seen := map[string]bool{}
+	for _, arch := range arches {
+		if !slices.Contains([]string{"amd64", "arm64"}, arch) || seen[arch] {
+			return nil, fmt.Errorf("unsupported/duplicate simulation architecture %q", arch)
+		}
+		seen[arch] = true
+	}
+	modPath, err := buildspec.GoCommand(tc, "", "env", "GOMOD").Output()
+	if err != nil {
+		return nil, err
+	}
+	moduleFile := strings.TrimSpace(string(modPath))
+	if moduleFile == "" || moduleFile == os.DevNull {
+		return nil, fmt.Errorf("generation requires a module context")
+	}
+	root := filepath.Dir(moduleFile)
+	if err := profile.Validate(); err != nil {
+		return nil, err
+	}
+	if err := policies.Validate(profile); err != nil {
+		return nil, err
+	}
+	// Baseline reproduction and intentional refresh have separate provenance rules.
+	if !options.RefreshOrigin {
+		if err := spec.VerifyBaselineOrigin(tc, origin); err != nil {
+			return nil, err
+		}
+		for _, arch := range arches {
+			manifest, err := profile.Contracts(arch)
+			if err != nil {
+				return nil, err
+			}
+			if err := spec.VerifyFamilyContracts(context.Background(), buildspec.Resolution{Toolchain: tc}, manifest, buildspec.BuildOptions{}); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if options.RefreshOrigin {
+		var manifests []spec.ContractManifest
+		for _, arch := range []string{"amd64", "arm64"} {
+			manifest, err := profile.Contracts(arch)
+			if err != nil {
+				return nil, err
+			}
+			manifests = append(manifests, manifest)
+		}
+		origin, err = spec.RefreshOrigin(context.Background(), buildspec.Resolution{Toolchain: tc}, origin, manifests)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := spec.VerifyModules(tc, root, policies.Modules); err != nil {
+		return nil, err
+	}
+	m, err := Load()
+	if err != nil {
+		return nil, err
+	}
+	outputs, err := renderOutputs(tc.Version, profileID, arches, m, origin, policies.Modules)
+	if err != nil {
+		return nil, err
+	}
+	if options.RefreshOrigin {
+		data, err := json.MarshalIndent(origin, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		outputs["internal/compat/"+profileID+"/profile/origin.json"] = append(data, '\n')
+	}
+	for _, arch := range arches {
+		profile, err = descriptor(arch)
+		if err != nil {
+			return nil, err
+		}
+		adapters, err := renderAdapters(tc, profile, arch, m, root)
+		if err != nil {
+			return nil, err
+		}
+		if len(adapters) == 0 {
+			continue
+		}
+		recordPath := generationRecordPath(profileID, arch)
+		var record GenerationRecord
+		if err := json.Unmarshal(outputs[recordPath], &record); err != nil {
+			return nil, err
+		}
+		record.Stage = "typed-adapters"
+		record.AdapterDigest = adaptersDigest(adapters)
+		data, err := json.MarshalIndent(record, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		outputs[recordPath] = append(data, '\n')
+		for name, data := range adapters {
+			outputs[name] = data
+		}
+	}
+	return outputs, nil
 }
 
 func renderOutputs(toolchain, profile string, arches []string, m Manifest, origin spec.Origin, pins []spec.ModulePin) (map[string][]byte, error) {
@@ -193,7 +208,7 @@ func renderOutputs(toolchain, profile string, arches []string, m Manifest, origi
 		if err != nil {
 			return nil, err
 		}
-		outputs["internal/compat/"+profile+"/profile/routes_"+arch+".json"] = append(data, '\n')
+		outputs[generationRecordPath(profile, arch)] = append(data, '\n')
 	}
 	return outputs, nil
 }
@@ -228,14 +243,6 @@ func writeFile(path string, data []byte) error {
 	return os.Rename(file.Name(), path)
 }
 
-func familyBounds(profile string) string {
-	support, err := buildspec.LookupProfile(profile)
-	if err != nil {
-		panic(err)
-	}
-	version, err := buildspec.ParseGoVersion("go" + support.Family + ".0")
-	if err != nil {
-		panic(err)
-	}
-	return fmt.Sprintf("go%s && !go%d.%d", support.Family, version.Major, version.Minor+1)
+func generationRecordPath(profile, arch string) string {
+	return ".gosim/generation/" + profile + "/routes_" + arch + ".json"
 }

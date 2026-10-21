@@ -47,7 +47,7 @@ func TestCurrentFamilyOriginRefresh(t *testing.T) {
 	if origin.Schema != 2 || origin.BaselineToolchain != r.Toolchain.Version || origin.Family != v.Family() {
 		t.Fatal("incorrect refreshed provenance", origin)
 	}
-	data, err = os.ReadFile(filepath.Join(root, "routes_"+r.Toolchain.HostArch+".json"))
+	data, err = os.ReadFile(filepath.Join(out, generationRecordPath(p.ID, r.Toolchain.HostArch)))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -73,3 +73,15 @@ Replaced per-file bounded-family assertions with nonempty selected package inven
 Verified both native command builds and full spec suites under Go 1.25.14 / Go 1.26.9 after genprofile refresh. Tests prove an inactive file cannot satisfy a missing binding or trigger a duplicate, selected duplicates fail, methods and architecture filenames work, Go 1.26 variants inherit into a hypothetical 1.27, and release tags do not leak from build.Default. Initial inventory failures exposed relative filepath.Rel inputs and the constant-only maps package; both were corrected.
 
 Race/cgo and alternate-architecture cases above are source inspection only. No race build/execution, restricted suite or certification ran. Six implementation commits toward the first eight-commit peer checkpoint.
+
+## Task 7 — Rendering, destination selection and publication
+
+Date: 2026-10-21. Implementation commit 7 (this commit).
+
+Separated validation/rendered output maps from publication. CheckProfile uses the same map without staging writes and skips ignored generation records. Current records now live under .gosim/generation/<profile>/; committed legacy routes JSON remains frozen solely for old embeds until Task 18. Exact source provenance remains independent. The temporary prepareProfileOutputs entry still reads the old catalog; Tasks 18/19 replace this authority with the planned resolved-family render entry.
+
+Generation/source loading now validates the running compiler and installation before parsing. Adapter targets/packages come from reviewed profile records. Destination selection matches existing authored constraints against explicit family/architecture tags, rejects missing/ambiguous destinations and preserves constraints verbatim. Input source root selection is independent of the publication root. Twelve generated syscall files changed only to version-neutral headers; layout bodies and frozen route records did not change. Tests no longer strip headers or erase record digests to compare outputs. Authored Go edits: 446 added/removed lines including new tests; generated headers/revisions accounted separately.
+
+Verified regeneration, full routegen tests, independent -check generation, and native command builds under Go 1.25.14 and Go 1.26.9, all passing. Refreshed active revisions. Tests cover empty output trees, missing/ambiguous/inherited destinations, wrong compiler rejection before writes, other-origin and architecture isolation, complete-byte equality, stable mtimes, stale-file rejection without repair, and checks after deleting the ignored generation-record directory.
+
+No runtime behavior changed, restricted suite or certification ran. Seven implementation commits; the first Claude review follows Task 8's commit.
