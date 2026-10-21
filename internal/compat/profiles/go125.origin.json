@@ -1977,6 +1977,34 @@
       "digest": "45e8d40e8ac7f5fb23b1f25d7ad45138e0b52efbd2f98de0a7bad61e40bbc47a"
     },
     {
+      "path": "src/runtime/trace/annotation.go",
+      "digest": "bc7f08f2793ca363cf022f1385cb08185f181a2f67725453fde7f71c029d1525"
+    },
+    {
+      "path": "src/runtime/trace/batch.go",
+      "digest": "3c2c17912cc7082ae01d17a5186ec9ac6dfd77acd53e7f760e924498bb702254"
+    },
+    {
+      "path": "src/runtime/trace/encoding.go",
+      "digest": "3805d73095599150b35f41ac548320fb97459671d2fc3d455edf387adf8cdedd"
+    },
+    {
+      "path": "src/runtime/trace/flightrecorder.go",
+      "digest": "700d85c8afa778c2aef5cf3608d9f058d85e1b4e8a1224bbbd1f7221168236b3"
+    },
+    {
+      "path": "src/runtime/trace/recorder.go",
+      "digest": "7c244ae293843219b788b97ceb49794eaa8736c39c68a2b06aef282b87ef5d2b"
+    },
+    {
+      "path": "src/runtime/trace/subscribe.go",
+      "digest": "4fe83828e55be736c0ca932a954a04de35eb3a62d4d449005094a706148144b8"
+    },
+    {
+      "path": "src/runtime/trace/trace.go",
+      "digest": "1f13c6a781982a57c733620814cc5238030bfd1ff2518f1e8278e8b59d42ca44"
+    },
+    {
       "path": "src/runtime/traceallocfree.go",
       "digest": "57b1e9d544f59930f6f07ea4a269cd664a18447adf1460d2064f8f44255bec61"
     },

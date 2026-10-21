@@ -3,6 +3,8 @@
 package runtimebridge
 
 import (
+	"runtime" //gosim:notranslate
+
 	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
@@ -17,7 +19,7 @@ func Runtime_SetBlockProfileRate(rate int) {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.SetBlockProfileRate", Message: "native profiling is not modeled"})
 }
 
-func Runtime_ReadMemStats(stats any) {
+func Runtime_ReadMemStats(stats *runtime.MemStats) {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.ReadMemStats", Message: "native GC statistics are not modeled"})
 }
 

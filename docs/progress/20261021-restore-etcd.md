@@ -31,3 +31,26 @@ Notes
 
 - The initial full test run found stale revisions after the guard test changed. Regeneration and the final ordinary run cleared them.
 - jsoniter v1.1.11 refers to exported concrete reflect2 `Unsafe*Type` names. A4 and Task 1 were corrected before Task 3; pointer execution still needs an explicit modeled implementation or fatal guard.
+
+## Tasks 3–4 — selected reflect2 metadata and disabled observability
+
+Date: 2026-10-21. Pair commit contains this entry.
+
+Implemented
+
+- Replaced the exact pinned reflect2 package with a shared translated metadata facade. It preserves public interface and concrete type names, kind-specific wrappers, per-config canonical type keys, and machine-local mutable state. Pointer and value operations outside this subset abort fatally.
+- Added a disabled `runtime/trace` facade: `IsEnabled` returns false; active tasks, regions, logging and trace capture abort. Added the dormant `runtime/debug.Stack` declaration with a fatal guard.
+- Corrected the existing `runtime.ReadMemStats` bridge to the exact `*runtime.MemStats` signature required by pinned Prometheus. A reviewed native type import is used solely for the signature; actual collection still aborts.
+- Added narrow baseline declarations, capabilities, module-source bindings and GOROOT probes; Go 1.26 inherits the additions. Refreshed both independent compiler origins and profile revisions. The current probe schema cannot name a module path, so reflect2 execution is checked by translated fixtures.
+
+Verified
+
+- `make build` under Go 1.25.14 and 1.26.9: pass. Both compiler profile/adapter generation checks for AMD64/ARM64: pass.
+- Focused metadata, feature and changed-shim native tests under both compilers: pass. `./.ci/gofmt check` and `git diff --check`: pass.
+- Translated jsoniter/reflect2 initialization, type identity and two-machine state tests under both compilers: pass. `TestUnsafeReflectGuard` exits with `UnsupportedOperation` for `reflect2.PtrOf` under both compilers, including an attempted application recovery.
+- Translated OpenTelemetry and Prometheus initialization under `rt,fs,net` on both compilers: pass. `TestActiveTraceGuard` and `TestHostMetricsGuard` exit with the expected fatal diagnostics under both compilers despite recovery attempts.
+- `make test`: 86 reports, 1,998 passed, 20 skipped, no failures/errors; wall time 230 seconds. The ordinary suite does not include the testdata fixtures; their translated invocations above provide the execution evidence.
+
+Next boundary
+
+- Focused etcd translation advances past crypto, reflect2 and trace to `go.etcd.io/etcd/pkg/v3/osutil: unsupported syscall.Syscall6`. The current example imports `osutil` for process interrupt handling; Task 5 removes that path through explicit embedded lifecycle. This is not a positive etcd result yet.

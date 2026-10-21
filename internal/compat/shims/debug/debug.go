@@ -45,3 +45,10 @@ type GCStats struct {
 func ReadGCStats(stats *GCStats) {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime/debug.ReadGCStats", Message: "host garbage collection metrics are not modeled"})
 }
+
+// TODO(not planned): stack snapshots need a machine-scoped simulated stack
+// format before this optional diagnostic path can execute.
+func Stack() []byte {
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime/debug.Stack", Message: "host stack snapshots are not modeled"})
+	panic("abort returned")
+}

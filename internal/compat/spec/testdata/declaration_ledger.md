@@ -19,8 +19,10 @@ Each record has one reviewed disposition:
   the replacement of a native ChaCha8 linkname by translated computation.
 - `package-bridge`: runtime/debug and os/signal use selected translated shims
   that model supported behavior and abort unsupported operations.
-- `package-reject`: runtime/trace and weak are excluded as application packages,
-  superseding their legacy partial hooks.
+- `package-reject`: the historical baseline excluded runtime/trace and weak.
+  The etcd restoration adds an exact guarded runtime/trace replacement with
+  `IsEnabled` false; the immutable ledger still records the earlier rejection.
+  Weak remains excluded. Legacy partial trace hooks are not restored.
 
 `{family}` expands independently to go125 and go126. Architecture restrictions
 come from selected Linux source: CPU intrinsics differ, and private gettimeofday

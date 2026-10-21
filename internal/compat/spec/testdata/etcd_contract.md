@@ -22,7 +22,7 @@ authority for further required method bodies.
 | `crypto/ecdsa` | transport `listener.go`, etcd auth/JWT, golang-jwt v4 `ecdsa*.go` | `PublicKey` with embedded `elliptic.Curve`, `X`, `Y`; `PrivateKey` with embedded `PublicKey`, `D`; `GenerateKey`, `Sign`, `Verify`, `Public`, signer methods and X509 parsing result types | Key shapes modeled; generation/sign/verify guarded; plaintext path must not call them |
 | `crypto/rsa` | etcd auth/JWT, golang-jwt v4 `rsa*.go` | `PublicKey{N,E}`, `PrivateKey` and CRT fields, `PSSOptions`, salt constants, PKCS1v15/PSS sign and verify, `Public`, `Size`, signer methods | Key shapes modeled; algorithms guarded; plaintext auth disabled |
 | `runtime/trace` | OpenTelemetry SDK `trace/span.go` | `IsEnabled() bool`, `NewTask(context.Context,string) (context.Context,*Task)`, `(*Task).End()`; rest of exported trace surface only as required by typed imports | `IsEnabled` returns false; active task, region, log and trace writing abort |
-| `github.com/modern-go/reflect2` | etcd v2 discovery → client v2 → jsoniter v1.1.11 | Full `Type`, kind interfaces, `Config`, `API`; `TypeOfPtr`, `TypeOf`, `Type2`, `PtrTo`, `IsNil`, `IsNullable`; distinct exported concrete `UnsafePtrType`, `UnsafeIFaceType`, `UnsafeSliceType`, `UnsafeArrayType`, `UnsafeMapType`, `UnsafeStructType` | Initialization type metadata modeled; raw pointer/value mutation operations guarded |
+| `github.com/modern-go/reflect2` | etcd v2 discovery → client v2 → jsoniter v1.1.11 | Full `Type`, kind interfaces, `Config`, `API`; `TypeOfPtr`, `TypeOf`, `Type2`, `PtrTo`, `DefaultTypeOfKind`, `IsNil`, `IsNullable`; distinct exported concrete `UnsafePtrType`, `UnsafeIFaceType`, `UnsafeSliceType`, `UnsafeArrayType`, `UnsafeMapType`, `UnsafeStructType` | Initialization type metadata modeled; raw pointer/value mutation operations guarded |
 
 The additional concrete reflect2 names are necessary because jsoniter uses
 type assertions and pointer fields against them. jsoniter package
@@ -39,6 +39,13 @@ self-signed certificate branch. JWT signing and verification are registered
 at initialization but require auth to be enabled. OpenTelemetry's
 `recordingSpan.runtimeTrace` checks `IsEnabled` before `NewTask`. These are
 source-level branch observations; Task 8 must prove the live plaintext path.
+
+Pinned jsoniter also imports `github.com/modern-go/concurrent`, whose dormant
+panic handler calls `runtime/debug.Stack`. The selected debug facade provides
+that declaration with a fatal execution guard; the disabled path does not
+collect a host stack. Prometheus stores `runtime.ReadMemStats` in a typed
+`func(*runtime.MemStats)` field at initialization, so the runtime bridge keeps
+that exact signature and aborts any actual host metric collection.
 
 The pinned transport and JWT source also names X.509 functions which the
 existing facade did not fully declare: `CreateCertificate`,

@@ -32,7 +32,7 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 					t.Errorf("%s: %+v %v", path, policy, err)
 				}
 			}
-			for _, path := range []string{"net/http/httptest", "github.com/modern-go/reflect2", "C", "testing/synctest", "crypto/internal/sysrand", "crypto/internal/fips140", "weak"} {
+			for _, path := range []string{"net/http/httptest", "github.com/modern-go/reflect2/private", "C", "testing/synctest", "crypto/internal/sysrand", "crypto/internal/fips140", "weak"} {
 				if _, err := p.Policy(path, true); err == nil {
 					t.Errorf("unsafe package %s admitted", path)
 				}
@@ -59,6 +59,12 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 			}
 			if policy, err := p.Policy("crypto/rand", true); err != nil || policy.Mode != "bridge" {
 				t.Fatalf("exact deterministic bridge did not override crypto rejection: %+v %v", policy, err)
+			}
+			if policy, err := p.Policy("github.com/modern-go/reflect2", false); err != nil || policy.Mode != "bridge" {
+				t.Fatalf("exact reflect2 facade did not override private-subtree rejection: %+v %v", policy, err)
+			}
+			if policy, err := p.Policy("runtime/trace", true); err != nil || policy.Mode != "bridge" {
+				t.Fatalf("disabled trace facade did not override native-trace rejection: %+v %v", policy, err)
 			}
 			if policy, err := p.Policy("example.test/application", false); err != nil || policy.Mode != "translate" {
 				t.Fatal("application code must be translated")

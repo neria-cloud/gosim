@@ -404,18 +404,18 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A4, A7–A8; study “Where support lived in the old tree”; maintainer guide §2.
 **Estimated authored changes:** ≤1,300 lines, split declaration and behavior work if necessary.
 
-- [ ] Implement pinned public interface declarations and kind-specific wrapper types with A4's exact state ownership.
-- [ ] Implement `Config.Froze`, `TypeOf`, `TypeOfPtr`, `Type2`, pointer/element and required metadata queries through the selected public reflection API. Intern wrappers per config using translated maps.
-- [ ] Exercise real jsoniter default/standard-library-compatible config initialization, including string, RawMessage and interface extension keys. Verify nil behavior and canonical comparable keys.
-- [ ] Preserve interface method sets: non-map/non-pointer wrappers must not satisfy unrelated interfaces. Keep unsafe and unimplemented value operations fatal, including recovery attempts.
-- [ ] Replace only the exact reflect2 package; keep unsupported subpackages/private ABI rejected. Preserve module checksum enforcement and update its descriptive reason to the new limited capability.
-- [ ] Add baseline declarations/probes and regenerate. Do not reuse the historical panic-only private linknames as proof of support or mark all reflect2 operations implemented.
-- [ ] Check two simulated machines initialize independent mutable configuration state; this is not a native global cache.
+- [x] Implement pinned public interface declarations and kind-specific wrapper types with A4's exact state ownership.
+- [x] Implement `Config.Froze`, `TypeOf`, `TypeOfPtr`, `Type2`, pointer/element and required metadata queries through the selected public reflection API. Intern wrappers per config using translated maps.
+- [x] Exercise real jsoniter default/standard-library-compatible config initialization, including string, RawMessage and interface extension keys. Verify nil behavior and canonical comparable keys.
+- [x] Preserve interface method sets: non-map/non-pointer wrappers must not satisfy unrelated interfaces. Keep unsafe and unimplemented value operations fatal, including recovery attempts.
+- [x] Replace only the exact reflect2 package; keep unsupported subpackages/private ABI rejected. Preserve module checksum enforcement and update its descriptive reason to the new limited capability.
+- [x] Add baseline declarations and selected pinned-module source checks; use translated positive and fatal-operation fixtures for execution probes. The existing `InitProbe` format addresses GOROOT source only, so it cannot express a reflect2 module probe. Regenerate without treating historical panic-only private linknames as proof of support or marking all reflect2 operations implemented.
+- [x] Check two simulated machines initialize independent mutable configuration state; this is not a native global cache.
 
 #### Verification
 
-- [ ] Focused translated initialization/type-identity and negative-operation tests pass on both families; host package compilation alone is insufficient.
-- [ ] `V-BUILD`, `V-METADATA`, `V-GENERATE` pass. Record any executed need beyond A4 before extending support.
+- [x] Focused translated initialization/type-identity and negative-operation tests pass on both families; host package compilation alone is insufficient.
+- [x] `V-BUILD`, `V-METADATA`, `V-GENERATE` pass. Record any executed need beyond A4 before extending support.
 
 ### Task 4: Supply disabled tracing and bounded observability declarations
 
@@ -423,16 +423,16 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A3 tracing signatures, A7, A8; study “Observability”.
 **Estimated authored changes:** ≤600 lines.
 
-- [ ] Implement `IsEnabled() == false`, required Task/Region types and callable declarations. Unsupported trace execution aborts with a precise diagnostic.
-- [ ] Verify the actual OpenTelemetry disabled-tracing branch without invoking host tracing or treating all trace functions as successful no-ops.
-- [ ] Exercise Prometheus package initialization separately from metric collection. Preserve explicit failure for host heap/thread/goroutine measurements; add only missing declarations needed to register inactive collectors.
-- [ ] Check startup does not scrape metrics or start an exporter. If a required startup path invokes an excluded operation, resolve it explicitly rather than blanket-suppressing diagnostics.
-- [ ] Add exact baseline contracts and negative tests; keep compile-time family selection and generate independently for both versions.
+- [x] Implement `IsEnabled() == false`, required Task/Region types and callable declarations. Unsupported trace execution aborts with a precise diagnostic.
+- [x] Verify the actual OpenTelemetry disabled-tracing branch without invoking host tracing or treating all trace functions as successful no-ops.
+- [x] Exercise Prometheus package initialization separately from metric collection. Preserve explicit failure for host heap/thread/goroutine measurements; add only missing declarations needed to register inactive collectors.
+- [x] Check focused observability initialization does not scrape metrics or start an exporter; confirm the actual etcd startup path in Task 8. If a required startup path invokes an excluded operation, resolve it explicitly rather than blanket-suppressing diagnostics.
+- [x] Add exact baseline contracts and negative tests; keep compile-time family selection and generate independently for both versions.
 
 #### Verification
 
-- [ ] Focused OpenTelemetry/Prometheus initialization and unsupported-execution fixtures pass on both compilers.
-- [ ] `V-BUILD`, `V-METADATA`, `V-GENERATE` pass; no native runtime metrics/trace dependency is newly authorized.
+- [x] Focused OpenTelemetry/Prometheus initialization and unsupported-execution fixtures pass on both compilers.
+- [x] `V-BUILD`, `V-METADATA`, `V-GENERATE` pass; no native runtime metrics/trace dependency is newly authorized.
 
 ### Task 5: Convert the etcd wrapper to explicit embedded lifecycle
 
@@ -693,6 +693,15 @@ Use `[_]` for an unresolved required gap at attempted completion. The plan canno
 
 ## NOT PLANNED CHANGES
 
+- Task 3's module-source probe uses the pinned module contract and translated
+  initialization/abort fixtures. The current `InitProbe` schema accepts only
+  GOROOT `src/` paths; adding an external module path would be a false probe.
+  No schema extension is needed for this restoration.
+- Prometheus v1.11.1 assigns `runtime.ReadMemStats` to a
+  `func(*runtime.MemStats)` field. The existing runtime bridge used `any`,
+  which failed translated type checking. Its signature is now exact, with a
+  reviewed native type import used only for the signature; execution still
+  aborts before collecting host metrics.
 - `.ci/gofmt`: ordinary validation found that its source search included generated `.gosim` caches inside nested examples, causing a false formatting failure and transient read errors. Prune every `.gosim` directory while retaining all source directories. Verified by `./.ci/gofmt check` and the passing ordinary suite. The change is limited to the find expression:
 
   ```diff

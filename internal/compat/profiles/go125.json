@@ -4687,6 +4687,132 @@
             "target": "github.com/neria-cloud/gosim/internal/compat/shims/x509.ParsePKIXPublicKey",
             "owner": "rt"
           }
+        },
+        {
+          "hook": {
+            "package": "runtime/debug",
+            "symbol": "Stack",
+            "signature": "func() []byte",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/debug.Stack",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "github.com/modern-go/reflect2",
+            "symbol": "DefaultTypeOfKind",
+            "signature": "func(reflect.Kind) Type",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect2.DefaultTypeOfKind",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "github.com/modern-go/reflect2",
+            "symbol": "Type2",
+            "signature": "func(reflect.Type) Type",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect2.Type2",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "github.com/modern-go/reflect2",
+            "symbol": "PtrTo",
+            "signature": "func(Type) Type",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect2.PtrTo",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "IsEnabled",
+            "signature": "func() bool",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.IsEnabled",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "Start",
+            "signature": "func(io.Writer) error",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.Start",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "Stop",
+            "signature": "func()",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.Stop",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "NewTask",
+            "signature": "func(context.Context, string) (context.Context, *Task)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.NewTask",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "*Task.End",
+            "signature": "func()",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.*Task.End",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "StartRegion",
+            "signature": "func(context.Context, string) *Region",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.StartRegion",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "*Region.End",
+            "signature": "func()",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.*Region.End",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "WithRegion",
+            "signature": "func(context.Context, string, func())",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.WithRegion",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "Log",
+            "signature": "func(context.Context, string, string)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.Log",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "runtime/trace",
+            "symbol": "Logf",
+            "signature": "func(context.Context, string, string, ...any)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.Logf",
+            "owner": "rt"
+          }
         }
       ]
     },
@@ -5648,11 +5774,6 @@
           "reason": "Selected translated replacement; see its declared behavior and guarded operations."
         },
         {
-          "path": "runtime/trace",
-          "mode": "reject",
-          "reason": "Native trace scheduling and output are not modeled."
-        },
-        {
           "path": "slices",
           "mode": "translate",
           "reason": "Keep mutable globals, containers, errors and typed calls in the simulated type universe; private ABI remains subject to exact hook validation."
@@ -5826,6 +5947,16 @@
           "path": "crypto/rsa",
           "mode": "bridge",
           "reason": "Reviewed optional key declarations and guarded algorithms in the shared Go 1.25 baseline."
+        },
+        {
+          "path": "github.com/modern-go/reflect2",
+          "mode": "bridge",
+          "reason": "Exact pinned reflect2 v1.0.1 type-metadata replacement; pointer operations remain fatal."
+        },
+        {
+          "path": "runtime/trace",
+          "mode": "bridge",
+          "reason": "Disabled tracing query and guarded task/region/output declarations; no host tracer."
         }
       ]
     },
@@ -6298,11 +6429,26 @@
           "package": "crypto/rsa",
           "replacement": "github.com/neria-cloud/gosim/internal/compat/shims/rsa",
           "reason": "Selected translated declaration facade; no native key generation or signing."
+        },
+        {
+          "package": "github.com/modern-go/reflect2",
+          "replacement": "github.com/neria-cloud/gosim/internal/compat/shims/reflect2",
+          "reason": "Translated type metadata and guarded raw-pointer operations."
+        },
+        {
+          "package": "runtime/trace",
+          "replacement": "github.com/neria-cloud/gosim/internal/compat/shims/trace",
+          "reason": "Selected translated trace facade with explicit fatal guards."
         }
       ]
     },
     "native_imports": {
       "add": [
+        {
+          "package": "runtime",
+          "from": "github.com/neria-cloud/gosim/internal/compat/shims/runtimebridge",
+          "reason": "ReadMemStats uses only the native MemStats type for its exact function signature; execution aborts before accessing a host metric."
+        },
         {
           "package": "sync/atomic",
           "reason": "Owned bridge implementation only: private reflection metadata/cache/sequence types, or primitive race-mode atomic operations; no translated context/time/net object escapes.",
@@ -6793,6 +6939,116 @@
           "operation": "crypto/rsa.VerifyPSS",
           "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
           "source": "src/crypto/rsa/fips.go"
+        },
+        {
+          "package": "runtime/debug",
+          "symbol": "Stack",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/debug.Stack",
+          "response": "Fatal UnsupportedOperation; no host stack or scheduler state is sampled.",
+          "source": "src/runtime/debug/stack.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "IsEnabled",
+          "phase": "first-use",
+          "disposition": "modeled",
+          "feature": "rt",
+          "operation": "runtime/trace.IsEnabled",
+          "response": "Always false; no tracing starts.",
+          "source": "src/runtime/trace/annotation.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "Start",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/trace.Start",
+          "response": "Fatal UnsupportedOperation; no host trace state or output.",
+          "source": "src/runtime/trace/trace.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "Stop",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/trace.Stop",
+          "response": "Fatal UnsupportedOperation; no host trace state or output.",
+          "source": "src/runtime/trace/trace.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "NewTask",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/trace.NewTask",
+          "response": "Fatal UnsupportedOperation; no host trace state or output.",
+          "source": "src/runtime/trace/annotation.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "*Task.End",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/trace.*Task.End",
+          "response": "Fatal UnsupportedOperation; no host trace state or output.",
+          "source": "src/runtime/trace/annotation.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "StartRegion",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/trace.StartRegion",
+          "response": "Fatal UnsupportedOperation; no host trace state or output.",
+          "source": "src/runtime/trace/annotation.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "*Region.End",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/trace.*Region.End",
+          "response": "Fatal UnsupportedOperation; no host trace state or output.",
+          "source": "src/runtime/trace/annotation.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "WithRegion",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/trace.WithRegion",
+          "response": "Fatal UnsupportedOperation; no host trace state or output.",
+          "source": "src/runtime/trace/annotation.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "Log",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/trace.Log",
+          "response": "Fatal UnsupportedOperation; no host trace state or output.",
+          "source": "src/runtime/trace/annotation.go"
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "Logf",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "runtime/trace.Logf",
+          "response": "Fatal UnsupportedOperation; no host trace state or output.",
+          "source": "src/runtime/trace/annotation.go"
         }
       ]
     },
@@ -6803,7 +7059,7 @@
           "version": "v1.0.1",
           "sum": "h1:9f412s+6RmYXLWZSEzVVgPGK7C2PphHj5RJrvfx9AWI=",
           "go_mod_sum": "h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=",
-          "reason": "Private reflect ABI is inventoried and rejected, with its dependency version explicit."
+          "reason": "Pinned reflect2 v1.0.1 source verified for the selected type-metadata replacement and guarded value operations."
         },
         {
           "path": "golang.org/x/sys",
@@ -8417,6 +8673,120 @@
           "symbol": "ParsePKIXPublicKey",
           "status": "limited",
           "reason": "Type-complete declaration for the pinned optional etcd/JWT path; executing X.509 parsing or certificate operations aborts."
+        },
+        {
+          "package": "github.com/modern-go/reflect2",
+          "symbol": "TypeOf",
+          "status": "limited",
+          "reason": "Canonical translated type metadata; value operations remain guarded."
+        },
+        {
+          "package": "github.com/modern-go/reflect2",
+          "symbol": "TypeOfPtr",
+          "status": "limited",
+          "reason": "Canonical pointer/element metadata for jsoniter initialization."
+        },
+        {
+          "package": "github.com/modern-go/reflect2",
+          "symbol": "Type2",
+          "status": "limited",
+          "reason": "Canonical translated reflect.Type metadata."
+        },
+        {
+          "package": "github.com/modern-go/reflect2",
+          "symbol": "PtrTo",
+          "status": "limited",
+          "reason": "Pointer type metadata only."
+        },
+        {
+          "package": "github.com/modern-go/reflect2",
+          "symbol": "IsNil",
+          "status": "limited",
+          "reason": "Nullable value inspection through selected public reflection."
+        },
+        {
+          "package": "github.com/modern-go/reflect2",
+          "symbol": "IsNullable",
+          "status": "implemented",
+          "reason": "Pure kind classification."
+        },
+        {
+          "package": "github.com/modern-go/reflect2",
+          "symbol": "PtrOf",
+          "status": "limited",
+          "reason": "Declaration admitted but raw pointer extraction aborts."
+        },
+        {
+          "package": "github.com/modern-go/reflect2",
+          "symbol": "RTypeOf",
+          "status": "limited",
+          "reason": "Declaration admitted but runtime type addresses abort."
+        },
+        {
+          "package": "runtime/debug",
+          "symbol": "Stack",
+          "status": "limited",
+          "reason": "Dormant concurrent executor panic diagnostic can compile; stack snapshots abort when executed."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "IsEnabled",
+          "status": "implemented",
+          "reason": "Disabled tracing query returns false."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "Start",
+          "status": "limited",
+          "reason": "Declaration admitted; active tracing execution aborts."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "Stop",
+          "status": "limited",
+          "reason": "Declaration admitted; active tracing execution aborts."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "NewTask",
+          "status": "limited",
+          "reason": "Declaration admitted; active tracing execution aborts."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "*Task.End",
+          "status": "limited",
+          "reason": "Declaration admitted; active tracing execution aborts."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "StartRegion",
+          "status": "limited",
+          "reason": "Declaration admitted; active tracing execution aborts."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "*Region.End",
+          "status": "limited",
+          "reason": "Declaration admitted; active tracing execution aborts."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "WithRegion",
+          "status": "limited",
+          "reason": "Declaration admitted; active tracing execution aborts."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "Log",
+          "status": "limited",
+          "reason": "Declaration admitted; active tracing execution aborts."
+        },
+        {
+          "package": "runtime/trace",
+          "symbol": "Logf",
+          "status": "limited",
+          "reason": "Declaration admitted; active tracing execution aborts."
         }
       ]
     },
@@ -8466,6 +8836,12 @@
         },
         {
           "path": "github.com/neria-cloud/gosim/internal/compat/shims/rsa"
+        },
+        {
+          "path": "github.com/neria-cloud/gosim/internal/compat/shims/reflect2"
+        },
+        {
+          "path": "github.com/neria-cloud/gosim/internal/compat/shims/trace"
         }
       ]
     },

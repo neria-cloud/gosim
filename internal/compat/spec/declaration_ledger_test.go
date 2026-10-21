@@ -181,6 +181,14 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 					label := d.File + ":" + d.Name
 					if d.Disposition == "package-reject" || d.Disposition == "package-bridge" {
 						policy, err := p.Policy(d.Package, true)
+						if d.Disposition == "package-reject" && d.Package == "runtime/trace" {
+							// The immutable old ledger records the former rejection.
+							// The restoration admits only a guarded replacement.
+							if err != nil || policy.Mode != "bridge" || bridges[d.Package] != "github.com/neria-cloud/gosim/internal/compat/shims/trace" {
+								t.Error("missing guarded trace replacement", label)
+							}
+							continue
+						}
 						if d.Disposition == "package-reject" && (err == nil || policy.Mode != "reject" || d.Note == "") {
 							t.Error("missing package rejection", label)
 						}
