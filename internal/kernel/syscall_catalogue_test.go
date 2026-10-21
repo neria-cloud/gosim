@@ -109,8 +109,7 @@ func TestSyscallCatalogueFeatureSets(t *testing.T) {
 			providers = append(providers, net)
 		}
 		_, err := fixture(t, test.features, providers, func(k *Kernel) {
-			ref := createFor(t, k, "catalogue", idleMain)
-			entries, err := k.CountableSyscalls(ref)
+			entries, err := k.CountableSyscalls()
 			counterCheck(t, err)
 			if len(entries) != test.size {
 				t.Fatalf("features %d: got %d want %d", test.features, len(entries), test.size)

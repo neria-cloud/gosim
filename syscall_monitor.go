@@ -53,8 +53,6 @@ type SyscallsMonitor interface {
 	Counts() (map[string]uint64, error)
 	// Stats returns an owned snapshot, including fresh nested descriptor maps.
 	Stats() (map[string]SyscallStat, error)
-	// List returns available names and static metadata sorted by Name.
-	List() ([]SyscallInfo, error)
 }
 
 type syscallsMonitor struct{ machine Machine }

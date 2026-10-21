@@ -11,7 +11,10 @@ disabled; creating a handle does not enable it or start the machine.
 | `Reset()` | Clear statistics; preserve enabled/paused state |
 | `Counts()` | Return `map[string]uint64` of observed names and totals |
 | `Stats()` | Return totals, fixed syscall groups, and descriptor-owner buckets |
-| `List()` | Return all available names with Group and DescriptorBased, sorted by Name |
+
+`gosim.CountableSyscalls()` separately returns the static dictionary of available
+names with Group and DescriptorBased, sorted by Name. It depends on the selected
+feature set, independently of any machine or monitoring state.
 
 Inside a simulated test:
 
@@ -38,8 +41,9 @@ t.Log(counts["getpid"], stats["getpid"]) // 1; rt group, none descriptor bucket
 Use a workload barrier or Stop for a stable window: monitor calls are scheduling
 points, and separate queries can see different totals while counting continues.
 Each snapshot is detached, including nested maps. Successful empty queries return
-non-nil containers. Counts/Stats omit uncalled names and zero buckets. List
-includes uncalled names but has no counters or runtime descriptor buckets.
+non-nil containers. Counts/Stats omit uncalled names and zero buckets.
+CountableSyscalls includes uncalled names but has no counters or runtime
+descriptor buckets.
 
 Each `SyscallStat` has `Count`, `Group`, and `ByDescriptor`.
 Group is fixed: `rt`, `fs`, or `net`. Shared calls such as read/write/close/fcntl
@@ -52,14 +56,17 @@ ByDescriptor={fs:2, net:1}. Individual descriptor numbers are not retained.
 Ownership is captured before execution, including before close removes an FD.
 Directory-context and output descriptors do not count as primary inputs: openat
 and socket use `none`, accept4 uses its listener, and mmap uses its input FD.
-List's DescriptorBased describes this static input rule, not successful execution.
+`DescriptorBased` in the dictionary describes this static input rule,
+independently of successful execution.
 Discovery respects the immutable feature set: 8 names for rt, 34 for rt/fs,
 17 for rt/net, and 43 with all features.
 
 Monitor operations work before machine Start and after stop/crash; counters and
 enabled state survive Restart. Enabling before Start includes package init.
 Destroy invalidates the handle, and handles from a previous run are rejected.
-Native operations return ErrNotSim; query errors return nil containers.
+Native monitor operations and CountableSyscalls return ErrNotSim; query errors
+return nil containers. Discovery has no machine handle and remains usable after
+a monitored machine is destroyed.
 
 Only admitted typed routes count. Modeled errors and retries each count once;
 completion, polling, controls, teardown, native calls, and hook-local early

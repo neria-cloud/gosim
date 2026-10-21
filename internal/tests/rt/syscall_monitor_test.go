@@ -55,7 +55,7 @@ func TestSyscallMonitorControlsAndCopies(t *testing.T) {
 	if counts, stats := monitorCounts(t, monitor), monitorStats(t, monitor); len(counts) != 0 || len(stats) != 0 {
 		t.Fatal("not initially empty", counts, stats)
 	}
-	list, err := monitor.List()
+	list, err := gosim.CountableSyscalls()
 	testsupport.Check(t, err)
 	if len(list) < 8 || !slices.IsSortedFunc(list, func(a, b gosim.SyscallInfo) int { return strings.Compare(a.Name, b.Name) }) {
 		t.Fatal("invalid catalogue", list)
@@ -89,7 +89,7 @@ func TestSyscallMonitorControlsAndCopies(t *testing.T) {
 	stats["getpid"].ByDescriptor[gosim.DescriptorGroupNone] = 999
 	stats["never"] = gosim.SyscallStat{Count: 999}
 	list[0].Name = "modified"
-	freshList, err := shared.List()
+	freshList, err := gosim.CountableSyscalls()
 	testsupport.Check(t, err)
 	if !reflect.DeepEqual(freshList, originalList) || !reflect.DeepEqual(monitorCounts(t, shared), wantCounts) || !reflect.DeepEqual(monitorStats(t, monitor), wantStats) {
 		t.Fatal("snapshot aliases state")
@@ -138,13 +138,6 @@ func checkInvalidMonitor(t *testing.T, monitor gosim.SyscallsMonitor, want error
 			}
 			return err
 		},
-		func() error {
-			rows, err := monitor.List()
-			if rows != nil {
-				t.Error("error returned list")
-			}
-			return err
-		},
 	} {
 		if err := call(); !errors.Is(err, want) {
 			t.Fatalf("monitor error %v want %v", err, want)
@@ -159,7 +152,7 @@ func TestSyscallMonitorPrestartAndInvalidHandles(t *testing.T) {
 	if len(monitorCounts(t, monitor)) != 0 || len(monitorStats(t, monitor)) != 0 {
 		t.Fatal("prestart counts")
 	}
-	if entries, err := monitor.List(); err != nil || len(entries) == 0 {
+	if entries, err := gosim.CountableSyscalls(); err != nil || len(entries) == 0 {
 		t.Fatal(entries, err)
 	}
 	testsupport.Check(t, monitor.Start())
@@ -176,6 +169,10 @@ func TestSyscallMonitorPrestartAndInvalidHandles(t *testing.T) {
 		t.Fatal("prestart counting missed package initialization")
 	}
 	testsupport.Check(t, m.Destroy())
+	// Discovery belongs to the feature set and remains usable after this machine is gone.
+	if entries, err := gosim.CountableSyscalls(); err != nil || len(entries) == 0 {
+		t.Fatal("discovery after destroy", entries, err)
+	}
 	checkInvalidMonitor(t, monitor, gosim.ErrMachineNotFound)
 	checkInvalidMonitor(t, (gosim.Machine{}).SyscallsMonitor(), gosim.ErrWrongRun)
 }

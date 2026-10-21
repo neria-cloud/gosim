@@ -229,10 +229,7 @@ func (k *Kernel) SyscallStats(ref contracts.MachineRef) ([]contracts.SyscallReco
 // descriptor groups and counts do not exist for uncalled entries.
 //
 //go:norace
-func (k *Kernel) CountableSyscalls(ref contracts.MachineRef) ([]contracts.SyscallInfo, error) {
-	if _, err := k.Lookup(ref); err != nil {
-		return nil, err
-	}
+func (k *Kernel) CountableSyscalls() ([]contracts.SyscallInfo, error) {
 	var result []contracts.SyscallInfo
 	for slot, metadata := range syscallCatalogue {
 		if metadata.name != "" && k.features.Has(metadata.group) {

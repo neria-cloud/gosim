@@ -64,8 +64,11 @@ func (m syscallsMonitor) Stats() (map[string]SyscallStat, error) {
 	return result, nil
 }
 
-func (m syscallsMonitor) List() ([]SyscallInfo, error) {
-	out, err := control.Call(kernel.CountableSyscallsRequest{Machine: m.machine.ref()}, kernel.DecodeCountableSyscallsResult)
+// CountableSyscalls returns available syscall names and static metadata sorted by Name.
+// The dictionary depends only on the simulation feature set, not on a machine.
+// The returned slice is detached from the catalogue.
+func CountableSyscalls() ([]SyscallInfo, error) {
+	out, err := control.Call(kernel.CountableSyscallsRequest{}, kernel.DecodeCountableSyscallsResult)
 	if err != nil {
 		return nil, err
 	}

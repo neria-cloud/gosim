@@ -42,7 +42,7 @@ func TestNativeControls(t *testing.T) {
 			return err
 		},
 		"syscalls-list": func() error {
-			result, err := monitor.List()
+			result, err := gosim.CountableSyscalls()
 			if result != nil {
 				t.Error("native list")
 			}

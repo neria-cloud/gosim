@@ -731,10 +731,9 @@ func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
 		out.Records, err = k.SyscallStats(p.Machine)
 		return controlRouteResult(out, err)
 	case RouteCountableSyscalls:
-		p := inv.Args[0].(CountableSyscallsRequest)
 		var out CountableSyscallsResult
 		var err error
-		out.Syscalls, err = k.CountableSyscalls(p.Machine)
+		out.Syscalls, err = k.CountableSyscalls()
 		return controlRouteResult(out, err)
 	}
 	return Result{}, false, invalidPayload(ctx, "unreachable route")

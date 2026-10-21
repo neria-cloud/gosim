@@ -10,7 +10,7 @@ import (
 )
 
 const RouteSchema = 1
-const RouteSchemaDigest = "46be73ff19d9ea856da6d16c026b648f55df543ad363ccbc4b5b1c1162846c1c"
+const RouteSchemaDigest = "af9ee0315b1fa70392eb5d5bbaf10ee4bb2ae7f7ede8688cde50a4e76251aed6"
 const (
 	RouteRead                RouteID = 1
 	RouteWrite               RouteID = 2
@@ -1721,7 +1721,6 @@ func DecodeSyscallStatsResult(r Result) (SyscallStatsResult, error) {
 }
 
 type CountableSyscallsRequest struct {
-	Machine contracts.MachineRef
 }
 type CountableSyscallsResult struct {
 	Syscalls []contracts.SyscallInfo

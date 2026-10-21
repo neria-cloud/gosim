@@ -123,7 +123,7 @@ func TestMachineSyscallMonitor(t *testing.T) {
 		t.Fatal(err)
 	}
 	monitor := m.SyscallsMonitor()
-	available, err := monitor.List()
+	available, err := gosim.CountableSyscalls()
 	if err != nil {
 		t.Fatal(err)
 	}

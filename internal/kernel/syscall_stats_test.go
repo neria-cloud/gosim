@@ -55,7 +55,7 @@ func TestSyscallCounterLifecycle(t *testing.T) {
 		}
 		counterCheck(t, k.SetSyscallCounting(ref, false))
 		counterCheck(t, k.ResetSyscallStats(ref))
-		info, err := k.CountableSyscalls(ref)
+		info, err := k.CountableSyscalls()
 		counterCheck(t, err)
 		counterCheck(t, k.Start(ref))
 		counterDispatch(k, ref, GetpidRequest{})
@@ -80,7 +80,7 @@ func TestSyscallCounterLifecycle(t *testing.T) {
 		if got := counterRows(t, k, ref); !reflect.DeepEqual(got, want) {
 			t.Fatal("snapshot aliases state", got)
 		}
-		fresh, err := k.CountableSyscalls(ref)
+		fresh, err := k.CountableSyscalls()
 		counterCheck(t, err)
 		if fresh[0].Name == "modified" || len(counterRows(t, k, other)) != 0 {
 			t.Fatal("catalogue aliases output or machines share counters")
@@ -128,13 +128,6 @@ func TestSyscallCounterLifecycle(t *testing.T) {
 					rows, err := k.SyscallStats(test.ref)
 					if rows != nil {
 						t.Error("error returned rows")
-					}
-					return err
-				},
-				func() error {
-					rows, err := k.CountableSyscalls(test.ref)
-					if rows != nil {
-						t.Error("error returned catalogue")
 					}
 					return err
 				},
@@ -193,7 +186,7 @@ func TestSyscallCounterOwnersAndAliases(t *testing.T) {
 		before := counterRows(t, k, ref)
 		// Queries and a poll request must not observe themselves.
 		counterDispatch(k, ref, SyscallStatsRequest{Machine: ref})
-		counterDispatch(k, ref, CountableSyscallsRequest{Machine: ref})
+		counterDispatch(k, ref, CountableSyscallsRequest{})
 		counterDispatch(k, ref, SetSyscallCountingRequest{Machine: ref, Enabled: true})
 		counterDispatch(k, ref, PollOpenRequest{FD: 0})
 		got := counterRows(t, k, ref)

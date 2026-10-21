@@ -7,4 +7,6 @@ func (syscallsMonitor) Stop() error                            { return ErrNotSi
 func (syscallsMonitor) Reset() error                           { return ErrNotSim }
 func (syscallsMonitor) Counts() (map[string]uint64, error)     { return nil, ErrNotSim }
 func (syscallsMonitor) Stats() (map[string]SyscallStat, error) { return nil, ErrNotSim }
-func (syscallsMonitor) List() ([]SyscallInfo, error)           { return nil, ErrNotSim }
+
+// CountableSyscalls returns ErrNotSim outside a simulation, where no feature set is selected.
+func CountableSyscalls() ([]SyscallInfo, error) { return nil, ErrNotSim }
