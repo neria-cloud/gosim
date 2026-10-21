@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/neria-cloud/gosim/internal/compat/audit"
 )
 
 func TestDispatch(t *testing.T) {
@@ -19,8 +21,8 @@ func TestDispatch(t *testing.T) {
 		text string
 	}{
 		{"profiles -root=/nonexistent-gosim-profile-fixture -check", 1, "no such file"},
-		{"compare -parent=go125 -output=new-dir", 1, "compare: command not yet implemented"},
-		{"observe -profile=go125 -output=new-file", 1, "observe: command not yet implemented"},
+		{"compare -parent=go125 -output=new-dir -arches=mips", 2, "invalid or duplicate architecture"},
+		{"observe -profile=go125 -output=new-file -toolchain=go1.99.0", 2, "must equal running compiler"},
 		{"profiles -root=", 2, "nonempty -root"},
 		{"compare -parent=go125", 2, "requires -parent and -output"},
 		{"observe -output=new-file", 2, "requires -profile and -output"},
@@ -110,5 +112,44 @@ func TestProfilesMaintenanceBootstrap(t *testing.T) {
 	code := runCLI(t.Context(), []string{"profiles", "-root=" + root, "-check"}, &stdout, &stderr)
 	if code != 1 || !strings.Contains(stderr.String(), "origin.json") {
 		t.Fatalf("readiness %d: %s", code, &stderr)
+	}
+}
+
+func TestComparisonExitAndCancellation(t *testing.T) {
+	for _, complete := range []bool{true, false} {
+		dir := filepath.Join(t.TempDir(), "report")
+		report := audit.ComparisonReport{
+			Schema: 1, Complete: complete, APIDiff: "skipped-no-parent",
+			Findings: []audit.Finding{{Kind: "signature", Severity: "incompatible"}},
+		}
+		draft := audit.DraftDelta{Schema: 1, Kind: "gosim-profile-draft", Complete: complete}
+		var stdout, stderr bytes.Buffer
+		code := finishComparison(t.Context(), comparisonResult{dir, report, draft, nil}, &stdout, &stderr)
+		want := 1
+		if complete {
+			want = 0
+		}
+		if code != want {
+			t.Fatal(code, stdout.String(), stderr.String())
+		}
+		if _, err := os.Stat(filepath.Join(dir, "report.json")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	for _, command := range []string{"observe", "compare"} {
+		var stdout, stderr bytes.Buffer
+		output := filepath.Join(t.TempDir(), "cancelled")
+		familyFlag := "-parent=go125"
+		if command == "observe" {
+			familyFlag = "-profile=go125"
+		}
+		if code := runCLI(ctx, []string{command, familyFlag, "-output=" + output}, &stdout, &stderr); code != 1 {
+			t.Fatal(code)
+		}
+		if _, err := os.Stat(output); !os.IsNotExist(err) {
+			t.Fatal("cancelled publication", err)
+		}
 	}
 }

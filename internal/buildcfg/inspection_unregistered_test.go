@@ -17,7 +17,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/testutil"
 )
 
-func TestRealUnregisteredCompilerObservations(t *testing.T) {
+func TestRealUnregisteredCompilerAuditCLI(t *testing.T) {
 	v, err := buildspec.ParseGoVersion(runtime.Version())
 	if err != nil {
 		t.Fatal(err)
@@ -61,15 +61,8 @@ func TestRealUnregisteredCompilerObservations(t *testing.T) {
 	if err != nil || strings.Contains(string(registry), `"1.26"`) {
 		t.Fatal("fixture registry not omitted", err)
 	}
-	program := filepath.Join(root, "cmd/inspection-smoke/main.go")
-	if err := os.MkdirAll(filepath.Dir(program), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(program, []byte(inspectionSmokeProgram), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	binary := filepath.Join(t.TempDir(), "inspection-smoke")
-	build := buildspec.OutputCommand(ctx, r.Toolchain, root, "build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", binary, "./cmd/inspection-smoke")
+	binary := filepath.Join(t.TempDir(), "gosim-gen")
+	build := buildspec.OutputCommand(ctx, r.Toolchain, root, "build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", binary, "./cmd/gosim-gen")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build fixture: %v\n%s", err, out)
 	}
@@ -81,29 +74,42 @@ func TestRealUnregisteredCompilerObservations(t *testing.T) {
 		}
 		inputs[name] = b
 	}
-	cmd := exec.CommandContext(ctx, binary)
+	output := filepath.Join(root, "candidate-comparison")
+	cmd := exec.CommandContext(ctx, binary, "compare", "-parent=go125", "-arches="+runtime.GOARCH, "-output="+output)
 	cmd.Dir = root
-	// Bound all child temporary modules to the fixture, including forced timeout cleanup.
+	// Bound child temporary modules to the fixture, including timeout cleanup.
 	cmd.Env = append(withoutEnv(build.Env, "TMPDIR"), "TMPDIR="+t.TempDir())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("inspect unregistered compiler: %v\n%s", err, out)
+		t.Fatalf("unregistered CLI compare: %v\n%s", err, out)
+	}
+	report, err := os.ReadFile(filepath.Join(output, "report.json"))
+	if err != nil {
+		t.Fatal(err)
 	}
 	var result struct {
-		Version          string
-		OrdinaryRejected bool
-		Kinds            map[string]int
+		Complete bool
+		APIDiff  string `json:"api_diff"`
+		Findings []struct{ Kind string }
 	}
-	if err := json.Unmarshal(out, &result); err != nil {
-		t.Fatalf("%v\n%s", err, out)
+	if err := json.Unmarshal(report, &result); err != nil {
+		t.Fatal(err)
 	}
-	if result.Version != runtime.Version() || !result.OrdinaryRejected {
-		t.Fatal(result)
+	if !result.Complete || result.APIDiff != "skipped-no-parent" {
+		t.Fatal(result.Complete, result.APIDiff)
 	}
-	for _, kind := range []string{"declaration", "layout", "constant", "package", "source"} {
-		if result.Kinds[kind] == 0 {
-			t.Fatal("no observed "+kind, result)
-		}
+	kinds := map[string]int{}
+	for _, f := range result.Findings {
+		kinds[f.Kind]++
+	}
+	if kinds["signature"] == 0 || kinds["source"] == 0 {
+		t.Fatal("no actual source parsing evidence", kinds)
+	}
+	ordinary := exec.CommandContext(ctx, binary, "-profile=go126", "-arches="+runtime.GOARCH, "-output="+root, "-check")
+	ordinary.Dir, ordinary.Env = root, cmd.Env
+	rejected, err := ordinary.CombinedOutput()
+	if err == nil || !strings.Contains(string(rejected), "unsupported Go") {
+		t.Fatalf("ordinary fixture admission: %v\n%s", err, rejected)
 	}
 	for name, want := range inputs {
 		got, err := os.ReadFile(filepath.Join(root, name))
@@ -111,38 +117,5 @@ func TestRealUnregisteredCompilerObservations(t *testing.T) {
 			t.Fatal("caller module changed", name, err)
 		}
 	}
-	t.Logf("actual %s omitted-registry observation in %s: %s", runtime.Version(), time.Since(start), out)
+	t.Logf("actual %s omitted-registry CLI comparison in %s: %s", runtime.Version(), time.Since(start), out)
 }
-
-const inspectionSmokeProgram = `package main
-import (
- "context"
- "encoding/json"
- "fmt"
- "os"
- "runtime"
- "github.com/neria-cloud/gosim/internal/buildcfg"
- "github.com/neria-cloud/gosim/internal/buildspec"
- "github.com/neria-cloud/gosim/internal/compat/profiles"
- "github.com/neria-cloud/gosim/internal/compat/spec"
-)
-func main(){if err:=run();err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}}
-func run()(result error){
- ctx:=context.Background()
- if buildspec.ValidateVersion(runtime.Version())==nil{return fmt.Errorf("ordinary fixture admission accepted")}
- if _,err:=buildcfg.Discover(ctx,"",runtime.Version());err==nil{return fmt.Errorf("ordinary discovery accepted")}
- c,err:=buildcfg.DiscoverInspection(ctx,"","");if err!=nil{return err}
- if buildspec.OutputCommand(ctx,c.Toolchain(),"","version").Err==nil{return fmt.Errorf("ordinary command accepted")}
- defs,err:=profiles.Definitions();if err!=nil{return err}
- if defs["1.26"].Supported{return fmt.Errorf("fixture definition still supported")}
- parent,err:=profiles.Resolve("1.25");if err!=nil{return err}
- origin,err:=spec.LoadOrigin(os.DirFS("internal/compat/profiles"),"go125");if err!=nil{return err}
- dir,cleanup,err:=spec.PrepareSourceInspectionContext(ctx,buildspec.Resolution{Toolchain:c.Toolchain()});if err!=nil{return err}
- defer func(){if err:=cleanup();err!=nil{result=err}}()
- observations,err:=spec.CollectSourceObservations(ctx,c.Toolchain(),dir,spec.ObservationRequest{Family:parent,Origin:origin,Contexts:[]spec.SourceContext{{OS:"linux",Arch:runtime.GOARCH}}});if err!=nil{return err}
- if len(observations.APIPackages)!=0 || len(observations.Contexts)!=1 || !observations.Contexts[0].Complete{return fmt.Errorf("wrong observation coverage")}
- kinds:=map[string]int{};for _,r:=range observations.Records{if r.Present{kinds[r.Kind]++}}
- if err:=c.Recheck(ctx);err!=nil{return err}
- return json.NewEncoder(os.Stdout).Encode(struct{Version string;OrdinaryRejected bool;Kinds map[string]int}{runtime.Version(),true,kinds})
-}
-`

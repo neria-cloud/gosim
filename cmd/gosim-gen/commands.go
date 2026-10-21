@@ -6,6 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"runtime"
+	"strings"
+
+	"github.com/neria-cloud/gosim/internal/compat/audit"
 
 	"github.com/neria-cloud/gosim/internal/compat/profiles"
 )
@@ -91,43 +95,112 @@ func runProfiles(ctx context.Context, args []string, stdout, stderr io.Writer) i
 	return 0
 }
 
-func runCompare(_ context.Context, args []string, stdout, stderr io.Writer) int {
+func runCompare(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("gosim-gen compare", flag.ContinueOnError)
-	parent := flags.String("parent", "", "immediate parent stable Go family, e.g. go126")
-	flags.String("parent-observation", "", "optional complete parent API observation")
-	output := inspectionFlags(flags)
+	parent := flags.String("parent", "", "immediate parent stable Go family, e.g. go125")
+	observation := flags.String("parent-observation", "", "optional complete parent API observation")
+	options := inspectionFlags(flags)
 	if code := parseFlags(flags, args, stdout, stderr); code >= 0 {
 		return code
 	}
-	if *parent == "" || *output == "" {
+	if *parent == "" || *options.output == "" {
 		fmt.Fprintln(stderr, "compare requires -parent and -output (a new directory)")
 		return 2
 	}
-	return unavailable("compare", stderr)
+	arches, err := options.validate()
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
+	report, draft, err := audit.Compare(ctx, audit.CompareRequest{
+		ParentProfile: *parent, ParentObservation: *observation, Output: *options.output, Arches: arches,
+	})
+	return finishComparison(ctx, comparisonResult{*options.output, report, draft, err}, stdout, stderr)
 }
 
-func runObserve(_ context.Context, args []string, stdout, stderr io.Writer) int {
+type comparisonResult struct {
+	output string
+	report audit.ComparisonReport
+	draft  audit.DraftDelta
+	err    error
+}
+
+func finishComparison(ctx context.Context, result comparisonResult, stdout, stderr io.Writer) int {
+	output, report, draft, err := result.output, result.report, result.draft, result.err
+	if ctx.Err() != nil {
+		fmt.Fprintln(stderr, ctx.Err())
+		return 1
+	}
+	if report.Schema != 0 {
+		err = errors.Join(err, audit.WriteComparison(output, report, draft))
+		fmt.Fprintf(stdout, "complete=%t api_diff=%s findings=%d proposals=%d\n",
+			report.Complete, report.APIDiff, len(report.Findings), len(draft.Proposals))
+	}
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	if !report.Complete {
+		return 1
+	}
+	return 0
+}
+
+func runObserve(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("gosim-gen observe", flag.ContinueOnError)
 	profile := flags.String("profile", "", "parent stable Go family to observe at its recorded compiler")
-	output := inspectionFlags(flags)
+	options := inspectionFlags(flags)
 	if code := parseFlags(flags, args, stdout, stderr); code >= 0 {
 		return code
 	}
-	if *profile == "" || *output == "" {
+	if *profile == "" || *options.output == "" {
 		fmt.Fprintln(stderr, "observe requires -profile and -output (a new file)")
 		return 2
 	}
-	return unavailable("observe", stderr)
+	arches, err := options.validate()
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
+	snapshot, err := audit.Observe(ctx, audit.ObserveRequest{
+		Profile: *profile, Output: *options.output, Arches: arches,
+	})
+	if err == nil {
+		err = ctx.Err()
+	}
+	if err == nil {
+		err = audit.WriteObservation(*options.output, snapshot)
+	}
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "complete=%t contexts=%d records=%d\n",
+		snapshot.Complete, len(snapshot.Observations.Contexts), len(snapshot.Observations.Records))
+	return 0
 }
 
-func inspectionFlags(flags *flag.FlagSet) *string {
-	flags.String("arches", "amd64,arm64", "comma-separated simulated Linux source architectures")
-	flags.String("toolchain", "", "optional exact compiler equality assertion; must match running compiler")
-	return flags.String("output", "", "required new output destination; existing destinations are refused")
+type inspectionOptions struct{ arches, toolchain, output *string }
+
+func inspectionFlags(flags *flag.FlagSet) inspectionOptions {
+	return inspectionOptions{
+		arches:    flags.String("arches", "amd64,arm64", "comma-separated simulated Linux source architectures"),
+		toolchain: flags.String("toolchain", "", "exact compiler assertion; must match the running compiler"),
+		output:    flags.String("output", "", "required new output destination; existing destinations are refused"),
+	}
 }
 
-// Removed when the maintenance and inspection handlers land in Tasks 18 and 27.
-func unavailable(command string, stderr io.Writer) int {
-	fmt.Fprintf(stderr, "%s: command not yet implemented\n", command)
-	return 1
+func (o inspectionOptions) validate() ([]string, error) {
+	if *o.toolchain != "" && *o.toolchain != runtime.Version() {
+		return nil, fmt.Errorf("-toolchain must equal running compiler %s", runtime.Version())
+	}
+	arches := strings.Split(*o.arches, ",")
+	seen := map[string]bool{}
+	for _, arch := range arches {
+		if arch != "amd64" && arch != "arm64" || seen[arch] {
+			return nil, fmt.Errorf("invalid or duplicate architecture %q", arch)
+		}
+		seen[arch] = true
+	}
+	return arches, nil
 }

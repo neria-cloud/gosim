@@ -708,14 +708,14 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤500 authored Go/test lines. **Dependencies:** 26.
 
-- [ ] Implement RenderReport, WriteComparison and WriteObservation. Exclusively create destinations; report.md and delta.draft.json close before final report.json publication. An absent report.json means interrupted publication; incomplete scans may publish Complete=false.
-- [ ] Refuse existing files/directories, handle cancellation/write/close errors, and clean only invocation-owned outputs. No locks/report-digest/finding-ID protocol or overwrite mode.
-- [ ] Wire runObserve and runCompare to real inspection, validation, publication and target exit semantics. Print completeness/API coverage/finding counts. Remove every Task 1 placeholder.
-- [ ] Test complete differences exit 0, incomplete scan exit 1, invalid CLI exit 2, partial publication, preexisting destinations and observe refusing incomplete snapshots.
+- [x] Implement RenderReport, WriteComparison and WriteObservation. Exclusively create destinations; report.md and delta.draft.json close before final report.json publication. An absent report.json means interrupted publication; incomplete scans may publish Complete=false.
+- [x] Refuse existing files/directories, handle cancellation/write/close errors, and clean only invocation-owned outputs. No locks/report-digest/finding-ID protocol or overwrite mode.
+- [x] Wire runObserve and runCompare to real inspection, validation, publication and target exit semantics. Print completeness/API coverage/finding counts. Remove every Task 1 placeholder.
+- [x] Test complete differences exit 0, incomplete scan exit 1, invalid CLI exit 2, partial publication, preexisting destinations and observe refusing incomplete snapshots.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD, cmd/audit tests, changed-file make lint and V-AUDIT pass. Verify no profile/support/source mutation from either audit command.
+- [x] V-REVISIONS, V-BUILD, cmd/audit tests, changed-file make lint and V-AUDIT pass. Verify no profile/support/source mutation from either audit command.
 
 ### Task 28: Verify real version changes and no-change onboarding
 
@@ -725,16 +725,16 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤450 authored Go/test lines. **Dependencies:** 27.
 
-- [ ] Exercise the known 1.25→1.26 comparison in separate compiler processes, expecting selected signature/API changes and crypto source review, while unchanged layouts/constants stay unchanged.
-- [ ] In a private copy, register a no-change next family, run profiles, then the focused buildspec/buildcfg/spec/profiles/hostabi suites; no edits to negative admission tests should be needed.
-- [ ] Test hypothetical unchanged next-family metadata with empty delta through support/gate/revision rendering and explicit origin bootstrap fixtures; assert zero copied implementation files and cumulative inherited variants.
-- [ ] Extend Task 24's private fixture under the RUNNING go1.26 ordinary job: omit 1.26 from its generated support table AND set its go126.json supported=false (retain parent 1.25), keeping fixture registry/definition state consistent. Rebuild the metadata-only tool with that same real compiler executable and GOTOOLCHAIN=local; never download another toolchain. Run compare -parent=go125 with one host architecture, no parent observation, an explicit 5-minute timeout and cleanup; require api_diff=skipped-no-parent and evidence that actual source parsing occurred. Assert ordinary admission rejects 1.26 through THIS fixture-built binary's legacy flag-only generation path reaching buildcfg.Resolve, not an in-process call in the original test binary. Do not mutate the working checkout or spoof runtime.Version. Record runtime; the go1.25 job explicitly skips this candidate-specific case and the go1.26 final job must execute it.
-- [ ] Test unchanged family authoring does not stale a captured parent snapshot merely through new data/support artifacts; actual source edits do invalidate it.
-- [ ] Verify adding/retiring support does not allow runtime switching or gaps in ancestry, and normal unregistered compiler admission stays rejected. Do not add real 1.27 support or claim execution with unavailable compiler fixtures.
+- [x] Exercise the known 1.25→1.26 comparison in separate compiler processes, expecting selected signature/API changes and crypto source review, while unchanged layouts/constants stay unchanged.
+- [x] In a private copy, register a no-change next family, run profiles, then the focused buildspec/buildcfg/spec/profiles/hostabi suites; no edits to negative admission tests should be needed.
+- [x] Test hypothetical unchanged next-family metadata with empty delta through support/gate/revision rendering and explicit origin bootstrap fixtures; assert zero copied implementation files and cumulative inherited variants.
+- [x] Extend Task 24's private fixture under the RUNNING go1.26 ordinary job: omit 1.26 from its generated support table AND set its go126.json supported=false (retain parent 1.25), keeping fixture registry/definition state consistent. Rebuild the metadata-only tool with that same real compiler executable and GOTOOLCHAIN=local; never download another toolchain. Run compare -parent=go125 with one host architecture, no parent observation, an explicit 5-minute timeout and cleanup; require api_diff=skipped-no-parent and evidence that actual source parsing occurred. Assert ordinary admission rejects 1.26 through THIS fixture-built binary's legacy flag-only generation path reaching buildcfg.Resolve, not an in-process call in the original test binary. Do not mutate the working checkout or spoof runtime.Version. Record runtime; the go1.25 job explicitly skips this candidate-specific case and the go1.26 final job must execute it.
+- [x] Test unchanged family authoring does not stale a captured parent snapshot merely through new data/support artifacts; actual source edits do invalidate it.
+- [x] Verify adding/retiring support does not allow runtime switching or gaps in ancestry, and normal unregistered compiler admission stays rejected. Do not add real 1.27 support or claim execution with unavailable compiler fixtures.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused onboarding tests pass; archive V-AUDIT results and state actual versus fixture-based coverage separately.
+- [x] V-REVISIONS, V-BUILD and focused onboarding tests pass; archive V-AUDIT results and state actual versus fixture-based coverage separately.
 
 ### Task 29: Migrate worker, artifact and metatesting fixtures
 
@@ -817,6 +817,8 @@ Compare implemented code, data and real entry-point flows with the target, not j
 Review findings were corrected before execution (see review thread 2 and progress log); no unresolved architectural gap is currently accepted. Unchecked tasks above are pending implementation, not completed gaps. Add discrepancies found during execution here with task/target reference, evidence, fix and verification; use `[_]` for an unresolved item.
 
 ## NOT PLANNED CHANGES
+
+- Tasks 27–28: publish closed audit temporary files with an atomic exclusive hard link followed by temporary-name removal, instead of rename. Plain rename could overwrite a concurrently created destination. The final manifest remains last, all writes/close/cleanup failures propagate, and only invocation-owned paths are removed. Target §6/§11 updated to this equivalent no-overwrite publication. No output locks or overwrite mode added.
 
 - Peer checkpoint 3: derive unregistered test families from the registry, preserve contiguous synthetic ancestry, restrict caller inspection to read-only lists, reject stray revision inputs and narrow the generated-file exclusion, atomically replace metadata, add independent generation checks to Makefile, strengthen workspace/audit boundary tests, and correct stale live AGENTS.md paths. Detailed findings, diffs and verification are in review thread 5 and the correction commit. Task 28 now includes the no-change next-family focused-suite acceptance check.
 

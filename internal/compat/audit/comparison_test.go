@@ -3,13 +3,22 @@ package audit
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io/fs"
+	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/neria-cloud/gosim/internal/buildcfg"
+	"github.com/neria-cloud/gosim/internal/buildspec"
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
+	"github.com/neria-cloud/gosim/internal/testutil"
 )
 
 func TestComparisonFindingsAndProposals(t *testing.T) {
@@ -153,4 +162,77 @@ func TestActualCandidateComparison(t *testing.T) {
 		t.Fatal("installable draft")
 	}
 	t.Logf("%s complete candidate: %d findings, %d proposals", runtime.Version(), len(report.Findings), len(draft.Proposals))
+}
+
+func TestNoChangeFamilyOnboarding(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
+	defer cancel()
+	root := testutil.CopySource(t, "../../..")
+	future := testutil.UnregisteredGo()
+	parentFamily := fmt.Sprintf("1.%d", future.Minor-1)
+	parent, err := profiles.Resolve(parentFamily)
+	if err != nil {
+		t.Fatal(err)
+	}
+	implementation := func() map[string]string {
+		files := map[string]string{}
+		for _, tree := range []string{"host", "hooks", "shims"} {
+			err := filepath.WalkDir(filepath.Join(root, "internal/compat", tree), func(path string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+				if d.IsDir() || d.Name() == "unsupported.go" {
+					return nil
+				}
+				data, err := os.ReadFile(path)
+				if err == nil {
+					files[path] = buildspec.Hash(data)
+				}
+				return err
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		return files
+	}
+	before := implementation()
+	definition := spec.FamilyDefinition{Schema: 1, Family: future.Family, Parent: parentFamily, Supported: true}
+	dir := filepath.Join(root, "internal/compat/profiles")
+	if err := os.WriteFile(filepath.Join(dir, future.Profile+".json"), auditJSON(definition), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := profiles.GenerateMetadata(ctx, root, false); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(before, implementation()) {
+		t.Fatal("no-change family copied or changed implementation files")
+	}
+	defs, err := spec.LoadDefinitions(os.DirFS(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := spec.ResolveDefinitions(defs, future.Family)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resolved.Chain) != len(parent.Chain)+1 || !reflect.DeepEqual(resolved.Declarations, parent.Declarations) || !reflect.DeepEqual(resolved.Architectures, parent.Architectures) {
+		t.Fatal("cumulative inheritance changed")
+	}
+	r, err := buildcfg.ResolveRunningProcess(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := buildspec.OutputCommand(ctx, r.Toolchain, root, "test", "-ldflags=-checklinkname=0", "-tags=linkname", "./internal/buildspec", "./internal/buildcfg", "./internal/compat/spec", "./internal/compat/profiles", "./internal/hostabi")
+	// These native tests inspect both source architectures; do not inherit an
+	// explicit host GOARCH into their per-context environment assertions.
+	cmd.Env = slices.DeleteFunc(cmd.Env, func(entry string) bool {
+		return strings.HasPrefix(entry, "GOARCH=") || strings.HasPrefix(entry, "GOOS=")
+	})
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("no-change family focused acceptance: %v\n%s", err, out)
+	} else {
+		t.Logf("%s hypothetical %s admission tests: %s", runtime.Version(), future.Family, out)
+	}
 }
