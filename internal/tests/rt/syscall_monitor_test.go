@@ -171,7 +171,77 @@ func TestSyscallMonitorPrestartAndInvalidHandles(t *testing.T) {
 	if monitorCounts(t, monitor)["getpid"] != 1 {
 		t.Fatal("prestart counting missed workload")
 	}
+	// The existing globalHostname initializer calls os.Hostname on every boot.
+	if monitorCounts(t, monitor)["uname"] == 0 {
+		t.Fatal("prestart counting missed package initialization")
+	}
 	testsupport.Check(t, m.Destroy())
 	checkInvalidMonitor(t, monitor, gosim.ErrMachineNotFound)
 	checkInvalidMonitor(t, (gosim.Machine{}).SyscallsMonitor(), gosim.ErrWrongRun)
+}
+
+func TestSyscallMonitorRuntimeDescriptors(t *testing.T) {
+	monitor := gosim.CurrentMachine().SyscallsMonitor()
+	testsupport.Check(t, monitor.Start())
+	if n, err := syscall.Read(0, make([]byte, 1)); err != nil || n != 0 {
+		t.Fatal("stdin", n, err)
+	}
+	if _, err := syscall.Read(999, make([]byte, 1)); !errors.Is(err, syscall.EBADF) {
+		t.Fatal(err)
+	}
+	testsupport.Check(t, monitor.Stop())
+	want := map[string]gosim.SyscallStat{"read": {Count: 2, Group: gosim.SyscallGroupRT, ByDescriptor: map[gosim.DescriptorGroup]uint64{gosim.DescriptorGroupRT: 1, gosim.DescriptorGroupUnknown: 1}}}
+	if got := monitorStats(t, monitor); !reflect.DeepEqual(got, want) {
+		t.Fatal(got)
+	}
+}
+
+func TestSyscallMonitorRestartAndIsolation(t *testing.T) {
+	ready := make(chan struct{})
+	m, err := gosim.NewMachine(gosim.MachineConfig{Main: func() {
+		_ = syscall.Getpid()
+		if n, err := syscall.Read(0, make([]byte, 1)); err != nil || n != 0 {
+			t.Fatal("new epoch stdin", n, err)
+		}
+		testsupport.Check(t, syscall.Close(0))
+		if _, err := syscall.Read(0, make([]byte, 1)); !errors.Is(err, syscall.EBADF) {
+			t.Fatal(err)
+		}
+		ready <- struct{}{}
+		select {}
+	}})
+	testsupport.Check(t, err)
+	monitor := m.SyscallsMonitor()
+	testsupport.Check(t, monitor.Start())
+	testsupport.Check(t, m.Start())
+	<-ready
+	other := testsupport.Start(t, func() { _ = syscall.Getpid() })
+	testsupport.Wait(t, other)
+	if len(monitorCounts(t, other.SyscallsMonitor())) != 0 {
+		t.Fatal("another machine inherited monitoring")
+	}
+	for epoch := uint64(1); epoch <= 2; epoch++ {
+		stats := monitorStats(t, monitor)
+		if stats["getpid"].Count != epoch || stats["read"].Count != 2*epoch || stats["read"].ByDescriptor[gosim.DescriptorGroupRT] != epoch || stats["read"].ByDescriptor[gosim.DescriptorGroupUnknown] != epoch || stats["close"].ByDescriptor[gosim.DescriptorGroupRT] != epoch {
+			t.Fatal("epoch ownership/counts", epoch, stats)
+		}
+		testsupport.Check(t, m.Crash())
+		if !reflect.DeepEqual(monitorStats(t, monitor), stats) {
+			t.Fatal("crash changed statistics")
+		}
+		if epoch == 1 {
+			testsupport.Check(t, m.Restart())
+			<-ready
+		}
+	}
+	testsupport.Check(t, monitor.Stop())
+	before := monitorStats(t, monitor)
+	testsupport.Check(t, m.Restart())
+	<-ready
+	testsupport.Check(t, m.Stop())
+	if !reflect.DeepEqual(monitorStats(t, monitor), before) {
+		t.Fatal("restart did not preserve pause")
+	}
+	testsupport.Check(t, m.Destroy())
+	checkInvalidMonitor(t, monitor, gosim.ErrMachineNotFound)
 }
