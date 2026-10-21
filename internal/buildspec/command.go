@@ -170,6 +170,21 @@ func ApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec
 	if work == "" {
 		work = "off"
 	}
+	return applicationCommand(cmd, work)
+}
+
+// SourceInspectionApplicationCommand preserves an explicitly resolved workspace.
+// Before discovery, empty GoWork preserves the caller's Go workspace selection.
+func SourceInspectionApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec.Cmd {
+	cmd := SourceInspectionCommand(ctx, r.Toolchain, r.Context.Directory, args...)
+	work := r.Context.GoWork
+	if work == "" {
+		work = os.Getenv("GOWORK")
+	}
+	return applicationCommand(cmd, work)
+}
+
+func applicationCommand(cmd *exec.Cmd, work string) *exec.Cmd {
 	for i, entry := range cmd.Env {
 		if strings.HasPrefix(entry, "GOWORK=") {
 			cmd.Env[i] = "GOWORK=" + work
