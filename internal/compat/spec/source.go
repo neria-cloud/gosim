@@ -10,6 +10,7 @@ import (
 	"go/token"
 	"go/types"
 	"io"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -32,6 +33,7 @@ type sourceModule struct {
 
 type sourcePackage struct {
 	ImportPath, Dir   string
+	Standard          bool
 	GoFiles, CgoFiles []string
 	ImportMap         map[string]string
 	Module            *sourceModule
@@ -50,12 +52,20 @@ type sourceInspection struct {
 }
 
 func inspectSources(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string) (*sourceInspection, error) {
+	return inspectSourcesWithCommand(ctx, tc, dir, selection, deps, paths, buildspec.OutputCommand)
+}
+
+func inspectSourcesForObservation(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string) (*sourceInspection, error) {
+	return inspectSourcesWithCommand(ctx, tc, dir, selection, deps, paths, buildspec.SourceInspectionCommand)
+}
+
+func inspectSourcesWithCommand(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string, command func(context.Context, buildspec.Toolchain, string, ...string) *exec.Cmd) (*sourceInspection, error) {
 	args := []string{"list", "-mod=mod", "-json", "-tags=linkname"}
 	if deps {
 		args = append(args, "-deps")
 	}
 	args = append(args, paths...)
-	cmd := buildspec.OutputCommand(ctx, tc, dir, args...)
+	cmd := command(ctx, tc, dir, args...)
 	// These owned source tags are derived from context, never arbitrary user tags.
 	// Native runtime selection follows the actual race mode without building it.
 	tags := "linkname"
@@ -108,6 +118,9 @@ func inspectSources(ctx context.Context, tc buildspec.Toolchain, dir string, sel
 		result.packages[pkg.ImportPath] = pkg
 	}
 	for _, path := range paths {
+		if path == "std" && len(result.packages) != 0 {
+			continue
+		}
 		if _, ok := result.packages[path]; !ok {
 			return nil, fmt.Errorf("missing source package %s", path)
 		}

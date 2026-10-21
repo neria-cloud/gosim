@@ -20,6 +20,8 @@ func inspectionReferenceAllowed(path, function string) bool {
 		return true
 	case "internal/compat/spec/hooks.go":
 		return function == "PrepareSourceInspectionContext"
+	case "internal/compat/spec/observation.go":
+		return function == "validateObservationCompiler"
 	case "internal/compat/spec/source.go":
 		return function == "inspectSourcesForObservation"
 	}

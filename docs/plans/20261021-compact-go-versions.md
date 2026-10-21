@@ -583,24 +583,39 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 - [x] V-REVISIONS, V-BUILD and focused buildspec/buildcfg/spec tests pass. A full preparation-chain fixture succeeds for an unregistered stable identity only on inspection entry points; normal calls still reject it and caller module files remain unchanged.
 
-### Task 24: Collect bounded source observations with the matching compiler
+### Task 24.1: Collect bounded source observations with the matching compiler
 
 **Files:** spec/source.go and observation types/collector; private module preparation from Task 23; origin inspection reuse; focused source tests.
 
 **References:** target §§6–7 ObservationRequest/ObservationSet/CollectSourceObservations; §11 collector.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 23.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 23. Task 24 is split before execution to keep the collector and the real private-copy harness within separate authored-code budgets.
 
-- [ ] Add the exact observation/context schemas from target §6 in spec; no duplicate audit wire structs. Add ObservationRequest with resolved parent, origin, contexts, IncludeAPIs and IncludeStdlibInventory.
-- [ ] Refactor the source loader with private command selection. Export `CollectSourceObservations(ctx,tc,dir,req) (ObservationSet,error)` using fixed SourceInspectionCommand, independently enforcing stable/running identity and installation/environment rules.
-- [ ] Collect declared symbols, layouts/constants, package inventory and tracked/selected source hashes for explicit contexts; use the inspection-safe private module preparation implemented in the preceding task, preserving cleanup and no caller module rewrite. Connect the full discovery→caller module→private module→source list→parse regression through the collector.
-- [ ] Record context errors and missingness correctly: failed package loading is incomplete, never a missing-symbol record. Preserve native race cgo-on versus translated cgo-off selection without building those race contexts.
-- [ ] Test signature/layout/constant absence/change and source hash drift, errors/cancellation and deterministic records. Ordinary VerifyContracts continues using strict OutputCommand.
-- [ ] Run the real unregistered-admission smoke fixture as soon as this collector exists (Task 28 describes the fixture consistency rules). A fixture-built minimal inspection harness may call the collector before compare is wired. Use the running go1.26 compiler only, one non-race translated host-architecture context, no API snapshot and a 5-minute timeout with cancellation cleanup. Test an ordinary admission call inside the SAME fixture-built harness so it uses the omitted registry, not the parent test binary's registry. Record elapsed time and execute it in the go1.26 ordinary job; the go1.25 job explicitly skips this candidate-specific case.
+- [x] Add the exact observation/context schemas from target §6 in spec; no duplicate audit wire structs. Add ObservationRequest with resolved parent, origin, contexts, IncludeAPIs and IncludeStdlibInventory.
+- [x] Refactor the source loader with private command selection. Export `CollectSourceObservations(ctx,tc,dir,req) (ObservationSet,error)` using fixed SourceInspectionCommand, independently enforcing stable/running identity and installation/environment rules.
+- [x] Collect declared symbols, layouts/constants, package inventory and tracked/selected source hashes for explicit contexts; use the inspection-safe private module preparation implemented in the preceding task, preserving cleanup and no caller module rewrite. Connect the full discovery→caller module→private module→source list→parse regression through the collector.
+- [x] Record context errors and missingness correctly: failed package loading is incomplete, never a missing-symbol record. Preserve native race cgo-on versus translated cgo-off selection without building those race contexts.
+- [x] Test signature/layout/constant absence/change and source hash drift, errors/cancellation and deterministic records. Ordinary VerifyContracts continues using strict OutputCommand.
+
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused spec/buildcfg tests pass under each running family compiler; no in-process other-family parsing.
+- [x] V-REVISIONS, V-BUILD and focused spec/buildcfg tests pass under each running family compiler; no in-process other-family parsing.
+
+### Task 24.2: Verify observation through a real unregistered compiler fixture
+
+**Files:** focused spec/buildcfg source fixtures and private-copy harness.
+
+**References:** target §§6–7, §11 collector; Task 28 fixture consistency rules.
+
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 24.1.
+
+- [ ] Run the real unregistered-admission smoke fixture as soon as this collector exists (Task 28 describes the fixture consistency rules). A fixture-built minimal inspection harness may call the collector before compare is wired. Use the running go1.26 compiler only, one non-race translated host-architecture context, no API snapshot and a 5-minute timeout with cancellation cleanup. Test an ordinary admission call inside the SAME fixture-built harness so it uses the omitted registry, not the parent test binary's registry. Record elapsed time and execute it in the go1.26 ordinary job; the go1.25 job explicitly skips this candidate-specific case.
+- [ ] Exercise complete discovery, caller/private module graph, source listing and parsing through the public collector; keep the caller module unchanged and ordinary admission strict.
+
+#### Verification
+
+- [ ] V-REVISIONS, V-BUILD and focused observation tests pass under both compilers; the real registry-omitted harness executes under Go 1.26 and is explicitly skipped under Go 1.25. Record elapsed time and actual versus fixture coverage.
 
 ### Task 25: Capture parent API inventories and validate snapshots
 
@@ -608,7 +623,7 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **References:** target §6 API scope/ParentObservation/InspectorDigest; §7 Observe; §11 Observe.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 24.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 24.2.
 
 - [ ] Implement the finite API package inventory derived from parent declarations and reviewed bridges, including complete replacements and symbol bridges; exclude Gosim implementation packages and wildcard-wide unrelated inventories.
 - [ ] Enumerate exported declarations/method sets in both parent/candidate contexts through Task 24, recording APIPackages. Do not classify sparse shim manifests as partial bridges.
