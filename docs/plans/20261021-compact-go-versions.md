@@ -617,23 +617,54 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 - [x] V-REVISIONS, V-BUILD and focused observation tests pass under both compilers; the real registry-omitted harness executes under Go 1.26 and is explicitly skipped under Go 1.25. Record elapsed time and actual versus fixture coverage.
 
-### Task 25: Capture parent API inventories and validate snapshots
+### Task 25.1: Collect finite upstream API inventories
 
-**Files:** spec API observation helpers; audit/compare.go snapshot types/Observe; inspector digest helper/tests.
+**Files:** spec API observation helpers and focused tests.
 
-**References:** target §6 API scope/ParentObservation/InspectorDigest; §7 Observe; §11 Observe.
+**References:** target §6 API scope and observation schemas; §7 collector; §11 Observe prerequisites.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 24.2.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 24.2. Task 25 is split before execution into three bounded, buildable commits.
 
-- [ ] Implement the finite API package inventory derived from parent declarations and reviewed bridges, including complete replacements and symbol bridges; exclude Gosim implementation packages and wildcard-wide unrelated inventories.
-- [ ] Enumerate exported declarations/method sets in both parent/candidate contexts through Task 24, recording APIPackages. Do not classify sparse shim manifests as partial bridges.
-- [ ] Implement `Observe(ctx,ObserveRequest) (ParentObservation,error)` at the parent's exact recorded compiler. Require complete requested observations and unchanged compiler/source/module identities before returning a usable snapshot.
-- [ ] Implement InspectorDigest over non-test implementation Go source, excluding data/generated support/revision artifacts; bind parent definition/origin and relevant module/replacement inputs separately.
-- [ ] Validate snapshot schema, family, exact baseline, digests and requested inventories; test target-definition/support-only edits preserve usability while parent or inspector implementation edits invalidate.
+- [x] Derive the finite API package inventory from all parent declarations and reviewed bridges, including whole-package replacements and symbol bridges. Exclude Gosim implementation packages and unrelated policy wildcards.
+- [x] Enumerate exported declarations and value/pointer method sets with the current compiler, record APIPackages, preserve context errors and deterministic records. Remove the temporary API-request error from Task 24.1.
+- [x] Verify actual inventories, changed/added/removed APIs, method sets, declaration-only skipping and failed API loads under both compilers.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and spec/audit snapshot tests pass. Observe remains data-only and does not enable support.
+- [x] V-REVISIONS, V-BUILD and focused spec/API tests pass under both compilers; no in-process other-family parsing.
+
+### Task 25.2: Bind inspector implementation and module inputs
+
+**Files:** audit identity/workspace helpers and tests.
+
+**References:** target §6 InspectorDigest/ModuleInputs and private-module boundary; §11 Observe/Compare input snapshots.
+
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.1.
+
+- [ ] Implement InspectorDigest over the non-test Go inspection implementation dependency closure, including request construction; exclude definition/origin/evidence data and generated registry/selector/guard/revision artifacts. Make it independent of the compiler building the inspector.
+- [ ] Bind resolved external module graph, module files and relevant replacement source inputs separately. Do not hash the whole Gosim tree into ModuleInputs or reintroduce excluded onboarding-data/support dependencies.
+- [ ] Snapshot/recheck private workspace and caller module inputs, preserving workspace semantics and cleanup. Prove source/module drift changes identity while target data/support-only edits do not.
+
+#### Verification
+
+- [ ] V-REVISIONS, V-BUILD and focused audit identity/workspace tests pass; snapshots use inspection-only commands and never enable support.
+
+### Task 25.3: Capture and validate parent observations
+
+**Files:** audit/compare.go snapshot types/Observe and tests.
+
+**References:** target §6 ParentObservation and validation; §7 Observe; §11 Observe.
+
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.2.
+
+- [ ] Implement the exact ParentObservation schema (reuse spec observation records) and ObserveRequest/Observe at the parent's recorded exact compiler.
+- [ ] Require complete requested API/source observations and unchanged compiler, inspector and module inputs before returning a usable snapshot; join cleanup failures.
+- [ ] Validate snapshot schema/completeness, family, exact baseline, digests and requested package/context inventories; reject stale or mismatched snapshots explicitly.
+- [ ] Test target definition/support-only changes preserve usability while parent/origin/inspector/module edits invalidate; Observe remains data-only.
+
+#### Verification
+
+- [ ] V-REVISIONS, V-BUILD and spec/audit snapshot tests pass under both compilers, with complete actual parent observations.
 
 ### Task 26: Compute actionable comparison findings and draft operations
 
@@ -641,7 +672,7 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **References:** target §6 report/draft schema and coverage; §7 Compare/CompareObservations; §11 comparison algorithms.
 
-**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.3.
 
 - [ ] Implement CompareRequest, ComparisonReport, Finding, DeltaProposal and DraftDelta exactly as target §6; use spec observation records without mirrors.
 - [ ] Implement Compare and CompareObservations, enforcing stable immediate next minor, complete parent resolution and optional validated parent snapshot; no hidden parent compiler download.

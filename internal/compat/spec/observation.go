@@ -70,7 +70,7 @@ func CollectSourceObservations(ctx context.Context, tc buildspec.Toolchain, dir 
 		return result, fmt.Errorf("no observation contexts requested")
 	}
 	if req.IncludeAPIs {
-		return result, fmt.Errorf("API collection is pending the snapshot implementation")
+		result.APIPackages = observationAPIPackages(req.Family)
 	}
 	seen := map[SourceContext]bool{}
 	var failures []error
@@ -179,6 +179,9 @@ func collectContext(ctx context.Context, tc buildspec.Toolchain, dir string, req
 			}
 		}
 	}
+	if req.IncludeAPIs {
+		paths = append(paths, observationAPIContextPackages(req.Family, selection)...)
+	}
 	slices.Sort(paths)
 	paths = slices.Compact(paths)
 	for _, path := range paths {
@@ -285,6 +288,13 @@ func collectContext(ctx context.Context, tc buildspec.Toolchain, dir string, req
 			}
 			add("constant", []string{selection.Arch, c.Package, c.Symbol}, obj != nil, value)
 		}
+	}
+	if req.IncludeAPIs {
+		api, err := sources.observeAPIs(observationAPIContextPackages(req.Family, selection), InspectedContext(selection))
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, api...)
 	}
 	if req.IncludeStdlibInventory {
 		for path, pkg := range sources.packages {
