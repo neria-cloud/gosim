@@ -12,12 +12,14 @@ import (
 )
 
 type Profile struct {
-	ID, Revision    string
-	Support         buildspec.FamilySupport
-	Hooks           []Hook
-	Packages        []PackagePolicy
-	RuntimePackages []string
-	ContractsByArch map[string]ContractManifest
+	ID, Revision     string
+	Chain            []string
+	DefinitionDigest string
+	Support          buildspec.FamilySupport
+	Hooks            []Hook
+	Packages         []PackagePolicy
+	RuntimePackages  []string
+	ContractsByArch  map[string]ContractManifest
 }
 
 type Hook struct {
@@ -40,8 +42,28 @@ const module = "github.com/neria-cloud/gosim"
 
 func (p Profile) Validate() error {
 	canonical, err := buildspec.LookupProfile(p.ID)
-	if err != nil || !buildspec.ValidDigest(p.Revision) || !reflect.DeepEqual(canonical, p.Support) {
+	if err != nil || !reflect.DeepEqual(canonical, p.Support) {
 		return fmt.Errorf("invalid profile identity/support %q", p.ID)
+	}
+	return p.validateStructure()
+}
+
+// validateStructure checks pure metadata without consulting caller admission.
+func (p Profile) validateStructure() error {
+	minor, err := familyMinor(p.Support.Family)
+	if err != nil || p.Support.Profile != p.ID || p.ID != "go"+strings.ReplaceAll(p.Support.Family, ".", "") || !buildspec.ValidDigest(p.Revision) {
+		return fmt.Errorf("invalid profile identity %q", p.ID)
+	}
+	// Legacy descriptors have neither field until the metadata facade cutover.
+	if len(p.Chain) != 0 || p.DefinitionDigest != "" {
+		if !buildspec.ValidDigest(p.DefinitionDigest) || len(p.Chain) != minor-24 {
+			return fmt.Errorf("invalid profile ancestry %q", p.ID)
+		}
+		for i, family := range p.Chain {
+			if family != fmt.Sprintf("1.%d", 25+i) {
+				return fmt.Errorf("invalid profile chain %q", p.ID)
+			}
+		}
 	}
 	if len(p.Hooks) == 0 || len(p.Packages) == 0 || len(p.RuntimePackages) == 0 {
 		return fmt.Errorf("profile %s is incomplete", p.ID)

@@ -256,3 +256,89 @@ func validateDeclarationOverlap(declarations []Declaration) error {
 	}
 	return nil
 }
+
+// Descriptor derives both contract sets independently of the callable-hook ABI.
+// Production admission belongs to profiles and Profile.Validate, not this view.
+func (r ResolvedFamily) Descriptor(arch, revision string) (Profile, error) {
+	if arch != "amd64" && arch != "arm64" {
+		return Profile{}, fmt.Errorf("unsupported simulation architecture %q", arch)
+	}
+	if err := validateDeclarationOverlap(r.Declarations); err != nil {
+		return Profile{}, err
+	}
+	owned := r.Clone()
+	p := Profile{
+		ID: owned.ProfileID, Revision: revision, Chain: owned.Chain, DefinitionDigest: owned.DefinitionDigest,
+		Support:  buildspec.FamilySupport{Family: owned.Family, Profile: owned.ProfileID},
+		Packages: owned.Packages, ContractsByArch: map[string]ContractManifest{},
+	}
+	for _, ref := range owned.RuntimePackages {
+		p.RuntimePackages = append(p.RuntimePackages, ref.Path)
+	}
+	for _, contractArch := range []string{"amd64", "arm64"} {
+		records := owned.Architectures[contractArch]
+		manifest := ContractManifest{Schema: 1, Family: owned.Family, Architecture: contractArch, Layouts: records.Layouts, Constants: records.Constants}
+		for _, declaration := range owned.Declarations {
+			role, err := declarationRole(declaration.Hook)
+			if err != nil {
+				return Profile{}, err
+			}
+			if !declarationApplies(declaration, contractArch) {
+				continue
+			}
+			manifest.Hooks = append(manifest.Hooks, declaration.Hook)
+			if role == "hook" && contractArch == arch {
+				p.Hooks = append(p.Hooks, declaration.Hook)
+			}
+		}
+		p.ContractsByArch[contractArch] = manifest
+	}
+	return p, p.validateStructure()
+}
+
+func declarationApplies(d Declaration, arch string) bool {
+	return len(d.Arches) == 0 || slices.Contains(d.Arches, arch)
+}
+
+func declarationRole(h Hook) (string, error) {
+	prefix := module + "/internal/compat/"
+	switch h.Context {
+	case "":
+		for _, role := range []string{"hook", "shim"} {
+			if strings.HasPrefix(h.Target, prefix+role+"s/") {
+				tail := strings.TrimPrefix(h.Target, prefix+role+"s/")
+				pkg, symbol, ok := strings.Cut(tail, ".")
+				if ok && pkg != "" && symbol != "" && canonicalDefinitionPath(h.Target) {
+					return role, nil
+				}
+			}
+		}
+	case "host", "host-race":
+		if strings.HasPrefix(h.Target, prefix+"host.") && len(h.Target) > len(prefix+"host.") && canonicalDefinitionPath(h.Target) {
+			return "host", nil
+		}
+	}
+	return "", fmt.Errorf("invalid declaration context/target %q/%q", h.Context, h.Target)
+}
+
+// PolicyManifest returns independent records; permissions still need validation
+// at their consumption boundary, just as for the existing profile manifests.
+func (r ResolvedFamily) PolicyManifest() PolicyManifest {
+	return copyRecords(PolicyManifest{SharedGlobals: r.SharedGlobals, NativeImports: r.NativeImports, Bridges: r.Bridges, Probes: r.Probes, Modules: r.Modules, Capabilities: r.Capabilities})
+}
+
+// ShimManifest is the translated package-binding view for one source ABI.
+// Descriptor validates categories; an unsupported architecture has no bindings.
+func (r ResolvedFamily) ShimManifest(arch string) []Hook {
+	if arch != "amd64" && arch != "arm64" {
+		return nil
+	}
+	var result []Hook
+	for _, d := range r.Declarations {
+		role, err := declarationRole(d.Hook)
+		if err == nil && role == "shim" && declarationApplies(d, arch) {
+			result = append(result, d.Hook)
+		}
+	}
+	return result
+}

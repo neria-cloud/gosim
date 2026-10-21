@@ -222,15 +222,15 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤500 authored Go lines. **Dependencies:** 3.
 
-- [ ] Add Profile.Chain and DefinitionDigest; implement `ResolvedFamily.Descriptor(arch,revision string) (Profile,error)`, PolicyManifest(), ShimManifest(arch), using existing record semantics.
-- [ ] Derive declaration category from Hook.Context and target category. Build BOTH amd64/arm64 ContractsByArch maps every time; only callable hooks select the requested architecture.
-- [ ] Keep metadata structural validation separable from supported-family admission so retained ancestors and unregistered pure fixtures resolve, while production Profile.Validate/selection remains strict.
-- [ ] Test derived policies/hooks/shims/contracts using fixtures, including all nine previously omitted shim contracts and unknown target/context rejection. Record their intentional coverage expansion, not false legacy equivalence.
-- [ ] Preserve ContractDigest and identity schemas; new fields must be deterministically populated wherever selection comparisons depend on them.
+- [x] Add Profile.Chain and DefinitionDigest; implement `ResolvedFamily.Descriptor(arch,revision string) (Profile,error)`, PolicyManifest(), ShimManifest(arch), using existing record semantics.
+- [x] Derive declaration category from Hook.Context and target category. Build BOTH amd64/arm64 ContractsByArch maps every time; only callable hooks select the requested architecture.
+- [x] Keep metadata structural validation separable from supported-family admission so retained ancestors and unregistered pure fixtures resolve, while production Profile.Validate/selection remains strict.
+- [x] Test derived policies/hooks/shims/contracts using fixtures, including all nine previously omitted shim contracts and unknown target/context rejection. Record their intentional coverage expansion, not false legacy equivalence.
+- [x] Preserve ContractDigest and identity schemas; new fields must be deterministically populated wherever selection comparisons depend on them.
 
 #### Verification
 
-- [ ] V-BUILD and spec tests pass for both baseline compilers. Existing runtime descriptors remain active.
+- [x] V-BUILD and spec tests pass for both baseline compilers. Existing runtime descriptors remain active.
 
 ### Task 5: Prepare path admission and fingerprints for incremental moves
 

@@ -39,3 +39,13 @@ Implemented resolved metadata, immediate-predecessor traversal from the sole 1.2
 Verified native command builds and all spec tests with linkname flags after genprofile refresh. Tests cover three-layer and empty-layer inheritance, retirement, missing/wrong/cyclic parents, map-key mismatch, duplicate/conflicting/redundant operations, common-scope splitting, host-race overlap, persistent removal/re-add, map/set-order identity and nested layout/probe isolation. A separate regression confirms removing the last architecture constant persists into the next layer.
 
 The pure resolver does not call the supported-family registry. Effective profile/policy validation is supplied by the next materialization task; current production descriptors remain unchanged. No restricted suite or certification ran.
+
+## Task 4 — Materialized profiles, policies and contracts
+
+Date: 2026-10-21. Implementation commit 4 (this commit).
+
+Added independent profile/policy/shim views, declaration context/category checks, both architecture manifests, and diagnostic Chain/DefinitionDigest fields. Factored profile structure validation from strict registry admission: pure future/retired metadata can materialize, while Profile.Validate and selection still reject unregistered support. Legacy descriptors remain active and keep their existing identity shapes. ContractDigest still hashes resolved hooks, policies and both manifests, without adding diagnostic fields to its schema. Authored Go: 290 lines added/changed including the fixture tests (under 500).
+
+Verified command builds and the complete spec package separately with Go 1.25.14 and Go 1.26.9, all using linkname flags; both passed. Refreshed both active revisions. Tests include all nine intentionally added tls/metrics/debug shim contracts, host/callable/shim separation, architecture-specific signatures, mutable-state isolation, invalid category/context/architecture rejection, pure future materialization versus production rejection, and hashing the other architecture's contracts. This confirms derived coverage; real migration equivalence/source verification remains scheduled in Tasks 15/31.
+
+No restricted suite or certification ran. Four implementation commits now count toward the first eight-commit Claude review checkpoint.
