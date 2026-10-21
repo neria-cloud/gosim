@@ -16,7 +16,7 @@
 
 **Plan review:** thread 2 closed after final re-review; all verified findings incorporated. Final small corrections were not sent for another peer round.
 
-**Status:** reviewed and corrected; ready for implementation execution. No implementation task has started.
+**Status:** implementation in progress; see task checkboxes and the execution log.
 
 ## Scope and execution rules
 
@@ -32,7 +32,7 @@ The source of design decisions is target revision 3.1. Existing README, AGENTS.m
 - Regenerate affected revision outputs at the end of every source-changing task. Through Task 17 use the existing genprofile command for active old descriptors; Task 18 switches to `gosim-gen profiles`. Both hashing paths must include shared inputs during the transition. Do not leave normal test fixtures reading stale revision constants.
 - No new third-party dependency or database migration is needed. SQLite DDL, CacheEntryV2 and contract-cache schemas/retention remain exactly as target §5; fingerprint changes invalidate artifacts without new cache formats.
 - Race, large, cross-architecture execution, Docker/Colima and certification are **not** part of this plan's validation. Do not enable their environment gates, call their fixtures directly, or substitute tags-only race compilation. Source selection/contract inspection for another architecture or race context is reported as inspection only. Lint remains scoped to cmd/examples.
-- This planning session writes the plan and the authorized peer request only. Implementation, generators, builds and tests are for later execution.
+- Execution authorized 2026-10-21: commit each completed task (two small tasks may share a commit), request Claude review every eight implementation commits, and pass ordinary tests before final architectural verification. Certification is authorized only after final review and only on native Darwin ARM64; race and large suites remain excluded.
 
 ## Architecture and task ordering
 
@@ -169,14 +169,14 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤300 authored Go lines. **Dependencies:** none.
 
-- [ ] Refactor process-global flag handling into `runCLI(ctx context.Context, args []string, stdout, stderr io.Writer) int`, preserving existing flag-only generation and `-check`/`-refresh-origin` exclusion. Dispatch subcommands before legacy `run()` or buildcfg.Resolve; profiles maintenance must not require supported-compiler discovery. It still requires a compiler capable of building the tool itself.
-- [ ] Add `runProfiles`, `runCompare`, `runObserve` with the same handler signature. Initially return an explicit nonzero unavailable error for new subcommands; route existing generation unchanged. Do not expose a successful placeholder.
-- [ ] Define help/argument contracts from target §6, including required destinations and stable-family terminology. Keep normal gosim application CLI unchanged.
-- [ ] Test dispatch, invalid arguments, errors reaching stderr and legacy generation argument preservation with injected command-level fakes; no generator execution is needed for argument tests.
+- [x] Refactor process-global flag handling into `runCLI(ctx context.Context, args []string, stdout, stderr io.Writer) int`, preserving existing flag-only generation and `-check`/`-refresh-origin` exclusion. Dispatch subcommands before legacy `run()` or buildcfg.Resolve; profiles maintenance must not require supported-compiler discovery. It still requires a compiler capable of building the tool itself.
+- [x] Add `runProfiles`, `runCompare`, `runObserve` with the same handler signature. Initially return an explicit nonzero unavailable error for new subcommands; route existing generation unchanged. Do not expose a successful placeholder.
+- [x] Define help/argument contracts from target §6, including required destinations and stable-family terminology. Keep normal gosim application CLI unchanged.
+- [x] Test dispatch, invalid arguments, errors reaching stderr and legacy generation argument preservation with injected command-level fakes; no generator execution is needed for argument tests.
 
 #### Verification
 
-- [ ] V-BUILD, V-FOCUS for cmd/gosim-gen and changed-file `make lint` pass; existing behavior remains reachable and placeholders fail explicitly. Test that profiles dispatch never invokes normal compiler discovery.
+- [x] V-BUILD, V-FOCUS for cmd/gosim-gen and changed-file `make lint` pass; existing behavior remains reachable and placeholders fail explicitly. Test that profiles dispatch never invokes normal compiler discovery.
 
 ### Task 2: Add strict family-definition types and decoding
 

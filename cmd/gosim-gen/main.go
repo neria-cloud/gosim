@@ -2,8 +2,7 @@
 package main
 
 import (
-	"flag"
-	"fmt"
+	"context"
 	"os"
 	"strings"
 
@@ -44,17 +43,6 @@ func invalidArguments(options commandOptions, positionalArgs int) bool {
 		positionalArgs != 0 || (options.check && options.refresh)
 }
 
-func printUsageError() {
-	fmt.Fprintln(
-		os.Stderr,
-		"gosim-gen requires -profile, -arches and -output; -check and -refresh-origin cannot be combined",
-	)
-}
-
-func printError(err error) {
-	fmt.Fprintln(os.Stderr, err)
-}
-
 func run(options commandOptions) error {
 	tc, err := buildcfg.Resolve(options.toolchain)
 	if err != nil {
@@ -74,30 +62,5 @@ func run(options commandOptions) error {
 }
 
 func main() {
-	options := commandOptions{}
-	flag.StringVar(
-		&options.toolchain,
-		"toolchain",
-		"",
-		"optional exact source compiler override; default uses normal Go resolution",
-	)
-	flag.StringVar(&options.profile, "profile", "", "destination family, e.g. go125")
-	flag.StringVar(&options.arches, "arches", "", "comma-separated simulated Linux architectures")
-	flag.StringVar(&options.output, "output", "", "explicit output repository root")
-	flag.BoolVar(
-		&options.refresh,
-		"refresh-origin",
-		false,
-		"intentionally refresh generation provenance after checking reviewed contracts",
-	)
-	flag.BoolVar(&options.check, "check", false, "verify generated outputs without modifying them")
-	flag.Parse()
-	if invalidArguments(options, flag.NArg()) {
-		printUsageError()
-		os.Exit(2)
-	}
-	if err := run(options); err != nil {
-		printError(err)
-		os.Exit(1)
-	}
+	os.Exit(runCLI(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
 }
