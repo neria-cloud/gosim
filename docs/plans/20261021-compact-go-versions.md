@@ -556,14 +556,14 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤500 authored Go/test lines. **Dependencies:** 21.
 
-- [ ] Implement SourceInspectionCommand restricted to required env/version/list queries with canonical stable versions, installation/environment controls and local exact toolchain execution. Reject build/run/test and arbitrary flags in this entry.
-- [ ] Implement InspectionCompiler state plus DiscoverInspection, Toolchain, Fingerprints and Recheck. Require running compiler equals inspected exact version and verified installation; an explicit override is an equality assertion.
-- [ ] Factor private discovery/fingerprint helpers without weakening normal Discover/Fingerprint/OutputCommand/ApplicationCommand family checks. Unknown stable inspection succeeds only on the inspection path; prerelease/devel/custom still fail.
-- [ ] Test mismatched executable/runtime identity, changed installation, unsupported family ordinary rejection and inspection-only acceptance using controlled fixtures. Task 23 adds full module-preparation coverage, not merely constructor tests. Do not simulate support by editing the real registry.
+- [x] Implement SourceInspectionCommand restricted to required env/version/list queries with canonical stable versions, installation/environment controls and local exact toolchain execution. Reject build/run/test and arbitrary flags in this entry.
+- [x] Implement InspectionCompiler state plus DiscoverInspection, Toolchain, Fingerprints and Recheck. Require running compiler equals inspected exact version and verified installation; an explicit override is an equality assertion.
+- [x] Factor private discovery/fingerprint helpers without weakening normal Discover/Fingerprint/OutputCommand/ApplicationCommand family checks. Unknown stable inspection succeeds only on the inspection path; prerelease/devel/custom still fail.
+- [x] Test mismatched executable/runtime identity, changed installation, unsupported family ordinary rejection and inspection-only acceptance using controlled fixtures. Task 23 adds full module-preparation coverage, not merely constructor tests. Do not simulate support by editing the real registry.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused buildspec/buildcfg tests pass; normal caller admission behavior remains unchanged.
+- [x] V-REVISIONS, V-BUILD and focused buildspec/buildcfg tests pass; normal caller admission behavior remains unchanged.
 
 ### Task 23: Prepare private modules through the inspection command path
 

@@ -39,24 +39,28 @@ func Discover(ctx context.Context, directory, explicitVersion string) (buildspec
 }
 
 func discoverWith(ctx context.Context, launcher, directory string, env []string) (buildspec.Resolution, error) {
-	var result buildspec.Resolution
 	directory, err := filepath.Abs(directory)
 	if err != nil {
-		return result, err
+		return buildspec.Resolution{}, err
 	}
 	cmd := exec.CommandContext(ctx, launcher, "env", "-json", "GOVERSION", "GOROOT", "GOHOSTOS", "GOHOSTARCH", "GOMOD", "GOWORK", "GOMODCACHE")
 	cmd.Dir, cmd.Env = directory, env
+	return resolveDiscovery(ctx, cmd, buildspec.ValidateVersion)
+}
+
+func resolveDiscovery(ctx context.Context, cmd *exec.Cmd, validateVersion func(string) error) (buildspec.Resolution, error) {
+	var result buildspec.Resolution
 	var diagnostics bytes.Buffer
 	cmd.Stderr = &diagnostics
 	data, err := cmd.Output()
 	if err != nil {
-		return result, fmt.Errorf("resolve Go in %s: %w\n%s", directory, err, diagnostics.Bytes())
+		return result, fmt.Errorf("resolve Go in %s: %w\n%s", cmd.Dir, err, diagnostics.Bytes())
 	}
 	var info struct{ GOVERSION, GOROOT, GOHOSTOS, GOHOSTARCH, GOMOD, GOWORK, GOMODCACHE string }
 	if err := json.Unmarshal(data, &info); err != nil {
 		return result, fmt.Errorf("decode Go resolution: %w", err)
 	}
-	if err := buildspec.ValidateVersion(info.GOVERSION); err != nil {
+	if err := validateVersion(info.GOVERSION); err != nil {
 		return result, err
 	}
 	if info.GOHOSTOS != runtime.GOOS || info.GOHOSTARCH != runtime.GOARCH {
@@ -76,7 +80,7 @@ func discoverWith(ctx context.Context, launcher, directory string, env []string)
 	tc := buildspec.Toolchain{Executable: filepath.Join(root, "bin", "go"), Version: info.GOVERSION, GOROOT: root, HostOS: info.GOHOSTOS, HostArch: info.GOHOSTARCH, ModuleCache: info.GOMODCACHE}
 	// Check the resolved executable directly. Do not re-enter the launcher's module.
 	version := exec.CommandContext(ctx, tc.Executable, "version")
-	version.Env = append(withoutEnv(withoutEnv(env, "GOTOOLCHAIN"), "GOROOT"), "GOTOOLCHAIN=local", "GOROOT="+root)
+	version.Env = append(withoutEnv(withoutEnv(cmd.Env, "GOTOOLCHAIN"), "GOROOT"), "GOTOOLCHAIN=local", "GOROOT="+root)
 	actual, err := version.Output()
 	want := "go version " + tc.Version + " " + tc.HostOS + "/" + tc.HostArch
 	if err != nil || strings.TrimSpace(string(actual)) != want {
@@ -85,7 +89,7 @@ func discoverWith(ctx context.Context, launcher, directory string, env []string)
 	if info.GOWORK == "" {
 		info.GOWORK = "off"
 	}
-	result = buildspec.Resolution{Schema: 1, Toolchain: tc, Context: buildspec.ModuleContext{Directory: directory, GoMod: info.GOMOD, GoWork: info.GOWORK}}
+	result = buildspec.Resolution{Schema: 1, Toolchain: tc, Context: buildspec.ModuleContext{Directory: cmd.Dir, GoMod: info.GOMOD, GoWork: info.GOWORK}}
 	return result, nil
 }
 
@@ -134,6 +138,13 @@ func validateExecutable(tc buildspec.Toolchain) error {
 }
 
 func ValidateWorker(tc buildspec.Toolchain) error {
+	if err := validateWorkerIdentity(tc); err != nil {
+		return err
+	}
+	return validateExecutable(tc)
+}
+
+func validateWorkerIdentity(tc buildspec.Toolchain) error {
 	if runtime.Compiler != "gc" || runtime.Version() != tc.Version || runtime.GOOS != tc.HostOS || runtime.GOARCH != tc.HostArch {
 		return fmt.Errorf("worker is %s %s/%s, resolved compiler is %s %s/%s; use the gosim launcher to select a matching worker", runtime.Version(), runtime.GOOS, runtime.GOARCH, tc.Version, tc.HostOS, tc.HostArch)
 	}
@@ -153,7 +164,7 @@ func ValidateWorker(tc buildspec.Toolchain) error {
 	if root != tc.GOROOT {
 		return fmt.Errorf("worker GOROOT %q differs from selected %q", root, tc.GOROOT)
 	}
-	return validateExecutable(tc)
+	return nil
 }
 
 func Command(tc buildspec.Toolchain, dir string, args ...string) *exec.Cmd {
