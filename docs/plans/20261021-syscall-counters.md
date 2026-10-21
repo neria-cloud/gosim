@@ -34,6 +34,11 @@ or `docs/architecture/` directory. The [gquorum report](../reports/syscall-suppo
 is historical motivation, not a current route inventory or a request to implement
 missing Linux semantics.
 
+Documentation scope, updated 2026-10-22: create a brief `docs/syscalls.md` during
+the final documentation/validation stage (Task 5), after the behavior is
+implemented. Keep `README.md` and `docs/design.md` unchanged. Retain the small
+feature-matrix correction in `docs/features.md`, linking to the new topic page.
+
 Counting lives on kernel Machine, outside its replaceable Run/epoch. The capture
 point is after admission and exact typed-payload validation, before execution
 mutates descriptors. Native calls, hook-local early returns, polling, controls,
@@ -471,12 +476,13 @@ types, routes, DB/cache schema, or interfaces are added by this task.
 
 ### Task 5: Document the implemented contract and complete ordinary validation
 
-**Depends on:** Tasks 1–4. **Estimated authored change:** 100–250 documentation lines,
+**Depends on:** Tasks 1–4. **Estimated authored change:** 50–90 documentation lines,
 plus any logged fixes and generated output.
 
-**Files:** `README.md`, `docs/design.md`, `docs/features.md`, generation-owned
-outputs as required, and this plan's execution records. Touch production code
-only to resolve demonstrated verification failures and log those changes.
+**Files:** new `docs/syscalls.md`; update `docs/features.md`, generation-owned
+outputs as required, and this plan's execution records. Keep `README.md` and
+`docs/design.md` unchanged. Touch production code only to resolve demonstrated
+verification failures and log those changes.
 
 **Target references:** §1 scope; §2 API example; §3 lifecycle/routed-attempt limits;
 §4 descriptor buckets; §6 Pipeline/Future expression data contract/Storage and
@@ -484,20 +490,19 @@ configuration boundaries; §7 Documentation and generated identity; §9 Commands
 §10 explicit exclusions. Existing architecture: docs/design.md package ownership,
 dispatcher, replay, and build/cache identity sections.
 
-- [ ] Add a README monitor example with handled errors and a stopped/barriered
-  measurement window. Explain Counts versus Stats versus List, fixed groups,
-  five owner buckets, independent query snapshots, native errors, and persistence
-  of enabled state/statistics across restart. State routed-attempt coverage,
-  including translated vgetrandom and GODEBUG writes; do not imply Linux syscall
-  completeness or advertise filtering.
-- [ ] Update docs/design.md with Machine storage, schema-derived FD handling,
-  capture before mutation, copied normalized rows, and the three future selection
-  boundaries. Explain count as a bucket-row value for future row selection,
-  unavailable dynamic fields in catalogue entries, and no new per-call allocation.
-  Mention Writev's new trace label and existing build-identity separation.
+- [ ] At this final documentation stage, create a brief `docs/syscalls.md` for
+  the implemented monitor. Include one usage example with handled errors and a
+  stopped/barriered measurement window; explain Counts/Stats/List, fixed groups,
+  the five owner buckets, independent snapshots, native errors, and the accepted
+  start/stop/reset/restart lifecycle. State routed-attempt limits, including
+  translated vgetrandom and GODEBUG writes. Summarize Machine-owned counters,
+  entry-time descriptor ownership, copied rows, and future filtering boundaries
+  in a short implementation note; filtering is not implemented. Mention Writev's
+  trace label and build-identity separation. Do not reproduce the full target
+  architecture or catalogue, or extend README.md/docs/design.md.
 - [ ] After behavior is validated, replace docs/features.md's unsupported
   "Syscalls couter or statistics" row with the correctly named implemented
-  monitor capability and its routed, per-machine limits.
+  monitor capability, its routed/per-machine limits, and a link to syscalls.md.
 - [ ] Verify there is no database/ORM/migration/index or cache-format change.
   The existing STRICT cache table remains `cache(key TEXT PRIMARY KEY NOT NULL,
   timestamp INT, contents BLOB)`, with existing keys, contents, seven-day
@@ -569,7 +574,8 @@ Do not rerun already valid tests solely to repeat their evidence.
   imports in controls/kernel/contracts, no cross-provider coupling, no new
   engine/ABI/port/config/HTTP/DI or DB/cache schema change. Check generated
   identity and trace-label documentation, unchanged replay revision for this
-  scoped change, and README/design/features accurately describing evidence (§6/§7).
+  scoped change, and the brief docs/syscalls.md plus feature-matrix row accurately
+  describing evidence. Confirm README.md/docs/design.md were not extended (§6/§7).
 - [ ] Verify test evidence covers all target §9 files/cases, ordinary reports
   match final executable inputs, skipped suites are distinguished from passes,
   and every logged gap has been fixed or explicitly deferred with its unresolved
@@ -692,6 +698,7 @@ Use `[_]` for unresolved too-complex gaps; never mark those as completed work.
 | Date | Stage/task | Change and evidence | Status |
 | --- | --- | --- | --- |
 | 2026-10-21 | Planning | Compared revision 2 with public machine/control patterns, route manifest/generators, dispatcher/FD ownership, existing latency/writev/metatest fixtures, and repository validation rules. Confirmed 78 routes, 42 syscall routes, IDs 79–83 available, and no separate docs repository. Checked links, fence balance, task sequence, per-task verification, and the final production-wiring checkbox. | Plan only; no implementation/tests run |
+| 2026-10-22 | Planning clarification | User accepted the six-task breakdown and directed the final documentation stage to create a brief docs/syscalls.md instead of extending README.md or docs/design.md. Updated Task 5, final verification, and the target documentation scope. | Plan updated; implementation remains unstarted |
 
 For each completed implementation task, append changed files/commit, commands,
 exit statuses, executed test names/seed coverage, reports/source identity, and
