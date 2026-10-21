@@ -186,15 +186,15 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤500 authored Go lines. **Dependencies:** 1.
 
-- [ ] Implement FamilyDefinition, RecordDelta, Declaration, PackageRef, ArchitectureDelta and ProfileDelta exactly as target §3 and the contract index, using existing spec records.
-- [ ] Implement `DecodeDefinition([]byte) (FamilyDefinition,error)` with recursive duplicate-key detection, unknown-field rejection, one-value EOF check, explicit required-field presence and canonical family/path validation.
-- [ ] Implement `LoadDefinitions(fs.FS) (map[string]FamilyDefinition,error)` with strict goNNN.json filename matching; ignore origin/evidence files intentionally and reject definition filename/family mismatch.
-- [ ] Normalize omitted/both architecture sets to common scope, reject duplicates/unsupported architectures, preserve layout/ordered payload order and canonicalize only sets.
-- [ ] Cover malformed nested JSON, absent false-valued supported, draft rejection, trailing bytes, invalid remove tuples and unsafe paths with focused table tests.
+- [x] Implement FamilyDefinition, RecordDelta, Declaration, PackageRef, ArchitectureDelta and ProfileDelta exactly as target §3 and the contract index, using existing spec records.
+- [x] Implement `DecodeDefinition([]byte) (FamilyDefinition,error)` with recursive duplicate-key detection, unknown-field rejection, one-value EOF check, explicit required-field presence and canonical family/path validation.
+- [x] Implement `LoadDefinitions(fs.FS) (map[string]FamilyDefinition,error)` with strict goNNN.json filename matching; ignore origin/evidence files intentionally and reject definition filename/family mismatch.
+- [x] Normalize omitted/both architecture sets to common scope, reject duplicates/unsupported architectures, preserve layout/ordered payload order and canonicalize only sets.
+- [x] Cover malformed nested JSON, absent false-valued supported, draft rejection, trailing bytes, invalid remove tuples and unsafe paths with focused table tests.
 
 #### Verification
 
-- [ ] V-BUILD and V-FOCUS for internal/compat/spec pass; no current profile consumer changes yet.
+- [x] V-BUILD and V-FOCUS for internal/compat/spec pass; no current profile consumer changes yet.
 
 ### Task 3: Resolve cumulative deltas and immutable ancestry
 
