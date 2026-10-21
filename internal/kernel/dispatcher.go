@@ -241,13 +241,8 @@ func (d *Dispatcher) openatMutates(inv *Invocation) bool {
 
 func (d *Dispatcher) fsDelay(inv *Invocation, openMutation bool) (int64, error) {
 	switch inv.Route {
-	case RouteRead, RouteWrite:
-		var fd int
-		if inv.Route == RouteRead {
-			fd = inv.Args[0].(ReadRequest).FD
-		} else {
-			fd = inv.Args[0].(WriteRequest).FD
-		}
+	case RouteRead, RouteWrite, RouteWritev:
+		fd, _ := syscallInputFD(inv) // decode already validated the typed payload
 		run, err := d.kernel.activeEpoch(inv.Context.Epoch)
 		if err != nil {
 			return 0, err

@@ -10,7 +10,7 @@ import (
 )
 
 const RouteSchema = 1
-const RouteSchemaDigest = "aeb8e3cf402146a86b4bc4dc3ad0004a7b343e4f2972c698238d56ca8cd0c045"
+const RouteSchemaDigest = "af9ee0315b1fa70392eb5d5bbaf10ee4bb2ae7f7ede8688cde50a4e76251aed6"
 const (
 	RouteRead                RouteID = 1
 	RouteWrite               RouteID = 2
@@ -90,6 +90,12 @@ const (
 	RouteChmodat             RouteID = 76
 	RouteFchown              RouteID = 77
 	RouteChownat             RouteID = 78
+	RouteWritev              RouteID = 79
+	RouteSetSyscallCounting  RouteID = 80
+	RouteResetSyscallStats   RouteID = 81
+	RouteSyscallStats        RouteID = 82
+	RouteCountableSyscalls   RouteID = 83
+	routeLimit               RouteID = 84
 )
 
 func (r RouteID) String() string {
@@ -250,6 +256,16 @@ func (r RouteID) String() string {
 		return "Fchown"
 	case RouteChownat:
 		return "Chownat"
+	case RouteWritev:
+		return "Writev"
+	case RouteSetSyscallCounting:
+		return "SetSyscallCounting"
+	case RouteResetSyscallStats:
+		return "ResetSyscallStats"
+	case RouteSyscallStats:
+		return "SyscallStats"
+	case RouteCountableSyscalls:
+		return "CountableSyscalls"
 	}
 	return fmt.Sprintf("unknown(%d)", r)
 }
@@ -1636,6 +1652,90 @@ func DecodeChownatResult(r Result) (ChownatResult, error) {
 	return decodeRouteResult[ChownatResult](r, RouteChownat)
 }
 
+type WritevRequest struct {
+	FD   int
+	From abi.ByteView
+}
+type WritevResult struct {
+	Count int
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p WritevRequest) Invocation() Invocation {
+	return Invocation{Route: RouteWritev, Args: [5]any{p}}
+}
+
+func DecodeWritevResult(r Result) (WritevResult, error) {
+	return decodeRouteResult[WritevResult](r, RouteWritev)
+}
+
+type SetSyscallCountingRequest struct {
+	Machine contracts.MachineRef
+	Enabled bool
+}
+type SetSyscallCountingResult struct {
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p SetSyscallCountingRequest) Invocation() Invocation {
+	return Invocation{Route: RouteSetSyscallCounting, Args: [5]any{p}}
+}
+
+func DecodeSetSyscallCountingResult(r Result) (SetSyscallCountingResult, error) {
+	return decodeRouteResult[SetSyscallCountingResult](r, RouteSetSyscallCounting)
+}
+
+type ResetSyscallStatsRequest struct {
+	Machine contracts.MachineRef
+}
+type ResetSyscallStatsResult struct {
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p ResetSyscallStatsRequest) Invocation() Invocation {
+	return Invocation{Route: RouteResetSyscallStats, Args: [5]any{p}}
+}
+
+func DecodeResetSyscallStatsResult(r Result) (ResetSyscallStatsResult, error) {
+	return decodeRouteResult[ResetSyscallStatsResult](r, RouteResetSyscallStats)
+}
+
+type SyscallStatsRequest struct {
+	Machine contracts.MachineRef
+}
+type SyscallStatsResult struct {
+	Records []contracts.SyscallRecord
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p SyscallStatsRequest) Invocation() Invocation {
+	return Invocation{Route: RouteSyscallStats, Args: [5]any{p}}
+}
+
+func DecodeSyscallStatsResult(r Result) (SyscallStatsResult, error) {
+	return decodeRouteResult[SyscallStatsResult](r, RouteSyscallStats)
+}
+
+type CountableSyscallsRequest struct {
+}
+type CountableSyscallsResult struct {
+	Syscalls []contracts.SyscallInfo
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p CountableSyscallsRequest) Invocation() Invocation {
+	return Invocation{Route: RouteCountableSyscalls, Args: [5]any{p}}
+}
+
+func DecodeCountableSyscallsResult(r Result) (CountableSyscallsResult, error) {
+	return decodeRouteResult[CountableSyscallsResult](r, RouteCountableSyscalls)
+}
+
 func decodeRouteResult[T any](r Result, route RouteID) (T, error) {
 	var zero T
 	if r.R0 != 0 || r.R1 != 0 {
@@ -2000,8 +2100,154 @@ func validateRoutePayload(inv *Invocation) error {
 		if _, ok := inv.Args[0].(ChownatRequest); !ok {
 			return invalidRoutePayload(inv)
 		}
+	case RouteWritev:
+		if _, ok := inv.Args[0].(WritevRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteSetSyscallCounting:
+		if _, ok := inv.Args[0].(SetSyscallCountingRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteResetSyscallStats:
+		if _, ok := inv.Args[0].(ResetSyscallStatsRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteSyscallStats:
+		if _, ok := inv.Args[0].(SyscallStatsRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteCountableSyscalls:
+		if _, ok := inv.Args[0].(CountableSyscallsRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
 	default:
 		return &contracts.Failure{Code: contracts.UnsupportedOperation, Diagnostic: contracts.Diagnostic{Operation: "dispatch", Epoch: inv.Context.Epoch, Message: fmt.Sprintf("unlisted route %d", inv.Route)}}
 	}
 	return nil
+}
+
+// syscallRouteHasFD describes primary input descriptors, not directory context or outputs.
+//
+//go:norace
+func syscallRouteHasFD(route RouteID) bool {
+	switch route {
+	case RouteRead:
+		return true
+	case RouteWrite:
+		return true
+	case RouteClose:
+		return true
+	case RouteFcntlInt:
+		return true
+	case RouteGetdents64:
+		return true
+	case RouteFallocate:
+		return true
+	case RouteSeek:
+		return true
+	case RoutePwrite:
+		return true
+	case RoutePread:
+		return true
+	case RouteSync:
+		return true
+	case RouteFstat:
+		return true
+	case RouteTruncate:
+		return true
+	case RouteFlock:
+		return true
+	case RouteFcntlLock:
+		return true
+	case RouteMap:
+		return true
+	case RouteBind:
+		return true
+	case RouteListen:
+		return true
+	case RouteAccept:
+		return true
+	case RouteConnect:
+		return true
+	case RouteLocalAddress:
+		return true
+	case RoutePeerAddress:
+		return true
+	case RouteSetOption:
+		return true
+	case RouteGetOption:
+		return true
+	case RouteFstatFS:
+		return true
+	case RouteFchmod:
+		return true
+	case RouteFchown:
+		return true
+	case RouteWritev:
+		return true
+	}
+	return false
+}
+
+// syscallInputFD requires a successfully validated payload.
+//
+//go:norace
+func syscallInputFD(inv *Invocation) (int, bool) {
+	switch inv.Route {
+	case RouteRead:
+		return inv.Args[0].(ReadRequest).FD, true
+	case RouteWrite:
+		return inv.Args[0].(WriteRequest).FD, true
+	case RouteClose:
+		return inv.Args[0].(CloseRequest).FD, true
+	case RouteFcntlInt:
+		return inv.Args[0].(FcntlIntRequest).FD, true
+	case RouteGetdents64:
+		return inv.Args[0].(Getdents64Request).FD, true
+	case RouteFallocate:
+		return inv.Args[0].(FallocateRequest).FD, true
+	case RouteSeek:
+		return inv.Args[0].(SeekRequest).FD, true
+	case RoutePwrite:
+		return inv.Args[0].(PwriteRequest).FD, true
+	case RoutePread:
+		return inv.Args[0].(PreadRequest).FD, true
+	case RouteSync:
+		return inv.Args[0].(SyncRequest).FD, true
+	case RouteFstat:
+		return inv.Args[0].(FstatRequest).FD, true
+	case RouteTruncate:
+		return inv.Args[0].(TruncateRequest).FD, true
+	case RouteFlock:
+		return inv.Args[0].(FlockRequest).FD, true
+	case RouteFcntlLock:
+		return inv.Args[0].(FcntlLockRequest).FD, true
+	case RouteMap:
+		return inv.Args[0].(MapRequest).FD, true
+	case RouteBind:
+		return inv.Args[0].(BindRequest).FD, true
+	case RouteListen:
+		return inv.Args[0].(ListenRequest).FD, true
+	case RouteAccept:
+		return inv.Args[0].(AcceptRequest).FD, true
+	case RouteConnect:
+		return inv.Args[0].(ConnectRequest).FD, true
+	case RouteLocalAddress:
+		return inv.Args[0].(LocalAddressRequest).FD, true
+	case RoutePeerAddress:
+		return inv.Args[0].(PeerAddressRequest).FD, true
+	case RouteSetOption:
+		return inv.Args[0].(SetOptionRequest).FD, true
+	case RouteGetOption:
+		return inv.Args[0].(GetOptionRequest).FD, true
+	case RouteFstatFS:
+		return inv.Args[0].(FstatFSRequest).FD, true
+	case RouteFchmod:
+		return inv.Args[0].(FchmodRequest).FD, true
+	case RouteFchown:
+		return inv.Args[0].(FchownRequest).FD, true
+	case RouteWritev:
+		return inv.Args[0].(WritevRequest).FD, true
+	}
+	return 0, false
 }

@@ -21,7 +21,33 @@ func TestNativeControls(t *testing.T) {
 		t.Fatal("native run metadata")
 	}
 	var iterator *simfs.CrashIterator
+	monitor := m.SyscallsMonitor()
+	if monitor == nil {
+		t.Fatal("native accessor returned nil")
+	}
 	for name, call := range map[string]func() error{
+		"syscalls-start": monitor.Start, "syscalls-stop": monitor.Stop, "syscalls-reset": monitor.Reset,
+		"syscalls-counts": func() error {
+			result, err := monitor.Counts()
+			if result != nil {
+				t.Error("native counts")
+			}
+			return err
+		},
+		"syscalls-stats": func() error {
+			result, err := monitor.Stats()
+			if result != nil {
+				t.Error("native stats")
+			}
+			return err
+		},
+		"syscalls-list": func() error {
+			result, err := gosim.CountableSyscalls()
+			if result != nil {
+				t.Error("native list")
+			}
+			return err
+		},
 		"new":   func() error { _, e := gosim.NewMachine(gosim.MachineConfig{}); return e },
 		"label": func() error { _, e := m.Label(); return e }, "state": func() error { _, e := m.State(); return e },
 		"start": m.Start, "stop": m.Stop, "crash": m.Crash, "restart": m.Restart, "destroy": m.Destroy,

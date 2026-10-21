@@ -27,6 +27,7 @@ import (
 //go:norace
 func (d *Dispatcher) decode(inv *Invocation) (Result,bool,error) {
  if err:=validateRoutePayload(inv); err!=nil { return Result{},false,err }
+ d.kernel.countSyscall(inv)
  k,ctx:=d.kernel,inv.Context
  switch inv.Route {
 `)
@@ -79,8 +80,11 @@ return syscallRouteResult(out,err)
 `)
 			default:
 				method := r.Name
-				if method == "Close" {
+				switch method {
+				case "Close":
 					method = "CloseFD"
+				case "Writev":
+					method = "Write"
 				}
 				call(receiver, method, append([]string{"ctx"}, args...), true)
 				if r.Name == "Sync" {

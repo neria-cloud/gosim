@@ -78,5 +78,10 @@
 {"id":75,"name":"Fchmod","owner":"fs","kind":"syscall","inputs":[{"name":"FD","type":"int"},{"name":"Mode","type":"uint32"}],"results":[],"legacy":[]},
 {"id":76,"name":"Chmodat","owner":"fs","kind":"syscall","inputs":[{"name":"DirFD","type":"int"},{"name":"Path","type":"string"},{"name":"Mode","type":"uint32"},{"name":"Flags","type":"int"}],"results":[],"legacy":[]},
 {"id":77,"name":"Fchown","owner":"fs","kind":"syscall","inputs":[{"name":"FD","type":"int"},{"name":"UID","type":"int"},{"name":"GID","type":"int"}],"results":[],"legacy":[]},
-{"id":78,"name":"Chownat","owner":"fs","kind":"syscall","inputs":[{"name":"DirFD","type":"int"},{"name":"Path","type":"string"},{"name":"UID","type":"int"},{"name":"GID","type":"int"},{"name":"Flags","type":"int"}],"results":[],"legacy":[]}
+{"id":78,"name":"Chownat","owner":"fs","kind":"syscall","inputs":[{"name":"DirFD","type":"int"},{"name":"Path","type":"string"},{"name":"UID","type":"int"},{"name":"GID","type":"int"},{"name":"Flags","type":"int"}],"results":[],"legacy":[]},
+{"id":79,"name":"Writev","owner":"kernel","kind":"syscall","inputs":[{"name":"FD","type":"int"},{"name":"From","type":"abi.ByteView"}],"results":[{"name":"Count","type":"int"}],"legacy":[]},
+{"id":80,"name":"SetSyscallCounting","owner":"kernel","kind":"control","inputs":[{"name":"Machine","type":"contracts.MachineRef"},{"name":"Enabled","type":"bool"}],"results":[],"legacy":[]},
+{"id":81,"name":"ResetSyscallStats","owner":"kernel","kind":"control","inputs":[{"name":"Machine","type":"contracts.MachineRef"}],"results":[],"legacy":[]},
+{"id":82,"name":"SyscallStats","owner":"kernel","kind":"control","inputs":[{"name":"Machine","type":"contracts.MachineRef"}],"results":[{"name":"Records","type":"[]contracts.SyscallRecord"}],"legacy":[]},
+{"id":83,"name":"CountableSyscalls","owner":"kernel","kind":"control","inputs":[],"results":[{"name":"Syscalls","type":"[]contracts.SyscallInfo"}],"legacy":[]}
 ]}

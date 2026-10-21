@@ -6,9 +6,11 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -89,6 +91,8 @@ func TestInvalidRouteSchemas(t *testing.T) {
 		func(m *Manifest) { m.Routes[0].Inputs[0].Type = "any" },
 		func(m *Manifest) { m.Routes[0].Legacy = append(m.Routes[0].Legacy, m.Routes[1].Legacy...) },
 		func(m *Manifest) { m.Routes[0].Inputs[0].Name = "FD; panic()" },
+		func(m *Manifest) { m.Routes[len(m.Routes)-1].ID = math.MaxUint32 },
+		func(m *Manifest) { m.Routes[0].Inputs[0].Type = "uint64" },
 	}
 	for _, change := range cases {
 		m, err := Load()
@@ -105,6 +109,76 @@ func TestInvalidRouteSchemas(t *testing.T) {
 	}
 	if _, err := Parse([]byte(`{"schema":1,"routes":[],"unknown":true}`)); err == nil {
 		t.Fatal("unknown schema field accepted")
+	}
+}
+
+func TestSyscallMonitorRendering(t *testing.T) {
+	m, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A gap makes max(ID)+1 observably different from len(routes)+1.
+	m.Routes[len(m.Routes)-1].ID += 10
+	rendered, err := RenderKernel(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := parser.ParseFile(token.NewFileSet(), "routes.go", rendered, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, helper := range []string{"syscallRouteHasFD", "syscallInputFD"} {
+		cases := map[string]bool{}
+		for _, decl := range f.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Name.Name != helper {
+				continue
+			}
+			ast.Inspect(fn.Body, func(n ast.Node) bool {
+				if clause, ok := n.(*ast.CaseClause); ok {
+					for _, expr := range clause.List {
+						cases[expr.(*ast.Ident).Name] = true
+					}
+				}
+				return true
+			})
+		}
+		for _, route := range m.Routes {
+			want := false
+			for _, field := range route.Inputs {
+				want = want || route.Kind == "syscall" && field.Name == "FD"
+			}
+			if cases["Route"+route.Name] != want {
+				t.Errorf("%s: %s FD extraction %v", helper, route.Name, cases["Route"+route.Name])
+			}
+		}
+	}
+	foundLimit := false
+	ast.Inspect(f, func(n ast.Node) bool {
+		if value, ok := n.(*ast.ValueSpec); ok && len(value.Names) == 1 && value.Names[0].Name == "routeLimit" {
+			foundLimit = value.Values[0].(*ast.BasicLit).Value == strconv.FormatUint(uint64(m.Routes[len(m.Routes)-1].ID)+1, 10)
+		}
+		return true
+	})
+	if !foundLimit {
+		t.Fatal("routeLimit did not follow the highest sparse ID")
+	}
+	dispatch, err := renderDispatch(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(dispatch)
+	start := strings.Index(s, "case RouteWritev:")
+	if start < 0 {
+		t.Fatal("missing Writev dispatch")
+	}
+	end := strings.Index(s[start:], "case RouteSetSyscallCounting:")
+	if end < 0 || !strings.Contains(s[start:start+end], "k.Write(ctx, p.FD, p.From)") || strings.Contains(s, "k.Writev(") {
+		t.Fatal("Writev must call Kernel.Write directly")
+	}
+	count := strings.Index(s, "d.kernel.countSyscall(inv)")
+	if strings.Count(s, "d.kernel.countSyscall(inv)") != 1 || count <= strings.Index(s, "validateRoutePayload(inv)") || count >= strings.Index(s, "switch inv.Route") {
+		t.Fatal("count must follow payload validation and precede dispatch")
 	}
 }
 

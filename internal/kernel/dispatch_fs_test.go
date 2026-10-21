@@ -227,6 +227,87 @@ func TestFilesystemDelayedCompletionCanceledOnStop(t *testing.T) {
 	}
 }
 
+func TestSyscallWritevDelayedObservation(t *testing.T) {
+	for _, action := range []string{"complete", "pause", "reset", "crash"} {
+		t.Run(action, func(t *testing.T) {
+			var observed, resumed atomic.Bool
+			var ref contracts.MachineRef
+			var rows []contracts.SyscallRecord
+			_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider()}, func(k *Kernel) {
+				ref = createFor(t, k, "writev-delay", func() {
+					fd := fsCall(t, k, OpenatRequest{DirFD: -100, Path: "file", Flags: 0x40 | 2, Mode: 0o600}, DecodeOpenatResult).FD
+					fsCall(t, k, SetSyscallCountingRequest{Machine: ref, Enabled: true}, DecodeSetSyscallCountingResult)
+					inv := WritevRequest{FD: fd, From: abi.ByteView{Ptr: []byte("ordered")}}.Invocation()
+					inv.Context = currentContext(k)
+					start := simrt.Nanotime()
+					_, err := k.Ports().Events.Schedule(inv.Context.Epoch, start+50, func() {
+						if inv.Args != ([5]any{}) || len(k.dispatcher.timers) != 1 {
+							t.Error("pending writev retained views or lost completion")
+						}
+						rows := counterRows(t, k, ref)
+						if len(rows) != 1 || rows[0] != (contracts.SyscallRecord{Name: "writev", Group: "rt", DescriptorBased: true, DescriptorGroup: "fs", Count: 1}) {
+							t.Error("writev admission counted incorrectly", rows)
+						}
+						// Provider effects precede the delayed completion. Reading directly
+						// through its service here must not add a routed observation.
+						files, err := k.Filesystem(inv.Context)
+						counterCheck(t, err)
+						data := make([]byte, 7)
+						n, err := files.Pread(inv.Context, fd, abi.ByteView{Ptr: data}, 0)
+						if err != nil || n != 7 || string(data) != "ordered" {
+							t.Error("writev effects delayed", n, err, string(data))
+						}
+						switch action {
+						case "pause":
+							counterCheck(t, k.SetSyscallCounting(ref, false))
+						case "reset":
+							counterCheck(t, k.ResetSyscallStats(ref))
+						case "crash":
+							id := inv.Context.InvocationID
+							counterCheck(t, k.Stop(ref, contracts.StopCrash))
+							if inv.Args != ([5]any{}) || len(k.dispatcher.live) != 0 || len(k.dispatcher.timers) != 0 {
+								t.Error("crash retained invocation")
+							}
+							// Epoch release discards its canceled IDs; the scheduled event
+							// was canceled and must never attempt a completion for this ID.
+							if _, live := k.dispatcher.live[id]; live {
+								t.Error("crashed writev remains live")
+							}
+						}
+						observed.Store(true)
+					})
+					counterCheck(t, err)
+					counterCheck(t, k.dispatcher.Submit(&inv))
+					result, err := DecodeWritevResult(inv.TakeResult())
+					if err != nil || result.Count != 7 || simrt.Nanotime()-start != 100 {
+						t.Fatal("writev completion", result, err, simrt.Nanotime()-start)
+					}
+					resumed.Store(true)
+				})
+				controls, err := k.FilesystemControl(contracts.CallContext{}, ref.RunID)
+				counterCheck(t, err)
+				counterCheck(t, controls.ConfigureMachine(ref, contracts.FSConfig{WorkingDir: "/app", LatencyNS: 100}))
+				counterCheck(t, k.Start(ref))
+				counterCheck(t, k.Run(func() {
+					simrt.Sleep(500)
+					rows = fsCall(t, k, SyscallStatsRequest{Machine: ref}, DecodeSyscallStatsResult).Records
+				}))
+			})
+			counterCheck(t, err)
+			if !observed.Load() || resumed.Load() != (action != "crash") {
+				t.Fatal("observation/resumption", observed.Load(), resumed.Load())
+			}
+			if action == "reset" {
+				if len(rows) != 0 {
+					t.Fatal("completion restored reset counts", rows)
+				}
+			} else if len(rows) != 1 || rows[0].Name != "writev" || rows[0].Count != 1 {
+				t.Fatal("completion/cleanup recounted writev", rows)
+			}
+		})
+	}
+}
+
 func TestSyncFaultCancelsRealCallerBeforeOrAfterDurability(t *testing.T) {
 	for _, before := range []float64{0, 1} {
 		t.Run(map[bool]string{true: "before", false: "after"}[before == 1], func(t *testing.T) {

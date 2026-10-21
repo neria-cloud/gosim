@@ -33,6 +33,6 @@ func InternalPoll_writev(fd int, vectors []syscall.Iovec) (uintptr, error) {
 		simrt.RaceReadRange(unsafe.Pointer(v.Base), int(v.Len))
 		data = append(data, unsafe.Slice(v.Base, int(v.Len))...)
 	}
-	result, err := Call(k.WriteRequest{FD: fd, From: abi.ByteView{Ptr: data}}, k.DecodeWriteResult)
+	result, err := Call(k.WritevRequest{FD: fd, From: abi.ByteView{Ptr: data}}, k.DecodeWritevResult)
 	return uintptr(result.Count), err
 }

@@ -44,12 +44,24 @@ func TestNetBuffersWriteTo(t *testing.T) {
 		}
 		defer conn.Close()
 		buffers := net.Buffers{nil, payload[:13], {}, payload[13:70000], payload[70000:]}
+		monitor := gosim.CurrentMachine().SyscallsMonitor()
+		testsupport.Check(t, monitor.Start())
 		n, err := buffers.WriteTo(conn)
+		testsupport.Check(t, monitor.Stop())
 		if err != nil || n != int64(len(payload)) {
 			t.Fatalf("writev count=%d err=%v", n, err)
 		}
 		if len(buffers) != 0 {
 			t.Fatal("buffers not consumed")
+		}
+		stats, err := monitor.Stats()
+		testsupport.Check(t, err)
+		writev := stats["writev"]
+		if writev.Count <= 1 || writev.Group != gosim.SyscallGroupRT || len(writev.ByDescriptor) != 1 || writev.ByDescriptor[gosim.DescriptorGroupNet] != writev.Count {
+			t.Fatal("partial writev attempts/owner", stats)
+		}
+		if _, counted := stats["write"]; counted {
+			t.Fatal("writev also counted as write", stats)
 		}
 	}}, netip.MustParseAddr(bAddr))
 	testsupport.Wait(t, server)
