@@ -111,6 +111,9 @@ func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spe
 }
 
 func evidenceMetadata(name string) bool {
+	if name == "internal/compat/profiles/evidence.json" {
+		return true
+	}
 	for _, family := range buildspec.SupportedFamilies() {
 		prefix := "internal/compat/" + family.Profile + "/profile/"
 		if name == prefix+"tuples.json" || name == prefix+"evidence.json" {

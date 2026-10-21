@@ -52,7 +52,7 @@ func TestPinnedAdapterSourceVerification(t *testing.T) {
 		p          spec.Profile
 		origin     spec.Origin
 		descriptor func(string) (spec.Profile, error)
-	}{{p125.Descriptor(), p125.VerificationOrigin(), p125.DescriptorForArch}, {p126.Descriptor(), p126.VerificationOrigin(), p126.DescriptorForArch}} {
+	}{{p125.Descriptor(), fixtureOrigin(t, "go125"), p125.DescriptorForArch}, {p126.Descriptor(), fixtureOrigin(t, "go126"), p126.DescriptorForArch}} {
 		t.Run(candidate.p.ID, func(t *testing.T) {
 			origin := candidate.origin
 			if origin.BaselineToolchain != tc.Version {
@@ -215,4 +215,13 @@ func shimFamily(family, profile string, shims []spec.Hook) spec.ResolvedFamily {
 		r.Declarations = append(r.Declarations, spec.Declaration{Hook: h})
 	}
 	return r
+}
+
+func fixtureOrigin(t *testing.T, profileID string) spec.Origin {
+	t.Helper()
+	origin, err := spec.LoadOrigin(os.DirFS("../profiles"), profileID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return origin
 }

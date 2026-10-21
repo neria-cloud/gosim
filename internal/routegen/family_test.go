@@ -32,11 +32,22 @@ func TestCurrentFamilyOriginRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
+	protected := filepath.Join(out, "internal/compat/profiles", otherFamily(p.ID)+".origin.json")
+	if err := os.MkdirAll(filepath.Dir(protected), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(protected, []byte("independent origin"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := GenerateProfile(r.Toolchain, p.ID, []string{r.Toolchain.HostArch}, out, GenerateOptions{RefreshOrigin: true}); err != nil {
 		t.Fatal(err)
 	}
-	root := filepath.Join(out, "internal/compat", p.ID, "profile")
-	data, err := os.ReadFile(filepath.Join(root, "origin.json"))
+	untouched, err := os.ReadFile(protected)
+	if err != nil || string(untouched) != "independent origin" {
+		t.Fatal("refresh changed another origin", err)
+	}
+	root := filepath.Join(out, "internal/compat/profiles")
+	data, err := os.ReadFile(filepath.Join(root, p.ID+".origin.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

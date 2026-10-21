@@ -38,7 +38,11 @@ func currentGeneration(t *testing.T) (buildspec.Toolchain, spec.Profile, Generat
 	if err != nil {
 		t.Fatal(err)
 	}
-	return r.Toolchain, p, GenerateOptions{RefreshOrigin: r.Toolchain.Version != entry.Origin().BaselineToolchain}
+	origin, err := entry.Origin("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r.Toolchain, p, GenerateOptions{RefreshOrigin: r.Toolchain.Version != origin.BaselineToolchain}
 }
 
 func otherFamily(current string) string {
@@ -53,7 +57,7 @@ func otherFamily(current string) string {
 // Compare complete executable bytes; exact provenance stays in ignored records.
 func assertGeneratedMatchesBaseline(t *testing.T, tc buildspec.Toolchain, name string, actual []byte) {
 	t.Helper()
-	if strings.HasSuffix(name, "/origin.json") {
+	if strings.HasSuffix(name, ".origin.json") {
 		var origin spec.Origin
 		if err := json.Unmarshal(actual, &origin); err != nil {
 			t.Fatal(err)

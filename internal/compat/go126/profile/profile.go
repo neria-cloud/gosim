@@ -5,13 +5,15 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
-//go:embed contracts_*.json hooks_*.json hooks.json policies.json origin.json bridges.json native_imports.json capabilities.json shims.json probes.json modules.json shared_globals.json
+//go:embed contracts_*.json hooks_*.json hooks.json policies.json bridges.json native_imports.json capabilities.json shims.json probes.json modules.json shared_globals.json
 var metadata embed.FS
 
 // Descriptor returns independent records so callers cannot mutate later selections.
@@ -59,13 +61,11 @@ func DescriptorForArch(arch string) (spec.Profile, error) {
 	return p, nil
 }
 
-func VerificationOrigin() spec.Origin {
-	var origin spec.Origin
-	decode("origin.json", &origin)
-	return origin
+func VerificationOrigin(root string) (spec.Origin, error) {
+	return spec.LoadOrigin(os.DirFS(filepath.Join(root, "internal/compat/profiles")), "go126")
 }
 
-func Verify(tc buildspec.Toolchain) error {
+func Verify(tc buildspec.Toolchain, root string) error {
 	p, err := DescriptorForArch(tc.HostArch)
 	if err != nil {
 		return err
@@ -76,7 +76,11 @@ func Verify(tc buildspec.Toolchain) error {
 	if err := PolicyManifest().Validate(p); err != nil {
 		return err
 	}
-	if err := spec.VerifyBaselineOrigin(tc, VerificationOrigin()); err != nil {
+	origin, err := VerificationOrigin(root)
+	if err != nil {
+		return err
+	}
+	if err := spec.VerifyBaselineOrigin(tc, origin); err != nil {
 		return err
 	}
 	if err := spec.VerifyHooks(tc, p.Hooks); err != nil {

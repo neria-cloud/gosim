@@ -125,7 +125,7 @@ func TestSelectedGenerationIsScopedAndRepeatable(t *testing.T) {
 	tc, profile, options := currentGeneration(t)
 	out := t.TempDir()
 	other := otherFamily(profile.ID)
-	protected := filepath.Join(out, "internal/compat/"+other+"/profile/origin.json")
+	protected := filepath.Join(out, "internal/compat/profiles/"+other+".origin.json")
 	if err := os.MkdirAll(filepath.Dir(protected), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestSelectedGenerationIsScopedAndRepeatable(t *testing.T) {
 	if !reflect.DeepEqual(first, readOutputTree(t, out)) || !before.ModTime().Equal(after.ModTime()) {
 		t.Fatal("repeat generation changed bytes or unchanged file mtime")
 	}
-	if string(first["internal/compat/"+other+"/profile/origin.json"]) != "unselected-family" {
+	if string(first["internal/compat/profiles/"+other+".origin.json"]) != "unselected-family" {
 		t.Fatal("modified unselected family")
 	}
 	if _, err := os.Stat(filepath.Join(out, generationRecordPath(profile.ID, "arm64"))); !os.IsNotExist(err) {

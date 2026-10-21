@@ -370,7 +370,7 @@ func hasNativeDirective(group *ast.CommentGroup) bool {
 func TestInitProbeSourceEvidence(t *testing.T) {
 	t.Parallel()
 	sources := make(map[string]bool)
-	for _, source := range p125.VerificationOrigin().Files {
+	for _, source := range fixtureOrigin(t, "go125").Files {
 		sources[source.Path] = true
 	}
 	for _, probe := range p125.PolicyManifest().Probes {

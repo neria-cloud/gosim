@@ -22,6 +22,8 @@ def source_files(root):
             rel = path.relative_to(root).as_posix()
             if name == ".git" or name.endswith(".md"):
                 continue
+            if rel == "internal/compat/profiles/evidence.json":
+                continue
             if (path.name in {"tuples.json", "evidence.json"}
                     and path.parent.name == "profile"
                     and rel.startswith("internal/compat/")):

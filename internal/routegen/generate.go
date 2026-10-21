@@ -82,7 +82,7 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 	if err != nil {
 		return nil, err
 	}
-	origin, policies := entry.Origin(), entry.Policy()
+	policies := entry.Policy()
 	if output == "" || len(arches) == 0 {
 		return nil, fmt.Errorf("explicit output and architectures are required")
 	}
@@ -102,6 +102,10 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 		return nil, fmt.Errorf("generation requires a module context")
 	}
 	root := filepath.Dir(moduleFile)
+	origin, err := entry.Origin(root)
+	if err != nil {
+		return nil, err
+	}
 	if err := profile.Validate(); err != nil {
 		return nil, err
 	}
@@ -153,7 +157,7 @@ func prepareProfileOutputs(tc buildspec.Toolchain, profileID string, arches []st
 		if err != nil {
 			return nil, err
 		}
-		outputs["internal/compat/"+profileID+"/profile/origin.json"] = append(data, '\n')
+		outputs["internal/compat/profiles/"+profileID+".origin.json"] = append(data, '\n')
 	}
 	for _, arch := range arches {
 		profile, err = descriptor(arch)

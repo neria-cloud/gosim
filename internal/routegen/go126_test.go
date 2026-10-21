@@ -15,7 +15,7 @@ func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 	tc, profile, options := currentGeneration(t)
 	other := otherFamily(profile.ID)
 	output := t.TempDir()
-	protected := filepath.Join(output, "internal/compat/"+other+"/profile/origin.json")
+	protected := filepath.Join(output, "internal/compat/profiles/"+other+".origin.json")
 	if err := os.MkdirAll(filepath.Dir(protected), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 	}
 	first := readOutputTree(t, output)
 	for name, want := range first {
-		if strings.Contains(name, "/"+other+"/") {
+		if name == "internal/compat/profiles/"+other+".origin.json" {
 			if string(want) != "other family" {
 				t.Fatal("changed other family")
 			}

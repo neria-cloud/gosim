@@ -447,16 +447,16 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤500 authored Go/test lines plus lossless data moves. **Dependencies:** 15.
 
-- [ ] Implement Definitions, Resolve, Descriptor, Policy, Shims and Revision signatures from target §7; embed only `go*[0-9].json`, use lazy immutable metadata and return independent values.
-- [ ] Implement `LoadOrigin(fs.FS,profileID string) (Origin,error)` for checkout readers. COPY complete origin payloads to the new independent paths first; do not remove an embedded file while its old profile still compiles. Preserve Task 8's normalized Gosim targets and all upstream provenance.
-- [ ] In the same task remove origin.json from both old embed lists, change their temporary VerificationOrigin callback to take an explicit repository root and return errors, and update catalog.Origin plus every caller/test accordingly. Read with LoadOrigin at the source root; do not infer it from arbitrary cwd. Routegen must resolve source root before loading origin and publish RefreshOrigin only at `internal/compat/profiles/goNNN.origin.json` relative to output root. Old origin copies remain frozen/unread until deletion in Task 18. There must be only one live read/write authority, so refresh between Tasks 16 and 19 cannot drift two copies.
-- [ ] Preserve the complete old evidence/tuple JSON values in the consolidated schema-1 history envelope. During coexistence exclude both old evidence paths and the new exact path from executable identities; never exclude origins from whole-source hashes.
-- [ ] Seed the new revisions output from current valid values only as an unused transition artifact; Task 17 replaces it using the final algorithm before production selection switches. New facade tests use explicit fixture revisions where appropriate and cannot claim cutover readiness yet.
-- [ ] Test no origin/evidence runtime embed, cloned records, origin filename/family validation and lossless historical payload migration; update Python exclusion unit coverage without invoking certification.
+- [x] Implement Definitions, Resolve, Descriptor, Policy, Shims and Revision signatures from target §7; embed only `go*[0-9].json`, use lazy immutable metadata and return independent values.
+- [x] Implement `LoadOrigin(fs.FS,profileID string) (Origin,error)` for checkout readers. COPY complete origin payloads to the new independent paths first; do not remove an embedded file while its old profile still compiles. Preserve Task 8's normalized Gosim targets and all upstream provenance.
+- [x] In the same task remove origin.json from both old embed lists, change their temporary VerificationOrigin callback to take an explicit repository root and return errors, and update catalog.Origin plus every caller/test accordingly. Read with LoadOrigin at the source root; do not infer it from arbitrary cwd. Routegen must resolve source root before loading origin and publish RefreshOrigin only at `internal/compat/profiles/goNNN.origin.json` relative to output root. Old origin copies remain frozen/unread until deletion in Task 18. There must be only one live read/write authority, so refresh between Tasks 16 and 19 cannot drift two copies.
+- [x] Preserve the complete old evidence/tuple JSON values in the consolidated schema-1 history envelope. During coexistence exclude both old evidence paths and the new exact path from executable identities; never exclude origins from whole-source hashes.
+- [x] Seed the new revisions output from current valid values only as an unused transition artifact; Task 17 replaces it using the final algorithm before production selection switches. New facade tests use explicit fixture revisions where appropriate and cannot claim cutover readiness yet.
+- [x] Test no origin/evidence runtime embed, cloned records, origin filename/family validation and lossless historical payload migration; update Python exclusion unit coverage without invoking certification.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused profiles/spec/buildcfg plus Python metadata utility checks pass. Ordinary active descriptors still work.
+- [x] V-REVISIONS, V-BUILD and focused profiles/spec/buildcfg plus Python metadata utility checks pass. Ordinary active descriptors still work.
 
 ### Task 17: Implement final source revisions and support rendering
 

@@ -12,7 +12,7 @@ import (
 
 type Entry struct {
 	Descriptor func(string) (spec.Profile, error)
-	Origin     func() spec.Origin
+	Origin     func(string) (spec.Origin, error)
 	Policy     func() spec.PolicyManifest
 	Shims      func() []spec.Hook
 }
