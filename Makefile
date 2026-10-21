@@ -10,6 +10,9 @@ TEST_REPORTS_DIR ?= test-reports
 GOSIM_TOOLCHAIN ?=
 export GOSIM_TOOLCHAIN
 
+GOSIMCACHE ?= $(CURDIR)/.gosim/gosim-cache
+export GOSIMCACHE
+
 # Defaults for explicitly invoked generation and manual certification.
 MATRIX_PLATFORM ?= darwin/arm64
 COLIMA_PLATFORM ?= linux/arm64

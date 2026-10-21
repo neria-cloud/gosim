@@ -10,16 +10,20 @@ Features are fixed for the whole test binary before application initialization. 
 
 ![Test workflows](./docs/diagrams/test-workflows.svg)
 
+**Status of the project:** stable core API and ready for regualar CI tasks. **gosim** is used in several private projects and in [gquorum](https://github.com/asalimonov/gquorum) library.
+
 See [Features](docs/features.md) for supported, partially supported, and unsupported capabilities. PRs welcome.
 
-## Go versions and configuration
+## Technicla introduction
 
 Gosim supports stable **Go 1.25.* and Go 1.26.*** releases on Linux AMD64,
 Linux ARM64 and Darwin ARM64. The caller uses ordinary Go tooling: `go.mod`,
 `go.work`, and `GOTOOLCHAIN` determine the compiler. Application code does not
-select a Go version, and a new patch within a supported family needs no Gosim
-allowlist entry. Gosim checks the private runtime contracts it uses against the
+select a Go version. Gosim checks the private runtime contracts it uses against the
 selected compiler; an incompatible contract produces an actionable error.
+
+Here is [design](./docs/design.md) and [translation](./docs/translation.md) document
+which describe gosim's internals with more details.
 
 Add Gosim to your module, then build the launcher in that module's context:
 
@@ -57,12 +61,6 @@ override. Legacy schema-1 files remain explicit overrides with a migration
 warning; remove their `toolchain` field and set `schema` to `2` for automatic
 selection. Unknown fields, unsupported families/platforms and `fs`/`net`
 without `rt` are errors. Prerelease and development compilers are unsupported.
-
-Certification is an optional manual operation. It is neither a CI step nor a
-requirement for normal commands or library use. Missing or stale certification
-never blocks a compatible build. Exact compiler/source identities still isolate
-artifacts and deterministic replay; a family policy does not promise replay
-across different patches.
 
 ## A deterministic test
 
@@ -209,39 +207,6 @@ The reviewed [Go 1.25 baseline](internal/compat/profiles/go125.json) distinguish
 
 ## Development and test reports
 
-Run `make lint` to check the current contents of all staged, unstaged and
-untracked Go files under `./cmd` and `./examples` only. It checks entire changed
-files, with their package context, and reports findings only in those files (package type errors still
-fail). Deleted files are skipped. Nested modules are discovered from `go.mod`.
-The `.golangci.yml` and `revive.toml` rules come from gquorum, with golangci's
-path scope restricted to `cmd/` and `examples/` and its examples exclusion removed.
-Golangci-lint checks native packages with `linkname` and the selected compiler;
-standalone revive also checks files excluded by build tags, including `sim`
-tests. Lint does not execute tests or enforce rules in runtime or crypto/hash code.
-
-Run `make lint-full` to check all Go files within those same allowed paths,
-including unchanged tracked files and non-ignored untracked files. It uses
-the same rules and nested-module handling as `make lint`.
-
-`make lint-tools` installs gquorum's pinned tools under `.gosim/lint/`.
-Lint prefers those binaries, otherwise uses tools on `PATH`; `GOLANGCI` and
-`REVIVE` can override the executables. `GOSIM_TOOLCHAIN` selects the compiler
-used for analysis. Changes outside these directories and non-Go changes are a no-op.
-
-Run `make install-hooks` to enable the copied pre-commit hook. It runs
-`make lint-staged`'s runner against an isolated copy of the index, so partially
-staged files are checked exactly as they will be committed. Neither command
-changes or stages source files. `make test-lint-tools` checks this workflow.
-
-Run `make test` for ordinary local native and simulation checks. Go selects the
-compiler normally; `GOSIM_TOOLCHAIN` is an optional explicit override. The runner
-creates an isolated source snapshot and starts no Docker, Colima, VMs or
-cross-architecture jobs. Package and test concurrency default to 2 and 4:
-
-The full-feature selection includes the plaintext etcd cluster, snapshot and
-WAL example. An integration metatest checks seed replay in one worker and a
-fresh matching worker; these runs do not constitute manual certification.
-
 ```sh
 make test
 make test UNIT_PACKAGES=2 UNIT_PARALLEL=4
@@ -278,7 +243,13 @@ Neither path invokes certification or rewrites profile evidence.
 CI runs ordinary native tests and reporting checks on ARM64 Linux with
 Go family selectors, and uploads `test-reports`. It has no certification step.
 
-## Generation and manual certification
+Certification is an optional manual operation. It is neither a CI step nor a
+requirement for normal commands or library use. Missing or stale certification
+never blocks a compatible build. Exact compiler/source identities still isolate
+artifacts and deterministic replay; a family policy does not promise replay
+across different patches.
+
+## Maintenance, generation and manual certification
 
 See the [maintainer guide](docs/MAINTAINER_GUIDE.md) for adding Go families,
 version-specific APIs, stdlib hooks and simulation features, and verifying
