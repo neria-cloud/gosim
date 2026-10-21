@@ -127,6 +127,48 @@ func TestModuleInputsExcludeFrameworkDataAndBindReplacements(t *testing.T) {
 	}
 }
 
+func TestModuleInputsWithoutCallerSourceDirectory(t *testing.T) {
+	root, write := identityFixture(t)
+	write("framework/go.mod", "module "+frameworkModule+"\ngo 1.25\n")
+	write("external/go.mod", "module example.org/external\ngo 1.25\n")
+	write("external/source.go", "package external\nconst Value=42\n")
+	framework, external := filepath.Join(root, "framework"), filepath.Join(root, "external")
+	modules := []buildspec.Module{
+		{Path: frameworkModule, Main: true, Dir: framework, GoMod: filepath.Join(framework, "go.mod")},
+		// Without source checksums, go list -m omits the versioned module's Dir,
+		// even after the private inspection module has downloaded its sources.
+		{Path: "example.org/external", Version: "v1.0.0"},
+	}
+	used := map[string]string{"example.org/external": external}
+	inputs := func() []buildspec.Revision {
+		t.Helper()
+		out, err := moduleInputs(t.Context(), buildspec.Resolution{}, modules, used)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	before := inputs()
+	modules[1].Dir = external
+	if !reflect.DeepEqual(before, inputs()) {
+		t.Fatal("source directory availability changed module identity")
+	}
+	modules[1].Dir = ""
+	write("external/source.go", "package external\nconst Value=43\n")
+	if reflect.DeepEqual(before, inputs()) {
+		t.Fatal("source drift ignored without caller directory metadata")
+	}
+	used["example.org/external"] = ""
+	if _, err := moduleInputs(t.Context(), buildspec.Resolution{}, modules, used); err == nil {
+		t.Fatal("missing inspection source directory accepted")
+	}
+	used["example.org/external"] = external
+	modules[1].Replace = &buildspec.Module{Path: external}
+	if _, err := moduleInputs(t.Context(), buildspec.Resolution{}, modules, used); err == nil {
+		t.Fatal("local replacement without a selected directory accepted")
+	}
+}
+
 func TestModuleSourceDigestIndependentOfLocation(t *testing.T) {
 	var digests []string
 	for i := 0; i < 2; i++ {
