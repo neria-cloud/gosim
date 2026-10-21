@@ -14,9 +14,9 @@
 
 **Design review:** [thread 1](../review/feat_compact-go-versions.md)
 
-**Plan review:** thread 2 in the same review file; first findings incorporated, focused re-review requested.
+**Plan review:** thread 2 closed after final re-review; all verified findings incorporated. Final small corrections were not sent for another peer round.
 
-**Status:** revised after plan review; no implementation task has started.
+**Status:** reviewed and corrected; ready for implementation execution. No implementation task has started.
 
 ## Scope and execution rules
 
@@ -468,7 +468,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 **Budget:** ≤500 authored Go lines plus generated data/deletion. **Dependencies:** 17.
 
 - [ ] Move Profile/descriptorForArch/policyManifest into shared selection.go and use generated selectedProfile constants. Make policy errors explicit and preserve complete canonical selection comparisons.
-- [ ] Move FamilySupport to `{Family,Profile string}`, remove unused patch minimum/exclusions, and source the support table from definitions. Update affected constructors/tests atomically.
+- [ ] Move FamilySupport to `{Family,Profile string}`, remove unused patch minimum/exclusions, and source the support table from definitions. Write the rendered families_gen.go in the SAME edit that removes the hand-maintained table, using Task 17's renderer/one-time output; retain a syntactically valid revisions_gen.go too. The tool cannot bootstrap a missing/corrupt file it must itself compile. A stale but valid generated file remains repairable. Update affected constructors/tests atomically, then run profiles and its check.
 - [ ] Wire `runProfiles` to GenerateMetadata. Now generate final support files/revisions in the real tree and verify agreement. The generator dependency closure must remain metadata-only.
 - [ ] Replace catalog and version-profile imports in production and compile-required fixtures with profiles functions and LoadOrigin from the checkout. Update currentGeneration/test helpers and origin reads together; no callback/forwarding package survives.
 - [ ] Update declaration_ledger_test.go/runtime_families_test.go to use final shared roots/resolved profiles, with nonempty inventories; update all routegen family/current/generate/go126 tests to final record/origin paths. Re-run Task 15's one-time comparison if metadata changed. Remove catalog, genprofile and the old family profile source/data once all references are migrated. Retain the consolidated history and independent origins. Remove old revision files so the final source fingerprint cannot include stale generated outputs, then regenerate final revisions.
@@ -491,7 +491,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 - [ ] Explicit RefreshOrigin may seed only a missing new-family origin with schema/family/current exact baseline, then replace it after successful checks. Normal generation/check requires a complete existing origin.
 - [ ] Use the same SourceRevision as profiles; delete any provisional generation-only revision algorithm. Rebuilt gosim-gen sees newly generated support tables before normal contract validation.
 - [ ] Write only selected shared outputs, this family's origin and ignored provenance records; refresh of one origin must not modify another. Shared writes are accepted only after every supported selecting family's check succeeds.
-- [ ] Exercise actual first-origin bootstrap in a temporary source copy with the real available go1.26.9 compiler: remove only go126.origin.json, run profiles write mode, require profiles -check to reject missing provenance, run the matching compiler generator with explicit -refresh-origin, regenerate profiles if source bytes changed, then require profiles/check and family generation check to pass. Ensure go125 origin bytes stay unchanged. Keep hypothetical unchanged-family fixtures separately for ancestry/empty-delta behavior; do not treat fake 1.27 as real parser execution.
+- [ ] Exercise actual first-origin bootstrap with the CURRENT running compiler from ResolveRunningProcess, following routegen/family_test.go. In a temporary source copy remove only that family's origin, run profiles write mode, require profiles -check to reject missing provenance, run explicit -refresh-origin with the SAME compiler, regenerate profiles if source bytes changed, then require profiles/check and generation check to pass. Refresh records the running patch even when it differs from the repository baseline. Assert the other family's origin bytes are unchanged. Do not launch/download another family from an ordinary test. Keep hypothetical unchanged-family fixtures separate.
 
 #### Verification
 
@@ -550,16 +550,17 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 ### Task 23: Prepare private modules through the inspection command path
 
-**Files:** buildspec/command.go, modules.go; spec/hooks.go private inspection workspace helper; buildcfg discovery/source fixtures.
+**Files:** buildspec/command.go, modules.go, modulefiles.go; spec/hooks.go private inspection workspace helper; buildcfg discovery/source fixtures.
 
 **References:** target §6 inspection/private module boundary; §7 source inspection/module signatures; §8 comparison failure behavior; §11 Observe/Compare prerequisites.
 
-**Budget:** ≤450 authored Go/test lines. **Dependencies:** 22.
+**Budget:** ≤500 authored Go/test lines. **Dependencies:** 22.
 
 - [ ] Factor module graph decoding and command selection privately. Add fixed inspection wrappers `SourceInspectionApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec.Cmd` and `ResolveInspectionModuleGraph(ctx context.Context, r Resolution) ([]Module,error)` in buildspec. Do not export an injectable command factory or weaken normal ApplicationCommand/ResolveModuleGraph.
-- [ ] Preserve caller GOWORK/module/read-only semantics for env GOMOD and list -m -json all; the generated private context sets GOWORK=off and permits only the existing needed source list -mod=mod behavior. Reuse ModuleFiles and MatchModuleGraph unchanged where pure; validate replacements/selected graph equality before inspection.
-- [ ] Add fixed `spec.PrepareSourceInspectionContext(ctx context.Context, r buildspec.Resolution) (string,func() error,error)` and refactor hookInspectionContext internally so ordinary verification still uses strict commands while audit preparation uses the fixed inspection wrappers for EVERY caller and private-module query. The whole path must accept an unregistered stable family before source parsing without permitting build/run/test.
-- [ ] Extend fakeDiscoveryGo-style fixtures through caller/private module graphs, list responses, a small source parse, workspace/local replacement, command/env capture and cleanup errors. Keep fake identity tests honest: a fake future version cannot pass production runtime.Version equality. Test mismatch rejection separately, and use the real current compiler for the full discovery→private-module→collector path. Task 28 additionally removes that available family from the generated registry in a private fixture copy to exercise truly unregistered admission without any production version override or real-checkout registry change.
+- [ ] Preserve caller GOWORK/module/read-only semantics for env GOMOD and list -m -json all; the generated private context sets GOWORK=off and permits only the existing needed source list -mod=mod behavior. Split ModuleFiles into a private renderer with canonical stable parsing and a strict public wrapper retaining ValidateVersion. Add fixed `SourceInspectionModuleFiles(r Resolution, modules []Module, modulePath string) (map[string][]byte,error)` which calls that renderer after stable-only validation; spec preparation uses this wrapper, since it cannot call an unexported buildspec function. Preserve generated go directive/version, selected replacements, sums and graph semantics. MatchModuleGraph remains shared unchanged. Validate selected graph equality before inspection.
+- [ ] Add fixed `spec.PrepareSourceInspectionContext(ctx context.Context, r buildspec.Resolution) (string,func() error,error)` and refactor hookInspectionContext internally so ordinary verification still uses strict commands/ModuleFiles while audit preparation uses the fixed inspection wrappers for EVERY caller query, private-module rendering and private-module query. The whole path must accept an unregistered stable family before source parsing without permitting build/run/test.
+- [ ] Add a focused source/dependency boundary test restricting production references to inspection wrappers (including SourceInspectionModuleFiles) to their buildspec implementation, spec inspection source/preparation, buildcfg inspection and audit code. Reject use from ordinary selection/build/contract paths; allow tests explicitly. This preserves strict admission as new callers appear.
+- [ ] Extend fakeDiscoveryGo-style fixtures through caller/private module graphs, list responses, a small source parse, workspace/local replacement, command/env capture and cleanup errors. Keep fake identity tests honest: a fake future version cannot pass production runtime.Version equality. Test mismatch rejection separately, and use the real current compiler for the full discovery→private-module→collector path. Task 24 first exercises the full collector chain using a real-compiler registry-omitted fixture; Task 28 completes the CLI assertion. No production version override or real-checkout registry change is allowed.
 
 #### Verification
 
@@ -578,6 +579,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 - [ ] Collect declared symbols, layouts/constants, package inventory and tracked/selected source hashes for explicit contexts; use the inspection-safe private module preparation implemented in the preceding task, preserving cleanup and no caller module rewrite. Connect the full discovery→caller module→private module→source list→parse regression through the collector.
 - [ ] Record context errors and missingness correctly: failed package loading is incomplete, never a missing-symbol record. Preserve native race cgo-on versus translated cgo-off selection without building those race contexts.
 - [ ] Test signature/layout/constant absence/change and source hash drift, errors/cancellation and deterministic records. Ordinary VerifyContracts continues using strict OutputCommand.
+- [ ] Run the real unregistered-admission smoke fixture as soon as this collector exists (Task 28 describes the fixture consistency rules). A fixture-built minimal inspection harness may call the collector before compare is wired. Use the running go1.26 compiler only, one non-race translated host-architecture context, no API snapshot and a 5-minute timeout with cancellation cleanup. Test an ordinary admission call inside the SAME fixture-built harness so it uses the omitted registry, not the parent test binary's registry. Record elapsed time and execute it in the go1.26 ordinary job; the go1.25 job explicitly skips this candidate-specific case.
 
 #### Verification
 
@@ -646,7 +648,7 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 - [ ] Exercise the known 1.25→1.26 comparison in separate compiler processes, expecting selected signature/API changes and crypto source review, while unchanged layouts/constants stay unchanged.
 - [ ] Test hypothetical unchanged next-family metadata with empty delta through support/gate/revision rendering and explicit origin bootstrap fixtures; assert zero copied implementation files and cumulative inherited variants.
-- [ ] Under the available go1.26 ordinary job, make a private source fixture whose generated support table omits 1.26 while retaining parent 1.25; rebuild the metadata-only tool there with the SAME real go1.26 compiler. Run observe/compare or the full discovery/preparation/collector entry and verify it reaches actual parsing; ordinary admission for that fixture still rejects 1.26. Do not mutate the working checkout, install a future compiler, or spoof runtime.Version. The go1.25 job may explicitly skip this candidate-specific fixture; the go1.26 final job must execute it.
+- [ ] Extend Task 24's private fixture under the RUNNING go1.26 ordinary job: omit 1.26 from its generated support table AND set its go126.json supported=false (retain parent 1.25), keeping fixture registry/definition state consistent. Rebuild the metadata-only tool with that same real compiler executable and GOTOOLCHAIN=local; never download another toolchain. Run compare -parent=go125 with one host architecture, no parent observation, an explicit 5-minute timeout and cleanup; require api_diff=skipped-no-parent and evidence that actual source parsing occurred. Assert ordinary admission rejects 1.26 through THIS fixture-built binary's legacy flag-only generation path reaching buildcfg.Resolve, not an in-process call in the original test binary. Do not mutate the working checkout or spoof runtime.Version. Record runtime; the go1.25 job explicitly skips this candidate-specific case and the go1.26 final job must execute it.
 - [ ] Test unchanged family authoring does not stale a captured parent snapshot merely through new data/support artifacts; actual source edits do invalidate it.
 - [ ] Verify adding/retiring support does not allow runtime switching or gaps in ancestry, and normal unregistered compiler admission stays rejected. Do not add real 1.27 support or claim execution with unavailable compiler fixtures.
 
@@ -745,12 +747,13 @@ None. Record any necessary execution-time departure or unrelated failure fix wit
 - [potential-improvement] Interactive draft installation, automatic implementation generation and persistent audit cache. Drafts remain non-installable data and existing destinations cannot be overwritten.
 - [postponed] Actual support for a new real Go family, beta/RC/custom compilers, or extra host platforms. This plan preserves 1.25/1.26 and tests future metadata only with fixtures; prereleases remain rejected.
 - [postponed] Race/large suites and certification/crossarch execution require explicit separate instructions. Their exclusion is not a code defect and must not be replaced by a successful stub or bypass.
-- User selection of this target for go-plan authorizes planning from revision 3; previous brainstorm confirmation bookkeeping is not an implementation feature. Focused plan re-review remains pending; no implementation is started here.
+- User selection of this target for go-plan authorizes planning from revision 3; previous brainstorm confirmation bookkeeping is not an implementation feature. Plan review is closed and final findings are incorporated; no implementation is started here.
 
 ## Progress and verification log
 
 | Date | Task | Change / evidence | Result |
 | --- | --- | --- | --- |
+| 2026-10-21 | Final review corrections | Kept strict ModuleFiles wrapper with inspection-only renderer entry; bounded fixture-built admission check; current-compiler origin bootstrap; seeded generator dependencies; early collector fixture and wrapper-consumer boundary | Documentation checks only; review closed, no implementation execution |
 | 2026-10-21 | Review corrections | Fixed hook/runtimebridge ordering, coordinated origin authority, invariant-test migration and one-time equivalence evidence; added a bounded private-module preparation task, lint/Makefile gates and real bootstrap test | Documentation only; 32 tasks, focused re-review requested |
 | 2026-10-21 | Planning | Read target revision 3.1, current source/README/design/repository guidance; created bounded ordered tasks and peer request | No implementation/build/test/generation performed |
 
