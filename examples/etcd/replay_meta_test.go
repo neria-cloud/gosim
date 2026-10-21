@@ -1,6 +1,6 @@
 //go:build !sim
 
-package behavior_test
+package etcd_test
 
 import (
 	"bytes"

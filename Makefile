@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help build check-fmt fix-fmt lint lint-full lint-staged lint-tools install-hooks test-lint-tools go-generate certification-matrix certification-colima gosim-tool gosim-prepare-selftest go-test go-race-test test test-unit test-unit-race test-race test-large test-report-tools
+.PHONY: help build check-fmt fix-fmt lint lint-full lint-staged lint-tools install-hooks test-lint-tools go-generate certification-matrix certification-colima gosim-tool gosim-prepare-selftest go-test go-race-test test test-unit test-unit-race test-race test-large test-examples test-report-tools
 
 # Independent test cases and package binaries run concurrently on the local host.
 UNIT_PARALLEL ?= 2
@@ -17,7 +17,7 @@ export GOSIMCACHE
 MATRIX_PLATFORM ?= darwin/arm64
 COLIMA_PLATFORM ?= linux/arm64
 MATRIX_TOOLCHAINS ?= go1.25.14,go1.26.9
-SIMPACKAGES ?= ./internal/tests/rt ./internal/tests/fs ./internal/tests/net ./internal/tests/integration ./nemesis ./examples/simple ./examples/bolt ./examples/network/machines ./examples/network/latency ./examples/etcd
+SIMPACKAGES ?= ./internal/tests/rt ./internal/tests/fs ./internal/tests/net ./internal/tests/integration ./nemesis
 GOSIM ?= $(CURDIR)/.gosim/gosimtool
 
 help: ## List available targets
@@ -98,6 +98,9 @@ test-unit-race: ## Run the local race suite for final verification
 	@python3 -B scripts/test_report.py unit --race --reports-dir "$(TEST_REPORTS_DIR)" --parallel=$(UNIT_PARALLEL) --packages=$(UNIT_PACKAGES)
 
 test-race: test-unit-race ## Run local race tests with persistent reports
+
+test-examples: gosim-tool ## Run each standalone example against this checkout
+	python3 -B scripts/test_examples.py --gosim "$(GOSIM)"
 
 test-report-tools: ## Check report generation
 	python3 -B -m unittest discover -s scripts -p 'test_report_test.py'

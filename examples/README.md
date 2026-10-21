@@ -5,7 +5,7 @@ the supported examples:
 
 ```sh
 make build
-./.gosim/gosimtool test -features rt,fs,net ./examples/simple ./examples/bolt ./examples/network/... ./examples/etcd
+make test-examples
 ```
 
 Go tooling selects the compiler from the caller's module/workspace and
@@ -21,31 +21,38 @@ If an existing `.gosim/gosimtool` reports `unsupported config schema 2`, run
 
 ## Cases and packages
 
-Each case has its own package, so it can be translated and run independently.
-The three latency ranges share the latency case's ping/pong helper.
+Each case has its own `go.mod` and `go.sum`. Its `github.com/neria-cloud/gosim`
+dependency uses a relative `replace` directive pointing to this checkout, so
+changes to the library are used immediately. Application dependencies stay in
+the example module; no workspace file is needed. The three latency ranges share
+the latency case's ping/pong helper.
 
 | Package | Case | Required features |
 | --- | --- | --- |
 | [simple](simple/simple_test.go) | Deterministic execution and randomness | `rt` |
-| [filesystem](filesystem/README.md) | Read simulated `/tmp/testfile.txt` and compare `Hello World!`; separate module, Go 1.25.2 only | `rt,fs` |
+| [filesystem](filesystem/README.md) | Read simulated `/tmp/testfile.txt` and compare `Hello World!`; Go 1.25.2 only | `rt,fs` |
 | [bolt](bolt/bolt_test.go) | Write, read, and reopen a Bolt database | `rt,fs` |
 | [network/machines](network/machines/machines_test.go) | TCP requests, machine crash/restart, and link latency | `rt,net` |
 | [network/latency](network/latency/latency_test.go) | Three latency ranges without connection drops | `rt,net` |
-| [network/nats](network/nats/README.md) | Embedded NATS publisher/receiver with delayed links; separate module | `rt,fs,net` |
+| [network/grpc](network/grpc/README.md) | Authenticated unary and bidirectional gRPC streams | `rt,net` |
+| [network/nats](network/nats/README.md) | Embedded NATS publisher/receiver with delayed links | `rt,fs,net` |
 | [etcd](etcd/README.md) | Three-node plaintext cluster, partition recovery, snapshot and WAL | `rt,fs,net` |
 
 Run the supported cases individually:
 
 ```sh
-./.gosim/gosimtool test -features rt ./examples/simple
-./.gosim/gosimtool test -features rt,fs ./examples/bolt
-./.gosim/gosimtool test -features rt,net ./examples/network/machines
-./.gosim/gosimtool test -features rt,net ./examples/network/latency
-./.gosim/gosimtool test -features rt,fs,net -seeds 1-3 ./examples/etcd
+./.gosim/gosimtool -C examples/simple test -features rt .
+./.gosim/gosimtool -C examples/bolt test -features rt,fs .
+./.gosim/gosimtool -C examples/network/machines test -features rt,net .
+./.gosim/gosimtool -C examples/network/latency test -features rt,net .
+./.gosim/gosimtool -C examples/etcd test -features rt,fs,net -seeds 1-3 .
 ```
 
-The in-module supported cases are included in the feature suites according to the table above.
-The NATS application has its own `go.mod` and is run separately:
+Root `make test` checks the library without loading example modules.
+`make test-examples` runs all eight modules separately with the features above,
+including the native etcd replay metatest. It uses Go's normal compiler selection
+(or `GOSIM_TOOLCHAIN`) except for the exact Go 1.25.2 filesystem fixture.
+For example, run NATS alone with:
 
 ```sh
 ./.gosim/gosimtool -C examples/network/nats test -features rt,fs,net -v -run '^TestPublisherReceiver' .
@@ -94,7 +101,7 @@ python3 examples/network/latency/visualize.py --test TestLatency1To2s
 Run the tests directly for fast automated checks and the same timestamped output:
 
 ```sh
-./.gosim/gosimtool test -features rt,net -v ./examples/network/latency
+./.gosim/gosimtool -C examples/network/latency test -features rt,net -v .
 ```
 
 Each test applies the latency range in both directions before connecting, using
@@ -112,6 +119,5 @@ one-way and round-trip bounds, and logs each exchange plus minimum/mean/maximum 
 Any connection error fails the test; there are no retries or reconnections.
 
 The [etcd examples](etcd/README.md) use translated HTTP/gRPC and simulated
-storage. The full-feature ordinary suite runs their positive cluster,
-snapshot and WAL tests. Nested NATS and gRPC examples are separate modules and
-retain their own commands.
+storage. `make test-examples` runs their positive cluster, snapshot, WAL and
+replay tests along with the other independent examples.

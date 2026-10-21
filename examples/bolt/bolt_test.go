@@ -8,9 +8,15 @@ import (
 	"testing"
 
 	bolt "go.etcd.io/bbolt"
+
+	"github.com/neria-cloud/gosim"
 )
 
 func TestBbolt(t *testing.T) {
+	if !gosim.IsSim() {
+		t.Fatal("this example must run inside Gosim")
+	}
+
 	path := "test.db"
 	db, err := bolt.Open(path, 0o666, nil)
 	if err != nil {
