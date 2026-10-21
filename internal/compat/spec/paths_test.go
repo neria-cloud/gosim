@@ -76,6 +76,8 @@ func TestSharedRevisionInputs(t *testing.T) {
 	for _, dir := range []string{"internal/compat/go125", "internal/compat/go126", "internal/hostabi", "internal/compat/selected", "internal/compat/spec", "internal/buildspec"} {
 		write(dir+"/input.go", "package fixture")
 	}
+	write("internal/compat/profiles/go125.json", `{"schema":1,"family":"1.25","supported":true,"delta":{}}`)
+	write("internal/compat/profiles/go126.json", `{"schema":1,"family":"1.26","parent":"1.25","supported":true,"delta":{}}`)
 	revision := func() string {
 		t.Helper()
 		value, err := SourceRevision(root, "go125")
@@ -117,7 +119,12 @@ func TestSharedRevisionInputs(t *testing.T) {
 			}
 			prior[family] = value
 		}
-		write("internal/compat/profiles/"+changed+".json", `{"changed":true}`)
+		name := "internal/compat/profiles/" + changed + ".json"
+		data, err := os.ReadFile(filepath.Join(root, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		write(name, strings.Replace(string(data), `"delta":{}`, `"delta":{"runtime_packages":{"add":[{"path":"fixture/`+changed+`"}]}}`, 1))
 		for family, old := range prior {
 			value, err := SourceRevision(root, family)
 			if err != nil || value == old {
@@ -126,7 +133,7 @@ func TestSharedRevisionInputs(t *testing.T) {
 		}
 	}
 	before = revision()
-	for _, name := range []string{"internal/compat/profiles/evidence.json", "internal/compat/profiles/revisions_gen.go", "internal/compat/go125/profile/revision.go", "internal/compat/hooks/rt/shared_test.go", "internal/compat/shims/testing/testdata/input.go"} {
+	for _, name := range []string{"internal/compat/profiles/go125.origin.json", "internal/compat/profiles/go126.origin.json", "internal/compat/profiles/evidence.json", "internal/compat/profiles/revisions_gen.go", "internal/compat/go125/profile/revision.go", "internal/compat/hooks/rt/shared_test.go", "internal/compat/shims/testing/testdata/input.go"} {
 		write(name, strings.Repeat("x", 64))
 	}
 	if revision() != before {
