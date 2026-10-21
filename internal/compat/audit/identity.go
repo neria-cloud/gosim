@@ -194,16 +194,25 @@ func moduleInputs(ctx context.Context, r buildspec.Resolution, modules []buildsp
 			}
 		}
 		if dir, ok := used[m.Path]; ok && m.Path != frameworkModule {
+			selected := m.Effective()
+			if dir == "" || selected.Dir == "" && selected.Version == "" {
+				return nil, fmt.Errorf("missing inspection module directory %s", m.Path)
+			}
 			a, err := filepath.EvalSymlinks(dir)
 			if err != nil {
 				return nil, err
 			}
-			b, err := filepath.EvalSymlinks(m.Effective().Dir)
-			if err != nil {
-				return nil, err
-			}
-			if a != b {
-				return nil, fmt.Errorf("inspection module directory mismatch %s", m.Path)
+			// Go may omit a versioned module's Dir when the caller lacks its
+			// source checksum. The private workspace verifies the selected graph
+			// before supplying used directories; hash those sources either way.
+			if selected.Dir != "" {
+				b, err := filepath.EvalSymlinks(selected.Dir)
+				if err != nil {
+					return nil, err
+				}
+				if a != b {
+					return nil, fmt.Errorf("inspection module directory mismatch %s", m.Path)
+				}
 			}
 			digest, err := moduleSourceDigest(ctx, dir)
 			if err != nil {
