@@ -657,13 +657,13 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤500 authored Go/test lines. **Dependencies:** 25.2.1.
 
-- [ ] Resolve caller context through fixed inspection wrappers, preserve its selected graph, and prepare a private source module. Resolve inspection dependencies in that copy before snapshotting generated files, then require graph equality.
-- [ ] Bind inspector and external module inputs using Task 25.2.1; snapshot/recheck caller and private module inputs without adding compiler-specific private go directives to persisted parent/candidate identity.
-- [ ] Reject drift and propagate cleanup errors. Test workspace replacements, caller immutability, preparation failure cleanup and target-data/support-only stability.
+- [x] Resolve caller context through fixed inspection wrappers, preserve its selected graph, and prepare a private source module. Resolve inspection dependencies in that copy before snapshotting generated files, then require graph equality.
+- [x] Bind inspector and external module inputs using Task 25.2.1; snapshot/recheck caller and private module inputs without adding compiler-specific private go directives to persisted parent/candidate identity.
+- [x] Reject drift and propagate cleanup errors. Test workspace replacements, caller immutability, preparation failure cleanup and target-data/support-only stability.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused audit workspace tests pass under both compilers.
+- [x] V-REVISIONS, V-BUILD and focused audit workspace tests pass under both compilers.
 
 ### Task 25.3: Capture and validate parent observations
 

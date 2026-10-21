@@ -186,10 +186,10 @@ func moduleInputs(ctx context.Context, r buildspec.Resolution, modules []buildsp
 		}
 		graph = append(graph, row)
 		if m.Main || m.Path == frameworkModule {
-			if err := addFile("module/"+m.Path+"/go.mod", m.GoMod, false); err != nil {
+			if err := addFile("module/"+m.Path+"/go.mod", m.Effective().GoMod, false); err != nil {
 				return nil, err
 			}
-			if err := addFile("module/"+m.Path+"/go.sum", filepath.Join(m.Dir, "go.sum"), true); err != nil {
+			if err := addFile("module/"+m.Path+"/go.sum", filepath.Join(m.Effective().Dir, "go.sum"), true); err != nil {
 				return nil, err
 			}
 		}
