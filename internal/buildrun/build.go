@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
+	"github.com/neria-cloud/gosim/internal/compat/spec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 	"github.com/neria-cloud/gosim/internal/translate"
 )
@@ -124,29 +125,47 @@ func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
 	if err != nil {
 		return fmt.Errorf("inspect candidate graph: %w\n%s", err, out)
 	}
-	found := make(map[string]bool)
+	var packages []compiledPackage
 	decoder := json.NewDecoder(bytes.NewReader(out))
 	for {
-		var pkg struct {
-			ImportPath string
-			Imports    []string
-		}
+		var pkg compiledPackage
 		if err := decoder.Decode(&pkg); err == io.EOF {
 			break
 		} else if err != nil {
 			return err
 		}
+		packages = append(packages, pkg)
+	}
+	return validateCompiledGraph(cfg.Identity, packages)
+}
+
+type compiledPackage struct {
+	ImportPath string
+	Imports    []string
+}
+
+func validateCompiledGraph(identity buildspec.Identity, packages []compiledPackage) error {
+	found := map[string]bool{}
+	trusted := nativeRuntimeClosure(packages)
+	for _, pkg := range packages {
 		path := strings.Split(pkg.ImportPath, " ")[0]
 		translatedRoot := "translated/" + gosimtool.ReplaceSpecialPackages(gosimtool.Module)
-		for _, prefix := range []string{gosimtool.Module + "/internal/compat/", translatedRoot + "/internal_/compat/"} {
-			if suffix, ok := strings.CutPrefix(path, prefix); ok {
-				family, _, _ := strings.Cut(suffix, "/")
-				if strings.HasPrefix(family, "go") && family != cfg.Identity.Profile {
-					return fmt.Errorf("inactive family in compiled graph: %s", path)
+		kind := spec.ClassifyCompatPackage(path)
+		relocated := strings.HasPrefix(path, "translated/")
+		if kind != spec.CompatOutside {
+			if relocated {
+				if kind != spec.CompatHooks && kind != spec.CompatShims {
+					return fmt.Errorf("nontranslated compatibility package relocated: %s", path)
 				}
+			} else if (kind != spec.CompatHost && kind != spec.CompatMetadata) || !trusted[path] {
+				return fmt.Errorf("native compatibility escape in compiled graph: %s", path)
 			}
 		}
 		for _, imported := range pkg.Imports {
+			imported = strings.Split(imported, " ")[0]
+			if relocated && (imported == gosimtool.Module || strings.HasPrefix(imported, gosimtool.Module+"/")) && imported != gosimtool.Module+"/rt/runtime" && imported != gosimtool.Module+"/rt/runtime/abi" {
+				return fmt.Errorf("forbidden compiled native dependency: %s -> %s", path, imported)
+			}
 			for _, provider := range []string{"fs", "net"} {
 				target := translatedRoot + "/internal_/" + provider
 				if imported != target && !strings.HasPrefix(imported, target+"/") {
@@ -177,14 +196,14 @@ func validateOutputGraph(cfg gosimtool.BuildConfig, dir, pkg string) error {
 				return fmt.Errorf("native provider escaped translation: %s", path)
 			}
 			if path == translated || strings.HasPrefix(path, translated+"/") {
-				if !slices.Contains(cfg.Identity.Features, feature) {
+				if !slices.Contains(identity.Features, feature) {
 					return fmt.Errorf("disabled provider in compiled graph: %s", path)
 				}
 				found[feature] = true
 			}
 		}
 	}
-	for _, feature := range cfg.Identity.Features {
+	for _, feature := range identity.Features {
 		if feature != "rt" && !found[feature] {
 			return fmt.Errorf("selected provider %s missing from compiled graph", feature)
 		}
@@ -226,4 +245,29 @@ func readFiles(root string) (map[string][]byte, error) {
 		return nil
 	})
 	return files, err
+}
+
+// Native metadata is admitted only in the actual dependency closure of the two
+// reviewed native islands. No NativeImports entry permits native hooks/shims.
+func nativeRuntimeClosure(packages []compiledPackage) map[string]bool {
+	graph := map[string][]string{}
+	for _, pkg := range packages {
+		name := strings.Split(pkg.ImportPath, " ")[0]
+		graph[name] = append(graph[name], pkg.Imports...)
+	}
+	seen := map[string]bool{}
+	queue := []string{gosimtool.Module + "/rt/runtime", gosimtool.Module + "/rt/runtime/abi"}
+	for len(queue) > 0 {
+		name := strings.Split(queue[len(queue)-1], " ")[0]
+		queue = queue[:len(queue)-1]
+		if seen[name] || strings.HasPrefix(name, "translated/") {
+			continue
+		}
+		if _, exists := graph[name]; !exists {
+			continue
+		}
+		seen[name] = true
+		queue = append(queue, graph[name]...)
+	}
+	return seen
 }

@@ -90,7 +90,7 @@ func TestUnsupportedFamilyGuardSelection(t *testing.T) {
 	for _, pkg := range []string{"hostabi", "compat/selected", "compat/host"} {
 		dir := filepath.Join("..", pkg)
 		guard, err := os.ReadFile(filepath.Join(dir, "unsupported.go"))
-		if err != nil || !strings.Contains(string(guard), "GOSIM_UNSUPPORTED_GO_FAMILY_USE_GO125_OR_GO126") {
+		if err != nil || !strings.Contains(string(guard), "GOSIM_UNSUPPORTED_GO_FAMILY") {
 			t.Fatal(pkg, err)
 		}
 		for _, minor := range []int{24, 25, 26, 27} {

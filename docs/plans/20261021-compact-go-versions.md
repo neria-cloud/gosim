@@ -539,14 +539,14 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤450 authored Go/test lines. **Dependencies:** 20.
 
-- [ ] Classify original and relocated compat node spellings explicitly. Allow native host/selected/profiles/spec only as native infrastructure; never infer translated admission from their native presence.
-- [ ] Allow relocated-to-original Gosim imports only to rt/runtime and rt/runtime/abi, preserve standard-library/external exact native permissions separately, and reject every original compat/hooks or compat/shims node.
-- [ ] Preserve existing provider/feature graph checks. Test forbidden hostabi/buildspec imports outside the compat subtree as well as forbidden metadata paths.
-- [ ] Add a focused ordinary translated-output fixture that exercises real generator output and legitimate native runtime dependencies, plus synthetic negative graph fixtures. Do not repurpose the large selected-translation suite or unset its guard.
+- [x] Classify original and relocated compat node spellings explicitly. Allow native host/selected/profiles/spec only as native infrastructure; never infer translated admission from their native presence.
+- [x] Allow relocated-to-original Gosim imports only to rt/runtime and rt/runtime/abi, preserve standard-library/external exact native permissions separately, and reject every original compat/hooks or compat/shims node.
+- [x] Preserve existing provider/feature graph checks. Test forbidden hostabi/buildspec imports outside the compat subtree as well as forbidden metadata paths.
+- [x] Add a focused ordinary translated-output fixture that exercises real generator output and legitimate native runtime dependencies, plus synthetic negative graph fixtures. Do not repurpose the large selected-translation suite or unset its guard.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and buildrun focused tests pass; run the new fixture through ordinary prepared validation. A real valid graph must pass before accepting the positive allowlist.
+- [x] V-REVISIONS, V-BUILD and buildrun focused tests pass; run the new fixture through ordinary prepared validation. A real valid graph must pass before accepting the positive allowlist.
 
 ### Task 22: Add narrow stable compiler inspection
 
@@ -751,9 +751,11 @@ Compare implemented code, data and real entry-point flows with the target, not j
 
 ## NOT IMPLEMENTED GAPS
 
-Review findings were corrected before execution (see review thread 2 and progress log); no unresolved architectural gap is currently accepted. All tasks above are pending implementation, not completed gaps. Add discrepancies found during execution here with task/target reference, evidence, fix and verification; use `[_]` for an unresolved item.
+Review findings were corrected before execution (see review thread 2 and progress log); no unresolved architectural gap is currently accepted. Unchecked tasks above are pending implementation, not completed gaps. Add discrepancies found during execution here with task/target reference, evidence, fix and verification; use `[_]` for an unresolved item.
 
 ## NOT PLANNED CHANGES
+
+- Task 21: full ordinary validation exposed a stale diagnostic-name assertion in `internal/hostabi/coro_test.go` after Task 18 generated support guards. Updated only the expected marker; explicit source-selection assertions remain unchanged. Diff: `GOSIM_UNSUPPORTED_GO_FAMILY_USE_GO125_OR_GO126` → `GOSIM_UNSUPPORTED_GO_FAMILY`. Focused hostabi tests pass under both baselines; final ordinary reruns are recorded in the execution log.
 
 - Task 10: the ordinary formatting gate exposed unsorted Task 9 guard imports in both `internal/compat/go12{5,6}/shims/{guard,guards}_test.go` and missing gofumpt formatting in `internal/compat/spec/resolve_test.go`. Applied import sorting and a blank line/expanded composite literal only (no behavioral changes). Verified repository formatting and both ordinary suites.
 - Task 12 fixture constraint: simulated disks start without `/tmp`; the artifact fixture provisions it. Existing `internal/fs/ops.go:dirInode` explicitly rejects directory-relative descriptors, so recursive RemoveAll of populated directories is outside modeled filesystem support. Simulation tests check artifact I/O, remove contents with supported absolute paths, then verify automatic directory cleanup. The preserved native shim test still covers populated-directory cleanup; no filesystem behavior is expanded.
