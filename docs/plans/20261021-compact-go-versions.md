@@ -610,12 +610,12 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤500 authored Go/test lines. **Dependencies:** 24.1.
 
-- [ ] Run the real unregistered-admission smoke fixture as soon as this collector exists (Task 28 describes the fixture consistency rules). A fixture-built minimal inspection harness may call the collector before compare is wired. Use the running go1.26 compiler only, one non-race translated host-architecture context, no API snapshot and a 5-minute timeout with cancellation cleanup. Test an ordinary admission call inside the SAME fixture-built harness so it uses the omitted registry, not the parent test binary's registry. Record elapsed time and execute it in the go1.26 ordinary job; the go1.25 job explicitly skips this candidate-specific case.
-- [ ] Exercise complete discovery, caller/private module graph, source listing and parsing through the public collector; keep the caller module unchanged and ordinary admission strict.
+- [x] Run the real unregistered-admission smoke fixture as soon as this collector exists (Task 28 describes the fixture consistency rules). A fixture-built minimal inspection harness may call the collector before compare is wired. Use the running go1.26 compiler only, one non-race translated host-architecture context, no API snapshot and a 5-minute timeout with cancellation cleanup. Test an ordinary admission call inside the SAME fixture-built harness so it uses the omitted registry, not the parent test binary's registry. Record elapsed time and execute it in the go1.26 ordinary job; the go1.25 job explicitly skips this candidate-specific case.
+- [x] Exercise complete discovery, caller/private module graph, source listing and parsing through the public collector; keep the caller module unchanged and ordinary admission strict.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused observation tests pass under both compilers; the real registry-omitted harness executes under Go 1.26 and is explicitly skipped under Go 1.25. Record elapsed time and actual versus fixture coverage.
+- [x] V-REVISIONS, V-BUILD and focused observation tests pass under both compilers; the real registry-omitted harness executes under Go 1.26 and is explicitly skipped under Go 1.25. Record elapsed time and actual versus fixture coverage.
 
 ### Task 25: Capture parent API inventories and validate snapshots
 

@@ -3,6 +3,11 @@ package testutil
 
 import (
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"slices"
+	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
@@ -24,4 +29,49 @@ func UnregisteredGo() (v struct {
 	v.Profile = fmt.Sprintf("go1%d", v.Minor)
 	v.Version = "go" + v.Family + ".1"
 	return v
+}
+
+// CopySource creates a disposable source checkout without artifacts or git state.
+func CopySource(t testing.TB, source string) string {
+	t.Helper()
+	source, err := filepath.Abs(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	err = filepath.WalkDir(source, func(name string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if slices.Contains([]string{".git", ".gosim", "docs", "test-reports", "__pycache__"}, entry.Name()) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		rel, err := filepath.Rel(source, name)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(root, rel)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		data, err := os.ReadFile(name)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, info.Mode().Perm())
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
+	"github.com/neria-cloud/gosim/internal/testutil"
 )
 
 func TestCurrentCompilerFirstOriginBootstrap(t *testing.T) {
@@ -35,7 +35,7 @@ func TestCurrentCompilerFirstOriginBootstrap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	root := copyGenerationSource(t)
+	root := testutil.CopySource(t, "../..")
 	binary := filepath.Join(t.TempDir(), "gosim-gen")
 	build := buildspec.OutputCommand(ctx, tc, root, "build", "-ldflags=-checklinkname=0", "-tags=linkname", "-o", binary, "./cmd/gosim-gen")
 	if output, err := build.CombinedOutput(); err != nil {
@@ -127,48 +127,4 @@ func TestCurrentCompilerFirstOriginBootstrap(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, ".gosim")); !os.IsNotExist(err) {
 		t.Fatal("check published ignored output", err)
 	}
-}
-
-func copyGenerationSource(t *testing.T) string {
-	t.Helper()
-	source, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	root := t.TempDir()
-	err = filepath.WalkDir(source, func(name string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if slices.Contains([]string{".git", ".gosim", "docs", "test-reports", "__pycache__"}, entry.Name()) {
-			if entry.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		rel, err := filepath.Rel(source, name)
-		if err != nil {
-			return err
-		}
-		target := filepath.Join(root, rel)
-		if entry.IsDir() {
-			return os.MkdirAll(target, 0o755)
-		}
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-		if !info.Mode().IsRegular() {
-			return nil
-		}
-		data, err := os.ReadFile(name)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(target, data, info.Mode().Perm())
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return root
 }
