@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
@@ -196,6 +197,9 @@ var definitionKeys = map[string][]string{
 }
 
 func canonicalDefinitionPath(value string) bool {
+	if strings.IndexFunc(value, func(r rune) bool { return unicode.IsControl(r) || unicode.IsSpace(r) }) >= 0 {
+		return false
+	}
 	if value == "" || strings.HasPrefix(value, "/") || strings.HasPrefix(value, "-") || strings.ContainsAny(value, "\\ \t\r\n:") || path.Clean(value) != value {
 		return false
 	}
@@ -278,6 +282,18 @@ func normalizeDefinitionValue(value any) error {
 						return fmt.Errorf("unsupported architecture %q", arch)
 					}
 				}
+			case "rewrites":
+				list, ok := entry.([]any)
+				if !ok {
+					return fmt.Errorf("rewrites must be an array")
+				}
+				slices.SortFunc(list, func(a, b any) int {
+					x, _ := a.(map[string]any)
+					y, _ := b.(map[string]any)
+					xs, _ := x["symbol"].(string)
+					ys, _ := y["symbol"].(string)
+					return strings.Compare(xs, ys)
+				})
 			case "arches", "native_symbols":
 				list, ok := entry.([]any)
 				if !ok {
@@ -314,6 +330,11 @@ func normalizeRecordOperations(section string, value any, fields []string) error
 		if !ok {
 			return fmt.Errorf("%s.%s must be an array", section, operation)
 		}
+		type keyedRecord struct {
+			key   string
+			value any
+		}
+		ordered := make([]keyedRecord, 0, len(list))
 		for _, item := range list {
 			var key []string
 			if operation == "remove" {
@@ -349,6 +370,7 @@ func normalizeRecordOperations(section string, value any, fields []string) error
 					key = append(key, text)
 				}
 			}
+			ordered = append(ordered, keyedRecord{tupleKey(key), item})
 			for i, field := range fields {
 				part := key[i]
 				switch field {
@@ -371,6 +393,11 @@ func normalizeRecordOperations(section string, value any, fields []string) error
 				}
 			}
 		}
+		slices.SortFunc(ordered, func(a, b keyedRecord) int { return strings.Compare(a.key, b.key) })
+		for i, record := range ordered {
+			list[i] = record.value
+		}
+
 	}
 	return nil
 }

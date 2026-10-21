@@ -29,3 +29,13 @@ Added the schema types, strict single-value JSON decoder with recursive duplicat
 Verified native command builds and the full internal/compat/spec package with linkname flags. Refreshed both active revisions with genprofile. Tests cover nested malformed/unknown fields, null and missing supported, drafts/trailing input, bad paths/tuples/arches, origin/evidence exclusion, ordered layout preservation, large integer precision, and stable normalization. Initial tests caught reuse of the populated decoding target (which retained deleted common-scope arches); resetting before normalized decoding fixed it. The complete valid probe fixture now supplies its required source path.
 
 No restricted suite, simulation or certification ran.
+
+## Task 3 — Cumulative resolution and immutable ancestry
+
+Date: 2026-10-21. Implementation commit 3 (this commit).
+
+Implemented resolved metadata, immediate-predecessor traversal from the sole 1.25 root, retained unsupported ancestors, tuple-keyed generic record operations, expanded architecture/host-context collision checks, canonical serialization, chain digests and nested deep copies. Baseline Replace/Remove fails against the empty initial record set. Normalized operation/rewrite ordering makes input set order irrelevant to identity. Decoder path checks also reject control characters; a NUL regression covers this strengthening. Authored Go: 448 added lines including tests and decoder refinements; two generated revision constants updated.
+
+Verified native command builds and all spec tests with linkname flags after genprofile refresh. Tests cover three-layer and empty-layer inheritance, retirement, missing/wrong/cyclic parents, map-key mismatch, duplicate/conflicting/redundant operations, common-scope splitting, host-race overlap, persistent removal/re-add, map/set-order identity and nested layout/probe isolation. A separate regression confirms removing the last architecture constant persists into the next layer.
+
+The pure resolver does not call the supported-family registry. Effective profile/policy validation is supplied by the next materialization task; current production descriptors remain unchanged. No restricted suite or certification ran.

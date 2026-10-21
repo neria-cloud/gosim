@@ -204,15 +204,15 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤500 authored Go lines. **Dependencies:** 2.
 
-- [ ] Implement `ResolveDefinitions(map[string]FamilyDefinition,string) (ResolvedFamily,error)` and generic `applyRecords[T](base []T, delta RecordDelta[T], key func(T) []string) ([]T,error)`.
-- [ ] Require 1.25 root, immediate predecessor links, no cycles/missing parents, no duplicate family keys, and retained unsupported ancestors. Pure resolution must not require generated support admission.
-- [ ] Enforce absent Add, present Replace/Remove, no cross-operation duplicate key, whole-record replacement, redundant replacement error, and persistent removal until explicit re-add.
-- [ ] Add Clone and Canonical methods; deep-copy nested maps/slices, including layout fields and probe arguments. Compute chain DefinitionDigest deterministically.
-- [ ] Test three-layer inheritance, empty intermediate delta, retirement, split common declaration into disjoint arch records, collision after architecture expansion, and mutation isolation.
+- [x] Implement `ResolveDefinitions(map[string]FamilyDefinition,string) (ResolvedFamily,error)` and generic `applyRecords[T](base []T, delta RecordDelta[T], key func(T) []string) ([]T,error)`.
+- [x] Require 1.25 root, immediate predecessor links, no cycles/missing parents, no duplicate family keys, and retained unsupported ancestors. Pure resolution must not require generated support admission.
+- [x] Enforce absent Add, present Replace/Remove, no cross-operation duplicate key, whole-record replacement, redundant replacement error, and persistent removal until explicit re-add.
+- [x] Add Clone and Canonical methods; deep-copy nested maps/slices, including layout fields and probe arguments. Compute chain DefinitionDigest deterministically.
+- [x] Test three-layer inheritance, empty intermediate delta, retirement, split common declaration into disjoint arch records, collision after architecture expansion, and mutation isolation.
 
 #### Verification
 
-- [ ] V-BUILD and spec tests pass; resolved results are independent of map iteration and current compiler family.
+- [x] V-BUILD and spec tests pass; resolved results are independent of map iteration and current compiler family.
 
 ### Task 4: Materialize profile, policy and contract views
 

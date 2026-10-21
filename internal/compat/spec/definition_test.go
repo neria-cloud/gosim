@@ -62,6 +62,7 @@ func TestRejectDefinition(t *testing.T) {
 		`{"runtime_packages":{"add":[{"path":"a//b"}]}}`,
 		`{"runtime_packages":{"add":[{"path":"a\\b"}]}}`,
 		`{"runtime_packages":{"add":[null]}}`,
+		`{"runtime_packages":{"add":[{"path":"a\u0000b"}]}}`,
 		`{"packages":{"remove":["fmt"]}}`,
 		`{"native_imports":{"remove":[["fmt"]]}}`,
 		`{"native_imports":{"remove":[["../bad","unsafe"]]}}`,
