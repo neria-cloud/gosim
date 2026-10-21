@@ -13,6 +13,7 @@ func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
 	if err := validateRoutePayload(inv); err != nil {
 		return Result{}, false, err
 	}
+	d.kernel.countSyscall(inv)
 	k, ctx := d.kernel, inv.Context
 	switch inv.Route {
 	case RouteRead:
@@ -705,6 +706,36 @@ func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
 		var err error
 		err = service.Chownat(ctx, p.DirFD, p.Path, p.UID, p.GID, p.Flags)
 		return syscallRouteResult(out, err)
+	case RouteWritev:
+		p := inv.Args[0].(WritevRequest)
+		var out WritevResult
+		var err error
+		out.Count, err = k.Write(ctx, p.FD, p.From)
+		return syscallRouteResult(out, err)
+	case RouteSetSyscallCounting:
+		p := inv.Args[0].(SetSyscallCountingRequest)
+		var out SetSyscallCountingResult
+		var err error
+		err = k.SetSyscallCounting(p.Machine, p.Enabled)
+		return controlRouteResult(out, err)
+	case RouteResetSyscallStats:
+		p := inv.Args[0].(ResetSyscallStatsRequest)
+		var out ResetSyscallStatsResult
+		var err error
+		err = k.ResetSyscallStats(p.Machine)
+		return controlRouteResult(out, err)
+	case RouteSyscallStats:
+		p := inv.Args[0].(SyscallStatsRequest)
+		var out SyscallStatsResult
+		var err error
+		out.Records, err = k.SyscallStats(p.Machine)
+		return controlRouteResult(out, err)
+	case RouteCountableSyscalls:
+		p := inv.Args[0].(CountableSyscallsRequest)
+		var out CountableSyscallsResult
+		var err error
+		out.Syscalls, err = k.CountableSyscalls(p.Machine)
+		return controlRouteResult(out, err)
 	}
 	return Result{}, false, invalidPayload(ctx, "unreachable route")
 }

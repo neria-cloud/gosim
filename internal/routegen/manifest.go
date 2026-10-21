@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"go/token"
 	"io"
+	"math"
 	"slices"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
@@ -57,7 +58,7 @@ func (m Manifest) Validate() error {
 	names, ids, legacy := map[string]bool{}, map[uint32]bool{}, map[string]bool{}
 	var previous uint32
 	for _, r := range m.Routes {
-		if r.ID == 0 || r.ID <= previous || ids[r.ID] || !exported(r.Name) || names[r.Name] || !slices.Contains([]string{"kernel", "fs", "net"}, r.Owner) || !slices.Contains([]string{"syscall", "poll", "wait", "control", "self"}, r.Kind) {
+		if r.ID == 0 || r.ID == math.MaxUint32 || r.ID <= previous || ids[r.ID] || !exported(r.Name) || names[r.Name] || !slices.Contains([]string{"kernel", "fs", "net"}, r.Owner) || !slices.Contains([]string{"syscall", "poll", "wait", "control", "self"}, r.Kind) {
 			return fmt.Errorf("invalid or duplicate route %d %s", r.ID, r.Name)
 		}
 		if (r.Kind == "poll" || r.Kind == "wait" || r.Kind == "self") && r.Owner != "kernel" {
@@ -71,6 +72,9 @@ func (m Manifest) Validate() error {
 				}
 				if f.Type == "func()" && (i != 0 || f.Name != "Main" || (r.Name != "Create" && r.Name != "SetMain")) {
 					return fmt.Errorf("arbitrary callback in route %s", r.Name)
+				}
+				if i == 0 && r.Kind == "syscall" && f.Name == "FD" && f.Type != "int" {
+					return fmt.Errorf("invalid syscall descriptor %s.%s %s", r.Name, f.Name, f.Type)
 				}
 				seen[f.Name] = true
 			}
@@ -93,6 +97,7 @@ func allowedType(typ string) bool {
 		"abi.ByteView", "abi.ValueView[contracts.Lock]", "contracts.MachineRef", "contracts.StopKind", "contracts.Stat", "contracts.Address",
 		"contracts.FSConfig", "contracts.FSFaultConfig", "contracts.FSStorageStats", "contracts.InodeInfo", "contracts.NetConfig", "contracts.NetLink", "contracts.NetLinkPolicy",
 		"ProcessInfo", "ExitRecord", "State", "contracts.Feature",
+		"[]contracts.SyscallRecord", "[]contracts.SyscallInfo",
 	}, typ)
 }
 

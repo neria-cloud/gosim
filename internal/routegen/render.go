@@ -31,6 +31,7 @@ const (
 	for _, r := range m.Routes {
 		fmt.Fprintf(&b, "Route%s RouteID = %d\n", r.Name, r.ID)
 	}
+	fmt.Fprintf(&b, "routeLimit RouteID = %d\n", m.Routes[len(m.Routes)-1].ID+1)
 	b.WriteString(")\n")
 	b.WriteString("func (r RouteID) String() string { switch r {\n")
 	for _, r := range m.Routes {
@@ -104,5 +105,30 @@ func validateRoutePayload(inv *Invocation) error {
  return nil
 }
 `)
+	b.WriteString("\n// syscallRouteHasFD describes primary input descriptors, not directory context or outputs.\n//go:norace\nfunc syscallRouteHasFD(route RouteID) bool { switch route {\n")
+	for _, r := range m.Routes {
+		if syscallHasFD(r) {
+			fmt.Fprintf(&b, "case Route%s: return true\n", r.Name)
+		}
+	}
+	b.WriteString("}; return false }\n")
+	b.WriteString("\n// syscallInputFD requires a successfully validated payload.\n//go:norace\nfunc syscallInputFD(inv *Invocation) (int,bool) { switch inv.Route {\n")
+	for _, r := range m.Routes {
+		if syscallHasFD(r) {
+			fmt.Fprintf(&b, "case Route%s: return inv.Args[0].(%sRequest).FD,true\n", r.Name, r.Name)
+		}
+	}
+	b.WriteString("}; return 0,false }\n")
 	return format.Source(b.Bytes())
+}
+
+func syscallHasFD(r Route) bool {
+	if r.Kind == "syscall" {
+		for _, f := range r.Inputs {
+			if f.Name == "FD" && f.Type == "int" {
+				return true
+			}
+		}
+	}
+	return false
 }

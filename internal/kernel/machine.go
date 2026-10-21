@@ -31,6 +31,7 @@ type Machine struct {
 	nextEpoch uint64
 	current   *Run
 	lastExit  ExitRecord
+	syscalls  syscallCounters
 }
 
 type Run struct {
