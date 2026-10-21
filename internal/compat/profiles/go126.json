@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "family": "1.26",
+  "supported": true,
+  "delta": {
+    "declarations": {
+      "add": [
+        {
+          "hook": {
+            "package": "reflect",
+            "symbol": "*rtype.Fields",
+            "signature": "func() iter.Seq[StructField]",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Fields",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "reflect",
+            "symbol": "*rtype.Ins",
+            "signature": "func() iter.Seq[Type]",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Ins",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "reflect",
+            "symbol": "*rtype.Methods",
+            "signature": "func() iter.Seq[Method]",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Methods",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "reflect",
+            "symbol": "*rtype.Outs",
+            "signature": "func() iter.Seq[Type]",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.*typeImpl.Outs",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "reflect",
+            "symbol": "Value.Fields",
+            "signature": "func() iter.Seq2[StructField, Value]",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Fields",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "reflect",
+            "symbol": "Value.Methods",
+            "signature": "func() iter.Seq2[Method, Value]",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/reflect.Value.Methods",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "syscall",
+            "symbol": "runtimeClearenv",
+            "signature": "func(map[string]int)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtimeClearenv",
+            "owner": "kernel"
+          }
+        },
+        {
+          "hook": {
+            "package": "testing",
+            "symbol": "*common.ArtifactDir",
+            "signature": "func() string",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.ArtifactDir",
+            "owner": "rt"
+          }
+        }
+      ],
+      "replace": [
+        {
+          "hook": {
+            "package": "internal/abi",
+            "symbol": "FuncPCABI0",
+            "signature": "func(any) uintptr",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalAbi_FuncPCABI0",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "internal/abi",
+            "symbol": "FuncPCABIInternal",
+            "signature": "func(any) uintptr",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalAbi_FuncPCABIInternal",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "sync",
+            "symbol": "runtime_StoreReluintptr",
+            "signature": "func(*uintptr, uintptr)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_StoreReluintptr",
+            "owner": "rt"
+          }
+        }
+      ]
+    },
+    "packages": {
+      "add": [
+        {
+          "path": "crypto/internal/entropy/v1.0.0",
+          "mode": "reject",
+          "reason": "Native FIPS module entropy is outside the deterministic crypto/rand substitution."
+        },
+        {
+          "path": "crypto/internal/fips140deps/time",
+          "mode": "reject",
+          "reason": "Native FIPS timing/entropy implementation is outside the deterministic shim."
+        },
+        {
+          "path": "crypto/internal/rand",
+          "mode": "reject",
+          "reason": "Go 1.26 native DRBG and global test-reader overrides are replaced only through the complete crypto/rand shim."
+        },
+        {
+          "path": "internal/runtime/gc/scan",
+          "mode": "reject",
+          "reason": "Native GC scanning is engine/runtime infrastructure, not an application bridge."
+        },
+        {
+          "path": "internal/runtime/pprof/label",
+          "mode": "reject",
+          "reason": "Native runtime profiling state is not exposed through the simulation bridge."
+        },
+        {
+          "path": "internal/runtime/syscall/linux",
+          "mode": "reject",
+          "reason": "Native raw syscalls cannot enter application execution. Named syscall wrappers replace callers; no Linux host fallback."
+        },
+        {
+          "path": "internal/strconv",
+          "mode": "translate",
+          "reason": "Go 1.26 internal integer/error helpers replace internal/itoa and runtime/strconv; values and errors remain translated."
+        },
+        {
+          "path": "testing/cryptotest",
+          "mode": "reject",
+          "reason": "SetGlobalRandom mutates native process-wide crypto DRBG state through private linknames; simulation owns machine/application entropy."
+        }
+      ],
+      "remove": [
+        [
+          "internal/itoa"
+        ],
+        [
+          "internal/runtime/strconv"
+        ],
+        [
+          "internal/runtime/syscall"
+        ]
+      ]
+    },
+    "probes": {
+      "add": [
+        {
+          "package": "internal/poll",
+          "symbol": "supportCopyFileRange",
+          "phase": "first-use",
+          "disposition": "guarded",
+          "feature": "fs",
+          "operation": "copy-file-range-probe",
+          "response": "Go 1.26 uses lazy KernelVersionGE(5,3); modeled uname reports the existing kernel identity and no native syscall is allowed. copy_file_range remains unsupported.",
+          "source": "src/internal/poll/copy_file_range_linux.go"
+        },
+        {
+          "package": "syscall",
+          "symbol": "runtimeClearenv",
+          "phase": "operation",
+          "disposition": "modeled",
+          "feature": "rt",
+          "operation": "process-clearenv",
+          "response": "Clear only the translated machine environment/debug setting. Go 1.26 passes its translated environment map; the adapter leaves that map untouched and updates the debug callback only when GODEBUG was present.",
+          "source": "src/syscall/syscall.go"
+        },
+        {
+          "package": "testing",
+          "symbol": "*common.ArtifactDir",
+          "phase": "operation",
+          "disposition": "guarded",
+          "feature": "fs",
+          "operation": "test-artifact-directory",
+          "response": "Default temporary artifact directory is created once per test and removed by test cleanup; never exports host files.",
+          "source": "src/testing/testing.go"
+        },
+        {
+          "package": "testing/cryptotest",
+          "symbol": "SetGlobalRandom",
+          "phase": "operation",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "native-crypto-global-override",
+          "response": "Native process-wide crypto state cannot replace the simulation random stream.",
+          "source": "src/testing/cryptotest/rand.go"
+        }
+      ]
+    },
+    "capabilities": {
+      "add": [
+        {
+          "package": "os",
+          "symbol": "*Process.WithHandle",
+          "status": "rejected",
+          "reason": "No native process handle or callback exposure; pidfd/process operations reject."
+        },
+        {
+          "package": "testing",
+          "symbol": "ArtifactDir",
+          "status": "limited",
+          "reason": "Default temporary directory mode only, guarded by fs and cleaned up. Persistent -test.artifacts output is not a supported simulation runner flag."
+        },
+        {
+          "package": "testing/cryptotest",
+          "symbol": "SetGlobalRandom",
+          "status": "rejected",
+          "reason": "Native process-wide DRBG override is outside the modeled crypto/rand surface."
+        }
+      ],
+      "replace": [
+        {
+          "package": "crypto/rand",
+          "symbol": "Prime",
+          "status": "limited",
+          "reason": "Go 1.26 default ignores the supplied/public reader and uses the deterministic application stream; machine-local cryptocustomrand=1 opts into the supplied reader. Optional nondeterministic byte consumption and native metric counters are omitted."
+        },
+        {
+          "package": "crypto/rand",
+          "symbol": "Read",
+          "status": "implemented",
+          "reason": "Deterministic application-domain bytes; supplied-reader failure aborts the simulation as required by Go 1.26."
+        }
+      ]
+    }
+  },
+  "parent": "1.25"
+}

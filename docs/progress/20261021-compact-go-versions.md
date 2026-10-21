@@ -175,3 +175,15 @@ Final reports/timelines in .gosim/compact-go-validation/{go125,go126}/unit/lates
 Both tested input digest 8540538ec79ea23c6bc3e5a5e20395e1891941a9fe770b40889931a52bbe8be6 with no checkout changes. Native and simulation checks cover the fully shared executable tree; large/race gates remain skipped and no certification ran.
 
 Read-only preparation for metadata conversion confirmed all current profile JSON except intentionally frozen generation records equals base commit 550d5e3 after compatibility target-path normalization. Both architectures still omit exactly the same nine known shim contracts; Task 15 accounts for that intended coverage addition. Seven implementation commits since checkpoint 1; Task 15 will complete the next eight-commit review range.
+
+## Task 15 — Baseline and cumulative metadata definitions
+
+Date: 2026-10-21. Implementation commit 16 (this commit).
+
+Generated go125.json as the full baseline and go126.json as only its delta: 367,659 and 8,894 bytes respectively. Reviewed every delta operation. One-time ignored conversion/comparison helpers read base commit 550d5e3 and compared all derived metadata against current shared paths. Both commands exit 0; exact commands, normalization rules and differences are recorded under Task 15 in the plan. Independent origin/evidence payloads remain intact. The only added contract coverage is the nine previously omitted shim bindings specified by the target; ABI interface{}/any spelling differences remain explicit replacements.
+
+Added 133 lines of self-contained spec tests: frozen canonical semantic digests for both family/architecture views, empty 1.27 inheritance through real 1.26 changes without production registration, and actual running-compiler contract checks for both architecture/source race contexts. These are source checks, not race or cross-architecture execution. No committed test reads .git, old profile JSON or ignored migration output. Generated JSON is separate from the authored Go budget; one-time helpers are ignored maintainer evidence, not a permanent generator.
+
+Verified complete spec suites under Go 1.25.14 (3.656 s) and Go 1.26.9 (3.744 s), command/compatibility/hostabi builds under both, revision refresh, repeated semantic comparison and repository formatting; all exit 0. Fixed one test-file formatting issue. Task 14's full ordinary runs cover the shared executable tree before this metadata addition; no new full ordinary coverage is claimed for Task 15. Existing callers still use old profile metadata until the planned facade/cutover. No restricted suite or certification ran.
+
+Eight implementation commits since checkpoint 1, including the review correction; checkpoint 2 is requested next against 0abb62a..HEAD. Task 16 remains pending.

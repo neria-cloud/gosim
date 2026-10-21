@@ -413,14 +413,31 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤450 authored Go/test lines; JSON is generated/reviewed data. **Dependencies:** 14.
 
-- [ ] Convert current reviewed metadata into one full baseline and only actual 1.26 replacements/additions/removals. Normalize already-shared paths; derive architecture applicability and remove redundant contracts/hooks/shims duplication.
-- [ ] Use a bounded one-time conversion/comparison command under ignored migration output, not a committed test or permanent second generator. Read original family metadata directly from base commit `550d5e3` with `git show`/a temporary archive, materialize converted records with the resolver, and record exact command, revision, normalization rules, differences and exit status in this plan. Review every delta.
-- [ ] Run the one-time canonical old-to-new semantic comparison after path normalization; explicitly account for nine added shim contracts, Gosim-side origin target annotations and any genuinely changed metadata. Re-run it before old-tree deletion in Task 18 if intervening edits change metadata. Do not wire this base-history/ignored-artifact dependency into tests, CI or ordinary snapshots.
-- [ ] Assert empty future delta inherits all intermediate changes in fixtures. Keep future-family fixture support isolated from the actual registry.
+- [x] Convert current reviewed metadata into one full baseline and only actual 1.26 replacements/additions/removals. Normalize already-shared paths; derive architecture applicability and remove redundant contracts/hooks/shims duplication.
+- [x] Use a bounded one-time conversion/comparison command under ignored migration output, not a committed test or permanent second generator. Read original family metadata directly from base commit `550d5e3` with `git show`/a temporary archive, materialize converted records with the resolver, and record exact command, revision, normalization rules, differences and exit status in this plan. Review every delta.
+- [x] Run the one-time canonical old-to-new semantic comparison after path normalization; explicitly account for nine added shim contracts, Gosim-side origin target annotations and any genuinely changed metadata. Re-run it before old-tree deletion in Task 18 if intervening edits change metadata. Do not wire this base-history/ignored-artifact dependency into tests, CI or ordinary snapshots.
+- [x] Assert empty future delta inherits all intermediate changes in fixtures. Keep future-family fixture support isolated from the actual registry.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and durable spec resolution/contract tests pass, plus the one-time comparison succeeds with recorded explained differences. Committed tests remain self-contained after old trees and ignored captures disappear. Existing callers still use old metadata until the facade is ready.
+- [x] V-REVISIONS, V-BUILD and durable spec resolution/contract tests pass, plus the one-time comparison succeeds with recorded explained differences. Committed tests remain self-contained after old trees and ignored captures disappear. Existing callers still use old metadata until the facade is ready.
+
+#### Conversion evidence (2026-10-21)
+
+Original source: commit `550d5e3`, read using `git show` by the bounded ignored helper. Commands, each exit 0:
+
+```sh
+python3 -B .gosim/compact-go-migration/convert.py
+go run -ldflags=-checklinkname=0 -tags=linkname ./.gosim/compact-go-migration/verify.go
+```
+
+Normalization replaces family-owned hooks/shims/host target paths with shared paths, changes the two selected-version shim reason labels to “selected Go shim”, and reconciles equivalent maps-policy reason prose. Record sets, native symbols, rewrites and set-valued probe arguments are sorted; ordered layout fields and signatures are preserved. Original/current origins, tuples and evidence were compared independently; only previously documented Gosim target annotations change in origins, with upstream identity untouched.
+
+Both resolved families match original hooks, shims, policies, runtime packages and both architecture contracts after those normalizations and the nine explicitly added contracts from target §3: tls CipherSuites/InsecureCipherSuites; metrics All/Read/Value.Kind/Uint64/Float64/Float64Histogram; debug ReadGCStats. Actual compiler contract inspection passes for both baselines. This is semantic comparison with declared differences, not byte equality.
+
+Reviewed the complete go126 delta: eight declaration additions (six reflect iterators, clearenv, ArtifactDir); three replacements (StoreReluintptr and the two ABI function-PC signature spellings); eight package additions/three removals; four probe additions; three capability additions/two replacements. Other sections inherit unchanged. Baseline: 367,659 bytes; delta: 8,894 bytes. The two ABI signatures retain the original interface{}/any textual difference; the capability replacements preserve original crypto/rand behavior/reason differences.
+
+Durable tests use only committed definitions and frozen semantic digests, not git history or ignored captures. They also verify empty 1.27 inheritance without registering it. Both baseline spec suites and command/compatibility/hostabi builds pass; revisions refreshed and formatting passes. Old metadata remains the live authority. Repeat the one-time comparison before Task 18 deletion if intervening metadata edits change effective values.
 
 ### Task 16: Add the profiles facade and independent on-disk provenance
 
