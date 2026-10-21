@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/netip"
 	"net/url"
 	"testing"
@@ -243,21 +242,7 @@ func TestEtcd(t *testing.T) {
 	for _, node := range nodes {
 		waitReady(t, node)
 	}
-
-	// mess with the network in the background
-	go nemesis.Sequence(
-		nemesis.Sleep{
-			Duration: 10 * time.Second,
-		},
-		nemesis.PartitionMachines{
-			Addresses: []string{
-				"10.0.0.1",
-				"10.0.0.2",
-				"10.0.0.3",
-			},
-			Duration: 30 * time.Second,
-		},
-	).Run()
+	scenarioStart := time.Now()
 
 	// build a client
 	client, err := clientv3.New(clientv3.Config{
@@ -271,10 +256,34 @@ func TestEtcd(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = client.Close() })
 
-	result := exerciseKV(t, client, "initial", time.Minute)
-	log.Printf("%d successes out of %d attempts", result.Successes, result.Attempts)
-	if result.Successes == 0 {
-		t.Errorf("got no succeses")
+	before := exerciseKV(t, client, "before", 8*time.Second)
+	t.Logf("before partition: %d successes / %d attempts", before.Successes, before.Attempts)
+	if before.Successes == 0 {
+		t.Fatal("no KV progress before partition")
+	}
+
+	faultDone := make(chan struct{})
+	go func() {
+		nemesis.PartitionMachines{
+			Addresses: []string{"10.0.0.1", "10.0.0.2", "10.0.0.3"},
+			Duration:  30 * time.Second,
+		}.Run()
+		close(faultDone)
+	}()
+	// Move simulated time past the partition setup before fault-window I/O.
+	time.Sleep(time.Millisecond)
+	fault := exerciseKV(t, client, "fault", 30*time.Second)
+	select {
+	case <-faultDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("partition did not repair within its deadline")
+	}
+	t.Logf("during partition: %d successes / %d attempts", fault.Successes, fault.Attempts)
+
+	after := exerciseKV(t, client, "after", 20*time.Second)
+	t.Logf("after repair: %d successes / %d attempts", after.Successes, after.Attempts)
+	if after.Successes == 0 {
+		t.Error("no KV progress after network repair")
 	}
 	if err := client.Close(); err != nil {
 		t.Error(err)
@@ -282,6 +291,7 @@ func TestEtcd(t *testing.T) {
 	for _, node := range nodes {
 		stopNode(t, node)
 	}
+	t.Logf("cluster elapsed=%s; before=%+v fault=%+v after=%+v", time.Since(scenarioStart), before, fault, after)
 
 	// TODO investigate:
 	// - this listener port doesn't make sense when passing localhost:2379.

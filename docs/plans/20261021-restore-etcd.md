@@ -476,17 +476,17 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A6, A8–A9; study “Reproduction” combined-seed failure.
 **Estimated authored changes:** ≤1,000 lines.
 
-- [ ] Build a focused reproduction involving real gRPC status/error details and protobuf descriptor access across two machines and multiple runs in one worker.
-- [ ] Locate the lifetime/ownership error if reproduced. Separate immutable type wrappers from mutable application descriptors, values, init state and caches; document the causal chain before changing ownership.
-- [ ] Fix the narrow owning layer. Do not special-case the example package, hard-code `google.rpc.Status.code`, share application globals natively, or restart the worker between seeds.
-- [ ] If current code already satisfies the isolated regression, retain the evidence and continue to the full-cluster repeated-worker gate; do not invent a production fix solely because the old tree failed.
-- [ ] Verify the A8 cache formats/retention and exact build identity remain unchanged. Adjust replay revision only for a demonstrated scheduling/random contract change.
-- [ ] Add a meaningful regression for the actual defect, including a seed replay after intervening runs.
+- [x] Build a focused reproduction involving real gRPC status/error details and protobuf descriptor access across two machines and multiple runs in one worker.
+- [x] Locate the lifetime/ownership error if reproduced. Separate immutable type wrappers from mutable application descriptors, values, init state and caches; document the causal chain before changing ownership.
+- [x] Fix the narrow owning layer. Do not special-case the example package, hard-code `google.rpc.Status.code`, share application globals natively, or restart the worker between seeds.
+- [x] If current code already satisfies the isolated regression, retain the evidence and continue to the full-cluster repeated-worker gate; do not invent a production fix solely because the old tree failed.
+- [x] Verify the A8 cache formats/retention and exact build identity remain unchanged. Adjust replay revision only for a demonstrated scheduling/random contract change.
+- [x] Add a meaningful regression for the actual defect, including a seed replay after intervening runs.
 
 #### Verification
 
-- [ ] Focused repeated-worker regression, affected translator/reflection/runtime tests, `V-BUILD` and revision checks pass on both compilers.
-- [ ] A fresh-process-only pass does not satisfy this task; descriptor mismatch remains a required gap until the matching same-worker scenario succeeds.
+- [x] Focused repeated-worker regression, affected translator/reflection/runtime tests, `V-BUILD` and revision checks pass on both compilers.
+- [x] A fresh-process-only pass does not satisfy this task; descriptor mismatch remains a required gap until the matching same-worker scenario succeeds.
 
 ### Task 8: Complete positive persistence and phased cluster execution
 
@@ -494,17 +494,17 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A1, A5–A7, A9; historical TestSnapshotter/TestWal contracts.
 **Estimated authored changes:** ≤900 lines plus any separately bounded owner fix.
 
-- [ ] Run and repair the real snapshot/WAL round trips under current simulated storage. Preserve exact metadata/data assertions and close every handle on successful paths.
-- [ ] Implement before/fault/after phases around the existing seeded partition. Require bounded pre-partition progress and post-repair progress; every successful get must equal the written value.
-- [ ] Complete actual three-node readiness and consensus execution. Do not reduce the fixture to a single node, omit raft peer traffic, bypass persistence or remove the partition.
-- [ ] Observe client close, server completion and all machine exits. Distinguish expected RPC failures during partition from startup, persistence, data-corruption and shutdown failures.
-- [ ] Run all three original tests with seeds 1–3 in one invocation on both families. Resolve each remaining required-path failure; extend a precise adapter/owner contract when needed, without broad admission.
-- [ ] Record elapsed time and semantic phase results. Keep lock-contention/durability limitations explicit; passing historical smoke tests does not implement those models.
+- [x] Run and repair the real snapshot/WAL round trips under current simulated storage. Preserve exact metadata/data assertions and close every handle on successful paths.
+- [x] Implement before/fault/after phases around the existing seeded partition. Require bounded pre-partition progress and post-repair progress; every successful get must equal the written value.
+- [x] Complete actual three-node readiness and consensus execution. Do not reduce the fixture to a single node, omit raft peer traffic, bypass persistence or remove the partition.
+- [x] Observe client close, server completion and all machine exits. Distinguish expected RPC failures during partition from startup, persistence, data-corruption and shutdown failures.
+- [x] Run all three original tests with seeds 1–3 in one invocation on both families. Resolve each remaining required-path failure; extend a precise adapter/owner contract when needed, without broad admission.
+- [x] Record elapsed time and semantic phase results. Keep lock-contention/durability limitations explicit; passing historical smoke tests does not implement those models.
 
 #### Verification
 
-- [ ] `V-ETCD` passes for both families with nine successful test/seed records per compiler and no skipped scenarios.
-- [ ] `V-BUILD`, `V-LINT`, focused owner tests and maintenance checks pass after any fixes.
+- [x] `V-ETCD` passes for both families with nine successful test/seed records per compiler and no skipped scenarios.
+- [x] `V-BUILD`, `V-LINT`, focused owner tests and maintenance checks pass after any fixes.
 
 ### Task 9: Wire positive applicability and durable replay coverage
 

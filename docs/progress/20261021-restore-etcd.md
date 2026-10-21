@@ -76,3 +76,22 @@ Verified
 Next boundary
 
 - Task 7 checks protobuf descriptor isolation across repeated runs in one worker. Task 8 strengthens the cluster phase assertions and snapshot/WAL gates; the current smoke pass is insufficient for final support.
+
+## Tasks 7–8 — descriptor replay and phased cluster acceptance
+
+Date: 2026-10-21. Pair commit contains this entry.
+
+Implemented
+
+- Added a real gRPC status/detail descriptor fixture using `google.rpc.Status.code`, `errdetails.BadRequest`, protobuf reflection and JSON encoding in two sequential simulated machines. A native metatest runs seeds 1, 2, 3, then 1 in one matching worker and compares seed-1 checksums and identity fields.
+- No descriptor ownership defect reproduced in this focused scenario on either compiler, so no production cache or runtime lifetime code was changed. The full-cluster same-worker check remains in Task 9.
+- Replaced the weak single aggregate KV assertion with explicit before, partition and after phases. Every completed put/get checks exact value equality; successful progress is required before partition and within the bounded after-repair window. The existing seeded `PartitionMachines` fault is awaited through repair. Client, server completion and graceful machine exits are observed.
+- Kept exact snapshot metadata/data and WAL state/entry reopen comparisons; changed a WAL save error from process-fatal logging to a test failure. Recorded simulated elapsed time and semantic phase results.
+
+Verified
+
+- Translated protobuf fixture with seeds 1–3 in one invocation under each compiler: all pass. Native same-worker seed sequence `1,2,3,1` passes under Go 1.25.14 and 1.26.9 with nonempty checksums, matching identity/replay fields and identical repeated seed-1 checksum.
+- The exact `V-ETCD` example command with seeds 1–3 passes all 15 current test/seed records on each compiler, including nine records for the original `TestEtcd`, `TestSnapshotter` and `TestWal` scenarios. No scenarios were skipped.
+- Across the three cluster seeds, Go 1.25.14 recorded 6–7 successful pre-partition KV round trips and 16 successful after-repair round trips; Go 1.26.9 recorded 6 before and 16 after. The partition window produced expected unsuccessful attempts without data mismatches. Simulated cluster durations ranged from about 69 to 79 seconds.
+- `make build`, focused metadata/translator/feature tests, `make lint`, `./.ci/gofmt check`, `git diff --check`, and profile revision checks pass. A8 cache schema/retention and `ReplayRevision` were untouched; `MetaT` verified exact BuildDigest/ReplayRevision at each run.
+- `make test`: 86 reports, 2,007 passed, 20 skipped, no failures/errors; wall time 224 seconds. The ordinary integration suite includes the new fixture and replay metatest. Positive etcd is still excluded from ordinary feature selection until Task 9.

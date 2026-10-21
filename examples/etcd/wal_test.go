@@ -4,7 +4,6 @@ package etcd_test
 
 import (
 	"errors"
-	"log"
 	"os"
 	"testing"
 
@@ -132,7 +131,7 @@ func TestWal(t *testing.T) {
 			Data:  []byte{4, 5, 6},
 		},
 	}); err != nil {
-		log.Fatal(err)
+		t.Fatalf("wal.Save: %v", err)
 	}
 
 	// close and reopen
