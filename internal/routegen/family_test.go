@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/compat/catalog"
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -23,7 +24,7 @@ func TestCurrentFamilyOriginRefresh(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := catalog.Descriptor(v.Family(), r.Toolchain.HostArch)
+	p, err := profiles.Descriptor("go1"+strconv.Itoa(v.Minor), r.Toolchain.HostArch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,11 +33,22 @@ func TestCurrentFamilyOriginRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
+	protected := filepath.Join(out, "internal/compat/profiles", otherFamily(p.ID)+".origin.json")
+	if err := os.MkdirAll(filepath.Dir(protected), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(protected, []byte("independent origin"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := GenerateProfile(r.Toolchain, p.ID, []string{r.Toolchain.HostArch}, out, GenerateOptions{RefreshOrigin: true}); err != nil {
 		t.Fatal(err)
 	}
-	root := filepath.Join(out, "internal/compat", p.ID, "profile")
-	data, err := os.ReadFile(filepath.Join(root, "origin.json"))
+	untouched, err := os.ReadFile(protected)
+	if err != nil || string(untouched) != "independent origin" {
+		t.Fatal("refresh changed another origin", err)
+	}
+	root := filepath.Join(out, "internal/compat/profiles")
+	data, err := os.ReadFile(filepath.Join(root, p.ID+".origin.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +59,7 @@ func TestCurrentFamilyOriginRefresh(t *testing.T) {
 	if origin.Schema != 2 || origin.BaselineToolchain != r.Toolchain.Version || origin.Family != v.Family() {
 		t.Fatal("incorrect refreshed provenance", origin)
 	}
-	data, err = os.ReadFile(filepath.Join(root, "routes_"+r.Toolchain.HostArch+".json"))
+	data, err = os.ReadFile(filepath.Join(out, generationRecordPath(p.ID, r.Toolchain.HostArch)))
 	if err != nil {
 		t.Fatal(err)
 	}

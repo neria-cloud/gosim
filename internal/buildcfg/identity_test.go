@@ -107,7 +107,8 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 		write(dir+"/source.go", "package fixture\n")
 	}
 	write("go.mod", "module github.com/neria-cloud/gosim\n")
-	write("internal/compat/go126/profile/tuples.json", `[]`)
+	write("internal/compat/profiles/evidence.json", `{}`)
+	write("internal/compat/profiles/go125.origin.json", `{}`)
 	write("docs/architecture.md", "old docs")
 	write(".gosim/output", "old artifact")
 	write(".git", "gitdir: original/worktree")
@@ -125,18 +126,39 @@ func TestSourceIdentityExcludesOnlyEvidenceAndDocs(t *testing.T) {
 		return id
 	}
 	before := build()
-	write("internal/compat/go126/profile/tuples.json", `[{"status":"certified"}]`)
+	write("internal/compat/profiles/evidence.json", `{"history":"changed"}`)
 	write("docs/architecture.md", "new docs")
 	write(".gosim/output", "new artifact")
 	write(".git", "gitdir: another/worktree")
 	if after := build(); !reflect.DeepEqual(before, after) {
 		t.Fatal("promotion, worktree location, docs or output changed executable fingerprint")
 	}
+	for _, path := range []string{"internal/compat/profiles/go125.json", "internal/compat/hooks/rt/hook.go", "internal/compat/shims/runtime/shim.go"} {
+		write(path, "changed executable input")
+		if after := build(); after.TranslatorDigest == before.TranslatorDigest {
+			t.Fatal("ancestor/shared source not fingerprinted", path)
+		}
+		if err := os.Remove(filepath.Join(root, path)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("internal/compat/profiles/go125.origin.json", `{"origin":"changed"}`)
+	if after := build(); after.TranslatorDigest == before.TranslatorDigest || after.AdapterRevision != before.AdapterRevision {
+		t.Fatal("origin must change whole-source identity without changing adapter revision")
+	}
+	write("internal/compat/profiles/go125.origin.json", `{}`)
+	write("internal/compat/profiles/nested/evidence.json", `{}`)
+	if after := build(); after.TranslatorDigest == before.TranslatorDigest {
+		t.Fatal("evidence exclusion too broad")
+	}
+	if err := os.Remove(filepath.Join(root, "internal/compat/profiles/nested/evidence.json")); err != nil {
+		t.Fatal(err)
+	}
 	write("internal/fs/source.go", "package changed\n")
 	if after := build(); after.ProviderRevisions[0].Digest == before.ProviderRevisions[0].Digest || after.TranslatorDigest == before.TranslatorDigest {
 		t.Fatal("provider/source change failed to invalidate evidence")
 	}
-	write("internal/compat/go126/profile/hooks.json", `[{"symbol":"changed"}]`)
+	write("internal/compat/profiles/go126.json", `[{"symbol":"changed"}]`)
 	if after := build(); after.TranslatorDigest == before.TranslatorDigest {
 		t.Fatal("ABI policy not fingerprinted")
 	}

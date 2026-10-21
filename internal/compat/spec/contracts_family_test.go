@@ -2,10 +2,11 @@ package spec_test
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
-	"github.com/neria-cloud/gosim/internal/compat/catalog"
+	"github.com/neria-cloud/gosim/internal/compat/profiles"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -16,7 +17,7 @@ func TestCurrentCompilerFamilyContracts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := catalog.Descriptor(v.Family(), tc.HostArch)
+	p, err := profiles.Descriptor("go1"+strconv.Itoa(v.Minor), tc.HostArch)
 	if err != nil {
 		t.Fatal(err)
 	}

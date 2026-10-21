@@ -10,16 +10,20 @@ Features are fixed for the whole test binary before application initialization. 
 
 ![Test workflows](./docs/diagrams/test-workflows.svg)
 
+**Status of the project:** stable core API and ready for regualar CI tasks. **gosim** is used in several private projects and in [gquorum](https://github.com/asalimonov/gquorum) library.
+
 See [Features](docs/features.md) for supported, partially supported, and unsupported capabilities. PRs welcome.
 
-## Go versions and configuration
+## Technicla introduction
 
 Gosim supports stable **Go 1.25.* and Go 1.26.*** releases on Linux AMD64,
 Linux ARM64 and Darwin ARM64. The caller uses ordinary Go tooling: `go.mod`,
 `go.work`, and `GOTOOLCHAIN` determine the compiler. Application code does not
-select a Go version, and a new patch within a supported family needs no Gosim
-allowlist entry. Gosim checks the private runtime contracts it uses against the
+select a Go version. Gosim checks the private runtime contracts it uses against the
 selected compiler; an incompatible contract produces an actionable error.
+
+Here is [design](./docs/design.md) and [translation](./docs/translation.md) document
+which describe gosim's internals with more details.
 
 Add Gosim to your module, then build the launcher in that module's context:
 
@@ -57,12 +61,6 @@ override. Legacy schema-1 files remain explicit overrides with a migration
 warning; remove their `toolchain` field and set `schema` to `2` for automatic
 selection. Unknown fields, unsupported families/platforms and `fs`/`net`
 without `rt` are errors. Prerelease and development compilers are unsupported.
-
-Certification is an optional manual operation. It is neither a CI step nor a
-requirement for normal commands or library use. Missing or stale certification
-never blocks a compatible build. Exact compiler/source identities still isolate
-artifacts and deterministic replay; a family policy does not promise replay
-across different patches.
 
 ## A deterministic test
 
@@ -200,43 +198,14 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 | Files and persistence | Bounded in-memory file/directory volume, 1 KiB allocated-block accounting, sync/crash semantics; no live resize or special files |
 | Locks and permissions | Owner/group/other mode and ownership checks; no supplemental groups, ACLs or sticky bits; `flock`/record-lock stubs do not establish ownership or contention |
 | Networking | Simulated IPv4/TCP; UDP, IPv6 and hostname resolution are outside the supported model |
-| HTTP/gRPC/TLS | Plaintext gRPC unary and bidirectional streaming over IPv4/TCP are exercised by the [standalone gRPC example](examples/network/grpc/). Full HTTP support is not established; TLS/certificate operations abort. The [NATS example](examples/network/nats/) exercises plain TCP only. |
+| HTTP/gRPC/TLS | Translated plaintext HTTP request/response, connection reuse, streaming, cancellation and graceful shutdown have focused coverage. The [three-node etcd example](examples/etcd/) exercises HTTP/gRPC over simulated TCP and storage, including partition recovery and snapshot/WAL round trips. The [standalone gRPC example](examples/network/grpc/) covers unary and bidirectional streams; the [NATS example](examples/network/nats/) covers plain TCP. TLS/certificate operations abort; untested HTTP surfaces are not claimed. |
 | Linux process services | Deterministic getrandom, historical fixed PID and limited uname; full signals/procfs/process behavior is absent |
 | Runtime modes | One active run per process; no native-scheduler virtual-I/O mode, mutable feature sets or runtime provider loading |
 | Additional platforms | Go families other than 1.25/1.26, Darwin AMD64, Windows and non-Linux simulated ABIs are unsupported |
 
-The reviewed [go125](internal/compat/go125/profile/capabilities.json) and [go126](internal/compat/go126/profile/capabilities.json) capability records distinguish implemented, limited, stub and rejected behavior. The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records remaining application requirements; modularization does not claim to implement them.
+The reviewed [Go 1.25 baseline](internal/compat/profiles/go125.json) distinguishes implemented, limited, stub and rejected behavior. Effective Go 1.26 capabilities combine that baseline with the [Go 1.26 delta](internal/compat/profiles/go126.json). The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records remaining application requirements; modularization does not claim to implement them.
 
 ## Development and test reports
-
-Run `make lint` to check the current contents of all staged, unstaged and
-untracked Go files under `./cmd` and `./examples` only. It checks entire changed
-files, with their package context, and reports findings only in those files (package type errors still
-fail). Deleted files are skipped. Nested modules are discovered from `go.mod`.
-The `.golangci.yml` and `revive.toml` rules come from gquorum, with golangci's
-path scope restricted to `cmd/` and `examples/` and its examples exclusion removed.
-Golangci-lint checks native packages with `linkname` and the selected compiler;
-standalone revive also checks files excluded by build tags, including `sim`
-tests. Lint does not execute tests or enforce rules in runtime or crypto/hash code.
-
-Run `make lint-full` to check all Go files within those same allowed paths,
-including unchanged tracked files and non-ignored untracked files. It uses
-the same rules and nested-module handling as `make lint`.
-
-`make lint-tools` installs gquorum's pinned tools under `.gosim/lint/`.
-Lint prefers those binaries, otherwise uses tools on `PATH`; `GOLANGCI` and
-`REVIVE` can override the executables. `GOSIM_TOOLCHAIN` selects the compiler
-used for analysis. Changes outside these directories and non-Go changes are a no-op.
-
-Run `make install-hooks` to enable the copied pre-commit hook. It runs
-`make lint-staged`'s runner against an isolated copy of the index, so partially
-staged files are checked exactly as they will be committed. Neither command
-changes or stages source files. `make test-lint-tools` checks this workflow.
-
-Run `make test` for ordinary local native and simulation checks. Go selects the
-compiler normally; `GOSIM_TOOLCHAIN` is an optional explicit override. The runner
-creates an isolated source snapshot and starts no Docker, Colima, VMs or
-cross-architecture jobs. Package and test concurrency default to 2 and 4:
 
 ```sh
 make test
@@ -274,13 +243,87 @@ Neither path invokes certification or rewrites profile evidence.
 CI runs ordinary native tests and reporting checks on ARM64 Linux with
 Go family selectors, and uploads `test-reports`. It has no certification step.
 
-## Generation and manual certification
+Certification is an optional manual operation. It is neither a CI step nor a
+requirement for normal commands or library use. Missing or stale certification
+never blocks a compatible build. Exact compiler/source identities still isolate
+artifacts and deterministic replay; a family policy does not promise replay
+across different patches.
+
+## Maintenance, generation and manual certification
+
+See the [maintainer guide](docs/MAINTAINER_GUIDE.md) for adding Go families,
+version-specific APIs, stdlib hooks and simulation features, and verifying
+certification results.
+
+Compatibility implementation lives once in `internal/compat/{hooks,shims,host}`.
+`internal/compat/profiles/go125.json` is the baseline; `go126.json` contains only
+its changes. A future 1.27 definition would inherit **1.25 + 1.26 + 1.27**.
+An unchanged family needs an empty delta and a support declaration, with no copied
+implementation files. Generated selectors and guards enforce supported families;
+ordinary Go release constraints select source variants. Exact patches remain
+separate compiler/source identities, not support declarations.
+
+### Reviewing a new Go family
+
+Run the metadata-only generator with each compiler in a separate process. These
+commands inspect selected source; they do not execute race or cross-architecture
+tests. For the existing 1.25→1.26 transition:
+
+```sh
+GOTOOLCHAIN=go1.25.14 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen observe -profile=go125 -output=.gosim/compare/go125-observation.json
+GOTOOLCHAIN=go1.26.9 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen compare -parent=go125 -parent-observation=.gosim/compare/go125-observation.json -output=.gosim/compare/go126
+```
+
+Use fresh destinations on every run. The tool creates missing parent directories
+and rejects an existing destination before scanning; final publication is also
+exclusive. The destination filesystem must support hard links. `observe` requires
+the parent's recorded exact generation compiler. `compare` uses the running stable
+compiler, including an unregistered family, and requires the immediate next minor.
+Neither command downloads or runs a parent compiler. Parent snapshots bind the
+host/context inventory, inspector implementation, parent definition/origin and
+module inputs; use the same host and requested architectures for both runs.
+
+With a snapshot, `api_diff=inspected` reports actual upstream API and method-set
+changes. Omitting `-parent-observation` gives `skipped-no-parent`: declared contract
+and source checks still run, but API comparison is skipped. Without a parent
+snapshot, unreviewed packages are informational; the tool cannot determine which
+packages are newly added. Failed inspections produce incomplete reports and exit 1;
+complete differences, including incompatibilities, exit 0. Invalid arguments exit 2. Race contexts describe source
+selection only. Source hash changes require behavioral review.
+
+Outputs are `report.md`, `delta.draft.json`, then `report.json` last. The Markdown
+groups repeated findings and places incompatible changes before review/information.
+An absent `report.json` means interrupted publication; `complete=false` means an
+incomplete scan. A draft cannot be loaded as a family definition and never enables
+support. Review findings, implement any necessary source variants, and author the
+new family's delta against its immediate parent. No automatic apply, baseline
+rebase or semantic-compatibility proof is provided.
+
+### Maintaining reviewed definitions and provenance
+
+`profiles` is the sole support-table, guard and adapter-revision maintenance entry:
+
+```sh
+go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen profiles -root=.
+go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen profiles -root=. -check
+```
+
+Write mode can bootstrap a reviewed definition before its origin exists. With the
+matching compiler, run flag-only generation with `-profile`, `-arches`, `-output=.`
+and explicit `-refresh-origin` to create/update independent provenance after
+contract validation. Then regenerate `profiles` and run metadata and generation
+checks under both recorded baselines. Existing checks:
+
+```sh
+GOTOOLCHAIN=go1.25.14 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen -toolchain=go1.25.14 -profile=go125 -arches=amd64,arm64 -output=. -check
+GOTOOLCHAIN=go1.26.9 go run -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim-gen -toolchain=go1.26.9 -profile=go126 -arches=amd64,arm64 -output=. -check
+```
 
 Generation baselines are reproducible provenance, not caller compiler pins.
-`cmd/gosim-gen` uses explicit toolchain/profile/architecture flags; `-check`
-reproduces the recorded baseline without modifying files. An intentional
-`-refresh-origin` validates contracts before recording a different baseline.
-`make go-generate` generates adapters and filesystem-model stringer output.
+`make go-generate` regenerates shared adapters, metadata and the filesystem-model
+stringer output, then checks shared adapters independently under both compilers.
+Origins remain separate files; historical evidence remains in `profiles/evidence.json`.
+Neither is an ordinary support allowlist. See [design and storage accounting](docs/design.md#compatibility-storage-accounting).
 
 Manual certification is independent of tests and CI. Its matrix defaults to
 Go 1.25.14 and Go 1.26.9 on Linux/Darwin ARM64, with four feature sets and no race

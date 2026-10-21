@@ -26,6 +26,7 @@ func Registry() []Suite {
 		{"./examples/bolt", []string{"rt", "fs"}, false},
 		{"./examples/network/machines", []string{"rt", "net"}, false},
 		{"./examples/network/latency", []string{"rt", "net"}, false},
+		{"./examples/etcd", []string{"rt", "fs", "net"}, false},
 	}
 }
 

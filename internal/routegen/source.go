@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neria-cloud/gosim/internal/buildcfg"
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
@@ -24,6 +25,9 @@ type sourcePackage struct {
 // loadSources uses the selected executable's Linux file selection, including
 // separately pinned module declarations. It never uses the generator's GOROOT.
 func loadSources(tc buildspec.Toolchain, arch string) (map[string]sourcePackage, error) {
+	if err := buildcfg.ValidateWorker(tc); err != nil {
+		return nil, err
+	}
 	tc.HostArch = arch
 	cmd := buildspec.GoCommand(tc, "", "list", "-json", "syscall", "golang.org/x/sys/unix", "internal/syscall/unix")
 	for i, v := range cmd.Env {

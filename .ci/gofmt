@@ -1,7 +1,7 @@
 #!/bin/bash
 # gofmt checks that code is formatted with gofumpt and sorted inputs
 
-gofiles=$(find . -name "*.go" -and -not -ipath "./.gosim/*" -exec sh -c 'head -3 {} | grep -q "DO NOT EDIT." || echo {}' \;)
+gofiles=$(find . -type d -name .gosim -prune -o -type f -name "*.go" -exec sh -c 'head -3 "$1" | grep -q "DO NOT EDIT." || echo "$1"' _ {} \;)
 goimports="go run golang.org/x/tools/cmd/goimports -local=github.com/neria-cloud/gosim -format-only"
 gofumpt="go run mvdan.cc/gofumpt"
 

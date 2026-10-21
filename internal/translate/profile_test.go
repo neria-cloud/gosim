@@ -15,6 +15,7 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/selected"
+	"github.com/neria-cloud/gosim/internal/compat/spec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
@@ -51,13 +52,12 @@ func TestPoliciesSelectedMetadata(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			family := s.Identity.Profile
-			if policies.packages["reflect"] != gosimtool.Module+"/internal/compat/"+family+"/shims/reflect" {
+			if policies.packages["reflect"] != gosimtool.Module+"/internal/compat/shims/reflect" {
 				t.Fatal("wrong reflect substitution")
 			}
 			for _, hook := range policies.hooks {
-				if !strings.HasPrefix(hook.Pkg, gosimtool.Module+"/internal/compat/"+family+"/hooks/") {
-					t.Fatalf("hook escapes family: %+v", hook)
+				if spec.ClassifyCompatPackage(hook.Pkg) != spec.CompatHooks {
+					t.Fatalf("hook escapes translated category: %+v", hook)
 				}
 			}
 			if !policies.shared[PackageSelector{Pkg: gosimtool.Module + "/internal/control", Selector: "binding"}] {
@@ -226,7 +226,7 @@ func TestHookedSourceAndOwnedNativeImports(t *testing.T) {
 	if err := ValidateBoundary(replaced, p); err != nil {
 		t.Fatal(err)
 	}
-	shim := gosimtool.Module + "/internal/compat/" + s.Identity.Profile + "/shims/reflect"
+	shim := gosimtool.Module + "/internal/compat/shims/reflect"
 	source := `package reflect; import "reflect" //gosim:notranslate
 var X=reflect.TypeOf(1)`
 	if err := ValidateBoundary(typedBoundary(t, shim, source, false), p); err != nil {
@@ -263,9 +263,31 @@ func TestProviderAndRetiredImportBoundaries(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, path := range []string{"internal/unreviewed", gosimtool.Module + "/internal/simulation/fs", gosimtool.Module + "/internal/hooks/go125", gosimtool.Module + "/internal/hostabi", gosimtool.Module + "/internal/compat/go124/hooks/rt", gosimtool.Module + "/internal/compat/" + s.Identity.Profile + "/profile"} {
+	for _, path := range []string{"internal/unreviewed", gosimtool.Module + "/internal/simulation/fs", gosimtool.Module + "/internal/hooks/go125", gosimtool.Module + "/internal/hostabi", gosimtool.Module + "/internal/compat/go124/hooks/rt", gosimtool.Module + "/internal/compat/go125/hooks/rt", gosimtool.Module + "/internal/compat/go126/shims/reflect", gosimtool.Module + "/internal/compat/profiles", gosimtool.Module + "/internal/compat/audit", gosimtool.Module + "/internal/compat/" + s.Identity.Profile + "/profile"} {
 		if _, err := p.packagePolicy(path, strings.HasPrefix(path, "internal/")); err == nil {
 			t.Fatalf("unexpected admission %s", path)
+		}
+	}
+}
+
+func TestSharedCompatibilityBoundary(t *testing.T) {
+	p, err := Policies(profileSelection(t, "rt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	shared := gosimtool.Module + "/internal/compat/shims/reflect"
+	p.manifest.NativeImports = append(p.manifest.NativeImports, spec.NativeImport{From: shared, Package: "reflect", Reason: "exact fixture"})
+	source := `package reflect; import "reflect" //gosim:notranslate
+var X=reflect.TypeOf(1)`
+	if err := ValidateBoundary(typedBoundary(t, shared, source, false), p); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateBoundary(typedBoundary(t, gosimtool.Module+"/internal/compat/shims/unreviewed", source, false), p); err == nil {
+		t.Fatal("shared category granted native permission")
+	}
+	for _, suffix := range []string{"host", "profiles", "audit", "unknown", "go127/hooks/rt"} {
+		if _, err := p.packagePolicy(gosimtool.Module+"/internal/compat/"+suffix, false); err == nil {
+			t.Fatal("host/unknown compat source admitted", suffix)
 		}
 	}
 }

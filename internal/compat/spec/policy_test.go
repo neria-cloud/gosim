@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	p125 "github.com/neria-cloud/gosim/internal/compat/go125/profile"
-	p126 "github.com/neria-cloud/gosim/internal/compat/go126/profile"
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
@@ -18,9 +16,9 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			p, m := p125.Descriptor(), p125.PolicyManifest()
+			p, m := fixtureProfile(t, "go125"), fixturePolicy(t, "go125")
 			if family == "go126" {
-				p, m = p126.Descriptor(), p126.PolicyManifest()
+				p, m = fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 			}
 			if err := p.Validate(); err != nil {
 				t.Fatal(err)
@@ -34,7 +32,7 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 					t.Errorf("%s: %+v %v", path, policy, err)
 				}
 			}
-			for _, path := range []string{"net/http/httptest", "github.com/modern-go/reflect2", "C", "testing/synctest", "crypto/internal/sysrand", "crypto/internal/fips140", "weak"} {
+			for _, path := range []string{"net/http/httptest", "github.com/modern-go/reflect2/private", "C", "testing/synctest", "crypto/internal/sysrand", "crypto/internal/fips140", "weak"} {
 				if _, err := p.Policy(path, true); err == nil {
 					t.Errorf("unsafe package %s admitted", path)
 				}
@@ -62,6 +60,12 @@ func TestFamiliesPackagePolicies(t *testing.T) {
 			if policy, err := p.Policy("crypto/rand", true); err != nil || policy.Mode != "bridge" {
 				t.Fatalf("exact deterministic bridge did not override crypto rejection: %+v %v", policy, err)
 			}
+			if policy, err := p.Policy("github.com/modern-go/reflect2", false); err != nil || policy.Mode != "bridge" {
+				t.Fatalf("exact reflect2 facade did not override private-subtree rejection: %+v %v", policy, err)
+			}
+			if policy, err := p.Policy("runtime/trace", true); err != nil || policy.Mode != "bridge" {
+				t.Fatalf("disabled trace facade did not override native-trace rejection: %+v %v", policy, err)
+			}
 			if policy, err := p.Policy("example.test/application", false); err != nil || policy.Mode != "translate" {
 				t.Fatal("application code must be translated")
 			}
@@ -84,9 +88,9 @@ func TestFamiliesNativeBridges(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			p, m := p125.Descriptor(), p125.PolicyManifest()
+			p, m := fixtureProfile(t, "go125"), fixturePolicy(t, "go125")
 			if family == "go126" {
-				p, m = p126.Descriptor(), p126.PolicyManifest()
+				p, m = fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 			}
 			for _, symbol := range []string{"Gosched", "GOOS", "SetFinalizer", "NumCPU", "GOMAXPROCS", "ReadMemStats", "AddCleanup", "SetBlockProfileRate"} {
 				target, err := m.ResolveSymbol(p, "runtime", symbol, true)
@@ -106,7 +110,7 @@ func TestFamiliesNativeBridges(t *testing.T) {
 			}
 			for _, path := range []string{"reflect", "testing", "internal/synctest", "crypto/rand", "crypto/tls", "crypto/x509", "os/exec", "os/signal", "runtime/pprof"} {
 				target, err := m.ResolveSymbol(p, path, "TypeFor", true)
-				if err != nil || !strings.Contains(target.Package, "/"+family+"/shims/") {
+				if err != nil || spec.ClassifyCompatPackage(target.Package) != spec.CompatShims {
 					t.Fatalf("whole shim %s: %+v %v", path, target, err)
 				}
 			}
@@ -133,9 +137,9 @@ func TestMinimalImportInitClassification(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			m := p125.PolicyManifest()
+			m := fixturePolicy(t, "go125")
 			if family == "go126" {
-				m = p126.PolicyManifest()
+				m = fixturePolicy(t, "go126")
 			}
 			for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
 				for _, item := range []struct {
@@ -190,9 +194,9 @@ func TestPolicyFixtures(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			p, m := p125.Descriptor(), p125.PolicyManifest()
+			p, m := fixtureProfile(t, "go125"), fixturePolicy(t, "go125")
 			if family == "go126" {
-				p, m = p126.Descriptor(), p126.PolicyManifest()
+				p, m = fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 			}
 			fixtures, err := filepath.Glob("testdata/policy/*.go")
 			if err != nil {
@@ -264,9 +268,9 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
 		t.Run(family, func(t *testing.T) {
-			p, m := p125.Descriptor(), p125.PolicyManifest()
+			p, m := fixtureProfile(t, "go125"), fixturePolicy(t, "go125")
 			if family == "go126" {
-				p, m = p126.Descriptor(), p126.PolicyManifest()
+				p, m = fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 			}
 			for _, entry := range m.NativeImports {
 				if err := m.AllowNativeImport(p, entry.From, entry.Package, true); err != nil {
@@ -276,17 +280,36 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 					t.Fatalf("trusted import leaked to application: %+v", entry)
 				}
 			}
-			paths, err := filepath.Glob("../" + family + "/shims/*/*.go")
-			if err != nil {
-				t.Fatal(err)
+			var paths []string
+			for _, pattern := range []string{"../shims/*/*.go", "../hooks/rt/*.go"} {
+				matches, err := filepath.Glob(pattern)
+				if err != nil {
+					t.Fatal(err)
+				}
+				paths = append(paths, matches...)
 			}
-			hookPaths, err := filepath.Glob("../" + family + "/hooks/rt/*.go")
-			if err != nil {
-				t.Fatal(err)
+			if len(paths) == 0 {
+				t.Fatal("empty native import audit")
 			}
-			paths = append(paths, hookPaths...)
 			for _, filename := range paths {
 				if strings.HasSuffix(filename, "_test.go") {
+					continue
+				}
+				active := false
+				for _, arch := range []string{"amd64", "arm64"} {
+					for _, race := range []bool{false, true} {
+						ctx := sourceContext(family, arch)
+						if race {
+							ctx.BuildTags = append(ctx.BuildTags, "race")
+						}
+						match, err := ctx.MatchFile(filepath.Dir(filename), filepath.Base(filename))
+						if err != nil {
+							t.Fatal(err)
+						}
+						active = active || match
+					}
+				}
+				if !active {
 					continue
 				}
 				file, err := parser.ParseFile(token.NewFileSet(), filename, nil, parser.ParseComments)
@@ -315,7 +338,7 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 
 func TestPolicyManifestRejectsInvalidOwnership(t *testing.T) {
 	t.Parallel()
-	p := p125.Descriptor()
+	p := fixtureProfile(t, "go125")
 	cases := []func(*spec.PolicyManifest){
 		func(m *spec.PolicyManifest) { m.SharedGlobals[0].Package = "example.test/application" },
 		func(m *spec.PolicyManifest) {
@@ -328,7 +351,7 @@ func TestPolicyManifestRejectsInvalidOwnership(t *testing.T) {
 		func(m *spec.PolicyManifest) { m.Modules[0].Version = "" },
 	}
 	for _, change := range cases {
-		m := p125.PolicyManifest()
+		m := fixturePolicy(t, "go125")
 		change(&m)
 		if err := m.Validate(p); err == nil {
 			t.Fatal("invalid policy manifest accepted")
@@ -351,10 +374,10 @@ func hasNativeDirective(group *ast.CommentGroup) bool {
 func TestInitProbeSourceEvidence(t *testing.T) {
 	t.Parallel()
 	sources := make(map[string]bool)
-	for _, source := range p125.VerificationOrigin().Files {
+	for _, source := range fixtureOrigin(t, "go125").Files {
 		sources[source.Path] = true
 	}
-	for _, probe := range p125.PolicyManifest().Probes {
+	for _, probe := range fixturePolicy(t, "go125").Probes {
 		if !sources[probe.Source] {
 			t.Errorf("probe %s.%s lacks pinned source evidence: %s", probe.Package, probe.Symbol, probe.Source)
 		}

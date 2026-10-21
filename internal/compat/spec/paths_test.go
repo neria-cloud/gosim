@@ -1,0 +1,156 @@
+package spec
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestCompatPackageClassification(t *testing.T) {
+	for suffix, want := range map[string]CompatPackageKind{
+		"hooks/rt": CompatHooks, "shims/reflect": CompatShims, "host": CompatHost,
+		"profiles": CompatMetadata, "selected": CompatMetadata, "spec": CompatMetadata, "audit": CompatTooling,
+		"unknown": CompatUnknown, "go125/hooks/rt": CompatUnknown, "go126/shims/testing": CompatUnknown,
+		"go125/host": CompatUnknown, "go126/profile": CompatUnknown, "profile": CompatUnknown, "catalog": CompatUnknown, "genprofile": CompatUnknown,
+		"go127/hooks/rt": CompatUnknown, "hooks/../host": CompatUnknown,
+	} {
+		for _, prefix := range []string{module + "/internal/compat/", "translated/" + module + "/internal_/compat/"} {
+			if got := ClassifyCompatPackage(prefix + suffix); got != want {
+				t.Fatalf("%s: got %d want %d", prefix+suffix, got, want)
+			}
+		}
+	}
+	for _, path := range []string{"fmt", "example/compat/hooks/rt", module + "/internal/compatible/hooks/rt"} {
+		if ClassifyCompatPackage(path) != CompatOutside {
+			t.Fatal("classified unrelated path", path)
+		}
+	}
+}
+
+func TestSharedCompatibilityPermissions(t *testing.T) {
+	p, _ := fixture()
+	shared := module + "/internal/compat/shims/reflect"
+	m := PolicyManifest{NativeImports: []NativeImport{{From: shared, Package: "reflect", Reason: "exact reviewed bridge"}}}
+	p.Packages = []PackagePolicy{{Path: "reflect", Mode: "translate", Reason: "fixture"}}
+	if err := m.Validate(p); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.AllowNativeImport(p, shared, "reflect", true); err != nil {
+		t.Fatal(err)
+	}
+	for _, from := range []string{module + "/internal/compat/shims/testing", "example/app", module + "/internal/compat/go125/shims/reflect"} {
+		if m.AllowNativeImport(p, from, "reflect", true) == nil {
+			t.Fatal("category granted another package native permission", from)
+		}
+	}
+	for _, target := range []string{module + "/internal/compat/hooks/rt", module + "/internal/compat/host", module + "/internal/compat/spec"} {
+		m.NativeImports = append(m.NativeImports, NativeImport{From: shared, Package: target, Reason: "forged"})
+		if m.AllowNativeImport(p, shared, target, false) == nil || m.Validate(p) == nil {
+			t.Fatal("native compatibility escape", target)
+		}
+	}
+	for _, target := range []string{shared + ".F", module + "/internal/compat/hooks/rt.F", module + "/internal/compat/host.F"} {
+		if err := p.checkPackage(target); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, target := range []string{module + "/internal/compat/go125/hooks/rt.F", module + "/internal/compat/profiles.F", module + "/internal/compat/unknown.F", "translated/" + module + "/internal_/compat/hooks/rt.F"} {
+		if p.checkPackage(target) == nil {
+			t.Fatal("nonselected/unknown target accepted", target)
+		}
+	}
+}
+
+func TestSharedRevisionInputs(t *testing.T) {
+	root := t.TempDir()
+	write := func(name, data string) {
+		t.Helper()
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, dir := range []string{"internal/compat/hooks", "internal/compat/shims", "internal/hostabi", "internal/compat/selected", "internal/compat/spec", "internal/buildspec"} {
+		write(dir+"/input.go", "package fixture")
+	}
+	write("internal/compat/profiles/go125.json", `{"schema":1,"family":"1.25","supported":true,"delta":{}}`)
+	write("internal/compat/profiles/go126.json", `{"schema":1,"family":"1.26","parent":"1.25","supported":true,"delta":{}}`)
+	revision := func() string {
+		t.Helper()
+		value, err := SourceRevision(root, "go125")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return value
+	}
+	before := revision()
+	for _, dir := range []string{"hooks/rt", "shims/testing", "host", "profiles", "audit"} {
+		name := "internal/compat/" + dir + "/shared.go"
+		write(name, "package shared")
+		after := revision()
+		if after == before {
+			t.Fatal("shared input not hashed", dir)
+		}
+		before = after
+		write(name, "package changed")
+		after = revision()
+		if after == before {
+			t.Fatal("shared edit not hashed", dir)
+		}
+		before = after
+		if err := os.Remove(filepath.Join(root, name)); err != nil {
+			t.Fatal(err)
+		}
+		after = revision()
+		if after == before {
+			t.Fatal("shared removal not hashed", dir)
+		}
+		before = after
+	}
+	for _, changed := range []string{"go125", "go126"} {
+		prior := map[string]string{}
+		for _, family := range []string{"go125", "go126"} {
+			value, err := SourceRevision(root, family)
+			if err != nil {
+				t.Fatal(err)
+			}
+			prior[family] = value
+		}
+		name := "internal/compat/profiles/" + changed + ".json"
+		data, err := os.ReadFile(filepath.Join(root, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		write(name, strings.Replace(string(data), `"delta":{}`, `"delta":{"runtime_packages":{"add":[{"path":"fixture/`+changed+`"}]}}`, 1))
+		for family, old := range prior {
+			value, err := SourceRevision(root, family)
+			if err != nil || value == old {
+				t.Fatalf("%s ignored shared definition %s: %v", family, changed, err)
+			}
+		}
+	}
+	before = revision()
+	for _, name := range []string{"internal/compat/profiles/go125.origin.json", "internal/compat/profiles/go126.origin.json", "internal/compat/profiles/evidence.json", "internal/compat/profiles/revisions_gen.go", "internal/compat/hooks/rt/shared_test.go", "internal/compat/shims/testing/testdata/input.go"} {
+		write(name, strings.Repeat("x", 64))
+	}
+	if revision() != before {
+		t.Fatal("tests/generated revision output fed into source hash")
+	}
+}
+
+func TestRewriteRejectsNativeCompatibilityPackages(t *testing.T) {
+	p, _ := fixture()
+	p.Packages = []PackagePolicy{{Path: "reflect", Mode: "bridge", Reason: "fixture"}}
+	for _, suffix := range []string{"hooks/rt", "shims/reflect", "host", "spec", "profiles", "unknown"} {
+		target := module + "/internal/compat/" + suffix
+		m := PolicyManifest{Bridges: []Bridge{{Package: "reflect", Reason: "fixture", Rewrites: []SymbolRewrite{{Symbol: "F", Package: target, Target: "F"}}}}}
+		want := suffix == "hooks/rt" || suffix == "shims/reflect"
+		if err := m.Validate(p); (err == nil) != want {
+			t.Fatalf("rewrite into %s: %v", target, err)
+		}
+	}
+}

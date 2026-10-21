@@ -1,56 +1,82 @@
 package spec
 
 import (
-	"encoding/json"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
-
-	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
-// SourceRevision fingerprints executable adapters, manifests, source origins and
-// policies. Tests and certification results are excluded: recording evidence must
-// not change the source identity that evidence certifies. File paths are hashed
-// as well as contents, so moving/deleting an adapter also invalidates identity.
-func SourceRevision(root, family string) (string, error) {
-	if _, err := buildspec.LookupProfile(family); err != nil {
-		return "", fmt.Errorf("unknown profile %q", family)
+// SourceRevision binds resolved ancestry and conservative executable inputs.
+// Provenance affects whole-source build identity, but never this adapter revision.
+func SourceRevision(root, profileID string) (string, error) {
+	defs, err := LoadDefinitions(os.DirFS(filepath.Join(root, "internal/compat/profiles")))
+	if err != nil {
+		return "", err
 	}
+	var resolved ResolvedFamily
+	found := false
+	for family := range defs {
+		if "go"+strings.ReplaceAll(family, ".", "") != profileID {
+			continue
+		}
+		resolved, err = ResolveDefinitions(defs, family)
+		if err != nil {
+			return "", err
+		}
+		found = true
+		break
+	}
+	if !found {
+		return "", fmt.Errorf("unknown profile %q", profileID)
+	}
+	canonical, err := resolved.Canonical()
+	if err != nil {
+		return "", err
+	}
+	h := sha256.New()
+	add := func(data []byte) {
+		var size [8]byte
+		binary.BigEndian.PutUint64(size[:], uint64(len(data)))
+		h.Write(size[:])
+		h.Write(data)
+	}
+	add([]byte("gosim-compat-source-v2"))
+	add([]byte(resolved.Family))
+	add(canonical)
 	var paths []string
-	for _, dir := range []string{"internal/compat/" + family, "internal/hostabi", "internal/compat/selected", "internal/compat/spec", "internal/buildspec"} {
-		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, entry fs.DirEntry, err error) error {
+	for _, dir := range []string{"internal/compat", "internal/hostabi", "internal/buildspec"} {
+		err := filepath.WalkDir(filepath.Join(root, dir), func(filename string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
+			name := entry.Name()
+			if name != ".gosim" && (strings.HasPrefix(name, ".") || strings.HasSuffix(name, "~") || strings.HasSuffix(name, ".swp")) {
+				return fmt.Errorf("unexpected hidden/backup compatibility input %s; remove it before generating revisions", filename)
+			}
 			if entry.IsDir() {
-				if entry.Name() == "testdata" {
+				if entry.Name() == "testdata" || entry.Name() == ".gosim" {
 					return filepath.SkipDir
 				}
 				return nil
 			}
-			name := entry.Name()
-			if strings.HasSuffix(name, "_test.go") || name == "revision.go" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) || name == "tuples.json" || name == "evidence.json" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) {
-				return nil
-			}
-			if !strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, ".json") {
-				return nil
-			}
-			// Shared facade selection includes only this family's implementation.
-			for _, other := range buildspec.SupportedFamilies() {
-				if other.Profile != family && strings.Contains(name, other.Profile) {
-					return nil
-				}
-			}
-
-			rel, err := filepath.Rel(root, path)
+			rel, err := filepath.Rel(root, filename)
 			if err != nil {
 				return err
 			}
-			paths = append(paths, filepath.ToSlash(rel))
+			rel = filepath.ToSlash(rel)
+			if strings.HasSuffix(name, "_test.go") || strings.HasSuffix(name, ".md") || rel == "internal/compat/profiles/revisions_gen.go" || rel == "internal/compat/profiles/evidence.json" || strings.HasPrefix(rel, "internal/compat/profiles/go") && strings.HasSuffix(name, ".origin.json") {
+				return nil
+			}
+			if !entry.Type().IsRegular() {
+				return fmt.Errorf("nonregular compatibility input %s", rel)
+			}
+			paths = append(paths, rel)
 			return nil
 		})
 		if err != nil {
@@ -58,17 +84,13 @@ func SourceRevision(root, family string) (string, error) {
 		}
 	}
 	slices.Sort(paths)
-	records := make([]buildspec.Revision, 0, len(paths))
-	for _, path := range paths {
-		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(path)))
+	for _, name := range paths {
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
 		if err != nil {
 			return "", err
 		}
-		records = append(records, buildspec.Revision{Name: path, Digest: buildspec.Hash(data)})
+		add([]byte(name))
+		add(data)
 	}
-	data, err := json.Marshal(records)
-	if err != nil {
-		return "", err
-	}
-	return buildspec.Hash(data), nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }

@@ -10,6 +10,7 @@ import (
 	"go/token"
 	"go/types"
 	"io"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -32,6 +33,7 @@ type sourceModule struct {
 
 type sourcePackage struct {
 	ImportPath, Dir   string
+	Standard          bool
 	GoFiles, CgoFiles []string
 	ImportMap         map[string]string
 	Module            *sourceModule
@@ -50,12 +52,23 @@ type sourceInspection struct {
 }
 
 func inspectSources(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string) (*sourceInspection, error) {
+	return inspectSourcesWithCommand(ctx, tc, dir, selection, deps, paths, false, buildspec.OutputCommand)
+}
+
+func inspectSourcesForObservation(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string) (*sourceInspection, error) {
+	return inspectSourcesWithCommand(ctx, tc, dir, selection, deps, paths, true, buildspec.SourceInspectionCommand)
+}
+
+func inspectSourcesWithCommand(ctx context.Context, tc buildspec.Toolchain, dir string, selection SourceContext, deps bool, paths []string, observation bool, command func(context.Context, buildspec.Toolchain, string, ...string) *exec.Cmd) (*sourceInspection, error) {
 	args := []string{"list", "-mod=mod", "-json", "-tags=linkname"}
+	if observation {
+		args = append(args, "-e")
+	}
 	if deps {
 		args = append(args, "-deps")
 	}
 	args = append(args, paths...)
-	cmd := buildspec.OutputCommand(ctx, tc, dir, args...)
+	cmd := command(ctx, tc, dir, args...)
 	// These owned source tags are derived from context, never arbitrary user tags.
 	// Native runtime selection follows the actual race mode without building it.
 	tags := "linkname"
@@ -103,12 +116,20 @@ func inspectSources(ctx context.Context, tc buildspec.Toolchain, dir string, sel
 			return nil, err
 		}
 		if pkg.Error != nil {
+			// The successful std inventory plus Go's explicit not-in-std result
+			// establishes absence. Other loader errors remain incomplete inspection.
+			if observation && slices.Contains(paths, "std") && slices.Contains(paths, pkg.ImportPath) && pkg.Module == nil && strings.HasPrefix(pkg.Error.Err, "package "+pkg.ImportPath+" is not in std (") {
+				continue
+			}
 			return nil, fmt.Errorf("inspect %s: %s", pkg.ImportPath, pkg.Error.Err)
 		}
 		result.packages[pkg.ImportPath] = pkg
 	}
 	for _, path := range paths {
-		if _, ok := result.packages[path]; !ok {
+		if path == "std" && len(result.packages) != 0 {
+			continue
+		}
+		if _, ok := result.packages[path]; !ok && !observation {
 			return nil, fmt.Errorf("missing source package %s", path)
 		}
 	}

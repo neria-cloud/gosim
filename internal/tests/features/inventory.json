@@ -144,7 +144,7 @@
 {"Source":"meta_test.go","Destination":"integration/meta_test.go","Name":"TestMetaDeterministic","Constraint":"//go:build !sim"},
 {"Source":"meta_test.go","Destination":"integration/meta_test.go","Name":"TestMetaSeeds","Constraint":"//go:build !sim"},
 {"Source":"meta_test.go","Destination":"integration/meta_test.go","Name":"TestGosim","Constraint":"//go:build !sim"},
-{"Source":"net_grpc_http_test.go","Destination":"net/net_grpc_http_test.go","Name":"TestNetTcpHttp","Constraint":"//go:build ignore"},
+{"Source":"net_grpc_http_test.go","Destination":"net/net_grpc_http_test.go","Name":"TestNetTcpHttp","Constraint":"//go:build sim"},
 {"Source":"net_grpc_http_test.go","Destination":"net/net_grpc_test.go","Name":"TestNetTcpGrpc","Constraint":"//go:build sim"},
 {"Source":"net_test.go","Destination":"net/net_test.go","Name":"TestNetTcpDial","Constraint":"//go:build sim"},
 {"Source":"net_test.go","Destination":"net/net_test.go","Name":"TestNetTcpDisconnectBasic","Constraint":"//go:build sim"},

@@ -18,6 +18,7 @@ import (
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 	"github.com/neria-cloud/gosim/internal/compat/selected"
+	"github.com/neria-cloud/gosim/internal/compat/spec"
 	"github.com/neria-cloud/gosim/internal/gosimtool"
 )
 
@@ -58,8 +59,13 @@ func render(selection buildspec.Selection) ([]byte, []string, error) {
 		gosimtool.Module + "/internal/logging":   "logging",
 		gosimtool.Module + "/internal/contracts": "contracts", gosimtool.Module + "/internal/control": "control",
 		gosimtool.Module + "/internal/kernel": "kernel", gosimtool.Module + "/rt/runtime": "simrt", gosimtool.Module + "/rt/runtime/abi": "abi",
-		gosimtool.Module + "/internal/compat/" + id.Profile + "/shims/testing": "simtesting",
-		gosimtool.Module + "/internal/compat/" + id.Profile + "/hooks/kernel":  "processhooks",
+	}
+	aliases, err := compatibilityAliases(selection.RuntimePackages)
+	if err != nil {
+		return nil, nil, err
+	}
+	for path, alias := range aliases {
+		imports[path] = alias
 	}
 	for _, path := range selection.RuntimePackages {
 		if _, ok := imports[path]; !ok {
@@ -93,6 +99,29 @@ func render(selection buildspec.Selection) ([]byte, []string, error) {
 	}
 	source, err := format.Source(output.Bytes())
 	return source, paths, err
+}
+
+// Runtime packages are already checked against the selected descriptor. Resolve
+// these two roles from that inventory so shared and not-yet-moved paths coexist.
+func compatibilityAliases(packages []string) (map[string]string, error) {
+	result := map[string]string{}
+	for suffix, alias := range map[string]string{"/shims/testing": "simtesting", "/hooks/kernel": "processhooks"} {
+		found := ""
+		for _, path := range packages {
+			kind := spec.ClassifyCompatPackage(path)
+			if (kind == spec.CompatHooks || kind == spec.CompatShims) && strings.HasSuffix(path, suffix) {
+				if found != "" {
+					return nil, fmt.Errorf("duplicate composition compatibility role %s", suffix)
+				}
+				found = path
+			}
+		}
+		if found == "" {
+			return nil, fmt.Errorf("missing composition compatibility role %s", suffix)
+		}
+		result[found] = alias
+	}
+	return result, nil
 }
 
 // Generate writes only into a caller-owned staging directory. Publication of its

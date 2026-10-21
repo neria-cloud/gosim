@@ -20,6 +20,17 @@ func ModuleFiles(r Resolution, modules []Module, modulePath string) (map[string]
 	if err := ValidateVersion(r.Toolchain.Version); err != nil {
 		return nil, err
 	}
+	return moduleFiles(r, modules, modulePath)
+}
+
+func SourceInspectionModuleFiles(r Resolution, modules []Module, modulePath string) (map[string][]byte, error) {
+	return moduleFiles(r, modules, modulePath)
+}
+
+func moduleFiles(r Resolution, modules []Module, modulePath string) (map[string][]byte, error) {
+	if _, err := ParseGoVersion(r.Toolchain.Version); err != nil {
+		return nil, err
+	}
 	mod := new(modfile.File)
 	if err := mod.AddModuleStmt(modulePath); err != nil {
 		return nil, err

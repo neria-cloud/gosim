@@ -5,50 +5,38 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
-// CheckProfile validates and renders into a temporary tree, then compares only
-// the requested outputs. It never repairs stale files or changes their mtimes.
+// CheckProfile renders without publication and compares complete committed bytes.
+// Ignored generation records are diagnostics, never prerequisites for checking.
 func CheckProfile(tc buildspec.Toolchain, profileID string, arches []string, output string) error {
-	if output == "" {
-		return fmt.Errorf("explicit output is required")
-	}
-	staging, err := os.MkdirTemp("", "gosim-gen-check-")
+	outputs, err := prepareProfileOutputs(tc, profileID, arches, output, GenerateOptions{})
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(staging)
-	if err := GenerateProfile(tc, profileID, arches, staging, GenerateOptions{}); err != nil {
-		return err
-	}
-	return compareGeneratedOutputs(staging, output)
+	return compareGeneratedOutputs(outputs, output)
 }
 
-func compareGeneratedOutputs(staging, output string) error {
-	return filepath.WalkDir(staging, func(path string, entry os.DirEntry, err error) error {
+func compareGeneratedOutputs(outputs map[string][]byte, output string) error {
+	names := make([]string, 0, len(outputs))
+	for name := range outputs {
+		if !strings.HasPrefix(name, ".gosim/") {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	for _, name := range names {
+		actual, err := os.ReadFile(filepath.Join(output, filepath.FromSlash(name)))
 		if err != nil {
-			return err
+			return fmt.Errorf("check generated %s: %w", name, err)
 		}
-		if entry.IsDir() {
-			return nil
+		if !bytes.Equal(actual, outputs[name]) {
+			return fmt.Errorf("stale generated output %s", name)
 		}
-		rel, err := filepath.Rel(staging, path)
-		if err != nil {
-			return err
-		}
-		expected, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		actual, err := os.ReadFile(filepath.Join(output, rel))
-		if err != nil {
-			return fmt.Errorf("check generated %s: %w", rel, err)
-		}
-		if !bytes.Equal(actual, expected) {
-			return fmt.Errorf("stale generated output %s", rel)
-		}
-		return nil
-	})
+	}
+	return nil
 }

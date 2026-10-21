@@ -14,10 +14,12 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `gosim` | Multiple isolated machines | ✅ | `NewMachine` creates an unstarted machine; `Start` runs its program with isolated globals and the selected filesystem/network services. |
 | `gosim` | Graceful stop, crash, and restart | ✅ | `Stop` flushes modeled writes; `Crash` retains a crash outcome. `Restart` creates a fresh epoch with new globals, and `SetMain` selects the next boot program. |
 | `gosim`, `rt` | Manual simulation stepping | not supported | There is no public API to advance the simulation by one tick or scheduler step. Debugger step selection is a separate facility. |
+| `gosim`, `rt` | Syscalls couter or statistics | not supported | TBD |
 | `rt` | Virtual time and timeouts | ✅ | Simulated timers and sleeps use virtual time; the scheduler advances to the next timed event when blocked. `rt.SetTimeout` bounds simulation time. |
 | `rt` | Deterministic scheduling and randomness | ✅ | A seeded cooperative scheduler controls goroutine selection. Translated map iteration and application randomness are deterministic; scheduler and provider random streams are separate. |
 | `rt` | `sync.Map` | ✅ | Deterministic storage and scheduling, including pointer keys. `Range` uses a snapshot and allows callbacks to mutate the map. |
 | `rt` | Source-level pause points and barriers | partially | Tests can coordinate simulated goroutines with Go channels. There is no dedicated public typed barrier API for suspend/observe reactions. |
+| `rt` | Native hashing and cryptographic computation | partially | Reviewed hashes, checksums and ciphers use native Go computation. Ed25519 and CRC32 use native Go directly. CRC32 standard tables must remain read-only; Ed25519 key generation needs an explicit deterministic reader for replay (`nil` uses host randomness). Host-global hash registration remains rejected. |
 | `metatesting` | Determinism and multi-seed checks | ✅ | Native tests run prebuilt simulation workers. `CheckDeterministic` compares repeated runs, and `CheckSeeds` exercises multiple seeds using recorded results and checksums. |
 | `gosim`, `net` | Machine naming and address assignment | ✅ | Machines have labels; `net.ConfigureMachine` accepts an IPv4 address or requests deterministic allocation. `net.Address` exposes the assigned address after startup. |
 | `net` | Hostname lookup and DNS | not supported | Machine labels do not provide a simulated DNS service or hostname/reverse-lookup API. |
@@ -38,8 +40,6 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `net` | HTTP dependencies | partially | Existing Go HTTP source can be translated for optional dependencies; this does not establish full HTTP or HTTPS compatibility. |
 | `net` | Plaintext gRPC | ✅ | Unary and bidirectional binary streams with metadata authentication over simulated IPv4/TCP. |
 | `net` | TLS and certificate operations | not supported | Optional TLS/X509 declarations can be imported, but executing their operations aborts without host I/O. |
-| `rt` | Native hashing and cryptographic computation | partially | Reviewed hashes, checksums and ciphers use native Go computation. Ed25519 and CRC32 use native Go directly. CRC32 standard tables must remain read-only; Ed25519 key generation needs an explicit deterministic reader for replay (`nil` uses host randomness). Host-global hash registration remains rejected. |
-| `examples/network/nats` | Embedded NATS Core | supported | A separate application module runs a server and two clients over simulated TCP, with send/receive timestamps and delayed links. |
 | `fs` | Files, directories, and metadata | ✅ | Translated `os` calls support modeled open/read/write, directory operations, rename, and metadata. This does not imply complete POSIX syscall coverage. |
 | `fs` | Sync and crash durability | ✅ | Sync makes modeled operations durable. `SetCrashMode` selects `DurableOnly` or `SamplePending` behavior for non-fsynced operations. |
 | `fs` | Crash-state enumeration and restore | ✅ | `CrashStates` enumerates immutable recovery snapshots with an explicit state budget. `Restore` applies a retained snapshot before starting or restarting a target machine. |

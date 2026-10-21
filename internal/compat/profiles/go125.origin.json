@@ -1,0 +1,2384 @@
+{
+  "schema": 2,
+  "family": "1.25",
+  "baseline_toolchain": "go1.25.14",
+  "files": [
+    {
+      "path": "src/crypto/ecdsa/ecdsa.go",
+      "digest": "b7895129032199b9f5cd172aa467f44550e95ed0c555718a9f24327f34ca30fe"
+    },
+    {
+      "path": "src/crypto/ecdsa/ecdsa_legacy.go",
+      "digest": "e3c00023481e8516a76fdd51521139057df092335119aafe19ab32500a2e720e"
+    },
+    {
+      "path": "src/crypto/ecdsa/notboring.go",
+      "digest": "a723fd5b176febb6a5435861b5273ed9cf173f4f18aedabc0f1937806e57efd7"
+    },
+    {
+      "path": "src/crypto/elliptic/elliptic.go",
+      "digest": "5c265d23fd60baa8ea851a9463e981f9e34978696af0d8c60578b1fecd6762de"
+    },
+    {
+      "path": "src/crypto/elliptic/nistec.go",
+      "digest": "19452fe2c70d7b0136868829fc6466fe6ee8394c996d78bc1e7a4d27964a594b"
+    },
+    {
+      "path": "src/crypto/elliptic/params.go",
+      "digest": "a95fe40f68a6df2a93f9f565c91e4e8a678d48516af8251f34e0f094032734c1"
+    },
+    {
+      "path": "src/crypto/rand/rand.go",
+      "digest": "c2074b598435ca2bb8dce2bb62e7f4b11744a3e36b4746f352a4f2dd3a7bd13a"
+    },
+    {
+      "path": "src/crypto/rand/text.go",
+      "digest": "c2c7d3bc9f093676f362b9e22772b6ab2d48acd6c06ca85fea0fef4741c17ce4"
+    },
+    {
+      "path": "src/crypto/rand/util.go",
+      "digest": "1404ae196db293493f755275fce7baa3d4cafebee57e46c0a30199c31a16ae67"
+    },
+    {
+      "path": "src/crypto/rsa/fips.go",
+      "digest": "bbd7e3239f3108a9146f90ac8068a0359e78391499d59d737d019d763e156da0"
+    },
+    {
+      "path": "src/crypto/rsa/notboring.go",
+      "digest": "d6b371eb52957ef1adb969e70d7a28cbcb3360837bfd401e6805655ee4d8e266"
+    },
+    {
+      "path": "src/crypto/rsa/pkcs1v15.go",
+      "digest": "a5a4cfd384cd24ec92fd0a24bc528c81a09cc5f1229792183ec4c12aaee215ac"
+    },
+    {
+      "path": "src/crypto/rsa/rsa.go",
+      "digest": "25f2a2e606d4a0fbe205da6ec08c2ddb76e60bafe05d26e9b6146cf3961a1cb1"
+    },
+    {
+      "path": "src/crypto/tls/alert.go",
+      "digest": "95b0aab666e8a08a2c56191e0ed96a804be83b4e2d7475d4d1e7c4eb9f8b6b6c"
+    },
+    {
+      "path": "src/crypto/tls/auth.go",
+      "digest": "59ff2c0d34535797121651882ba01fb6caaaffd62571bd501493a78a05a465c5"
+    },
+    {
+      "path": "src/crypto/tls/cache.go",
+      "digest": "553ad7a40a9b198bea838833e3e5ed5660ec9b031ad75f58a9ea119e44bd3bfb"
+    },
+    {
+      "path": "src/crypto/tls/cipher_suites.go",
+      "digest": "d407df31106c5989e29f84fb37403ca52f4bc6a583d821f4235915bdff4c07c1"
+    },
+    {
+      "path": "src/crypto/tls/common.go",
+      "digest": "99f1b8d484bc09c019714bbdd4363246d61d948b885838960939aa6403a3dba7"
+    },
+    {
+      "path": "src/crypto/tls/common_string.go",
+      "digest": "ecef8026406ce1eac8546bf6ae568f377cac71dadb485ab476315c4bfde9b7df"
+    },
+    {
+      "path": "src/crypto/tls/conn.go",
+      "digest": "f34e9af2bf41a34fc0a8f4a8a97769d8b8058939f85d96b508988f431d351c46"
+    },
+    {
+      "path": "src/crypto/tls/defaults.go",
+      "digest": "377a0d907dd852ba9385b993b2f4c524a9dc9953e90f56c6d4d638bf6728833a"
+    },
+    {
+      "path": "src/crypto/tls/defaults_fips140.go",
+      "digest": "2514216710ec38ae01c72394c19a8a0686a3938512cc88d08ec14cb2bca20167"
+    },
+    {
+      "path": "src/crypto/tls/ech.go",
+      "digest": "3069fe6c5549b6bc0f1c7b4d05a0a3f9331e43c1d5274fa19615e9dcadd5e401"
+    },
+    {
+      "path": "src/crypto/tls/handshake_client.go",
+      "digest": "e72af2735f82d517c4d5a826947629dda3e8c02ddcc325346bed0715f023670e"
+    },
+    {
+      "path": "src/crypto/tls/handshake_client_tls13.go",
+      "digest": "942a5ebbe497066388b5791478e13a390ee92d15fcd659ac4e30ebd2e42eefb8"
+    },
+    {
+      "path": "src/crypto/tls/handshake_messages.go",
+      "digest": "b3a61247d78d93e196debfb6d6202e9f771d732de94bd4c30d7dbbebad4ac2b3"
+    },
+    {
+      "path": "src/crypto/tls/handshake_server.go",
+      "digest": "33f9f57f4c21e667b7a64f1faea7845cbd0f8379d7bdb98d3bbc2e1221a9aacc"
+    },
+    {
+      "path": "src/crypto/tls/handshake_server_tls13.go",
+      "digest": "a6ca6a5003fa2f908b368d50d27818d391f2d34864b114a0e1df6805630680af"
+    },
+    {
+      "path": "src/crypto/tls/key_agreement.go",
+      "digest": "cd6b032ff88988fbd093f03228032815113be3c2410410c966086513976e73b0"
+    },
+    {
+      "path": "src/crypto/tls/key_schedule.go",
+      "digest": "825546ed0b80c672b8caa371339cf1c3b1852ade73a8c4db698c50b5cfbfb676"
+    },
+    {
+      "path": "src/crypto/tls/prf.go",
+      "digest": "d58adfd1c96bbf8d4dee892e04c49642211d625b6215a3b147828c6e9b0d3e7c"
+    },
+    {
+      "path": "src/crypto/tls/quic.go",
+      "digest": "664e22e786d040c6856df470c59350e4d5e6b4d5d94c8ba14e04d228426a5be2"
+    },
+    {
+      "path": "src/crypto/tls/ticket.go",
+      "digest": "7d55be4180b083ae2739fde53c3e66d1f256e4d9c104b5d400eb44d30b078c3e"
+    },
+    {
+      "path": "src/crypto/tls/tls.go",
+      "digest": "71d9a696a5dd15fd14e63c1af4f04828d806c12daa786245500bcac22c33e229"
+    },
+    {
+      "path": "src/crypto/x509/cert_pool.go",
+      "digest": "d995d6e88af70f36a345185420bac88c58e86ebed1b3eea8e087228eaa7da03b"
+    },
+    {
+      "path": "src/crypto/x509/oid.go",
+      "digest": "f4c6228419e4741655ea2287612d740eeadd54177847bbcaf3dad62e9dc8989f"
+    },
+    {
+      "path": "src/crypto/x509/parser.go",
+      "digest": "a46a341d92d275dd4641e6d3c3537ad43480f8847b6d7b95597f7ea785f994c3"
+    },
+    {
+      "path": "src/crypto/x509/pem_decrypt.go",
+      "digest": "062b4025a467daf8eb1955f4afa4ce8ed19d7234274a28edf724062eae944b6f"
+    },
+    {
+      "path": "src/crypto/x509/pkcs1.go",
+      "digest": "d494f7d49f03daa26fde42128cf64df1ce737fe58625271f3bc195791b6b2d67"
+    },
+    {
+      "path": "src/crypto/x509/pkcs8.go",
+      "digest": "6b62c951d4fc9ce980f3f47f58c5408c265d56e82f5ded3fa9e61911baf64b20"
+    },
+    {
+      "path": "src/crypto/x509/root.go",
+      "digest": "a64e015b13ed558bf0f45f86e1b6132462050d2072ba4f08c4862745ca51f88f"
+    },
+    {
+      "path": "src/crypto/x509/root_linux.go",
+      "digest": "c9a83237f919f40fe0c54434fa3a709b71adebb7c202eb5dc36fa32bbd03e18c"
+    },
+    {
+      "path": "src/crypto/x509/root_unix.go",
+      "digest": "421c066f193250dc1adaf13fce4779fc3dc576e20faa86e43bc22af6c9536a14"
+    },
+    {
+      "path": "src/crypto/x509/sec1.go",
+      "digest": "3de4e25e2e89c60c05a9f903a17a96b30dc8f5ea1b20ad751d70c8e1a4000d4f"
+    },
+    {
+      "path": "src/crypto/x509/verify.go",
+      "digest": "55c35020aabdc0131cb7551bda7de76ee755cab45575461788b85e2348fe6870"
+    },
+    {
+      "path": "src/crypto/x509/x509.go",
+      "digest": "1ed3683ad32d51268561d91c661c21c2188262ea26f93d04b491e6ed081f36ee"
+    },
+    {
+      "path": "src/embed/embed.go",
+      "digest": "76a63eaa0fb982c485df5bd3cc59e4765397f5f1103d2420ce45ddbf8380c52a"
+    },
+    {
+      "path": "src/hash/maphash/maphash.go",
+      "digest": "42a498909b268b4f1eb1b172a4e29f4fbcf383b1592465a0d119e0e98f4377b9"
+    },
+    {
+      "path": "src/hash/maphash/maphash_runtime.go",
+      "digest": "b52d2db3fbbde2abcbf5484d0807ed99f0b297eab97d60c0b174b059bda9a872"
+    },
+    {
+      "path": "src/internal/abi/abi.go",
+      "digest": "6667096db3053932c090ee4c05213eac4651834b21612fe9dea4044cf03818b9"
+    },
+    {
+      "path": "src/internal/abi/abi_amd64.go",
+      "digest": "b8d763278ba88322c8a7eb1b0aec4ec04063e0a86c2940eeee865a04b12b78c7"
+    },
+    {
+      "path": "src/internal/abi/abi_arm64.go",
+      "digest": "f9a322657c339f34ac6be9e12f967922aaa1fbc19b1c159f330ab2af769c5b77"
+    },
+    {
+      "path": "src/internal/abi/compiletype.go",
+      "digest": "0988077c09f3c8177032b11d734b0ef4f22b22e9efd27901bbce910e39223f10"
+    },
+    {
+      "path": "src/internal/abi/escape.go",
+      "digest": "494d85e5231a20cd88b56fbcf02028e927a56e62c8d4f7212c08156bbed58457"
+    },
+    {
+      "path": "src/internal/abi/funcpc.go",
+      "digest": "6d479903287a17b116acd29d58d15cdb93083370d5d2056dfa14ceb3362d8d83"
+    },
+    {
+      "path": "src/internal/abi/iface.go",
+      "digest": "b948a672a7b74da346432645cb245bd4b00d1c3b218d3567ae7d34c46dfa3f33"
+    },
+    {
+      "path": "src/internal/abi/map_noswiss.go",
+      "digest": "03db5a82addb4c8cb471aa93b0b75c3eee8ecf39326ee646f398a9b2e25a7291"
+    },
+    {
+      "path": "src/internal/abi/map_select_swiss.go",
+      "digest": "c16b55b87bb7b5873fea4b9468ee60cb24d9b33240c5e58f7ede6584af799718"
+    },
+    {
+      "path": "src/internal/abi/map_swiss.go",
+      "digest": "0e2fedbedf244b5fe360a3c6e5ca71502ea6ee7a4043bd83b96a13d1af76c383"
+    },
+    {
+      "path": "src/internal/abi/rangefuncconsts.go",
+      "digest": "b0350d4021e6e279675e082416cc9280c296cfff6a123863ed7f2d693c82a14f"
+    },
+    {
+      "path": "src/internal/abi/runtime.go",
+      "digest": "4e5e32bebcb05a34756123a330e4c4a79c0e4eb2fba3e81253fd3e616aca50ec"
+    },
+    {
+      "path": "src/internal/abi/stack.go",
+      "digest": "f21cd3ca6d133b7ab87010b42aa03ff0970742e1b3f1593dd33a5fdb63ec4edf"
+    },
+    {
+      "path": "src/internal/abi/switch.go",
+      "digest": "d2b5f220dd726af671f4f04bd5851188d280084a2d55f46df6ab623d136094f6"
+    },
+    {
+      "path": "src/internal/abi/symtab.go",
+      "digest": "7f5e20e91bb695d627fe06ea93e4bd30d90db9a61438709bae21de0089604879"
+    },
+    {
+      "path": "src/internal/abi/type.go",
+      "digest": "6f3e3d720b4ba23750593d77dcc8e844fdfa18581a17e045e21b68c7f6cc603c"
+    },
+    {
+      "path": "src/internal/bytealg/bytealg.go",
+      "digest": "14d1f8ad5e3615e861c3e690eee709c99d22c426327356824ef83db52c5f91ee"
+    },
+    {
+      "path": "src/internal/bytealg/compare_native.go",
+      "digest": "a5de9fede104ba03d3c627fbb837ff870896d8a730359056c5e870147ea47023"
+    },
+    {
+      "path": "src/internal/bytealg/count_native.go",
+      "digest": "d3eff88a61aafe415c85c0e9856bf1a22a3a0806ac116569cbc3451e8e01826f"
+    },
+    {
+      "path": "src/internal/bytealg/equal_generic.go",
+      "digest": "d6c5c106505c972fab2400024c14e04aa7eee1f972826e3b56787ee09f169247"
+    },
+    {
+      "path": "src/internal/bytealg/equal_native.go",
+      "digest": "1db4aa0b4f804a208dbe4e8894fe05949d72e9b4492ef9fcac517e00571fe02f"
+    },
+    {
+      "path": "src/internal/bytealg/index_amd64.go",
+      "digest": "77d0b48b8915657b09447ba36b163134a0e3fd08a776668dbf2dadfda6915bb4"
+    },
+    {
+      "path": "src/internal/bytealg/index_arm64.go",
+      "digest": "6822f757f21c5e06fb0deb772ecc22e6b9ac27799eb250b729267ff4624a11db"
+    },
+    {
+      "path": "src/internal/bytealg/index_native.go",
+      "digest": "5afbf5fb82d327f8fc2f67e5f886a9e3f1eca2d04495ed82585b4aee0b52a83f"
+    },
+    {
+      "path": "src/internal/bytealg/indexbyte_native.go",
+      "digest": "3f9ee9987e6f71d2e7729feece762016488547d3762db2aa20030fe449898331"
+    },
+    {
+      "path": "src/internal/bytealg/lastindexbyte_generic.go",
+      "digest": "632273eb2537352d9c14c6f37bf531bf95ff98431e212a24ce3777f436331c2d"
+    },
+    {
+      "path": "src/internal/chacha8rand/chacha8.go",
+      "digest": "6b7897fc1b0f2ea8cf3fd5e1bb77ae07970d132048b7df0e07687169300da685"
+    },
+    {
+      "path": "src/internal/chacha8rand/chacha8_generic.go",
+      "digest": "3202dcb9bb0750e7ec3ecff529a09331a9145a090a8c3b5fed57ff5c34e602b2"
+    },
+    {
+      "path": "src/internal/cpu/cpu.go",
+      "digest": "6c80e21a6b998db85f3cee0b0b1466be8c40a55ac5eb6f2b1ea4d7ac1f70bb48"
+    },
+    {
+      "path": "src/internal/cpu/cpu_arm64.go",
+      "digest": "ed4c7d9894f10ab6dc471a133400b145909b6da88055afb7b990b9a3ffd0d4fa"
+    },
+    {
+      "path": "src/internal/cpu/cpu_arm64_hwcap.go",
+      "digest": "1828fb8a6a21a10d023f82767a14e3b37742d47d9077f64818274d7cedeea8fa"
+    },
+    {
+      "path": "src/internal/cpu/cpu_arm64_linux.go",
+      "digest": "92a9f87d05a0c080cddd9f4ea8af606e57f43d1fa5bd48ce7db2048b693402bf"
+    },
+    {
+      "path": "src/internal/cpu/cpu_no_name.go",
+      "digest": "8215f72c7d9df7b7b3b53f1d6a5df311816e57cf6e5a06f21f7be50097ca79cc"
+    },
+    {
+      "path": "src/internal/cpu/cpu_x86.go",
+      "digest": "521d8f72978530e47b69706a4e2f18723df1a3652aca950a834f6b70977ec1b8"
+    },
+    {
+      "path": "src/internal/godebug/godebug.go",
+      "digest": "cd492e76ae63872ac4310fc09b2e097229588dbf114d14d713be3f027b0233c8"
+    },
+    {
+      "path": "src/internal/poll/copy_file_range_linux.go",
+      "digest": "c6a45826a831f62e08f11b3ff6715a2499aecd45d55812f37afa2cb69ab93f90"
+    },
+    {
+      "path": "src/internal/poll/copy_file_range_unix.go",
+      "digest": "ba0ca485fc1c951a4011dfb7a760c6fdef8d9911b5cac0696079381f62d37edd"
+    },
+    {
+      "path": "src/internal/poll/errno_unix.go",
+      "digest": "3f1ecb57a178ae80e05557700fc66b39f839c1205075bda2b83f1562ca222b32"
+    },
+    {
+      "path": "src/internal/poll/fd.go",
+      "digest": "39051b29c8a2097c40efe00072247b0bbe4fb2b0e330f504c524de7751e909a0"
+    },
+    {
+      "path": "src/internal/poll/fd_fsync_posix.go",
+      "digest": "5e19d9488df676a69838524881b9ba7689b40df87016b16100b33efa131ffdaa"
+    },
+    {
+      "path": "src/internal/poll/fd_mutex.go",
+      "digest": "502e550cdb75eb912ef432f7559cb552ce6bd704e3f2bebaedeed859402c82d8"
+    },
+    {
+      "path": "src/internal/poll/fd_poll_runtime.go",
+      "digest": "88fda43019c5dcf42545effdebd1747aaea377560dd041a35df8499538ee07c5"
+    },
+    {
+      "path": "src/internal/poll/fd_posix.go",
+      "digest": "ff002941e536f405d2876006c2973a1b61d26fd032094ade5ed2fc289fc35084"
+    },
+    {
+      "path": "src/internal/poll/fd_unix.go",
+      "digest": "b7ecb8c1e0ef843c5be0c1543644aef04531fef4f95db7d33930290d9ebb3c1d"
+    },
+    {
+      "path": "src/internal/poll/fd_unixjs.go",
+      "digest": "ed73269460d0c3dcd551a2b9caa5c58e5c818a064d2971f8d63b3b13c6fdebe0"
+    },
+    {
+      "path": "src/internal/poll/fd_writev_unix.go",
+      "digest": "09196eb54cc5e20e5c8cd07a4641cae561ae10b465522c60404cd5972b598aaa"
+    },
+    {
+      "path": "src/internal/poll/fstatat_unix.go",
+      "digest": "77c3abab202397b95ef3b107301bff55f0d18e809982f6af159e6685dbee5a9f"
+    },
+    {
+      "path": "src/internal/poll/hook_cloexec.go",
+      "digest": "3571dcf0ef879722dba04b11e8a0c72f20b5f7fddc96207a1c23e7e0420033c8"
+    },
+    {
+      "path": "src/internal/poll/hook_unix.go",
+      "digest": "4a467c97720f9d92849b4d64fd95980f8528d9ae2ac2a50cfc1309ff0759cba0"
+    },
+    {
+      "path": "src/internal/poll/iovec_unix.go",
+      "digest": "17ce8fe36c9a5b77aeb11559bb8b22cfdb15d2626fbe1c7d2e50b6ecf490c464"
+    },
+    {
+      "path": "src/internal/poll/sendfile.go",
+      "digest": "86cbbbbe929c151795ac01e6b939e72838f072fefaa1959887badc5d531bf955"
+    },
+    {
+      "path": "src/internal/poll/sendfile_unix.go",
+      "digest": "912a2ad7eb419472c6348689f259d6d81e124cb82593789e03741d078ff66be5"
+    },
+    {
+      "path": "src/internal/poll/sock_cloexec.go",
+      "digest": "3ae8a5856c703f68eae5343f575727ed6123310c8d4bfc0ebf1814efa8028cfd"
+    },
+    {
+      "path": "src/internal/poll/sockopt.go",
+      "digest": "ee7f52272fdecfd2e40ad6eb0616b49c781c39c1393dd0c47a11e6bc2caec1b0"
+    },
+    {
+      "path": "src/internal/poll/sockopt_linux.go",
+      "digest": "88fe3b2092de02061c80abb772023eb6330922c37205fd0631c43f082d9d4151"
+    },
+    {
+      "path": "src/internal/poll/sockopt_unix.go",
+      "digest": "b82d6dd2e70be5d69c47eb197badef011291ccd15c29652a173c7db0bb69eae5"
+    },
+    {
+      "path": "src/internal/poll/sockoptip.go",
+      "digest": "5c998151901c935bfc82619592cd5e2d559869c1dddf8e15822b64bc67e94c72"
+    },
+    {
+      "path": "src/internal/poll/splice_linux.go",
+      "digest": "969eec3b4a59f5ab1059eeabec012e0387c14b44c50a78a9b551198e9b54c93e"
+    },
+    {
+      "path": "src/internal/poll/writev.go",
+      "digest": "e7252e57fa08d577f354ffc703d1e7d640975e09b8c79de9ef682fce93fefad5"
+    },
+    {
+      "path": "src/internal/race/doc.go",
+      "digest": "4e6670414ce0c94fffd41e26536671f0122f8ac54bdfe65277de014a8d1fd4dd"
+    },
+    {
+      "path": "src/internal/race/norace.go",
+      "digest": "d195ef03f406d7a3e636709cccf6fc55e0fc99aa4a6a5291800364b4c308d828"
+    },
+    {
+      "path": "src/internal/race/race.go",
+      "digest": "f5244134310fc209a46a5fe4864029c896b9d10a3acca5e757bea5854c01ffc9"
+    },
+    {
+      "path": "src/internal/sync/hashtriemap.go",
+      "digest": "f0f5a4f8c3b3b22e5b141247be76829065345a32eeb663ab2129656c10314161"
+    },
+    {
+      "path": "src/internal/sync/mutex.go",
+      "digest": "0535ca03e44cb62cf3e4a511b989ffd0f08ec899d864e2a817b77c4025bec48c"
+    },
+    {
+      "path": "src/internal/sync/runtime.go",
+      "digest": "e3445cf3a17f6b322cb3136e30a28eab7a70c0f37fac44ba5dc7912a19930a17"
+    },
+    {
+      "path": "src/internal/synctest/synctest.go",
+      "digest": "3291fd3debb2430be3017c9a3cd783ad4d1a2791d8b4133b473a11a29e250449"
+    },
+    {
+      "path": "src/internal/syscall/unix/at.go",
+      "digest": "6b24496de4a9b1586bcb88b6acddcccc80777f302bd390288ebe178ac8064705"
+    },
+    {
+      "path": "src/internal/syscall/unix/at_fstatat.go",
+      "digest": "5e70a71173b2e771d34d17707de3fd14ae415dfafb318d5a8641144dd851ad6a"
+    },
+    {
+      "path": "src/internal/syscall/unix/at_sysnum_fstatat_linux.go",
+      "digest": "2e1c745d39d79c3c3e8b0cb0fa7f46d1fcbc70c03474c2279c03b7fa2c99ae9a"
+    },
+    {
+      "path": "src/internal/syscall/unix/at_sysnum_linux.go",
+      "digest": "f6ea8f6c906a1d476ce6327d037b186ceb1c8228e80e9bd867a7ea9bc040600e"
+    },
+    {
+      "path": "src/internal/syscall/unix/at_sysnum_newfstatat_linux.go",
+      "digest": "1c15f30d713ca93199e4cf616ac3582a23d96d1e55d44902a39e0c43655a1c0d"
+    },
+    {
+      "path": "src/internal/syscall/unix/constants.go",
+      "digest": "4ccef3971fa8cf67f5ac98c696cf252cf14c2fa56ad18aa5cf4b8998efe03b65"
+    },
+    {
+      "path": "src/internal/syscall/unix/copy_file_range_unix.go",
+      "digest": "7fbf814a8a7d4fbd0c76d1827e50e8864b4bb701cad01277b96af9d0826809e0"
+    },
+    {
+      "path": "src/internal/syscall/unix/eaccess.go",
+      "digest": "f81216e0796d54c28e4e33328c0c5b75fe98b7dab172ac30d35be304412c9b97"
+    },
+    {
+      "path": "src/internal/syscall/unix/faccessat_syscall.go",
+      "digest": "60d3fb3116514098e471e948e845b77582d2e777859e3dde03cf73d65b99fe69"
+    },
+    {
+      "path": "src/internal/syscall/unix/fchmodat_linux.go",
+      "digest": "034445a6baf8b91377f0e5b568ef7ca7c8099b02ece40958547b19d1dc45fac2"
+    },
+    {
+      "path": "src/internal/syscall/unix/fcntl_unix.go",
+      "digest": "5ab1dd517d3ed5beb706bcff14ca89acb6720c1e92a13088e54bffcedc715a6d"
+    },
+    {
+      "path": "src/internal/syscall/unix/getrandom.go",
+      "digest": "1cafffb178e0a2182349ef5a39fd89aa01f2a9d1fd565afdb947416b9ab13e40"
+    },
+    {
+      "path": "src/internal/syscall/unix/getrandom_linux.go",
+      "digest": "9cf2c1d1ce02e08300dc45f44d1472754117350a6a135a9da755783f02c17c52"
+    },
+    {
+      "path": "src/internal/syscall/unix/kernel_version_linux.go",
+      "digest": "7e1df29baff4556808f0b4c250456e6e701ec63d2fad5eee5042f1b3aa10c7ae"
+    },
+    {
+      "path": "src/internal/syscall/unix/net.go",
+      "digest": "866c1318e10b6d9d14bddd6a403220a69e69b52549510b63b3365d629e75b3fb"
+    },
+    {
+      "path": "src/internal/syscall/unix/nofollow_posix.go",
+      "digest": "5c5562ab0d8f94c8108172ea142ce5d0e20a07e471e0c7bd9d9bede2c6c93689"
+    },
+    {
+      "path": "src/internal/syscall/unix/nonblocking_unix.go",
+      "digest": "3871841b05dbc99b8d0d6cb51765e2deea09ecd1c394b95e67a52de068db80c2"
+    },
+    {
+      "path": "src/internal/syscall/unix/pidfd_linux.go",
+      "digest": "c83da30c5aed4890792d8612c78f430c7ab6f3311e8fd73792c24e6636937b4c"
+    },
+    {
+      "path": "src/internal/syscall/unix/renameat_sysnum_linux.go",
+      "digest": "8c0c2f88d0c7e34b9caa1a21b771fa40d284b3844b02e63f194f26e2e550377d"
+    },
+    {
+      "path": "src/internal/syscall/unix/siginfo_linux.go",
+      "digest": "e774621eefa370361d1245adf058d8a1752b0bb78ecdf8939d535a6226a6fa32"
+    },
+    {
+      "path": "src/internal/syscall/unix/siginfo_linux_other.go",
+      "digest": "e2aba05f88bd7ca0e0fd1bf26fa5d53617398744dae3562bd4cee9937fd20486"
+    },
+    {
+      "path": "src/internal/syscall/unix/syscall.go",
+      "digest": "65de2b30e89644981e8dc159d226ebe585a66112438e382e6cd2651aa6f68451"
+    },
+    {
+      "path": "src/internal/syscall/unix/sysnum_linux_amd64.go",
+      "digest": "383d4857ec4f538630e4f781dba650ec48baacfd101456814a1b533b41201c8d"
+    },
+    {
+      "path": "src/internal/syscall/unix/sysnum_linux_generic.go",
+      "digest": "02adadb8fdb4f389321ee940618fd46dd3a867e8a93bff62996516eac6d97e6e"
+    },
+    {
+      "path": "src/internal/syscall/unix/tcsetpgrp_linux.go",
+      "digest": "a154792f653632733e8a2c81fd2620b0fa08b0e977774af6c64beaefa970855c"
+    },
+    {
+      "path": "src/internal/syscall/unix/utimes.go",
+      "digest": "e37b2cfa5ff403dff694dc69dfef3fff40bad5a6d99a311d1dc123c1ff469deb"
+    },
+    {
+      "path": "src/internal/syscall/unix/waitid_linux.go",
+      "digest": "6e59316cada5dc52c568b2bc62e7f2220a72114b3438beb11dd6d8f7abdaf68c"
+    },
+    {
+      "path": "src/iter/iter.go",
+      "digest": "ccc0a58dd5652ea17f8ec08cb73ad1a52bea313e1c0100c0765b98b228e48f0e"
+    },
+    {
+      "path": "src/maps/iter.go",
+      "digest": "a803b5b1b09aa2dcedf90db32270f9cec310bc7cf8f141f87c2e6567db0c4208"
+    },
+    {
+      "path": "src/maps/maps.go",
+      "digest": "0f69acac135baa8b644e2479e514835b4d991bcc894916c2e34b8739a171fce2"
+    },
+    {
+      "path": "src/math/big/int.go",
+      "digest": "7689a5447c12d8c4cb350697cd7cdb4c827b3bdd3f0fb875441588cde3b18676"
+    },
+    {
+      "path": "src/math/big/prime.go",
+      "digest": "783e8e94c38db53b28b67ffacecbdb6efb7b04f5ee50e77666a530ac10956609"
+    },
+    {
+      "path": "src/math/rand/exp.go",
+      "digest": "e3837671076ec0432cf4347c4154f87c88c15b2e2b6a739690a68e2749807889"
+    },
+    {
+      "path": "src/math/rand/normal.go",
+      "digest": "d8f4450a14b03bd0ec939eb4b127e199d9d78ba3d07c4ad0a65ac493dfa1c62a"
+    },
+    {
+      "path": "src/math/rand/rand.go",
+      "digest": "a57f58bcc4baa4ac71fb09a6f2a8ce525f6f097d7b9c7ea61f206bcfd910aa39"
+    },
+    {
+      "path": "src/math/rand/rng.go",
+      "digest": "e301d938fe5dbe4ef5ff52f31de68d2547c3ab50da5c95bb21c49ea983a817ab"
+    },
+    {
+      "path": "src/math/rand/v2/chacha8.go",
+      "digest": "5ef2db8fe067f08142bd5867b0f7a27e5b2fd0f20178971d766d1fe4324460c6"
+    },
+    {
+      "path": "src/math/rand/v2/exp.go",
+      "digest": "1962b9394fb390cdbbba401ca7bb6c0e10b8597d095890ec6421811d18ff2f23"
+    },
+    {
+      "path": "src/math/rand/v2/normal.go",
+      "digest": "355b9570ff06ec4825b4fb8a447e71208ac38ecacde0c289f88bf524fd85fa89"
+    },
+    {
+      "path": "src/math/rand/v2/pcg.go",
+      "digest": "6ebd291420193e3d127c3c5bc46e7b3ee99eb5db6c3729e3ac9786c912a0ffa5"
+    },
+    {
+      "path": "src/math/rand/v2/rand.go",
+      "digest": "a0b0f516652e66ee56de089ec01457f5f786e0463cd08b2453eb025cd6ad6f58"
+    },
+    {
+      "path": "src/math/rand/v2/zipf.go",
+      "digest": "ee4616e17c8b1d7ff33229b075f2e73c369307be02258f173393508cb2db0357"
+    },
+    {
+      "path": "src/math/rand/zipf.go",
+      "digest": "87f102ccb820854fb6b7e2b86f78fe793de8fd79adc2bd316c082daf70267326"
+    },
+    {
+      "path": "src/net/addrselect.go",
+      "digest": "3cf4ce47881e417d3e4c7e459125e3445b22714fc19c4b40cf776ab1bd835189"
+    },
+    {
+      "path": "src/net/cgo_stub.go",
+      "digest": "ef9c7af905f8acd04623ce6c5c68bef0bd53f8e58e8308b44e588ac88e175561"
+    },
+    {
+      "path": "src/net/conf.go",
+      "digest": "c2ce5b531decce68f10df916bc353a74c564a388156cb4f2d2ed2b6800571f5a"
+    },
+    {
+      "path": "src/net/dial.go",
+      "digest": "1f6ac457a64fb5d0ebd62dbf4cb883e82505d9b8d74235496e43acefb471f6ce"
+    },
+    {
+      "path": "src/net/dnsclient.go",
+      "digest": "951143579910f3aa24cdb8128187e362edc30b053943b4bb60b73992fdeee10c"
+    },
+    {
+      "path": "src/net/dnsclient_unix.go",
+      "digest": "c02b55b6dd6f437ad145a1f08950194de6039cb7e048aa127db1ce7710ff1992"
+    },
+    {
+      "path": "src/net/dnsconfig.go",
+      "digest": "150d6305cc904f174288afdf7aaa958029f1f59598c82528cc36a940beac05d9"
+    },
+    {
+      "path": "src/net/dnsconfig_unix.go",
+      "digest": "a707636ba4d5c9fab72cf500a0bc9d617385fee6fa21d6a85bf5ef41fb250748"
+    },
+    {
+      "path": "src/net/error_posix.go",
+      "digest": "029fb7191046642c43ec9e6c430ea753189a9dec1e162cb4ea3048fcfa3928d6"
+    },
+    {
+      "path": "src/net/error_unix.go",
+      "digest": "bbcd49442466a102c8b1d0963bed12afb6cb866cbbec8144f66ded21631631c4"
+    },
+    {
+      "path": "src/net/fd_posix.go",
+      "digest": "31e1ad8e0ed8b6a86d9f547c9695a1d67b35a553e0e251ea66362fb22c5354f2"
+    },
+    {
+      "path": "src/net/fd_unix.go",
+      "digest": "dde3e0a06e8e591ebd1998babd35b5c7a74498d3b4ad5796b3fbf6c5c7aebd08"
+    },
+    {
+      "path": "src/net/file.go",
+      "digest": "50c0d5f95b2e27ea31dad71d2b6f68f6265d8e0d64d75d192e08b5ae322f21e0"
+    },
+    {
+      "path": "src/net/file_posix.go",
+      "digest": "efeccf89bbb25b7426e8a4235009bb2d5264a748f72acdb207ab56caf88cb7a7"
+    },
+    {
+      "path": "src/net/file_unix.go",
+      "digest": "e7a51efd33c3fa150c901dbac835c686321f331a3d73ad9f02efd9340f0f828e"
+    },
+    {
+      "path": "src/net/hook.go",
+      "digest": "d4768323362e325c9500b53f6df5502dc89278b960862d43f451a61a6a1cf2c3"
+    },
+    {
+      "path": "src/net/hook_unix.go",
+      "digest": "dc125f4a744316c9b34826e4b67ef43ea1608430cd7b79e5fa06ad3acea35dc7"
+    },
+    {
+      "path": "src/net/hosts.go",
+      "digest": "265d5f3d71175407a3cc49c731d43ded8e90fdb2a67106d3d4ecb0e86955c3eb"
+    },
+    {
+      "path": "src/net/interface.go",
+      "digest": "90b07bb224597bb984f3b02bad69e40faf37919f62937cd24910946d197a37c5"
+    },
+    {
+      "path": "src/net/interface_linux.go",
+      "digest": "e56dc3a6a195eeb374c9269b5684332f2cb0655cc37e5f5a900ed6e5d7e8d085"
+    },
+    {
+      "path": "src/net/ip.go",
+      "digest": "8c7adb41aa5bdc0f2c1a9a0e2e03e9d6bd88d5d933545462627aa28f20065936"
+    },
+    {
+      "path": "src/net/iprawsock.go",
+      "digest": "7df613e04a7bfb7e6ec6f1829d52c2e111578c2d1d3061f29e8dbf725c0233e9"
+    },
+    {
+      "path": "src/net/iprawsock_posix.go",
+      "digest": "f2ef8c16772021695b2380ba5a3dde6e4a16c953ec0236b7a92d3619483c811c"
+    },
+    {
+      "path": "src/net/ipsock.go",
+      "digest": "1d5cc127665695ab1351a96b015ceeddcc5adcbed91f35af0a6c6cd1552d846b"
+    },
+    {
+      "path": "src/net/ipsock_posix.go",
+      "digest": "07ada8421bda6e6390ad2a6c295131bb27505ec0cd660d6ef41979e1a44970f5"
+    },
+    {
+      "path": "src/net/lookup.go",
+      "digest": "a4991e7764d27c73ffb219cfecf35df03b029911811f57caaef3f7a5c190a4e7"
+    },
+    {
+      "path": "src/net/lookup_unix.go",
+      "digest": "d2109aeca328c7a4689799e601cfaf07b3f0d5c3c7f08f86bb937ba88758c122"
+    },
+    {
+      "path": "src/net/mac.go",
+      "digest": "1b2308ff1af8a1c4c476a2b1a6ea6cd6765d3f057c4d14887fc45c91a527ecde"
+    },
+    {
+      "path": "src/net/mptcpsock_linux.go",
+      "digest": "39686c6f4d4ef574209a96439216bfb59bd37d4032ee90e8eab406338c075078"
+    },
+    {
+      "path": "src/net/net.go",
+      "digest": "35a3d5047c156a1395c4c197fad5a99e123567a12ae7bc08ba7d5c723281ae03"
+    },
+    {
+      "path": "src/net/netcgo_off.go",
+      "digest": "55966058ba76531fdc7f7e9216785b978387d7be093fc9c9176dc43494936eeb"
+    },
+    {
+      "path": "src/net/netgo_off.go",
+      "digest": "2168ca7864525e92f205def9168355951f193aa2bdb415e6ad43c84d91f93c7a"
+    },
+    {
+      "path": "src/net/netip/netip.go",
+      "digest": "8aa2a0d6896ac0150d0b677846b65c44d5980e3a5410c185edc5d1e74c4c4d65"
+    },
+    {
+      "path": "src/net/nss.go",
+      "digest": "b93ae402e153706ab688ac75cffc19aa8a097b964d937725d24ef9f7fac791a5"
+    },
+    {
+      "path": "src/net/parse.go",
+      "digest": "5ae9c14a1300f39fb0de55a098af5f0b679b4ae8f1677b86be35e78264378cda"
+    },
+    {
+      "path": "src/net/pipe.go",
+      "digest": "55d3e00ea0c68e17e90da06eaa26a97908776f9e55778f12768c8e0d9c6aced1"
+    },
+    {
+      "path": "src/net/port.go",
+      "digest": "1394d22f0da60f2f1432340642800b6314f1f505ceac89892c1a63879d36c23c"
+    },
+    {
+      "path": "src/net/port_unix.go",
+      "digest": "34613ab7f4204a7a08cfc58e12b612f6ab544a46ad55484a687c34419f3f5576"
+    },
+    {
+      "path": "src/net/rawconn.go",
+      "digest": "4d3c68411c4ede8c2f3b1061d316079e050a1e8facde2019c250a0c522d062a3"
+    },
+    {
+      "path": "src/net/rlimit_unix.go",
+      "digest": "bc6641769bf1262cc5b591785021807916a569bb9f0ece4562831e9a56206e21"
+    },
+    {
+      "path": "src/net/sendfile.go",
+      "digest": "7a9f7c48dc7cadb1b53fdfa27e9ba2e3f8441818bfc1440dd856c1641b4ecba1"
+    },
+    {
+      "path": "src/net/sendfile_nonwindows.go",
+      "digest": "8e0502d6901abb50af70ff3b5e3e6b4bdebc809b883f1d2fc858aa118e1a3cf8"
+    },
+    {
+      "path": "src/net/sock_cloexec.go",
+      "digest": "07f29fbd70688bfd54b0ff5c4c46af7995a303135136705157fd18cc8c80776e"
+    },
+    {
+      "path": "src/net/sock_linux.go",
+      "digest": "aec468a23488d84298d79041c591a8709513b479247fd7bbde714ae1a8a6b6d0"
+    },
+    {
+      "path": "src/net/sock_posix.go",
+      "digest": "f83091e2fe19ea25d190115531b68f76f128c88d817f6c9d294ffbc7fb154083"
+    },
+    {
+      "path": "src/net/sockaddr_posix.go",
+      "digest": "59cc9d08c7a6f916e438525a3f9ee2ade69ded11e4ebf37d0d05e48eb7f0c985"
+    },
+    {
+      "path": "src/net/sockopt_linux.go",
+      "digest": "06d62bcd95cf4f26c77f1c1dd311dd4785b042bbd9c0bc77e8cba6be50df70fc"
+    },
+    {
+      "path": "src/net/sockopt_posix.go",
+      "digest": "eedba1ea662b37dde58015af6253b84702840a5c9ef5e25a20485525e94a52cb"
+    },
+    {
+      "path": "src/net/sockoptip4_linux.go",
+      "digest": "cba1d46fa93c4a71ab11077e03eca7a85f2279ca7456bc38577cda0115cc7948"
+    },
+    {
+      "path": "src/net/sockoptip6_posix.go",
+      "digest": "c43c1559e5ffafebb1800cd8f88db067fd2d9af1c9759176d3573a8010b31628"
+    },
+    {
+      "path": "src/net/splice_linux.go",
+      "digest": "a7fa316df36ea565afea6026cf826b023d458733fea433077e5e59c17323a48c"
+    },
+    {
+      "path": "src/net/tcpsock.go",
+      "digest": "6f2739a8edadb8eac557cda43fbb00c1050c805864860b57a5d6f36f0a4b64f1"
+    },
+    {
+      "path": "src/net/tcpsock_posix.go",
+      "digest": "01136ba949dd7d7f70511d514ec12a89a22c216457b2ab6220c16387bb62dbed"
+    },
+    {
+      "path": "src/net/tcpsock_unix.go",
+      "digest": "4761d925d681945c647092b78c0afc5ceb6a24e1c8c7ad2f44e631f2b9eaca2e"
+    },
+    {
+      "path": "src/net/tcpsockopt_posix.go",
+      "digest": "16d8565b480a743e5d75ccc457fbb2dc46f4fcf3a681ea01bf45be0f057e348d"
+    },
+    {
+      "path": "src/net/tcpsockopt_unix.go",
+      "digest": "078d4f4b93ddb98e0f668e8652de2975eb768499d0a8c3e064f0d7e3c66f50ff"
+    },
+    {
+      "path": "src/net/udpsock.go",
+      "digest": "3e5ebcc492a8f05bf69bba747e066502536dac1d424f0d728a7c41ea911009f1"
+    },
+    {
+      "path": "src/net/udpsock_posix.go",
+      "digest": "24c328e968ce1b23623ea8741527f526a91b2e4684fc21afbeee09b315daf427"
+    },
+    {
+      "path": "src/net/unixsock.go",
+      "digest": "130876ac764db4688618625e3f397f06acb4cf4286d70d1e4437909a619bd96e"
+    },
+    {
+      "path": "src/net/unixsock_posix.go",
+      "digest": "472016972215bcb170c588bab5d36fb920e071e64c0b595d68da91a45147d561"
+    },
+    {
+      "path": "src/net/unixsock_readmsg_cmsg_cloexec.go",
+      "digest": "b3767e4a73f1f23365d286d5cb2c0bb38b9a7bae3e14b5a2d1499d7385be8c2c"
+    },
+    {
+      "path": "src/net/writev_unix.go",
+      "digest": "01c0e12624b32af49ef3f92f9f8b4c92e92522ab75c082e1ed131ba7be2573c6"
+    },
+    {
+      "path": "src/os/dir.go",
+      "digest": "bc8540932fe12e7e5325ec8f0075eaa5014241343ea45f0f9b755f00fc672efc"
+    },
+    {
+      "path": "src/os/dir_unix.go",
+      "digest": "0de1bd5b40affb85fb104b4f04589fcaad093cd4b8165f6b2161427f7935bad0"
+    },
+    {
+      "path": "src/os/dirent_linux.go",
+      "digest": "554ab5920f7606b10cd63c5be7146fce21255c56e52bb44dd994c943d0962f71"
+    },
+    {
+      "path": "src/os/eloop_other.go",
+      "digest": "c39ebc651b2284508b70c299c806e9becca82515b2ee4fe38c918bec7a046ba8"
+    },
+    {
+      "path": "src/os/env.go",
+      "digest": "e7eb15de93fccf8c0706285c350f32eab6c4a1f752bb8594ce7da3a0215ee92b"
+    },
+    {
+      "path": "src/os/error.go",
+      "digest": "f073f7fb0bad2cd69df450956b4a267b5ecfb519a9089d44fe6b6e2d6f766e18"
+    },
+    {
+      "path": "src/os/error_errno.go",
+      "digest": "3894fbb36a02dbdb543c074a2d7d316be881861dd787bb7eec06a3c074ef650b"
+    },
+    {
+      "path": "src/os/exec.go",
+      "digest": "a125128aa3c9d5db1e3aee257cb19a95106820cf8e8534721373f51cdaae1b06"
+    },
+    {
+      "path": "src/os/exec_linux.go",
+      "digest": "b80854e3f1f6ce249d9d04d9198d4081f8cfb67845e49a57565fa1118e279dcc"
+    },
+    {
+      "path": "src/os/exec_posix.go",
+      "digest": "89a8587e134c07caec0606fe9f472c32ef7cff21f411f8b98d5ffcfbc8838b6a"
+    },
+    {
+      "path": "src/os/exec_unix.go",
+      "digest": "a2635bff41614353eb33eb4a6c075f3e0a984cd996db68935e632e0f39c449d5"
+    },
+    {
+      "path": "src/os/executable.go",
+      "digest": "28709f736a30c43977d06a799ce86baa3dee133d11ab7583d53b07de38d41bcd"
+    },
+    {
+      "path": "src/os/executable_procfs.go",
+      "digest": "61240d3520f1294d95bf0de8e8a324367cd66b06727b319ecb55e2b3046e5e46"
+    },
+    {
+      "path": "src/os/file.go",
+      "digest": "85a4adcd383c9947d6133b65ccd01e95b68ce1d07b8474b7b7aad8ca9f3b8139"
+    },
+    {
+      "path": "src/os/file_open_unix.go",
+      "digest": "d9849e16c1714dd89b7787e2b5724d91e8053559f7bd6337ef22979a0782c238"
+    },
+    {
+      "path": "src/os/file_posix.go",
+      "digest": "2e93ac5f812cd7184d3ac3a2eb9a51583911a6261cf9c27772fa7dfedcbe514f"
+    },
+    {
+      "path": "src/os/file_unix.go",
+      "digest": "877dd004355c475e8805b5700061604558422da057037556e0cf6edeb36ab7ec"
+    },
+    {
+      "path": "src/os/getwd.go",
+      "digest": "20bf5c0875341ff1d685ff8aa58f3a0de19250ec19708d32a921779ed515e26e"
+    },
+    {
+      "path": "src/os/path.go",
+      "digest": "a901784cb6abfb4817a379bdc909f42090b9cc5e49a6b2dac5c06ee6e844966a"
+    },
+    {
+      "path": "src/os/path_unix.go",
+      "digest": "8a5d4913c2ffd085b54df516e983916ac56c660de9123c0877d57788267861c1"
+    },
+    {
+      "path": "src/os/pidfd_linux.go",
+      "digest": "74c34719a5401965351520a838f2649ab692f5f95023ebb91fe2341943a4d2d9"
+    },
+    {
+      "path": "src/os/pipe2_unix.go",
+      "digest": "40080f961b8a6848640f344494f843b0612b9074943f719c6485ec305ab03ef1"
+    },
+    {
+      "path": "src/os/proc.go",
+      "digest": "54ed65b25fe5251adb4b7799117f38ba0b2176610f2d21b333a7a5745e988200"
+    },
+    {
+      "path": "src/os/rawconn.go",
+      "digest": "cddcedb3b517a8b1fd1a8e190d24bf11978986723a69c8f1e4a231d03e35a07f"
+    },
+    {
+      "path": "src/os/removeall_at.go",
+      "digest": "77d5ea8558ccf4d1018ac6baad111d67d6bc39ab120cf6efe18065700b6d14eb"
+    },
+    {
+      "path": "src/os/removeall_unix.go",
+      "digest": "aceeee0c139404a97188802a7f08f93c2f464ce1daf1b0398efe8b327a7d405d"
+    },
+    {
+      "path": "src/os/root.go",
+      "digest": "56355baf52dd718903a59c94d54eee5e2765d50383b471d08819accd1ec02acd"
+    },
+    {
+      "path": "src/os/root_nonwindows.go",
+      "digest": "49152bef7df7c862984d95000be420f4f73afc56ef1e5abb7caeb6e8b5e1f5de"
+    },
+    {
+      "path": "src/os/root_openat.go",
+      "digest": "01627a4977eb38965fc52d578b0724b1fdd4b435c47aa75a545357135d919ae9"
+    },
+    {
+      "path": "src/os/root_unix.go",
+      "digest": "f1e303059d837c46c1be94b44ac1e65073c6f6c8278a2056776092aee297bf67"
+    },
+    {
+      "path": "src/os/stat.go",
+      "digest": "fcf9bc032dc2a30b40329299db15940192cad00c8092f256c257054a95db0ac3"
+    },
+    {
+      "path": "src/os/stat_linux.go",
+      "digest": "62cb59a3767a69fbb717c96f6993d1e80eeb0f1660fc452bfedd01100339c7dc"
+    },
+    {
+      "path": "src/os/stat_unix.go",
+      "digest": "fa12fa05805074520f72342648764d156193805d6ddfa663af938145769a204a"
+    },
+    {
+      "path": "src/os/statat.go",
+      "digest": "e10fddfd50fabe4327e2a7eed3b4375ecf006d76dd0319577ddf4b19cdbe99d9"
+    },
+    {
+      "path": "src/os/statat_unix.go",
+      "digest": "0595ce8a8868674b6069431cd182c64b4d24c7b39e38b01f1b108db261d27830"
+    },
+    {
+      "path": "src/os/sticky_notbsd.go",
+      "digest": "559270cac07833f1f3c38495f2aad352ed83d68b196c32d18351545c7152ed84"
+    },
+    {
+      "path": "src/os/sys.go",
+      "digest": "98ecc8ed73af7c43a643a62a2a16d445cec49dacefa266dd1ef7197188b84679"
+    },
+    {
+      "path": "src/os/sys_linux.go",
+      "digest": "a9e44459ac3d0c7ddbf02c158294e8e0afb0523abde25f7f95f4821b1b4c42e8"
+    },
+    {
+      "path": "src/os/sys_unix.go",
+      "digest": "f339da7dca4c290723a7ab94babc1b4dea401cb1be043aa8a5470296b2dc13ec"
+    },
+    {
+      "path": "src/os/tempfile.go",
+      "digest": "1df8cde8a616f7d1317ec561c7a2a01c4a179b82d5eae0776bad75cb021aaefa"
+    },
+    {
+      "path": "src/os/types.go",
+      "digest": "ef72e4082700de60ba3e49cbe7669a11096eb387a5460497f1f8e5d33f7b0a8f"
+    },
+    {
+      "path": "src/os/types_unix.go",
+      "digest": "d222d99ab7e873441136cd3daeb4c147f048ec5289338ed123f223187a90f285"
+    },
+    {
+      "path": "src/os/wait_waitid.go",
+      "digest": "7c2030455bb3fd966459edee00f1dc11e0034689bcae84fd44fdd155e6a0d2a1"
+    },
+    {
+      "path": "src/os/zero_copy_linux.go",
+      "digest": "6cada0ec33a15bc5be2710cf5404977d774525dc5150071d08f1e05f104c5e61"
+    },
+    {
+      "path": "src/os/zero_copy_posix.go",
+      "digest": "3e2916cf88d98c98a4b4810754fbced3897ba9f6d58179edc88f000a10987ab6"
+    },
+    {
+      "path": "src/reflect/abi.go",
+      "digest": "84b707ff6428d37c2ff8dacb1a1cb24f696f4b2dc934b08dd96aceb1541d6b71"
+    },
+    {
+      "path": "src/reflect/badlinkname.go",
+      "digest": "4321ef4110c4856691fc274e192da9a9b93736224810547334562b5a927dd389"
+    },
+    {
+      "path": "src/reflect/deepequal.go",
+      "digest": "e4615c50434192fa65a53c6ccaaa060da744f67baad2778153015d9f4cb26cbe"
+    },
+    {
+      "path": "src/reflect/float32reg_generic.go",
+      "digest": "0a691ecf7df8fd1e45033eed9b9ac6fde7c7233bb2948a30e211083d173e37db"
+    },
+    {
+      "path": "src/reflect/iter.go",
+      "digest": "78128c2b362102626bcdd579a553543f3e5a7be6ab6a02d04e0662a3fcbd71f0"
+    },
+    {
+      "path": "src/reflect/makefunc.go",
+      "digest": "82f100e7ecfada602ee241ac569152ded34121099c02143486ed4326b62cb708"
+    },
+    {
+      "path": "src/reflect/map_swiss.go",
+      "digest": "e25cccc85c23b30e6ea4bd88034582e13e9cadb76ad40fcf4e51b740199c07f0"
+    },
+    {
+      "path": "src/reflect/swapper.go",
+      "digest": "5d8467c8475770fac34d48536e36e40d4251612af2d5a7d96f19fff1c7d4ba99"
+    },
+    {
+      "path": "src/reflect/type.go",
+      "digest": "56d4ab619a5ef53e359d89a73d02bc6cd4051c40b8fbf1d5a3ab081a369eb59d"
+    },
+    {
+      "path": "src/reflect/value.go",
+      "digest": "0e3b931177452ccbbdeb85f39d8c0efd6873bdbd66352bf18a1b1fc6aec0558f"
+    },
+    {
+      "path": "src/reflect/visiblefields.go",
+      "digest": "287edc70dd44cb440aa267eb9ca3164c89c80b25af69abc1589728fbf82ad810"
+    },
+    {
+      "path": "src/runtime/alg.go",
+      "digest": "3d7388d3d58a82a6c9d4b719df6d7a44d6c55d74cfbeaa3de73d22721571fa0c"
+    },
+    {
+      "path": "src/runtime/arena.go",
+      "digest": "5099e08419c03cc1e0f36ee38dede6c264f7bc785891e7e096655a1efa36e577"
+    },
+    {
+      "path": "src/runtime/asan0.go",
+      "digest": "34ffa01d044c5abbf40f0fcfa7634e94a7d7320070822fdd874c8c288e114f7e"
+    },
+    {
+      "path": "src/runtime/atomic_pointer.go",
+      "digest": "364e60036abead10a020d763add8fe57fc493624c0b8f4a1c2e70de4edf21a3a"
+    },
+    {
+      "path": "src/runtime/badlinkname.go",
+      "digest": "172c02155463385704c6f873e8d05e4bb3a04054cca508b158c203b54ee205ea"
+    },
+    {
+      "path": "src/runtime/badlinkname_linux.go",
+      "digest": "3defa450ca9d61ab27d61d28308c36e35a554f759f4e3fd444632aba37b8c0ae"
+    },
+    {
+      "path": "src/runtime/cgo.go",
+      "digest": "bf805598fc42e6304502c555302821104cb36aa085ba47fc4eb0839533fce1b3"
+    },
+    {
+      "path": "src/runtime/cgo_mmap.go",
+      "digest": "45f6998ad658f078d5b8800f62b60c407d8c637a8be69330579c82a26a3a5db2"
+    },
+    {
+      "path": "src/runtime/cgo_sigaction.go",
+      "digest": "efd672ca32756af4767490d8b575a5a01aadb03cfdb8ff0fcefd35da9a419d76"
+    },
+    {
+      "path": "src/runtime/cgocall.go",
+      "digest": "bba697a2bdb037a50ef5865780282d9aaa33cf1ac70fb5d6199859e73bc3abee"
+    },
+    {
+      "path": "src/runtime/cgocallback.go",
+      "digest": "82d38f6a32c4f8763af62ee77eb3aa6e8f52ba9c2077e7491b109e6530c2b067"
+    },
+    {
+      "path": "src/runtime/cgocheck.go",
+      "digest": "bd55aef5d900e4d39dae9676d5aefeb24a814c44ec2d6b8e072ec51b3ffab849"
+    },
+    {
+      "path": "src/runtime/cgroup_linux.go",
+      "digest": "a2237d59862ebb1fd5f85750663cfe03965463a6d6bf21e5a411df26504f5f7f"
+    },
+    {
+      "path": "src/runtime/cgroup_stubs.go",
+      "digest": "7393e87ba1b216ea9d027286bc3c1dee709d91581b2e0a6540940d22236d19b5"
+    },
+    {
+      "path": "src/runtime/chan.go",
+      "digest": "8f5b26fe92067054718696e91034f4f78af8b3ccdec890cad6919529e8f2fe36"
+    },
+    {
+      "path": "src/runtime/checkptr.go",
+      "digest": "f38f5a588ddfcc3d528e7b807e5176adb2abc8a82469110fce783e432879cf7a"
+    },
+    {
+      "path": "src/runtime/compiler.go",
+      "digest": "bfe09a6aed85f21db093649c9b431f76353794d3b630b2f788859ea96a2ff6a2"
+    },
+    {
+      "path": "src/runtime/complex.go",
+      "digest": "acb03107a1de5df055c14f0fefe0a5c8e33ff6658445d10e1eb23e8e99e1d8ad"
+    },
+    {
+      "path": "src/runtime/coro.go",
+      "digest": "e510468afaaf06a14b515f6a51e2191fe1871c0655cbeef2c12268496a627c4a",
+      "hooks": [
+        {
+          "package": "runtime",
+          "symbol": "coroexit",
+          "signature": "func(*coro)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.coroexit",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "coroswitch",
+          "signature": "func(*coro)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.coroswitch",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "newcoro",
+          "signature": "func(func(*coro)) *coro",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.newcoro",
+          "owner": "rt"
+        }
+      ]
+    },
+    {
+      "path": "src/runtime/covercounter.go",
+      "digest": "4e2ede89b4fe9e9ea8429a773db441a8dab3cd4962159f842080e97d2ef8d64d"
+    },
+    {
+      "path": "src/runtime/covermeta.go",
+      "digest": "765117a0c617fe622ac461bf1ee7dd3ed075d95ae80cdfc6bf91d280a5609300"
+    },
+    {
+      "path": "src/runtime/cpuflags.go",
+      "digest": "2451460a8f1f2141ac619f47d7b5e8b83abb279c893b5b4cc5a68d9324c0e8c5"
+    },
+    {
+      "path": "src/runtime/cpuflags_amd64.go",
+      "digest": "b9aa3542d35b84d5279030a603acfade2563c67b970e99d5d89ebf64742383f6"
+    },
+    {
+      "path": "src/runtime/cpuflags_arm64.go",
+      "digest": "d13970d6538f225ee81146f7bf019a4e492f5bde1e977d7ff95be8c449c0ad51"
+    },
+    {
+      "path": "src/runtime/cpuprof.go",
+      "digest": "d90aebaa1a719f339fde318cc8ec98e7312824ec2e2ad469a84fcbc6b5511c5e"
+    },
+    {
+      "path": "src/runtime/cputicks.go",
+      "digest": "661b4602a411e850016ea45ebdab6453ce8de5d479ebc5f67758062aa8da1517"
+    },
+    {
+      "path": "src/runtime/create_file_unix.go",
+      "digest": "96f29670074191bc32702674ea155fc105b2e4175fc48fa1a5a170662f8cf9c5"
+    },
+    {
+      "path": "src/runtime/debug.go",
+      "digest": "d5e40b496358454b448479e1aa68841fc66498038ac1b81845e34331c70d5a8c"
+    },
+    {
+      "path": "src/runtime/debug/garbage.go",
+      "digest": "9828cef35aad0fbd62d055697ec936b53835db88bbb3cbc5f2e1163efddbd870"
+    },
+    {
+      "path": "src/runtime/debug/mod.go",
+      "digest": "2ed3d813e6d666049ff4320a361b2639ae6f6f185545da31cd56c7cc85f298aa"
+    },
+    {
+      "path": "src/runtime/debug/stack.go",
+      "digest": "aeb59fb3082f229b5539234976e8bf34646cb2cec9a76d7e0264c8774480ce36"
+    },
+    {
+      "path": "src/runtime/debug/stubs.go",
+      "digest": "8a652e70d0aa93980de1961332a94016f9e3cadd7b06c17194014c51258c6311"
+    },
+    {
+      "path": "src/runtime/debugcall.go",
+      "digest": "aca204d0986b11cc4bf04fa0b402ebfb788701195d581fdc3597367fcea40589"
+    },
+    {
+      "path": "src/runtime/debuglog.go",
+      "digest": "8f17ed71b8af0d82a4fd918cb9034a84fe5ea79e71469ba73530ce750c561311"
+    },
+    {
+      "path": "src/runtime/debuglog_off.go",
+      "digest": "2403e8ab6ce05543e5ac6e54120c6f21733aca66e99d5f3be803f20933e9f649"
+    },
+    {
+      "path": "src/runtime/defs_darwin_arm64.go",
+      "digest": "72379eecadb32c47e1c51a942c95ad8078d7f83a1aedca721e089c3d77cfb266"
+    },
+    {
+      "path": "src/runtime/defs_linux_amd64.go",
+      "digest": "32c156eaaa1e772fcdad61240a54e3305964129ce5642889ecb1d1fb7a21a0c3"
+    },
+    {
+      "path": "src/runtime/defs_linux_arm64.go",
+      "digest": "4b07a79143bd0a228b621d79c57dec9c66c359fb6e57db30c03c9b67d6e11982"
+    },
+    {
+      "path": "src/runtime/env_posix.go",
+      "digest": "351f359fab6974c595ab72454ee246b0ebd82c3ca8bec599e33f49d6d9cefeb1"
+    },
+    {
+      "path": "src/runtime/error.go",
+      "digest": "b7d01a5bd00af22ecb3f72a4d260487573667ec84ffd5f85b0505264a147d976"
+    },
+    {
+      "path": "src/runtime/extern.go",
+      "digest": "d1b5ec5acf3c17a584365d6df945caee3ba1b55b10a3f69641d61e3f27192ab9"
+    },
+    {
+      "path": "src/runtime/fastlog2.go",
+      "digest": "4e03110f81e7323d3924fda1b76e3522e0631cf3d107f5c29de8be0b124a14a2"
+    },
+    {
+      "path": "src/runtime/fastlog2table.go",
+      "digest": "4729d9b0a9023b5c3b8e27d81943d692154499c6c3eec80a1663d47865eaa65c"
+    },
+    {
+      "path": "src/runtime/fds_unix.go",
+      "digest": "82e2d0c6f73403b973c29c24e0e8aea8ad848f1c20c22cc1172a08ced04481de"
+    },
+    {
+      "path": "src/runtime/float.go",
+      "digest": "3bbaefbb410e01afc0e82477b8d26470ce3bd1b2237776604a3fd85abc478b05"
+    },
+    {
+      "path": "src/runtime/hash64.go",
+      "digest": "b04680f71967a64d2f366115d4158938a1833faadd2121408129bb378cb7b9bf"
+    },
+    {
+      "path": "src/runtime/heapdump.go",
+      "digest": "4685b23fa1dcb77af4ea315fc3bc63692f491ee17a6b0f9738367799310d11e7"
+    },
+    {
+      "path": "src/runtime/histogram.go",
+      "digest": "7e9c532f80d134298db85fee79a1e251de00507d996976f2ff62060c45486818"
+    },
+    {
+      "path": "src/runtime/iface.go",
+      "digest": "dc54b64c1bb6ac5c0e2cf765aee4b9465f5be86a472227af14c0a75c085eece5"
+    },
+    {
+      "path": "src/runtime/lfstack.go",
+      "digest": "ffb60ce25df0e2b82aac06ecebbb089f5d086ca98ea17521853a89d8b0fc8f59"
+    },
+    {
+      "path": "src/runtime/linkname.go",
+      "digest": "4165304e269d11107daef57cb81cb1e7fdb2e5a061d882330d42cb5a9c84138f"
+    },
+    {
+      "path": "src/runtime/linkname_swiss.go",
+      "digest": "a07c8f4bc963b758111798c5f7fb7d1b2543041ef62a01b60925c4ca6e4aa8c7"
+    },
+    {
+      "path": "src/runtime/linkname_unix.go",
+      "digest": "e77e8fc214ad311a5a74b48585d60ab46a91514049e6c66697bc1e873ced9922"
+    },
+    {
+      "path": "src/runtime/lock_futex.go",
+      "digest": "c411429c46c093a5214ceebb3557f66de31056826fc2ab234ebfae70c0a2efb5"
+    },
+    {
+      "path": "src/runtime/lock_sema.go",
+      "digest": "75d2a07f05071f1537a1fad231e3397ae33ebac5026c66d09959b7c898f1ea5c"
+    },
+    {
+      "path": "src/runtime/lock_spinbit.go",
+      "digest": "fd134af1468b712b419c6be01b37d7c5b065cca043ca1d30350c73ce3e6c1821"
+    },
+    {
+      "path": "src/runtime/lockrank.go",
+      "digest": "8d405a83d8d8eec21e42cfac84a5af1442b5d0a6697e22ebd0fa53c5f3551d86"
+    },
+    {
+      "path": "src/runtime/lockrank_off.go",
+      "digest": "7939436cf311332dfaf11dad3d4ad42176e549409bd735f1c6eb2e0e264cea5a"
+    },
+    {
+      "path": "src/runtime/malloc.go",
+      "digest": "1a4526409c748dd3f4dc1bbe579ae686ca50a96a1e5554bda35f7566e2d1f5bc"
+    },
+    {
+      "path": "src/runtime/map_fast32_swiss.go",
+      "digest": "ae04e78c7eaf0b253252e61eb0e43cd6d98e95999b9addbd900612c80d681f86"
+    },
+    {
+      "path": "src/runtime/map_fast64_swiss.go",
+      "digest": "8c4b280fcea1c3bf87982b42612ddb45ed38518f5166aeebb3d916036c8432cc"
+    },
+    {
+      "path": "src/runtime/map_faststr_swiss.go",
+      "digest": "3349f6cf5b9d956d1cb74ae4028285099a2f24e33b949ef0129c601dfc2724fc"
+    },
+    {
+      "path": "src/runtime/map_swiss.go",
+      "digest": "f97713fa86ada07e992c69b021732a7c09f2ac6bdbfa6980a0f6538875c4d29b"
+    },
+    {
+      "path": "src/runtime/mbarrier.go",
+      "digest": "a7a24f880adbf607fa8997ac7f14b6999ba466b395a99ce01baaf39e361a0122"
+    },
+    {
+      "path": "src/runtime/mbitmap.go",
+      "digest": "6524aef74492d36196231f3e9ccbbbcc37a9a05551e7c5dd1fe7ffadddde7e0a"
+    },
+    {
+      "path": "src/runtime/mcache.go",
+      "digest": "2c9365e5975a4dca31c1ff58225ea3f2f15fae92f921de32cb573aec6a1828eb"
+    },
+    {
+      "path": "src/runtime/mcentral.go",
+      "digest": "07fdadf8d90bc514805131fed9de5c8e00cd87580a6bf40f55f83353aae7247c"
+    },
+    {
+      "path": "src/runtime/mcheckmark.go",
+      "digest": "91449d1fbf595fb85f39bba70ce940bccebbd12ee86eb79fc35d4d95483a37f5"
+    },
+    {
+      "path": "src/runtime/mcleanup.go",
+      "digest": "826bf51e6948f06907af0c189829b3d467b33b631f98095d1a1dfdf7d50bc23f"
+    },
+    {
+      "path": "src/runtime/mem.go",
+      "digest": "89352da4a4eeb43419579ccb0e2f6bbb914276e88fff933a0a9e420495b82c29"
+    },
+    {
+      "path": "src/runtime/mem_darwin.go",
+      "digest": "d7b75c93f8107fbf1e4963b5d7928a71fcca32d031bab53d68f4884219df0e46"
+    },
+    {
+      "path": "src/runtime/mem_linux.go",
+      "digest": "1256cbe69b9078c34b42370304b81a8da7238d8149cccf40026dad9e509d5454"
+    },
+    {
+      "path": "src/runtime/mem_nonsbrk.go",
+      "digest": "975fb2b84c6f9cba872fd6e3f77726ea297959a7373d75794a58194860ac07e7"
+    },
+    {
+      "path": "src/runtime/metrics.go",
+      "digest": "f09bec9a68a4ecb565c138f0a83502cebc6d0ba2aa93acf27f311e348d6bc02d"
+    },
+    {
+      "path": "src/runtime/metrics/description.go",
+      "digest": "7af03684e2a124ce2751abf87b4551837b3b9ef134c51b09341611d8cdaaf086"
+    },
+    {
+      "path": "src/runtime/metrics/doc.go",
+      "digest": "0d8bc34c4f972a7aece475517d8b9f2b6d26c9165f9f4587abc704893d4c3d22"
+    },
+    {
+      "path": "src/runtime/metrics/histogram.go",
+      "digest": "1bd00aa442b577266e511722eda47a9cbc9734e6e58131d4d6400e130804de4d"
+    },
+    {
+      "path": "src/runtime/metrics/sample.go",
+      "digest": "51e41d99d5aa3f60d8bfc8f4e0d2f29fd198dc9c6f79135271f9943c5b3917f1"
+    },
+    {
+      "path": "src/runtime/metrics/value.go",
+      "digest": "2e03fec304b022bc8c2668c1d8626722c2550b6b02fd86077ad7fd742b1b053f"
+    },
+    {
+      "path": "src/runtime/mfinal.go",
+      "digest": "17804b324b2dae726e9d442d25a2405ddffddb497994bf70be9f555e5bc05b50"
+    },
+    {
+      "path": "src/runtime/mfixalloc.go",
+      "digest": "4469bf858ac16f58c41adab050c5243d0dd8c5aad9d2e1c62b135635f7bc6f04"
+    },
+    {
+      "path": "src/runtime/mgc.go",
+      "digest": "c5f48c9c7d7f47e2d2a70a7a3fbf964d723d6a98042271668b1f6e5c0d5b5892"
+    },
+    {
+      "path": "src/runtime/mgclimit.go",
+      "digest": "fd175a6304a6d4e1f26822cdaa0f94d4959b2d1f5c315f6a0b1c342bda8ae6a7"
+    },
+    {
+      "path": "src/runtime/mgcmark.go",
+      "digest": "041e29a9f97fc38cb200e6dafbd28cda58cd43c03667f22000152710e5b68b60"
+    },
+    {
+      "path": "src/runtime/mgcmark_nogreenteagc.go",
+      "digest": "a0f430e250829da013741b725a063ca6788b2a0bc9dc9460d92998d8cc23305b"
+    },
+    {
+      "path": "src/runtime/mgcpacer.go",
+      "digest": "c8763d56c60934faf7ad1c29cd10261f5f598db3506345db2d9f88245e4bcae7"
+    },
+    {
+      "path": "src/runtime/mgcscavenge.go",
+      "digest": "809c6b1738c31d8e6acaee363fbb73653c895d56b2284b89b2dd085f2fa12f27"
+    },
+    {
+      "path": "src/runtime/mgcstack.go",
+      "digest": "c25628e388174f391c889daa770731336f6240900fe4c668af7ee0608cd8c090"
+    },
+    {
+      "path": "src/runtime/mgcsweep.go",
+      "digest": "3360306eb9886003c9fedf8a25d2d9d28fcd0b28869dfbfdfd84d9243e77360e"
+    },
+    {
+      "path": "src/runtime/mgcwork.go",
+      "digest": "653de08300e238f2e968772c234c78a33297bf31f242a44bc212ce02580cf693"
+    },
+    {
+      "path": "src/runtime/mheap.go",
+      "digest": "d037473170533043ffbf9bf8e1fd0d551c0d0cf278080454dad44a6e685899fc"
+    },
+    {
+      "path": "src/runtime/minmax.go",
+      "digest": "3740bf87388f301a2a05c6d31e8d7160c9cf54dd970dcb365d4f8816e92ba084"
+    },
+    {
+      "path": "src/runtime/mpagealloc.go",
+      "digest": "33fdd523b75f7904de21b2c395789fdfef31e9a365bd019915ca58f98ff53ac4"
+    },
+    {
+      "path": "src/runtime/mpagealloc_64bit.go",
+      "digest": "3ace6abdf6faf096f17774e85cc10c3a95bfec9a97ff302c8b72a0b9d52b07bd"
+    },
+    {
+      "path": "src/runtime/mpagecache.go",
+      "digest": "ad1427cbe7bb0a07746323b403093f484f750dfdf6f89df876cbe5720cec9c4e"
+    },
+    {
+      "path": "src/runtime/mpallocbits.go",
+      "digest": "8996a481943b5054af0962241b3f16f8ac13d79b5de7b62af904213a7f8b6ccb"
+    },
+    {
+      "path": "src/runtime/mprof.go",
+      "digest": "ca257ed199dc74a285a791905008fcd7a54cb12f436a617c28ad3598d7fe5196"
+    },
+    {
+      "path": "src/runtime/mranges.go",
+      "digest": "a9a4f58b3d28a047b9b097b507833f78c96b085e48ae6c8b35bd28db97cb1aca"
+    },
+    {
+      "path": "src/runtime/msan0.go",
+      "digest": "a53ed6335e7b05d189b422b3503d2421203362754eaa7b0b73c7bab4780fc2e4"
+    },
+    {
+      "path": "src/runtime/msize.go",
+      "digest": "0164d15295726608812842b429e241f553a314985a7c6aa48cb1ad24346a52dd"
+    },
+    {
+      "path": "src/runtime/mspanset.go",
+      "digest": "5cfd5ff71b601ba95f35d83ee25869bcbdaa9652eae456bf820e1e8918e1ae67"
+    },
+    {
+      "path": "src/runtime/mstats.go",
+      "digest": "42a2414ec19fa8da881ef7861e9c69b33506c3d2201138f3b506535079084bee"
+    },
+    {
+      "path": "src/runtime/mwbbuf.go",
+      "digest": "91f36548b292b0d1914d868caee7bb2db26f10e8ce192e41cc27b81f7512c7e3"
+    },
+    {
+      "path": "src/runtime/nbpipe_pipe.go",
+      "digest": "8045e3f11b9ad656641c985b388f2e7c789fde1b921e0d8d4356ad61bc860447"
+    },
+    {
+      "path": "src/runtime/nbpipe_pipe2.go",
+      "digest": "29976eeaa240c5b1ff32866263a1e701831b6fc70a06bf79d6aabc999ab45e4d"
+    },
+    {
+      "path": "src/runtime/netpoll.go",
+      "digest": "f7c606d3fa0a3b9499fd5f42b81918a98f0b99a6029fca2010cabc710fc9ea65"
+    },
+    {
+      "path": "src/runtime/netpoll_epoll.go",
+      "digest": "bb24996d05ad436d0df474284a4fb3a1bf356126e7ef3f39687ba5b319641740"
+    },
+    {
+      "path": "src/runtime/netpoll_kqueue.go",
+      "digest": "7ea25693196718940e852554427d6b0d96d2964899e91e1bd3852d3f9267a072"
+    },
+    {
+      "path": "src/runtime/netpoll_kqueue_event.go",
+      "digest": "63d8d7d0642dcfaaa0e4b9531e48a1f3a8393009946f2152654e96b5f11bed71"
+    },
+    {
+      "path": "src/runtime/nonwindows_stub.go",
+      "digest": "e7e55cd09500be799d09d7e21338f6fd18840c813b5e753e39b9f4371a84cbc3"
+    },
+    {
+      "path": "src/runtime/note_other.go",
+      "digest": "8f910c2a6c624eba7f47275cb2917de934ead4300b5de64bea5637b5de1ee7a2"
+    },
+    {
+      "path": "src/runtime/os_darwin.go",
+      "digest": "6f67806b64868925f9ec8684b673c09d66a22a0d1f096df2e8362f06d82d5630"
+    },
+    {
+      "path": "src/runtime/os_darwin_arm64.go",
+      "digest": "6559a41847789afb846e8bafecacde532ee420420913d0be260effc2d3a6be62"
+    },
+    {
+      "path": "src/runtime/os_linux.go",
+      "digest": "418af7f7c3407a99793f767c892dbb0a7a0995f817444e5f0b3e531753c4fd31"
+    },
+    {
+      "path": "src/runtime/os_linux_arm64.go",
+      "digest": "20703ec17456cc26d745c9e7b37f729dd65acba0114e2c0c48d8f490718530b7"
+    },
+    {
+      "path": "src/runtime/os_linux_generic.go",
+      "digest": "ed08e83bbb13787a044b1f12e952bc54f57085d9f5b4e80067c2c1e2d8527167"
+    },
+    {
+      "path": "src/runtime/os_linux_noauxv.go",
+      "digest": "7c2485a784ea54d6a6d1af5644f0ee241b8faad42d38f46f0e40c512a6d197e2"
+    },
+    {
+      "path": "src/runtime/os_linux_x86.go",
+      "digest": "a42877c11697ac5c9b40822aa289b79e95fa62d3c7e3aa8d3ae915d9ae24f6ff"
+    },
+    {
+      "path": "src/runtime/os_nonopenbsd.go",
+      "digest": "ee262ac265c43fa6826127530808e2b316bfb86bf3d226dbbebea428266f2b8c"
+    },
+    {
+      "path": "src/runtime/os_unix.go",
+      "digest": "7a8d6fa105fa250c70b4cb9c90f46deef34d14449baaaafacb70c0f248067afe"
+    },
+    {
+      "path": "src/runtime/os_unix_nonlinux.go",
+      "digest": "310c8635c507c7e6def6237e4eb323b48443acd9fc84d0e6568b735cb8aa1633"
+    },
+    {
+      "path": "src/runtime/panic.go",
+      "digest": "b1e03d5f3389a1520edf3238ccbd723c41bb2dbe50e30c16b50d5caded78cc06"
+    },
+    {
+      "path": "src/runtime/pinner.go",
+      "digest": "c50971c756421df39db0b169fcc256fd96e40d204b130a5690552f25bffaefbe"
+    },
+    {
+      "path": "src/runtime/plugin.go",
+      "digest": "bbf6e2fad8f3214bda8b420b57be1a801691c0614f26b7e79334e19e26fcf32a"
+    },
+    {
+      "path": "src/runtime/preempt.go",
+      "digest": "b0345954760f78820769f918479c09b3630a81151b03e07259fee40d36728e9f"
+    },
+    {
+      "path": "src/runtime/preempt_nonwindows.go",
+      "digest": "4aae15044bdee656cbb361b9c06c9ab2f14b25d28c4ba6c407e27c225e7a6d2a"
+    },
+    {
+      "path": "src/runtime/print.go",
+      "digest": "178413644131bedce4c39781f4830f9237cbf133de39e01085a7c41bf326145b"
+    },
+    {
+      "path": "src/runtime/proc.go",
+      "digest": "e80c57137558036661b1e1575e6810bc5a9cfecc6e2a00df69823a797aa31d02"
+    },
+    {
+      "path": "src/runtime/profbuf.go",
+      "digest": "3ec92c9ab507492043dba33802a97dd3df841883b4933301fe42db1ba7f968b3"
+    },
+    {
+      "path": "src/runtime/proflabel.go",
+      "digest": "dd18006615fac877fb74bf06e2003833c2222e447a752ad25983a35ba3d09426"
+    },
+    {
+      "path": "src/runtime/race.go",
+      "digest": "0d5056ac867eb3c6b8e7c190dc03f5acc09bfd4b979b3e7decf4f41a6069868c",
+      "hooks": [
+        {
+          "package": "runtime",
+          "symbol": "RaceAcquire",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceAcquire",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceDisable",
+          "signature": "func()",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceDisable",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceEnable",
+          "signature": "func()",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceEnable",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceErrors",
+          "signature": "func() int",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceErrors",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceRead",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceRead",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceReadRange",
+          "signature": "func(unsafe.Pointer, int)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceReadRange",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceRelease",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceRelease",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceReleaseMerge",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceReleaseMerge",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceWrite",
+          "signature": "func(unsafe.Pointer)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceWrite",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "RaceWriteRange",
+          "signature": "func(unsafe.Pointer, int)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.RaceWriteRange",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "race_ReadObjectPC",
+          "signature": "func(*abi.Type, unsafe.Pointer, uintptr, uintptr)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.runtimeRaceReadObjectPC",
+          "owner": "rt"
+        },
+        {
+          "package": "runtime",
+          "symbol": "race_WriteObjectPC",
+          "signature": "func(*abi.Type, unsafe.Pointer, uintptr, uintptr)",
+          "target": "github.com/neria-cloud/gosim/internal/compat/host.runtimeRaceWriteObjectPC",
+          "owner": "rt"
+        }
+      ]
+    },
+    {
+      "path": "src/runtime/race0.go",
+      "digest": "40cacda94f0feb4ffb47516bd5d88ac4c7bf988bad78ba375c749900c743ed96"
+    },
+    {
+      "path": "src/runtime/rand.go",
+      "digest": "f0c4935ece88ac3861ebd5060a3507831158bcf5ac47abae5860220c0da970c5"
+    },
+    {
+      "path": "src/runtime/rdebug.go",
+      "digest": "39a5f8ec7012b69997d9e25c6a7f303b128f821c155ac2f3bd5e04b7a45ef796"
+    },
+    {
+      "path": "src/runtime/retry.go",
+      "digest": "64afd0c6d11790a6324caf058795ca4c61295d03b947637165a764b8d34c0b13"
+    },
+    {
+      "path": "src/runtime/runtime.go",
+      "digest": "fe478d164989b5cd5783c9820d99879623780ba353f836f499238e76efb24fd8"
+    },
+    {
+      "path": "src/runtime/runtime1.go",
+      "digest": "a1861ec0021b6dc76c557824c251beb8374251316ec58c114e48a3209c162bea"
+    },
+    {
+      "path": "src/runtime/runtime2.go",
+      "digest": "8195673da4b7a6845cc8db69ecf040caadb1b8111423ec3dfa87ce49e73a9c19"
+    },
+    {
+      "path": "src/runtime/runtime_boring.go",
+      "digest": "b66676b383e1baaf34b9482c50e2af4e6b9fe3178af6fff638368dbd6547e0c5"
+    },
+    {
+      "path": "src/runtime/rwmutex.go",
+      "digest": "7ab5f917f2d92166e7a2a1db37fd1ad59724ebe9cb2763fa55aa16bc1e78c8fe"
+    },
+    {
+      "path": "src/runtime/security_issetugid.go",
+      "digest": "ad7117b30a5a8870a64b938f2a7cec193617037af6c3cc414eb9b384cbf96950"
+    },
+    {
+      "path": "src/runtime/security_linux.go",
+      "digest": "575dba66b2595e08b4cd7bb998a2f0d1040b3fb0c4410ce5d73b43f9e19dc2c1"
+    },
+    {
+      "path": "src/runtime/security_unix.go",
+      "digest": "d570c7ee6b36cca9a0c270d641b2af4bd2b4e0f64e49dee7831019f04fc841d3"
+    },
+    {
+      "path": "src/runtime/select.go",
+      "digest": "ca71ad3fe943b3a7d220d638c69b5cfb7e2cb148680e99f51c22231a88b1ffba"
+    },
+    {
+      "path": "src/runtime/sema.go",
+      "digest": "ef511b8801bef37c45076a64556bd7993883b0a74da89574028a5dd08886f7d4"
+    },
+    {
+      "path": "src/runtime/set_vma_name_linux.go",
+      "digest": "ae52899bf8a12300341c90b661160fa5826719cd415a1f3af729af92c65e3da2"
+    },
+    {
+      "path": "src/runtime/set_vma_name_stub.go",
+      "digest": "f06348abd310c60f1e7ee26063bfa46654b129277b2b41bbfae2dad46af0948f"
+    },
+    {
+      "path": "src/runtime/signal_amd64.go",
+      "digest": "131fc8cdf581e82194de1afa3a7d3d982f056f35e30fcd23d412bae669d0b90f"
+    },
+    {
+      "path": "src/runtime/signal_arm64.go",
+      "digest": "04142dad92a4fa31f79095033cd023ddf5f256b21824eb1f25e6a9600da23331"
+    },
+    {
+      "path": "src/runtime/signal_darwin.go",
+      "digest": "ec4119fe65a45c77833150bc11107e4a11bf1b062c04cd1c87c9731a01935d9b"
+    },
+    {
+      "path": "src/runtime/signal_darwin_arm64.go",
+      "digest": "7fe01f6eea07e8b4ed54cc524beb33864feec0806c1b74ab3e05c9bb6c44baa3"
+    },
+    {
+      "path": "src/runtime/signal_linux_amd64.go",
+      "digest": "6954d3f5abb01d15a709be7851dbdc5fabbcfa268c9bf2210f6df3f05786f23e"
+    },
+    {
+      "path": "src/runtime/signal_linux_arm64.go",
+      "digest": "d4847dde56db27736b0dcc0c970d10fac36faeae6357fd6073e36f046c95d90e"
+    },
+    {
+      "path": "src/runtime/signal_unix.go",
+      "digest": "f92b83790c346616b599fcb481def9d11dbb2abe1b89b5297ea938eafe133db8"
+    },
+    {
+      "path": "src/runtime/sigqueue.go",
+      "digest": "4b645a4e6f3cdf78932195e8ff28f3b79b47bc4d6df7167acb19ade6c17366db"
+    },
+    {
+      "path": "src/runtime/sigqueue_note.go",
+      "digest": "84a465db62b4f99d10ecf64310a081840d22727bc1c0a5203e5c4dba627d6a77"
+    },
+    {
+      "path": "src/runtime/sigtab_linux_generic.go",
+      "digest": "0e618e00f7d446bc55e03083f76a276e481652603d10c96e7662e943d5101513"
+    },
+    {
+      "path": "src/runtime/slice.go",
+      "digest": "586118064456dae44c081584933d7e99a287f851088ae926ffe10565f11a22b6"
+    },
+    {
+      "path": "src/runtime/softfloat64.go",
+      "digest": "94f52048c124deff27c7b4c0215eab39700b16cd9a3781e6453f7900a4eb2005"
+    },
+    {
+      "path": "src/runtime/stack.go",
+      "digest": "20b55919dfbf6d9321965e56807d97bdf19029e5e0f2a3fba0f519368dd93004"
+    },
+    {
+      "path": "src/runtime/stkframe.go",
+      "digest": "dedaf23d58634034d197d7b8d076a42cbd96f9bcec83228daf1cdc0da4b6f190"
+    },
+    {
+      "path": "src/runtime/string.go",
+      "digest": "09ad4e83f0d9546f0895878a0e68d4f2b3db86b6457aea577f3e8e7f83712ac7"
+    },
+    {
+      "path": "src/runtime/stubs.go",
+      "digest": "88adb2b7d0d0fc4fe20eb6e269e4aff3eea634a83c4e0a9547064a432622e586"
+    },
+    {
+      "path": "src/runtime/stubs2.go",
+      "digest": "afd9900bba6bd678c9217918847144cf5fed035b1035081756770bf092fcdc5a"
+    },
+    {
+      "path": "src/runtime/stubs3.go",
+      "digest": "8cbbe3b1cff1e5265bfe4f54184a665bc12ded904f5d923a4aa8beeaafc681ca"
+    },
+    {
+      "path": "src/runtime/stubs_amd64.go",
+      "digest": "1c7a7c95d3ba4575b61e47e72bce63b34aafcd7482d974ed1b7313428cf3649e"
+    },
+    {
+      "path": "src/runtime/stubs_arm64.go",
+      "digest": "25566bbb705b1057a940b382bfb8a3a2f728ac05feaa09e544d7826533b50c42"
+    },
+    {
+      "path": "src/runtime/stubs_linux.go",
+      "digest": "a93986261d9225c7c06c813037f0cc81209c8851631a74796b6e3854d7f21415"
+    },
+    {
+      "path": "src/runtime/stubs_nonlinux.go",
+      "digest": "84eae536719177fa8bc75e08cac48f2856cfc1a7330bfaa1323c59273d88f54f"
+    },
+    {
+      "path": "src/runtime/stubs_nonwasm.go",
+      "digest": "b5e6633be53365857e330e367fede63060e8ec23139850f2a643a63972873034"
+    },
+    {
+      "path": "src/runtime/symtab.go",
+      "digest": "ada37492cd3dd18f8c0e433f6ed81c76bf26fb44c9baf574afcffd40bbe34637"
+    },
+    {
+      "path": "src/runtime/symtabinl.go",
+      "digest": "64bbd9ed4f94111659b89fc55c0764fb1f9a4202453ebb8646f7c6aef98c4edf"
+    },
+    {
+      "path": "src/runtime/synctest.go",
+      "digest": "44473e1cf7566ab488fd6aec596dc5f9a263eac04c149bf4024875ceeb47858d"
+    },
+    {
+      "path": "src/runtime/sys_arm64.go",
+      "digest": "74b15ee351dcc6dbe624607ee8e0b26e76b352b3132f40f16358336af0461c67"
+    },
+    {
+      "path": "src/runtime/sys_darwin.go",
+      "digest": "b5af4aaa566eac3a5cb2b929c0c020e2754ec09dc20608a408573b32fdef29fb"
+    },
+    {
+      "path": "src/runtime/sys_darwin_arm64.go",
+      "digest": "35411e5f1d4f9ac0bbe73603a939970aa1fcaff849c90d0a9b608163ca7a3090"
+    },
+    {
+      "path": "src/runtime/sys_libc.go",
+      "digest": "b2c36336092d23b6238227f4d532c357d3af9a28317b40aa951798174e6abd40"
+    },
+    {
+      "path": "src/runtime/sys_nonppc64x.go",
+      "digest": "fa63b093b68b24b280878384269e4ef7c9791216991e616ab3537a1484c07947"
+    },
+    {
+      "path": "src/runtime/sys_x86.go",
+      "digest": "f9c1c32030a7fb02db5abced4c69f250bf8bd341ac6a24b71a781908bf20c42c"
+    },
+    {
+      "path": "src/runtime/tagptr.go",
+      "digest": "4b46ea3f7fc1ea740de027c57ff42273b8b57ff76c692041ba43b8f78ee6caf2"
+    },
+    {
+      "path": "src/runtime/tagptr_64bit.go",
+      "digest": "8788f7013736b8a86e9014e22362af25fed406f381febae17a0f6ce41024e322"
+    },
+    {
+      "path": "src/runtime/test_amd64.go",
+      "digest": "432c8025a7a10b45e23f8e825244ca027e8dfc7cc123f1c8b58ea3a630923ead"
+    },
+    {
+      "path": "src/runtime/test_stubs.go",
+      "digest": "be98082bf3f62a9ae7262ba89161c12b8a29328a83aa4976cd91c0d8e7187df9"
+    },
+    {
+      "path": "src/runtime/time.go",
+      "digest": "938ab010ba97c0920b61ed544abd8f829705785002ec03374f667f9d9ee4fc3f"
+    },
+    {
+      "path": "src/runtime/time_nofake.go",
+      "digest": "d42faad51f376b9d43b4944620b4208a24bcb48ce7c0d9ef1d7786e3467b1f42"
+    },
+    {
+      "path": "src/runtime/timeasm.go",
+      "digest": "5c060a9c53fedf7c36023bbac52589626972ecad66b43a9672f8985eb43a7344"
+    },
+    {
+      "path": "src/runtime/timestub.go",
+      "digest": "0f4200ad6f00e786bfab7251705bc87d658ba6bf2645f5b7decb413fb0887ca8"
+    },
+    {
+      "path": "src/runtime/timestub2.go",
+      "digest": "1bb85a7db6a7c4cf7312b1ab52a64e27cd51cdefe2af6a8cd055741e362d8a9f"
+    },
+    {
+      "path": "src/runtime/tls_stub.go",
+      "digest": "1596177a6668e35fea9dadebfa93dbe057a601886081665107e32fcec5fab2cb"
+    },
+    {
+      "path": "src/runtime/trace.go",
+      "digest": "45e8d40e8ac7f5fb23b1f25d7ad45138e0b52efbd2f98de0a7bad61e40bbc47a"
+    },
+    {
+      "path": "src/runtime/trace/annotation.go",
+      "digest": "bc7f08f2793ca363cf022f1385cb08185f181a2f67725453fde7f71c029d1525"
+    },
+    {
+      "path": "src/runtime/trace/batch.go",
+      "digest": "3c2c17912cc7082ae01d17a5186ec9ac6dfd77acd53e7f760e924498bb702254"
+    },
+    {
+      "path": "src/runtime/trace/encoding.go",
+      "digest": "3805d73095599150b35f41ac548320fb97459671d2fc3d455edf387adf8cdedd"
+    },
+    {
+      "path": "src/runtime/trace/flightrecorder.go",
+      "digest": "700d85c8afa778c2aef5cf3608d9f058d85e1b4e8a1224bbbd1f7221168236b3"
+    },
+    {
+      "path": "src/runtime/trace/recorder.go",
+      "digest": "7c244ae293843219b788b97ceb49794eaa8736c39c68a2b06aef282b87ef5d2b"
+    },
+    {
+      "path": "src/runtime/trace/subscribe.go",
+      "digest": "4fe83828e55be736c0ca932a954a04de35eb3a62d4d449005094a706148144b8"
+    },
+    {
+      "path": "src/runtime/trace/trace.go",
+      "digest": "1f13c6a781982a57c733620814cc5238030bfd1ff2518f1e8278e8b59d42ca44"
+    },
+    {
+      "path": "src/runtime/traceallocfree.go",
+      "digest": "57b1e9d544f59930f6f07ea4a269cd664a18447adf1460d2064f8f44255bec61"
+    },
+    {
+      "path": "src/runtime/traceback.go",
+      "digest": "6042e6f4bc8f0570ea268709eeda823b9f19ae121c8f3d6c0eedb8ec6b54fcaa"
+    },
+    {
+      "path": "src/runtime/tracebuf.go",
+      "digest": "8c7600386965c10f782d926de7774cdf7629677d674eb55079b3e2b071e1b12a"
+    },
+    {
+      "path": "src/runtime/tracecpu.go",
+      "digest": "8b49c7739f197441000c48d4c5d1eceb36d16495abdfc595a36e7e5506c011ab"
+    },
+    {
+      "path": "src/runtime/traceevent.go",
+      "digest": "7b765f29346292effb0ea2fb9c3470091891a1c7d780306ee851faf825c352be"
+    },
+    {
+      "path": "src/runtime/tracemap.go",
+      "digest": "bf12d8379379c6c46638b2b8d387396647c63830f13c6aa91525d437088e120a"
+    },
+    {
+      "path": "src/runtime/traceregion.go",
+      "digest": "2f6ae4e4c9668173d502ea57fa79b0d1ad5da8b154bc700bfbebcbfba8e17bf2"
+    },
+    {
+      "path": "src/runtime/traceruntime.go",
+      "digest": "1d6ac9fe9593e92af6a10efcbe627b3d513e941bac4fe4e9dfd3bf44574df4de"
+    },
+    {
+      "path": "src/runtime/tracestack.go",
+      "digest": "f98a5ee83069cfa3359145630d14d3bb1b7e473fa32c423fab2925cc72eb42f7"
+    },
+    {
+      "path": "src/runtime/tracestatus.go",
+      "digest": "1562f0d50808dde10a1611a53814f791fe5795b2eb0a00df4a1fca197b8bea16"
+    },
+    {
+      "path": "src/runtime/tracestring.go",
+      "digest": "9cb7834897af06f24c5c21f209a7550ce6990a63ceb4b4f5b7c8cd519e80784e"
+    },
+    {
+      "path": "src/runtime/tracetime.go",
+      "digest": "cfbb13de9ff44421db13f43ab22780f9da3a878982ea5671834b8ff0ee4c196f"
+    },
+    {
+      "path": "src/runtime/tracetype.go",
+      "digest": "2adc17f077c7740e1d35540292abd179e2c82c66be4e6c9144659bdd78f76888"
+    },
+    {
+      "path": "src/runtime/type.go",
+      "digest": "37ffaaa08e7d61cb61ce755635fab1f9f673105f3ff3acadcc2aff19ae7b1b61"
+    },
+    {
+      "path": "src/runtime/typekind.go",
+      "digest": "bfb30235a5f2f7109beca2215f41aa2a85a9e328c59b6b8d1da49c1667bbb68b"
+    },
+    {
+      "path": "src/runtime/unsafe.go",
+      "digest": "129ae3ace83e83b36edabaa2e3e5ac168475cd8d9a3cc02c81a08b1438b9f98b"
+    },
+    {
+      "path": "src/runtime/utf8.go",
+      "digest": "08e09814d245742077592fe53a434a630c3067273fa88321f893627dfad81a6f"
+    },
+    {
+      "path": "src/runtime/valgrind0.go",
+      "digest": "a5ba5f53f63ee9b41dffe9003a5c9fffba1530d4397ebe2a4164dbf0e49c1aa4"
+    },
+    {
+      "path": "src/runtime/vdso_elf64.go",
+      "digest": "759cda62ff78474fe0ef376c713171e23304bb961c013f0f78b44344a965e0ff"
+    },
+    {
+      "path": "src/runtime/vdso_in_none.go",
+      "digest": "21639cf149c73c080136387c1b26ee886b04997618223fb58ded7ee87ba84938"
+    },
+    {
+      "path": "src/runtime/vdso_linux.go",
+      "digest": "a34771be5b228378a2ab56bbf3897721004749da0b469ad733f46f64eb64c17f"
+    },
+    {
+      "path": "src/runtime/vdso_linux_amd64.go",
+      "digest": "6763e3a583e07d928cc9a54d9b1d682969883c9e38be457309748c09b1243908"
+    },
+    {
+      "path": "src/runtime/vdso_linux_arm64.go",
+      "digest": "96bd902837f3ee268797328b77c2d72168b1ac4637c75533ba5a2b9d4b166108"
+    },
+    {
+      "path": "src/runtime/vgetrandom_linux.go",
+      "digest": "096513e8f8bb85cfea3ecb08367e76422a61c6a8bb3d658870d5bf7b04db3f39"
+    },
+    {
+      "path": "src/runtime/vgetrandom_unsupported.go",
+      "digest": "3c6f633f35724bf61203fe3abb4047a0c0544fb1dd86f7f698641f9b57cf8f55"
+    },
+    {
+      "path": "src/runtime/write_err.go",
+      "digest": "fb40f33137552d750419154b3a19a346328eeac38dc9186f6450040ceaf89686"
+    },
+    {
+      "path": "src/sync/atomic/doc.go",
+      "digest": "fb448dacfc6b4d5c74ae203224dc31088c2cf45fc42391a4fdb04a47ccc62413"
+    },
+    {
+      "path": "src/sync/atomic/doc_64.go",
+      "digest": "0434f660a650bc6a1eaf9b8c48205ed0ce8c18b53001e949dde7662d04bde9ea"
+    },
+    {
+      "path": "src/sync/atomic/type.go",
+      "digest": "448abbf2d0dfe655fc8d096d2aed2fa37e43b10558c2132f1d0b17c8e4de69b9"
+    },
+    {
+      "path": "src/sync/atomic/value.go",
+      "digest": "710a2a246c5be7546d145b093b65ee851fd24c06e8b315d6f4059d3427115fba"
+    },
+    {
+      "path": "src/sync/cond.go",
+      "digest": "324314fd3a484897ce540a242f9de85d00407040c8cd2ee7db5d5761f5d14d4f"
+    },
+    {
+      "path": "src/sync/hashtriemap.go",
+      "digest": "5c307c1671b8db9d19c31969337746a204c31fe2e2355858941e37dbb3c7ee18"
+    },
+    {
+      "path": "src/sync/mutex.go",
+      "digest": "3dec4264678744c4ce15a05ba0cc88e5e8b155f071b71d74eb7ed229ca72c114"
+    },
+    {
+      "path": "src/sync/once.go",
+      "digest": "bb9ad6ea4899068720643b276f93e711b3cfff851661febaa8d7b64859b0e6a7"
+    },
+    {
+      "path": "src/sync/oncefunc.go",
+      "digest": "0853c1ad885c593d2810e601c495f00abe197b10d12b679f94badf3efe5fa365"
+    },
+    {
+      "path": "src/sync/pool.go",
+      "digest": "d613639cb20b77b0db9104bc0de2590f781f4ea3a01494619e521aa727114f99"
+    },
+    {
+      "path": "src/sync/poolqueue.go",
+      "digest": "25b900ffeb803a9ecd4c1926a5faaa3ba8d7b4adcd71bbfbd373cb8606910dae"
+    },
+    {
+      "path": "src/sync/runtime.go",
+      "digest": "a2be85512b59e11270b099f264581343cc1589bb782e03a476102406defd5f33"
+    },
+    {
+      "path": "src/sync/runtime2.go",
+      "digest": "5bc4014718a892af6591e26e6c87105a001b7d1d1f93c3ec4c289128c80f6ba4"
+    },
+    {
+      "path": "src/sync/rwmutex.go",
+      "digest": "4ecc9b2fa7771cbe37e1670e4caefd7a28939683bfe1614fcf5e9d545261d17f"
+    },
+    {
+      "path": "src/sync/waitgroup.go",
+      "digest": "8d158bdcf962cb5022046df3b09eedc92879d7a592f9ffb51ab6d23dc7e44348"
+    },
+    {
+      "path": "src/syscall/badlinkname_unix.go",
+      "digest": "2d5d9bc9885f05f58ce7f7334232ce15668931aadb9eb6c49c71b8a43fa3f83e"
+    },
+    {
+      "path": "src/syscall/dirent.go",
+      "digest": "8ac4e3bc980a31542d5071eef6b59ddf26f83eb8b43224ff0f9ca31cd017e153"
+    },
+    {
+      "path": "src/syscall/env_unix.go",
+      "digest": "3158e5dfc1e4e1e05342354857cb3f1ea2c209af73a5dda4158fdca901fbbe34"
+    },
+    {
+      "path": "src/syscall/exec_linux.go",
+      "digest": "3baba505f5403c1dd0e3ab375d0798773ebf7ccf6e066e9ce1c2bfddaa2f68c5"
+    },
+    {
+      "path": "src/syscall/exec_unix.go",
+      "digest": "a0e7697342b3c261d53f2326687df0c0f4b0660d9964414dd3605da618598dc1"
+    },
+    {
+      "path": "src/syscall/flock_linux.go",
+      "digest": "13d2a434013cb2233ae64034d67fdd19f9df6415b5b60530044e7227fd8b242f"
+    },
+    {
+      "path": "src/syscall/forkpipe2.go",
+      "digest": "8178af2b2692f288af9b08859acf52266bf8ac4e2b7fdc6cab0786d3dd50aca1"
+    },
+    {
+      "path": "src/syscall/linkname_unix.go",
+      "digest": "5bf0a04177de7a0537a305c39cc9e380f626a04c569b88ac3679d9acdcef2924"
+    },
+    {
+      "path": "src/syscall/lsf_linux.go",
+      "digest": "a0cc8b45b9996b8fd1bc334dd81051dde04357edc4a1c8ea68e5b539390d927a"
+    },
+    {
+      "path": "src/syscall/net.go",
+      "digest": "96c7ea22567bb7a64b294ee89f91801f116b336beeabc341d016b37cf840058d"
+    },
+    {
+      "path": "src/syscall/netlink_linux.go",
+      "digest": "569949cb048d294b11e02078525d4ac2be2b6d8520575fe4c9c3234ef418242b"
+    },
+    {
+      "path": "src/syscall/rlimit.go",
+      "digest": "f0eee111b4a1fd060d21d2a18878353242c9c9440da5aec97d74667ef634eb51"
+    },
+    {
+      "path": "src/syscall/rlimit_stub.go",
+      "digest": "0a1d3dadf3b0f1eb85765f5e7ff1c94322d75c14ffb33f43bf2e229b5c7a8f93"
+    },
+    {
+      "path": "src/syscall/setuidgid_linux.go",
+      "digest": "59d764551533051659477d084963f111d02eb0ae13841b683383685eff3beb31"
+    },
+    {
+      "path": "src/syscall/sockcmsg_linux.go",
+      "digest": "5a8ebab526ca05814dd14aa8970b6f177e484cd666ce36ef6be8eb4c502fa93d"
+    },
+    {
+      "path": "src/syscall/sockcmsg_unix.go",
+      "digest": "8e78ac0374da70229837cd41eed4fd3a5ad06dbc90ef3ea4136ccedacf762616"
+    },
+    {
+      "path": "src/syscall/sockcmsg_unix_other.go",
+      "digest": "a2320d4a54bb9b491374508605c892597c85e5a07c57574a2aec4ed7885ae021"
+    },
+    {
+      "path": "src/syscall/syscall.go",
+      "digest": "9fef7ad972eae0c33251f87c8f04e12a975bb1a24d26718b3f7ff96c4e20b594"
+    },
+    {
+      "path": "src/syscall/syscall_linux.go",
+      "digest": "3584c4b0ee1868b4301df0e3a16587132113449056347493baadf48189c699e1"
+    },
+    {
+      "path": "src/syscall/syscall_linux_amd64.go",
+      "digest": "e220a8ff4c78efdfca407b87d8db7dcb6b61e20238091dacfde1bdabccf7b42e"
+    },
+    {
+      "path": "src/syscall/syscall_linux_arm64.go",
+      "digest": "d22059c2984415a156489e76a6fdfc002ad07e6261fc731055679c52d7b0eb7b"
+    },
+    {
+      "path": "src/syscall/syscall_unix.go",
+      "digest": "cccc8f6b8c92d4a2f16d625f31cb3cd26268d44346b55c8144dba0b289ed3e48"
+    },
+    {
+      "path": "src/syscall/time_nofake.go",
+      "digest": "8c9c3e97fa48debbdb2808cc290918e2abc49fd9198811fd8e69477d50467ec0"
+    },
+    {
+      "path": "src/syscall/timestruct.go",
+      "digest": "4271edf5d1f895c0f94f6af4c067fc71c1197e11cf3e5b85facc563f321101fb"
+    },
+    {
+      "path": "src/syscall/zerrors_linux_amd64.go",
+      "digest": "2d96a92f48c420b427f48090663c854672433142fe7c6f7d67638e1e7113a173"
+    },
+    {
+      "path": "src/syscall/zerrors_linux_arm64.go",
+      "digest": "3bda67550c959cadcec978be211b250be898f7d175c77530ef4885ba7c669d39"
+    },
+    {
+      "path": "src/syscall/zsyscall_linux_amd64.go",
+      "digest": "9d3d6ce5403a67d06471690e1c0f7ebf36bade8d843c7e3bef31ca2b7acaf80c"
+    },
+    {
+      "path": "src/syscall/zsyscall_linux_arm64.go",
+      "digest": "c992df6c46315abb35a6019b8c3e3dfe03976ba9a1204dcc306130947dfa32c7"
+    },
+    {
+      "path": "src/syscall/zsysnum_linux_amd64.go",
+      "digest": "65c4a7f1c1e01548d30fa3abe5d6247ccabb4ab13ea150dc1b678164c64013c6"
+    },
+    {
+      "path": "src/syscall/zsysnum_linux_arm64.go",
+      "digest": "7ddc12ef4061ca5bde7101788b3799ba28b7fa5dfb849d3f4fb7f81d33ee30ce"
+    },
+    {
+      "path": "src/syscall/ztypes_linux_amd64.go",
+      "digest": "e088363772b32993ef155541ff9cb2b98798f34039a35abc74ce4ea5d37b0d70"
+    },
+    {
+      "path": "src/syscall/ztypes_linux_arm64.go",
+      "digest": "09f305323ceacc9581f1f929447b056fd2b228c6c32ae32a4db62c199c83ad05"
+    },
+    {
+      "path": "src/testing/allocs.go",
+      "digest": "4fa935b51bd22e94d35d285234c4fb42329708348901915565990e64e8864a72"
+    },
+    {
+      "path": "src/testing/benchmark.go",
+      "digest": "eb44c74738080f053ea1b08f321b54c5af968ca2b4d564f75e25f0786381817e"
+    },
+    {
+      "path": "src/testing/cover.go",
+      "digest": "18dbd25f782023cb72e2b1847e960313ff6eeb62b749433752e51c51dca2d4ec"
+    },
+    {
+      "path": "src/testing/example.go",
+      "digest": "52e4417a3bec0e28c77e8009c06984fca5158226abf559ff08857e389c1f374e"
+    },
+    {
+      "path": "src/testing/fuzz.go",
+      "digest": "cfd4bd24694d83652e893e3050406916fe4d08948ec59625969b3be4ff545b7a"
+    },
+    {
+      "path": "src/testing/match.go",
+      "digest": "f28418759ed48c72821b5ecc3700041b74151108557618f50d355ea98a1bbebe"
+    },
+    {
+      "path": "src/testing/newcover.go",
+      "digest": "2c9331c056e707a8d6fc527108f1f3ec835e8fd2b9841c39637e2113275a3f43"
+    },
+    {
+      "path": "src/testing/run_example.go",
+      "digest": "eb8b54a7ebab3c437dd5ac67b56fdb4ee11ac2aa6796f5a8ce362730f276ad38"
+    },
+    {
+      "path": "src/testing/testing.go",
+      "digest": "7ea0bc471a7d22b6757c68eca689efa0561a0610052545242d866d8039dd1781"
+    },
+    {
+      "path": "src/testing/testing_other.go",
+      "digest": "9b5a2b1dcede8e25ee003f6921ac3c6566a71fe27e7d42d3f662cab4255239e2"
+    },
+    {
+      "path": "src/time/format.go",
+      "digest": "4c61521c0afb7d0eaa809efd090404ff3ece4285a2089a6f189c897908afe148"
+    },
+    {
+      "path": "src/time/format_rfc3339.go",
+      "digest": "14b2a58fa295cca1a4f99467f5a5059418ed266a2298316124af97ffa014f271"
+    },
+    {
+      "path": "src/time/sleep.go",
+      "digest": "7af4885f167a12ff201ad4d0b5a7c63ba57cee9204b3fa0cacfe4f832875b765"
+    },
+    {
+      "path": "src/time/sys_unix.go",
+      "digest": "dfb95fb684453c7314fc9a31dacb6bb6de7fa3ccc1752b9bb7f2741a062911d5"
+    },
+    {
+      "path": "src/time/tick.go",
+      "digest": "c25a5f521f3925d21dedab88e8829cfed90b0fe6283e9c189d30a3f12942ed81"
+    },
+    {
+      "path": "src/time/time.go",
+      "digest": "ab61194d541aee6a83f9f45400bec8a78426377a7c4f59d7d807fa4f6e6a18f0"
+    },
+    {
+      "path": "src/time/zoneinfo.go",
+      "digest": "03bc9ba0ed7f4657121992620a83621f2ac7c5a6eb8b559d46600829e618211c"
+    },
+    {
+      "path": "src/time/zoneinfo_goroot.go",
+      "digest": "984267b22b58101becfd3612f836c3e32a6f4190e149e257315a4179ec279992"
+    },
+    {
+      "path": "src/time/zoneinfo_read.go",
+      "digest": "47e6cc315fbf5ba3eea95043fe7ec5e982d14b98574e60da22ac9b4f774f254b"
+    },
+    {
+      "path": "src/time/zoneinfo_unix.go",
+      "digest": "d2001a2351a080f1a47ebb3999be74f99caceb4a8f1ea6369a3c843fa0442f08"
+    },
+    {
+      "path": "src/unique/handle.go",
+      "digest": "08c7ca3c26f66f22128d0f061e47242fc3a96e6dd765ac73d1fb8800e022c859"
+    }
+  ]
+}

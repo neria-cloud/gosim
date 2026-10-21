@@ -1,6 +1,7 @@
 package buildcfg
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -16,9 +17,16 @@ import (
 // fingerprintInstalled identifies the installation Go selected. It does not
 // download another copy or confuse installation trust with family compatibility.
 func fingerprintInstalled(root string) (buildspec.Fingerprints, error) {
+	return fingerprintInstalledContext(context.Background(), root)
+}
+
+func fingerprintInstalledContext(ctx context.Context, root string) (buildspec.Fingerprints, error) {
 	var tools, sources []buildspec.Revision
 	seen := make(map[string]bool)
 	err := filepath.WalkDir(root, func(filename string, entry fs.DirEntry, walkErr error) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if walkErr != nil {
 			return walkErr
 		}

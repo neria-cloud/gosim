@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	p126 "github.com/neria-cloud/gosim/internal/compat/go126/profile"
+	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
 func TestGo126PolicyDeltas(t *testing.T) {
 	t.Parallel()
-	p, m := p126.Descriptor(), p126.PolicyManifest()
+	p, m := fixtureProfile(t, "go126"), fixturePolicy(t, "go126")
 	sources := make(map[string]bool)
-	for _, source := range p126.VerificationOrigin().Files {
+	for _, source := range fixtureOrigin(t, "go126").Files {
 		sources[source.Path] = true
 	}
 	for _, probe := range m.Probes {
@@ -62,7 +62,7 @@ func TestGo126PolicyDeltas(t *testing.T) {
 				t.Fatalf("probe source no longer names %s", probe.Symbol)
 			}
 		}
-		if err := p126.VerifyModules(currentToolchain(), "../../.."); err != nil {
+		if err := spec.VerifyModules(currentToolchain(), "../../..", fixturePolicy(t, "go126").Modules); err != nil {
 			t.Fatal(err)
 		}
 	}

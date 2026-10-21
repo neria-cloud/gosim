@@ -163,10 +163,9 @@ func TestTranslate(t *testing.T) {
 			return err
 		}
 
-		// Identity and selected-family names vary; normalize only those import
-		// components, leaving the generated behavior subject to the golden.
+		// Build identities vary; compatibility package paths are stable and must
+		// match the golden verbatim.
 		outBytes = regexp.MustCompile(`/\.gosim/v2/[0-9a-f]{64}/input/`).ReplaceAll(outBytes, []byte("/.gosim/v2/IDENTITY/input/"))
-		outBytes = regexp.MustCompile(`/compat/go12[56]/`).ReplaceAll(outBytes, []byte("/compat/SELECTED/"))
 
 		pkgName := trimmedPath[:strings.Index(trimmedPath, "/")]
 		if _, ok := desiredFilesByPackage[pkgName]; !ok {

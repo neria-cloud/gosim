@@ -1,4 +1,4 @@
-//go:build go1.25 && !go1.27
+//go:build go1.25
 
 // Package hostabi isolates the selected native Go runtime ABI from the engine.
 package hostabi

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os/exec"
 	"slices"
 	"strings"
 )
@@ -43,9 +44,17 @@ func ApplicationFlags(r Resolution) []string {
 }
 
 func ResolveModuleGraph(ctx context.Context, r Resolution) ([]Module, error) {
+	return resolveModuleGraph(ctx, r, ApplicationCommand)
+}
+
+func ResolveInspectionModuleGraph(ctx context.Context, r Resolution) ([]Module, error) {
+	return resolveModuleGraph(ctx, r, SourceInspectionApplicationCommand)
+}
+
+func resolveModuleGraph(ctx context.Context, r Resolution, command func(context.Context, Resolution, ...string) *exec.Cmd) ([]Module, error) {
 	args := append([]string{"list"}, ApplicationFlags(r)...)
 	args = append(args, "-m", "-json", "all")
-	cmd := ApplicationCommand(ctx, r, args...)
+	cmd := command(ctx, r, args...)
 	var diagnostics bytes.Buffer
 	cmd.Stderr = &diagnostics
 	data, err := cmd.Output()

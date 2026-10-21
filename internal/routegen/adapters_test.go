@@ -20,7 +20,7 @@ func TestAdapterSourceAndLayoutDrift(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := renderLayouts(sources, "amd64", profile.ID); err != nil {
+	if _, err := renderLayouts(sources, "amd64", "//go:build go1.25\n"); err != nil {
 		t.Fatal(err)
 	}
 	for _, pkg := range []string{"syscall", "golang.org/x/sys/unix"} {
@@ -28,12 +28,12 @@ func TestAdapterSourceAndLayoutDrift(t *testing.T) {
 			t.Run(pkg+"/"+name, func(t *testing.T) {
 				original := sources[pkg].Types[name]
 				delete(sources[pkg].Types, name)
-				if _, err := renderLayouts(sources, "amd64", profile.ID); err == nil {
+				if _, err := renderLayouts(sources, "amd64", "//go:build go1.25\n"); err == nil {
 					t.Fatal("missing type accepted")
 				}
 				wrong, _ := parser.ParseExpr("struct{ Pointer *byte }")
 				sources[pkg].Types[name] = wrong
-				if _, err := renderLayouts(sources, "amd64", profile.ID); err == nil {
+				if _, err := renderLayouts(sources, "amd64", "//go:build go1.25\n"); err == nil {
 					t.Fatal("wrong pointer layout accepted")
 				}
 				sources[pkg].Types[name] = original
@@ -41,7 +41,7 @@ func TestAdapterSourceAndLayoutDrift(t *testing.T) {
 		}
 		original := sources[pkg].Constants["SYS_FCNTL"]
 		sources[pkg].Constants["SYS_FCNTL"] = &ast.BasicLit{Kind: token.INT, Value: "9999"}
-		if _, err := renderLayouts(sources, "amd64", profile.ID); err == nil {
+		if _, err := renderLayouts(sources, "amd64", "//go:build go1.25\n"); err == nil {
 			t.Fatal("wrong syscall number accepted")
 		}
 		sources[pkg].Constants["SYS_FCNTL"] = original
@@ -50,7 +50,7 @@ func TestAdapterSourceAndLayoutDrift(t *testing.T) {
 		for _, name := range adapterSymbols(pkg) {
 			original := sources[pkg].Functions[name]
 			delete(sources[pkg].Functions, name)
-			if _, err := adapterHooks(profile.ID, sources); err == nil {
+			if _, err := adapterHooks(profile, sources); err == nil {
 				t.Fatal("missing required declaration", pkg, name)
 			}
 			sources[pkg].Functions[name] = original
@@ -91,7 +91,7 @@ func TestAdapterInventoryAndProviderBoundary(t *testing.T) {
 		}
 	}
 	for _, owner := range []string{"kernel", "fs", "net"} {
-		data, err := os.ReadFile("../compat/go125/hooks/" + owner + "/syscalls_amd64.go")
+		data, err := os.ReadFile("../compat/hooks/" + owner + "/syscalls_amd64.go")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -130,28 +130,28 @@ func TestArchitectureRouteParity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, err := adapterHooks(profile.ID, amd)
+	a, err := adapterHooks(profile, amd)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := adapterHooks(profile.ID, arm)
+	b, err := adapterHooks(profile, arm)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(a, b) {
 		t.Fatal("logical hooks or capabilities differ by architecture")
 	}
-	if _, err := renderLayouts(arm, "arm64", profile.ID); err != nil {
+	if _, err := renderLayouts(arm, "arm64", "//go:build go1.25\n"); err != nil {
 		t.Fatal(err)
 	}
 	stat := arm["syscall"].Types["Stat_t"]
 	arm["syscall"].Types["Stat_t"] = amd["syscall"].Types["Stat_t"]
-	if _, err := renderLayouts(arm, "arm64", profile.ID); err == nil {
+	if _, err := renderLayouts(arm, "arm64", "//go:build go1.25\n"); err == nil {
 		t.Fatal("amd64 stat accepted as arm64")
 	}
 	arm["syscall"].Types["Stat_t"] = stat
 	arm["golang.org/x/sys/unix"].Constants["SYS_NEWFSTATAT"] = &ast.BasicLit{Kind: token.INT, Value: "262"}
-	if _, err := renderLayouts(arm, "arm64", profile.ID); err == nil {
+	if _, err := renderLayouts(arm, "arm64", "//go:build go1.25\n"); err == nil {
 		t.Fatal("wrong fstatat alias accepted")
 	}
 }

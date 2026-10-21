@@ -102,9 +102,16 @@ func (p PackagePolicies) packagePolicy(path string, standard bool) (spec.Package
 			return spec.PackagePolicy{}, fmt.Errorf("retired application package %s", path)
 		}
 	}
-	if strings.HasPrefix(path, prefix+"compat/") && !strings.HasPrefix(path, prefix+"compat/"+p.profile.ID+"/hooks/") && !strings.HasPrefix(path, prefix+"compat/"+p.profile.ID+"/shims/") {
-		return spec.PackagePolicy{}, fmt.Errorf("nonselected or host-only compatibility package %s", path)
+	kind := spec.ClassifyCompatPackage(path)
+	if kind != spec.CompatOutside {
+		if kind != spec.CompatHooks && kind != spec.CompatShims {
+			return spec.PackagePolicy{}, fmt.Errorf("host-only or unknown compatibility package %s", path)
+		}
+		if strings.HasPrefix(path, "translated/") {
+			return spec.PackagePolicy{}, fmt.Errorf("relocated package in source graph %s", path)
+		}
 	}
+
 	for _, feature := range []string{"fs", "net"} {
 		if (path == prefix+feature || strings.HasPrefix(path, prefix+feature+"/")) && !slices.Contains(p.features, feature) {
 			return spec.PackagePolicy{}, fmt.Errorf("disabled provider import %s", path)

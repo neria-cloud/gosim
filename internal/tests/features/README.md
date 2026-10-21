@@ -7,16 +7,24 @@
 | rt | internal/tests/rt, examples/simple |
 | rt,fs | internal/tests/rt, internal/tests/fs, examples/simple, examples/bolt |
 | rt,net | internal/tests/rt, internal/tests/net, examples/simple, examples/network/machines, examples/network/latency |
-| rt,fs,net | all four feature packages, nemesis, examples/simple, examples/bolt, examples/network/machines, examples/network/latency |
+| rt,fs,net | all four feature packages, nemesis, examples/simple, examples/bolt, examples/network/machines, examples/network/latency, examples/etcd |
 
 Example cases are separate packages, selected by their required features.
-The unsupported `examples/etcd` integration remains separate rejection coverage.
+The three-node plaintext etcd cluster, snapshot and WAL tests require all three
+features. Reduced-feature selections exclude the package before loading.
 
 Native metatests are selected separately using the registry's `Native` field.
-The sim-only bolt, network/machines and network/latency examples are built and
+The sim-only bolt, network/machines, network/latency and etcd examples are built and
 executed in simulation, but are not passed to native `go test`. The other
 positive packages retain native checks for deterministic replay, seeds and execution.
-Expected application failures have separate native assertions. The race oracle runs only for full-feature race tuples, with its native harness checking intentional race reports. HTTP/gRPC are explicit translation rejections; the retained ignored source examples do not count as simulated coverage. The old commented nemesis behavior files remain preserved in integration; the active nemesis package runs on full-feature tuples.
+The integration native metatest runs `TestEtcd` seeds 1, 2, 3, then 1 in one
+matching worker and compares a fresh worker's seed 1. Expected unsupported
+operations have separate fatal-guard assertions. The race oracle runs only for
+full-feature race tuples, with its native harness checking intentional race
+reports. The translated HTTP and gRPC tests exercise the supported plaintext
+paths; TLS and unreviewed HTTP surfaces remain outside their scope. The old
+commented nemesis behavior files remain preserved in integration; the active
+nemesis package runs on full-feature tuples.
 
 `inventory.json` maps all 207 declared baseline behavior tests to their new files and build constraints. An AST comparison against the Task 24 commit confirmed identical function bodies immediately after moving. The fs syscall trace expectation was then adjusted to omit the hostname init call that now belongs to rt; filesystem syscall assertions remain intact. `inventory_test.go` prevents declarations or their applicability constraints from silently disappearing. `suite-moves.json` records the default file destinations; mixed crash/logging declarations are individually mapped in the test inventory.
 

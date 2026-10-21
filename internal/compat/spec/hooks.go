@@ -3,6 +3,7 @@ package spec
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go/ast"
@@ -10,6 +11,7 @@ import (
 	"go/printer"
 	"go/token"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -54,8 +56,37 @@ func hookInspectionModule(tc buildspec.Toolchain) (string, func() error, error) 
 }
 
 func hookInspectionContext(ctx context.Context, r buildspec.Resolution) (string, func() error, error) {
+	return prepareInspectionContext(ctx, r, buildspec.ApplicationCommand, buildspec.ResolveModuleGraph, buildspec.ModuleFiles)
+}
+
+// PrepareSourceInspectionContext isolates source queries from caller modules,
+// including unregistered stable families. It does not authorize a collector to
+// parse a different compiler's sources; the collector checks identity separately.
+func PrepareSourceInspectionContext(ctx context.Context, r buildspec.Resolution) (string, func() error, error) {
+	if r.Context.GoWork == "" {
+		data, err := buildspec.SourceInspectionApplicationCommand(ctx, r, "env", "-json", "GOMOD", "GOWORK").Output()
+		if err != nil {
+			return "", nil, err
+		}
+		var info struct{ GOMOD, GOWORK string }
+		if err := json.Unmarshal(data, &info); err != nil {
+			return "", nil, err
+		}
+		r.Context.GoMod, r.Context.GoWork = info.GOMOD, info.GOWORK
+		if r.Context.GoWork == "" {
+			r.Context.GoWork = "off"
+		}
+	}
+	return prepareInspectionContext(ctx, r, buildspec.SourceInspectionApplicationCommand, buildspec.ResolveInspectionModuleGraph, buildspec.SourceInspectionModuleFiles)
+}
+
+func prepareInspectionContext(ctx context.Context, r buildspec.Resolution,
+	command func(context.Context, buildspec.Resolution, ...string) *exec.Cmd,
+	graph func(context.Context, buildspec.Resolution) ([]buildspec.Module, error),
+	render func(buildspec.Resolution, []buildspec.Module, string) (map[string][]byte, error),
+) (string, func() error, error) {
 	if !buildspec.InWorkspace(r) {
-		data, err := buildspec.ApplicationCommand(ctx, r, "env", "GOMOD").Output()
+		data, err := command(ctx, r, "env", "GOMOD").Output()
 		if err != nil {
 			return "", nil, err
 		}
@@ -64,11 +95,11 @@ func hookInspectionContext(ctx context.Context, r buildspec.Resolution) (string,
 			return "", func() error { return nil }, nil
 		}
 	}
-	modules, err := buildspec.ResolveModuleGraph(ctx, r)
+	modules, err := graph(ctx, r)
 	if err != nil {
 		return "", nil, err
 	}
-	files, err := buildspec.ModuleFiles(r, modules, "gosim-hook-source")
+	files, err := render(r, modules, "gosim-hook-source")
 	if err != nil {
 		return "", nil, err
 	}
@@ -84,7 +115,7 @@ func hookInspectionContext(ctx context.Context, r buildspec.Resolution) (string,
 	}
 	output := r
 	output.Context = buildspec.ModuleContext{Directory: dir, GoWork: "off", GoMod: filepath.Join(dir, "go.mod")}
-	selected, err := buildspec.ResolveModuleGraph(ctx, output)
+	selected, err := graph(ctx, output)
 	if err == nil {
 		err = buildspec.MatchModuleGraph(modules, selected, "gosim-hook-source")
 	}

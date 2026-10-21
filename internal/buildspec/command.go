@@ -45,15 +45,32 @@ func GoCommand(tc Toolchain, dir string, args ...string) *exec.Cmd {
 }
 
 func OutputCommand(ctx context.Context, tc Toolchain, dir string, args ...string) *exec.Cmd {
+	return outputCommand(ctx, tc, dir, ValidateVersion, checkGoFlags, args...)
+}
+
+// SourceInspectionCommand admits stable compilers only for fixed source queries.
+// It grants no permission to build, run or test an unsupported family.
+func SourceInspectionCommand(ctx context.Context, tc Toolchain, dir string, args ...string) *exec.Cmd {
+	cmd := outputCommand(ctx, tc, dir, func(version string) error {
+		_, err := ParseGoVersion(version)
+		return err
+	}, checkInspectionArgs, args...)
+	if tc.Executable != filepath.Join(tc.GOROOT, "bin", "go") {
+		cmd.Err = fmt.Errorf("inspection executable must be GOROOT/bin/go")
+	}
+	return cmd
+}
+
+func outputCommand(ctx context.Context, tc Toolchain, dir string, versionCheck func(string) error, argsCheck func([]string) error, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, tc.Executable, args...)
 	cmd.Dir = dir
 	if !filepath.IsAbs(tc.Executable) || !filepath.IsAbs(tc.GOROOT) {
 		cmd.Err = fmt.Errorf("toolchain executable and GOROOT must be absolute")
-	} else if err := ValidateVersion(tc.Version); err != nil {
+	} else if err := versionCheck(tc.Version); err != nil {
 		cmd.Err = err
 	} else if err := CheckEnvironment(tc); err != nil {
 		cmd.Err = err
-	} else if err := checkGoFlags(args); err != nil {
+	} else if err := argsCheck(args); err != nil {
 		cmd.Err = err
 	}
 	replaced := map[string]string{
@@ -84,6 +101,67 @@ func OutputCommand(ctx context.Context, tc Toolchain, dir string, args ...string
 	return cmd
 }
 
+func checkInspectionArgs(args []string) error {
+	bad := fmt.Errorf("unapproved source inspection query: %q", args)
+	if len(args) == 0 {
+		return bad
+	}
+	switch args[0] {
+	case "version":
+		if len(args) == 1 {
+			return nil
+		}
+	case "env":
+		keys := args[1:]
+		if len(keys) > 0 && keys[0] == "-json" {
+			keys = keys[1:]
+		}
+		if len(keys) == 0 {
+			return bad
+		}
+		for _, key := range keys {
+			switch key {
+			case "GOVERSION", "GOROOT", "GOHOSTOS", "GOHOSTARCH", "GOMOD", "GOWORK", "GOMODCACHE":
+			default:
+				return bad
+			}
+		}
+		return nil
+	case "list":
+		seen := map[string]bool{}
+		var paths []string
+		for _, arg := range args[1:] {
+			key, value, _ := strings.Cut(arg, "=")
+			if !strings.HasPrefix(arg, "-") {
+				if arg == "" || strings.ContainsAny(arg, "\x00\r\n") {
+					return bad
+				}
+				paths = append(paths, arg)
+				continue
+			}
+			if len(paths) > 0 || seen[key] {
+				return bad
+			}
+			seen[key] = true
+			switch {
+			case arg == "-json", arg == "-m", arg == "-deps", arg == "-e":
+			case key == "-mod" && (value == "readonly" || value == "mod"):
+			case key == "-tags" && (value == "linkname" || value == "linkname,race" || value == TranslatedSourceTags(false) || value == TranslatedSourceTags(true)):
+			default:
+				return bad
+			}
+		}
+		if !seen["-json"] || len(paths) == 0 {
+			return bad
+		}
+		if seen["-m"] && (seen["-deps"] || seen["-tags"] || seen["-e"] || len(paths) != 1 || paths[0] != "all") {
+			return bad
+		}
+		return nil
+	}
+	return bad
+}
+
 // ApplicationCommand preserves the workspace selected by Go during discovery.
 // OutputCommand deliberately isolates generated modules from that workspace.
 func ApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec.Cmd {
@@ -92,6 +170,33 @@ func ApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec
 	if work == "" {
 		work = "off"
 	}
+	return applicationCommand(cmd, work)
+}
+
+// SourceInspectionApplicationCommand preserves an explicitly resolved workspace.
+// Before discovery, empty GoWork preserves the caller's Go workspace selection.
+func SourceInspectionApplicationCommand(ctx context.Context, r Resolution, args ...string) *exec.Cmd {
+	cmd := SourceInspectionCommand(ctx, r.Toolchain, r.Context.Directory, args...)
+	// Caller module queries must never authorize module-file updates. Source
+	// loading with -mod=mod belongs exclusively to the prepared private copy.
+	if len(args) > 0 && args[0] == "list" {
+		for _, arg := range args {
+			if arg == "-mod=mod" {
+				cmd.Err = fmt.Errorf("caller inspection requires read-only module queries")
+			}
+		}
+		if !InWorkspace(r) && (len(args) < 2 || args[1] != "-mod=readonly") {
+			cmd.Err = fmt.Errorf("caller inspection requires explicit -mod=readonly outside a resolved workspace")
+		}
+	}
+	work := r.Context.GoWork
+	if work == "" {
+		work = os.Getenv("GOWORK")
+	}
+	return applicationCommand(cmd, work)
+}
+
+func applicationCommand(cmd *exec.Cmd, work string) *exec.Cmd {
 	for i, entry := range cmd.Env {
 		if strings.HasPrefix(entry, "GOWORK=") {
 			cmd.Env[i] = "GOWORK=" + work

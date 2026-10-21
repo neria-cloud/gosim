@@ -174,7 +174,7 @@ func TestHello(t *testing.T) {
 package testpkg_test
 
 import (
-	"translated/github.com/neria-cloud/gosim/internal_/compat/SELECTED/shims/testing"
+	"translated/github.com/neria-cloud/gosim/internal_/compat/shims/testing"
 	"translated/log"
 
 	"translated/test/packages/testpkg"

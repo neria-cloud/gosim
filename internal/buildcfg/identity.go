@@ -110,15 +110,7 @@ func identityForSource(cfg buildspec.Config, tc buildspec.Toolchain, profile spe
 	return buildspec.NormalizeIdentity(id)
 }
 
-func evidenceMetadata(name string) bool {
-	for _, family := range buildspec.SupportedFamilies() {
-		prefix := "internal/compat/" + family.Profile + "/profile/"
-		if name == prefix+"tuples.json" || name == prefix+"evidence.json" {
-			return true
-		}
-	}
-	return false
-}
+func evidenceMetadata(name string) bool { return name == "internal/compat/profiles/evidence.json" }
 
 func hashSources(root string, paths []string) (string, error) {
 	if root == "" {

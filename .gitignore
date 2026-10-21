@@ -5,3 +5,4 @@ docs/brainstorms
 
 /test-reports/
 /scripts/__pycache__/
+.DS_Store

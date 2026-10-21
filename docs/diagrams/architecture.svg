@@ -41,7 +41,7 @@
   <text x="220" y="273" font-weight="600">Runtime hooks + primitive calls</text>
   <text x="220" y="296" class="small">clock · timers · synchronization</text>
   <rect x="556" y="248" width="692" height="60" rx="4" class="node"/>
-  <text x="902" y="273" text-anchor="middle" font-weight="600">Go-family syscall hooks → kernel</text>
+  <text x="902" y="273" text-anchor="middle" font-weight="600">Shared syscall hooks → kernel</text>
   <text x="902" y="296" text-anchor="middle" class="small">dispatch · descriptors · poll</text>
   <path d="M724 308v26" class="wire"/>
   <path d="M1080 308v26" class="wire"/>

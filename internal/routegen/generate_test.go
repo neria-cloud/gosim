@@ -125,7 +125,7 @@ func TestSelectedGenerationIsScopedAndRepeatable(t *testing.T) {
 	tc, profile, options := currentGeneration(t)
 	out := t.TempDir()
 	other := otherFamily(profile.ID)
-	protected := filepath.Join(out, "internal/compat/"+other+"/profile/routes_arm64.json")
+	protected := filepath.Join(out, "internal/compat/profiles/"+other+".origin.json")
 	if err := os.MkdirAll(filepath.Dir(protected), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -151,14 +151,14 @@ func TestSelectedGenerationIsScopedAndRepeatable(t *testing.T) {
 	if !reflect.DeepEqual(first, readOutputTree(t, out)) || !before.ModTime().Equal(after.ModTime()) {
 		t.Fatal("repeat generation changed bytes or unchanged file mtime")
 	}
-	if string(first["internal/compat/"+other+"/profile/routes_arm64.json"]) != "unselected-family" {
+	if string(first["internal/compat/profiles/"+other+".origin.json"]) != "unselected-family" {
 		t.Fatal("modified unselected family")
 	}
-	if _, err := os.Stat(filepath.Join(out, "internal/compat/"+profile.ID+"/profile/routes_arm64.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(out, generationRecordPath(profile.ID, "arm64"))); !os.IsNotExist(err) {
 		t.Fatal("modified unselected architecture")
 	}
 	var record GenerationRecord
-	if err := json.Unmarshal(first["internal/compat/"+profile.ID+"/profile/routes_amd64.json"], &record); err != nil {
+	if err := json.Unmarshal(first[generationRecordPath(profile.ID, "amd64")], &record); err != nil {
 		t.Fatal(err)
 	}
 	if record.Stage != "typed-adapters" || !buildspec.ValidDigest(record.AdapterDigest) || record.GeneratedWith != tc.Version || len(record.Modules) == 0 || !buildspec.ValidDigest(record.OriginDigest) {
@@ -234,7 +234,7 @@ func TestArm64GenerationPreservesAMD64(t *testing.T) {
 			t.Fatal("arm64 generation changed existing amd64/common output", path)
 		}
 	}
-	arm := filepath.Join(out, "internal/compat/"+profile.ID+"/hooks/fs/syscalls_arm64.go")
+	arm := filepath.Join(out, "internal/compat/hooks/fs/syscalls_arm64.go")
 	first, err := os.Stat(arm)
 	if err != nil {
 		t.Fatal(err)

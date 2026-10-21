@@ -339,3 +339,28 @@ func TestDriver(t *testing.T){
  if result:= (Driver{}).Run(simrt.RunConfig{Seed:77,Simtrace:"unknown"},main);!result.Failed||!strings.Contains(result.Err,"unknown traceflag"){t.Fatalf("bad trace accepted: %+v",result)}
 }
 `
+
+func TestCompatibilityRolePaths(t *testing.T) {
+	for _, prefix := range []string{gosimtool.Module + "/internal/compat/"} {
+		paths := []string{prefix + "shims/testing", prefix + "hooks/kernel"}
+		aliases, err := compatibilityAliases(paths)
+		if err != nil || aliases[paths[0]] != "simtesting" || aliases[paths[1]] != "processhooks" {
+			t.Fatal(aliases, err)
+		}
+		if _, err := compatibilityAliases(paths[:1]); err == nil {
+			t.Fatal("missing role accepted")
+		}
+		if _, err := compatibilityAliases(append(paths, paths[0])); err == nil {
+			t.Fatal("duplicate role accepted")
+		}
+	}
+}
+
+func TestRetiredCompatibilityRolesRejected(t *testing.T) {
+	for _, family := range []string{"go125", "go126", "go127"} {
+		prefix := gosimtool.Module + "/internal/compat/" + family + "/"
+		if _, err := compatibilityAliases([]string{prefix + "shims/testing", prefix + "hooks/kernel"}); err == nil {
+			t.Fatal("retired role accepted", family)
+		}
+	}
+}

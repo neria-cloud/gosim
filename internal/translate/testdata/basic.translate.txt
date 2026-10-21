@@ -588,7 +588,7 @@ package basicgosim
 
 import (
 	"github.com/neria-cloud/gosim/rt/runtime"
-	"translated/github.com/neria-cloud/gosim/internal_/compat/SELECTED/shims/syncmap"
+	"translated/github.com/neria-cloud/gosim/internal_/compat/shims/syncmap"
 )
 
 type Globals struct {
