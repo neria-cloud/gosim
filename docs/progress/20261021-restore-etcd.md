@@ -136,3 +136,20 @@ Final Go 1.25.14 and Go 1.26.9 `make build` commands passed. Independent AMD64/A
 Architecture audit: the launcher resolves the selected compiler and feature identity; the effective Go 1.25 baseline adds the five limited replacements, which Go 1.26 inherits without copied implementations. Composition imports the selected runtime packages; typed loading and translated fixture execution establish their reachability. Real etcd invokes embedded lifecycle, translated HTTP/gRPC/TCP and simulated filesystem storage; the ordinary registry includes the positive package only for `rt,fs,net`, and preparation builds matching native replay workers. No historical protobuf descriptor lifetime bug reproduced, so no production cache change or `ReplayRevision` increment was justified. Existing translation DB/cache schemas and provider contracts remain unchanged. The finite inventory document now describes the implemented state. All required gap entries in the plan are resolved or bounded by executed evidence.
 
 No large suite, race suite, manual certification, Docker/Colima job or other-platform test was run. These passing local commands do not certify those tuples. The only source changes in this pair are documentation and plan/progress evidence; unrelated staged and working-tree user edits were left alone.
+
+## Peer review follow-up — ordinary coverage and startup shutdown
+
+Date: 2026-10-21. Claude's file-backed review in `docs/review/feat_compact-go-versions.md` found one P2 coverage gap and three P3 evidence gaps. All four were fixed and verified after commit `89f1317`:
+
+- Moved crypto, reflect2 and disabled-observability positive fixtures into the ordinary translated integration package. The ordinary native engine guard table now tests 17 named optional operations, including reflect2 pointer/value/map operations, runtime tracing, memory/mutex profiling and `debug.Stack`, with attempted recovery. The translated expected-abort fixtures remain available for focused hook checks.
+- Added a real started-but-unready etcd cancellation test: one member of the static three-member cluster cannot reach quorum, then cancellation must publish `context.Canceled` and finish with a graceful machine exit. It exposed an etcd 3.5.17 `embed.Etcd.Close` deadlock before `ReadyNotify`. `RunEmbedded` now closes exported listeners and calls `Server.HardStop` before readiness; ready members still use `Close`. The simulator cancels remaining machine goroutines on machine teardown. The canceled-before-start test is named separately.
+- The HTTP streaming test now reads the flushed first chunk while the handler is blocked, then releases the handler and reads the second chunk. The protobuf replay metatest compares seed 1 in a fresh worker as well as seeds 1, 2, 3, 1 in one worker.
+
+Final source-matched ordinary runs used the same verification input digest, `e87defbd2f8bcaa9023108a31ab787d4ac9170e33cb6c5d2e8688abc1dde96fe`, and both verification records report `status: passed` with no checkout changes:
+
+| Compiler | Report | Pass | Fail | Error | Skip | Wall |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Go 1.25.14 | `.gosim/etcd-review-fixes/ordinary-go125/unit/latest/report.md` | 2,056 | 0 | 0 | 18 | 452.863s |
+| Go 1.26.9 | `.gosim/etcd-review-fixes/ordinary-go126/unit/latest/report.md` | 2,072 | 0 | 0 | 16 | 475.751s |
+
+Each report has 87 package records. Its console log confirms the four new translated positive tests, every new native fatal-guard row, the started-but-unready cancellation test, HTTP streaming, and both native replay metatests passed. Focused `TestNetTcp(Http|Grpc)` seeds 1–3 passed 6/6 per compiler; focused `./examples/etcd` seeds 1–3 passed 18/18 per compiler. Both exact-compiler `make build` commands, AMD64/ARM64 adapter `-check` commands, profile `-check` commands, `make lint`, `./.ci/gofmt check` and `git diff --check` passed. No race, large, certification, Docker/Colima or other-platform suite was run.

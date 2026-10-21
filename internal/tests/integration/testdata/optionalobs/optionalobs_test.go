@@ -7,28 +7,7 @@ import (
 	"runtime"
 	"runtime/trace"
 	"testing"
-
-	"github.com/prometheus/client_golang/prometheus"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
-
-func TestDisabledObservabilityInitialization(t *testing.T) {
-	if trace.IsEnabled() {
-		t.Fatal("runtime tracing became active")
-	}
-	if runtime.SetMutexProfileFraction(-1) != 0 {
-		t.Fatal("host mutex profiling became active")
-	}
-	provider := sdktrace.NewTracerProvider()
-	ctx, span := provider.Tracer("etcd-probe").Start(context.Background(), "disabled-runtime-trace")
-	span.End()
-	if err := provider.Shutdown(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if prometheus.DefaultGatherer == nil || prometheus.NewGoCollector() == nil {
-		t.Fatal("Prometheus collector registration did not initialize")
-	}
-}
 
 // These are separately invoked expected-abort fixtures. A caller's recover
 // must not convert active host observations into successful simulation work.

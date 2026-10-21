@@ -20,6 +20,7 @@ import (
 
 func TestNetTcpHttp(t *testing.T) {
 	shutdown := make(chan struct{})
+	streamContinue := make(chan struct{})
 	a := testsupport.StartConfigured(t, gosim.MachineConfig{
 		Label: "a",
 		Main: func() {
@@ -37,7 +38,11 @@ func TestNetTcpHttp(t *testing.T) {
 			mux.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
 				_, _ = w.Write([]byte("first"))
 				w.(http.Flusher).Flush()
-				time.Sleep(50 * time.Millisecond)
+				select {
+				case <-streamContinue:
+				case <-r.Context().Done():
+					return
+				}
 				_, _ = w.Write([]byte("second"))
 			})
 			mux.HandleFunc("/wait", func(w http.ResponseWriter, r *http.Request) {
@@ -89,13 +94,24 @@ func TestNetTcpHttp(t *testing.T) {
 					t.Fatalf("persistent connection changed from %q to %q", firstRemote, remote)
 				}
 			}
-			response, err := client.Get(url + "/stream")
+			streamCtx, cancelStream := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancelStream()
+			streamRequest, err := http.NewRequestWithContext(streamCtx, http.MethodGet, url+"/stream", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
+			response, err := client.Do(streamRequest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			first := make([]byte, len("first"))
+			if _, err := io.ReadFull(response.Body, first); err != nil || string(first) != "first" {
+				t.Fatalf("first streamed chunk=%q err=%v", first, err)
+			}
+			close(streamContinue)
 			stream, err := io.ReadAll(response.Body)
 			response.Body.Close()
-			if err != nil || string(stream) != "firstsecond" {
+			if err != nil || string(stream) != "second" {
 				t.Fatalf("stream body=%q err=%v", stream, err)
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)

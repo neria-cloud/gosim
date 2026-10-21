@@ -34,6 +34,26 @@ func MakeZapLogger() *zap.Logger {
 	return lg
 }
 
+// An unready member may never publish ReadyNotify when quorum is unavailable.
+// etcd 3.5.17's Close waits for the client serve goroutine to publish its
+// server channel, but that goroutine waits only on ReadyNotify. Stop the
+// unready server and listeners directly so canceled startup cannot deadlock.
+func closeUnready(e *embed.Etcd) {
+	for _, listener := range e.Clients {
+		if listener != nil {
+			_ = listener.Close()
+		}
+	}
+	for _, peer := range e.Peers {
+		if peer != nil && peer.Listener != nil {
+			_ = peer.Listener.Close()
+		}
+	}
+	if e.Server != nil {
+		e.Server.HardStop()
+	}
+}
+
 // RunEmbedded owns one server lifecycle. The caller supplies a buffered
 // startup channel and cancels ctx to request a graceful close.
 func RunEmbedded(ctx context.Context, cfg *embed.Config, ready chan<- error) error {
@@ -56,10 +76,18 @@ func RunEmbedded(ctx context.Context, cfg *embed.Config, ready chan<- error) err
 		ready <- err
 		return err
 	}
-	defer e.Close()
+	readyPublished := false
+	defer func() {
+		if readyPublished {
+			e.Close()
+		} else {
+			closeUnready(e)
+		}
+	}()
 
 	select {
 	case <-e.Server.ReadyNotify():
+		readyPublished = true
 		ready <- nil
 	case <-ctx.Done():
 		ready <- ctx.Err()

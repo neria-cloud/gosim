@@ -185,7 +185,7 @@ func TestRunEmbeddedInvalidConfig(t *testing.T) {
 	}
 }
 
-func TestRunEmbeddedCancelledBeforeReady(t *testing.T) {
+func TestRunEmbeddedCancelledBeforeStart(t *testing.T) {
 	if err := rt.SetTimeout(30 * time.Second); err != nil {
 		t.Fatal(err)
 	}
@@ -226,6 +226,41 @@ func TestRunEmbeddedCancelledBeforeReady(t *testing.T) {
 	}
 	if exit, err := m.Wait(); err != nil || exit.Kind != gosim.Graceful {
 		t.Fatalf("canceled machine exit: %+v, %v", exit, err)
+	}
+}
+
+func TestRunEmbeddedCancelledDuringStartup(t *testing.T) {
+	if err := rt.SetTimeout(40 * time.Second); err != nil {
+		t.Fatal(err)
+	}
+	// A single member of the configured three-member cluster starts serving but
+	// cannot reach quorum or report readiness. Cancel after startup has begun.
+	node := startNode(t, "etcd-1", "10.0.0.1")
+	time.Sleep(2 * time.Second)
+	select {
+	case err := <-node.Ready:
+		t.Fatalf("lone member reported readiness before cancellation: %v", err)
+	default:
+	}
+	node.Cancel()
+	select {
+	case err := <-node.Ready:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("startup cancellation: %v", err)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("started server did not report cancellation")
+	}
+	select {
+	case err := <-node.Done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("canceled startup return: %v", err)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("started server did not close after cancellation")
+	}
+	if exit, err := node.Machine.Wait(); err != nil || exit.Kind != gosim.Graceful {
+		t.Fatalf("canceled startup machine exit: %+v, %v", exit, err)
 	}
 }
 

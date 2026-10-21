@@ -233,7 +233,7 @@ func stopNode(t *testing.T, node nodeHandle)
 func exerciseKV(t *testing.T, client *clientv3.Client, phase string, duration time.Duration) phaseResult
 ```
 
-`RunEmbedded` validates cfg, starts the real `embed.StartEtcd`, reports one startup outcome, waits for cancellation/server stop/error, and closes the embedded server on every exit path. Before readiness, cancellation is a startup failure; after readiness, controller cancellation is normal shutdown. Propagate unexpected errors; do not call `log.Fatal`, `os.Exit`, `osutil.HandleInterrupts`, or native signal APIs. Do not globally weaken the signal shim.
+`RunEmbedded` validates cfg, starts the real `embed.StartEtcd`, reports one startup outcome, and waits for cancellation/server stop/error. Before readiness, cancellation is a startup failure; after readiness, controller cancellation is normal shutdown. The pinned etcd 3.5.17 `Close` can wait forever before readiness because its client serve goroutine waits only on `ReadyNotify`; the actual implementation therefore closes exported listeners and calls `Server.HardStop` for an unready server, while retaining `Close` for a ready server. Machine teardown clears the remaining run-scoped goroutines. Propagate unexpected errors; do not call `log.Fatal`, `os.Exit`, `osutil.HandleInterrupts`, or native signal APIs. Do not globally weaken the signal shim.
 
 Configure machine network address and simulated filesystem before `Start`. Use relative per-node data directories inside each machine's simulated volume, bounded backend quota, explicit plaintext listeners and static cluster membership. Disable optional auto-TLS, auth, tracing export and metrics scraping in the example configuration; importing declaration dependencies remains supported. Preserve application defaults required for real consensus and persistence.
 
@@ -334,7 +334,7 @@ Type2(cfg, typ):
 RunEmbedded(ctx, cfg, ready):
     validate cfg; publish startup error and return on failure
     e = embed.StartEtcd(cfg); publish startup error and return on failure
-    defer e.Close()
+    defer shutdown: closeUnready(e) before readiness, e.Close() after readiness
     select readiness / cancellation / server failure / early stop
     publish exactly one startup outcome
     after successful readiness, select cancellation / server failure / stop
@@ -607,7 +607,7 @@ GOTOOLCHAIN=go1.26.9 go test -ldflags=-checklinkname=0 -tags=linkname \
   ./internal/compat/spec ./internal/compat/profiles ./internal/tests/features
 ```
 
-Add the affected shim/translator/kernel/provider package and a relevant `-run` selection as needed. New native facade units do not replace translated type/initialization/guard checks. Keep new positive/negative translated regression tests in applicable ordinary test packages; do not repurpose restricted large-suite fixtures to bypass their gate.
+Add the affected shim/translator/kernel/provider package and a relevant `-run` selection as needed. Positive translated type and initialization fixtures belong in applicable ordinary test packages. Fatal operation guards run in an ordinary native engine test with recover resistance and named diagnostics; focused translated expected-abort fixtures additionally verify selected hook wiring. Do not repurpose restricted large-suite fixtures to bypass their gate.
 
 ### V-GENERATE
 
@@ -687,12 +687,15 @@ Planning-time unresolved implementation facts are bounded by explicit tasks, not
 - [x] The accepted plaintext initialization and cluster execution need reflect2 type metadata only. Real jsoniter initialization, three-node runs and repeated-worker runs pass; excluded pointer/value operations remain fatal.
 - [x] The restored translated HTTP test passes body, reuse, stream, cancellation, deadline and shutdown assertions on seeds 1–3 under both compilers. No HTTP provider defect required a route change or native shortcut.
 - [x] The historical protobuf descriptor mismatch is not reproduced in the current implementation. Both the focused status/detail fixture and full etcd cluster pass seeds 1, 2, 3, 1 in one worker, with equal seed-1 checksums and a fresh-worker comparison. The historical root cause remains unproven, so no production cache change is claimed.
-- [x] Required plaintext startup, storage, observability initialization and shutdown paths execute in the positive tests on both families. Invalid config and pre-readiness cancellation are covered; active optional operations remain guarded.
+- [x] Required plaintext startup, storage, observability initialization and shutdown paths execute in the positive tests on both families. Invalid config, cancellation before start and cancellation after a server has started but before quorum/readiness are covered; active optional operations remain guarded.
 
 Use `[_]` for an unresolved required gap at attempted completion. The plan cannot be marked complete while such an entry remains.
 
 ## NOT PLANNED CHANGES
 
+- Peer review found the positive compatibility fixtures were only in ignored `testdata` directories and several new optional guards were manual-only. Positive crypto, reflect2 and disabled-observability checks now run in the ordinary translated integration package; the ordinary native engine guard table covers named reflection, tracing, metrics, mutex-profile and stack operations with attempted recovery. Separate translated expected-abort fixtures remain for focused hook-wiring checks.
+- Peer review's started-but-unready cancellation test exposed a pinned etcd 3.5.17 shutdown deadlock: `embed.Etcd.Close` ranges a client server channel whose producer waits on `ReadyNotify`, which cannot close without quorum. `RunEmbedded` now uses `Server.HardStop` plus exported listener closure before readiness, while retaining normal `Close` after readiness. The single-member-of-three test proves bounded cancellation and graceful machine exit without a quorum or process fallback.
+- The translated HTTP regression now reads the first chunk before allowing the handler to send the second. The protobuf replay metatest now compares a fresh worker as well as the same-worker sequence.
 - Task 9's first full-cluster same-worker replay had identical phase results
   but unequal checksums. The earliest differing log line was an etcd client
   retry target of the form `etcd-endpoints://0x.../10.0.0.1:2379`; pinned
