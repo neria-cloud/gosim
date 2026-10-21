@@ -32,7 +32,7 @@ the latency case's ping/pong helper.
 | [simple](simple/simple_test.go) | Deterministic execution and randomness | `rt` |
 | [filesystem](filesystem/README.md) | Read simulated `/tmp/testfile.txt` and compare `Hello World!`; Go 1.25.2 only | `rt,fs` |
 | [bolt](bolt/bolt_test.go) | Write, read, and reopen a Bolt database | `rt,fs` |
-| [network/machines](network/machines/machines_test.go) | TCP requests, machine crash/restart, and link latency | `rt,net` |
+| [network/machines](network/machines/machines_test.go) | TCP requests, machine crash/restart, link latency, and syscall monitoring of file activity | `rt,fs,net` |
 | [network/latency](network/latency/latency_test.go) | Three latency ranges without connection drops | `rt,net` |
 | [network/grpc](network/grpc/README.md) | Authenticated unary and bidirectional gRPC streams | `rt,net` |
 | [network/nats](network/nats/README.md) | Embedded NATS publisher/receiver with delayed links | `rt,fs,net` |
@@ -43,7 +43,7 @@ Run the supported cases individually:
 ```sh
 ./.gosim/gosimtool -C examples/simple test -features rt .
 ./.gosim/gosimtool -C examples/bolt test -features rt,fs .
-./.gosim/gosimtool -C examples/network/machines test -features rt,net .
+./.gosim/gosimtool -C examples/network/machines test -features rt,fs,net .
 ./.gosim/gosimtool -C examples/network/latency test -features rt,net .
 ./.gosim/gosimtool -C examples/etcd test -features rt,fs,net -seeds 1-3 .
 ```

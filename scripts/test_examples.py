@@ -13,7 +13,7 @@ EXAMPLES = (
     ("simple", "rt", None, True),
     ("filesystem", "rt,fs", "go1.25.2", False),
     ("bolt", "rt,fs", None, False),
-    ("network/machines", "rt,net", None, False),
+    ("network/machines", "rt,fs,net", None, False),
     ("network/latency", "rt,net", None, False),
     ("network/grpc", "rt,net", None, False),
     ("network/nats", "rt,fs,net", None, False),

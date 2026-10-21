@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"os"
 	"testing"
 	"time"
 
@@ -90,4 +91,85 @@ func TestMachines(t *testing.T) {
 		t.Fatal(err)
 	}
 	request(t, 2)
+}
+
+func TestMachineSyscallMonitor(t *testing.T) {
+	ready, run := make(chan struct{}), make(chan struct{})
+	m, err := gosim.NewMachine(gosim.MachineConfig{Label: "files", Main: func() {
+		close(ready)
+		<-run // The controller starts counting after package initialization.
+		file, err := os.OpenFile("monitored.txt", os.O_CREATE|os.O_RDWR, 0o600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := file.WriteString("example"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := file.Seek(0, 0); err != nil {
+			t.Fatal(err)
+		}
+		data := make([]byte, len("example"))
+		if n, err := file.Read(data); err != nil || n != len(data) || string(data) != "example" {
+			t.Fatalf("read %q: %v", data, err)
+		}
+		if err := file.Sync(); err != nil {
+			t.Fatal(err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	monitor := m.SyscallsMonitor()
+	available, err := monitor.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	groups := make(map[string]gosim.SyscallGroup, len(available))
+	for _, info := range available {
+		groups[info.Name] = info.Group
+	}
+	if groups["read"] != gosim.SyscallGroupRT || groups["openat"] != gosim.SyscallGroupFS {
+		t.Fatal("syscall groups", groups)
+	}
+	if err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
+	<-ready
+	if err := monitor.Start(); err != nil {
+		t.Fatal(err)
+	}
+	close(run)
+	if _, err := m.Wait(); err != nil {
+		t.Fatal(err)
+	}
+	if err := monitor.Stop(); err != nil {
+		t.Fatal(err)
+	}
+	counts, err := monitor.Counts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stats, err := monitor.Stats()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"read", "write", "close", "fsync"} {
+		stat := stats[name]
+		if counts[name] == 0 || stat.Count != counts[name] || stat.ByDescriptor[gosim.DescriptorGroupFS] != stat.Count || stat.Group != groups[name] {
+			t.Fatalf("%s: count=%d stats=%+v", name, counts[name], stat)
+		}
+	}
+	if stats["openat"].ByDescriptor[gosim.DescriptorGroupNone] == 0 {
+		t.Fatal("openat has no existing input descriptor")
+	}
+	if err := monitor.Reset(); err != nil {
+		t.Fatal(err)
+	}
+	cleared, err := monitor.Counts()
+	if err != nil || len(cleared) != 0 {
+		t.Fatal("reset", cleared, err)
+	}
 }

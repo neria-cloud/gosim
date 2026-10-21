@@ -14,7 +14,7 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `gosim` | Multiple isolated machines | ✅ | `NewMachine` creates an unstarted machine; `Start` runs its program with isolated globals and the selected filesystem/network services. |
 | `gosim` | Graceful stop, crash, and restart | ✅ | `Stop` flushes modeled writes; `Crash` retains a crash outcome. `Restart` creates a fresh epoch with new globals, and `SetMain` selects the next boot program. |
 | `gosim`, `rt` | Manual simulation stepping | not supported | There is no public API to advance the simulation by one tick or scheduler step. Debugger step selection is a separate facility. |
-| `gosim`, `rt` | Syscalls couter or statistics | not supported | TBD |
+| `gosim` | [Syscall counters and statistics](syscalls.md) | ✅ | Per-machine monitoring of routed syscall attempts, with fixed groups, descriptor-owner breakdowns, and discovery; native calls and filtering are excluded. |
 | `rt` | Virtual time and timeouts | ✅ | Simulated timers and sleeps use virtual time; the scheduler advances to the next timed event when blocked. `rt.SetTimeout` bounds simulation time. |
 | `rt` | Deterministic scheduling and randomness | ✅ | A seeded cooperative scheduler controls goroutine selection. Translated map iteration and application randomness are deterministic; scheduler and provider random streams are separate. |
 | `rt` | `sync.Map` | ✅ | Deterministic storage and scheduling, including pointer keys. `Range` uses a snapshot and allows callbacks to mutate the map. |
