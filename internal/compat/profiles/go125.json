@@ -4507,6 +4507,186 @@
             "owner": "rt",
             "context": "host-race"
           }
+        },
+        {
+          "hook": {
+            "package": "crypto/elliptic",
+            "symbol": "P224",
+            "signature": "func() Curve",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/elliptic.P224",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/elliptic",
+            "symbol": "P256",
+            "signature": "func() Curve",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/elliptic.P256",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/elliptic",
+            "symbol": "P384",
+            "signature": "func() Curve",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/elliptic.P384",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/elliptic",
+            "symbol": "P521",
+            "signature": "func() Curve",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/elliptic.P521",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/elliptic",
+            "symbol": "GenerateKey",
+            "signature": "func(Curve, io.Reader) ([]byte, *big.Int, *big.Int, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/elliptic.GenerateKey",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/ecdsa",
+            "symbol": "GenerateKey",
+            "signature": "func(elliptic.Curve, io.Reader) (*PrivateKey, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/ecdsa.GenerateKey",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/ecdsa",
+            "symbol": "Sign",
+            "signature": "func(io.Reader, *PrivateKey, []byte) (*big.Int, *big.Int, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/ecdsa.Sign",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/ecdsa",
+            "symbol": "Verify",
+            "signature": "func(*PublicKey, []byte, *big.Int, *big.Int) bool",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/ecdsa.Verify",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/rsa",
+            "symbol": "GenerateKey",
+            "signature": "func(io.Reader, int) (*PrivateKey, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/rsa.GenerateKey",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/rsa",
+            "symbol": "SignPKCS1v15",
+            "signature": "func(io.Reader, *PrivateKey, crypto.Hash, []byte) ([]byte, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/rsa.SignPKCS1v15",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/rsa",
+            "symbol": "VerifyPKCS1v15",
+            "signature": "func(*PublicKey, crypto.Hash, []byte, []byte) error",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/rsa.VerifyPKCS1v15",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/rsa",
+            "symbol": "SignPSS",
+            "signature": "func(io.Reader, *PrivateKey, crypto.Hash, []byte, *PSSOptions) ([]byte, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/rsa.SignPSS",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/rsa",
+            "symbol": "VerifyPSS",
+            "signature": "func(*PublicKey, crypto.Hash, []byte, []byte, *PSSOptions) error",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/rsa.VerifyPSS",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/x509",
+            "symbol": "CreateCertificate",
+            "signature": "func(io.Reader, *Certificate, *Certificate, any, any) ([]byte, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/x509.CreateCertificate",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/x509",
+            "symbol": "DecryptPEMBlock",
+            "signature": "func(*pem.Block, []byte) ([]byte, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/x509.DecryptPEMBlock",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/x509",
+            "symbol": "MarshalECPrivateKey",
+            "signature": "func(*ecdsa.PrivateKey) ([]byte, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/x509.MarshalECPrivateKey",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/x509",
+            "symbol": "ParseCRL",
+            "signature": "func([]byte) (*pkix.CertificateList, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/x509.ParseCRL",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/x509",
+            "symbol": "ParseECPrivateKey",
+            "signature": "func([]byte) (*ecdsa.PrivateKey, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/x509.ParseECPrivateKey",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/x509",
+            "symbol": "ParsePKCS1PrivateKey",
+            "signature": "func([]byte) (*rsa.PrivateKey, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/x509.ParsePKCS1PrivateKey",
+            "owner": "rt"
+          }
+        },
+        {
+          "hook": {
+            "package": "crypto/x509",
+            "symbol": "ParsePKIXPublicKey",
+            "signature": "func([]byte) (any, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/shims/x509.ParsePKIXPublicKey",
+            "owner": "rt"
+          }
         }
       ]
     },
@@ -5631,6 +5811,21 @@
           "path": "weak",
           "mode": "reject",
           "reason": "Host GC and weak-reference liveness are nondeterministic."
+        },
+        {
+          "path": "crypto/elliptic",
+          "mode": "bridge",
+          "reason": "Reviewed optional key declarations and guarded algorithms in the shared Go 1.25 baseline."
+        },
+        {
+          "path": "crypto/ecdsa",
+          "mode": "bridge",
+          "reason": "Reviewed optional key declarations and guarded algorithms in the shared Go 1.25 baseline."
+        },
+        {
+          "path": "crypto/rsa",
+          "mode": "bridge",
+          "reason": "Reviewed optional key declarations and guarded algorithms in the shared Go 1.25 baseline."
         }
       ]
     },
@@ -6088,6 +6283,21 @@
           "package": "testing",
           "replacement": "github.com/neria-cloud/gosim/internal/compat/shims/testing",
           "reason": "Replace the entire package with the selected Go shim; original native values/side effects are not admitted."
+        },
+        {
+          "package": "crypto/elliptic",
+          "replacement": "github.com/neria-cloud/gosim/internal/compat/shims/elliptic",
+          "reason": "Selected translated declaration facade; no native key generation or signing."
+        },
+        {
+          "package": "crypto/ecdsa",
+          "replacement": "github.com/neria-cloud/gosim/internal/compat/shims/ecdsa",
+          "reason": "Selected translated declaration facade; no native key generation or signing."
+        },
+        {
+          "package": "crypto/rsa",
+          "replacement": "github.com/neria-cloud/gosim/internal/compat/shims/rsa",
+          "reason": "Selected translated declaration facade; no native key generation or signing."
         }
       ]
     },
@@ -6453,6 +6663,136 @@
           "operation": "local-time-default",
           "response": "Driver supplies TZ=UTC when unset, so ordinary logging requires no filesystem. Explicit TZ values remain machine environment data; zone-file reads require fs and never use host files.",
           "source": "src/time/zoneinfo_unix.go"
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "P224",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/elliptic.P224",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/elliptic/elliptic.go"
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "P256",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/elliptic.P256",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/elliptic/elliptic.go"
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "P384",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/elliptic.P384",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/elliptic/elliptic.go"
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "P521",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/elliptic.P521",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/elliptic/elliptic.go"
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "GenerateKey",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/elliptic.GenerateKey",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/elliptic/elliptic.go"
+        },
+        {
+          "package": "crypto/ecdsa",
+          "symbol": "GenerateKey",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/ecdsa.GenerateKey",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/ecdsa/ecdsa.go"
+        },
+        {
+          "package": "crypto/ecdsa",
+          "symbol": "Sign",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/ecdsa.Sign",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/ecdsa/ecdsa.go"
+        },
+        {
+          "package": "crypto/ecdsa",
+          "symbol": "Verify",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/ecdsa.Verify",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/ecdsa/ecdsa.go"
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "GenerateKey",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/rsa.GenerateKey",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/rsa/rsa.go"
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "SignPKCS1v15",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/rsa.SignPKCS1v15",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/rsa/fips.go"
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "VerifyPKCS1v15",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/rsa.VerifyPKCS1v15",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/rsa/fips.go"
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "SignPSS",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/rsa.SignPSS",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/rsa/fips.go"
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "VerifyPSS",
+          "phase": "first-use",
+          "disposition": "reject",
+          "feature": "rt",
+          "operation": "crypto/rsa.VerifyPSS",
+          "response": "Fatal UnsupportedOperation; no host algorithm or entropy fallback.",
+          "source": "src/crypto/rsa/fips.go"
         }
       ]
     },
@@ -7957,6 +8297,126 @@
           "symbol": "Verbose",
           "status": "limited",
           "reason": "The simulated runner always emits verbose events."
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "P224",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "P256",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "P384",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "P521",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/elliptic",
+          "symbol": "GenerateKey",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/ecdsa",
+          "symbol": "GenerateKey",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/ecdsa",
+          "symbol": "Sign",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/ecdsa",
+          "symbol": "Verify",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "GenerateKey",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "SignPKCS1v15",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "VerifyPKCS1v15",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "SignPSS",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/rsa",
+          "symbol": "VerifyPSS",
+          "status": "limited",
+          "reason": "Declaration admitted; executing the optional cryptographic algorithm aborts."
+        },
+        {
+          "package": "crypto/x509",
+          "symbol": "CreateCertificate",
+          "status": "limited",
+          "reason": "Type-complete declaration for the pinned optional etcd/JWT path; executing X.509 parsing or certificate operations aborts."
+        },
+        {
+          "package": "crypto/x509",
+          "symbol": "DecryptPEMBlock",
+          "status": "limited",
+          "reason": "Type-complete declaration for the pinned optional etcd/JWT path; executing X.509 parsing or certificate operations aborts."
+        },
+        {
+          "package": "crypto/x509",
+          "symbol": "MarshalECPrivateKey",
+          "status": "limited",
+          "reason": "Type-complete declaration for the pinned optional etcd/JWT path; executing X.509 parsing or certificate operations aborts."
+        },
+        {
+          "package": "crypto/x509",
+          "symbol": "ParseCRL",
+          "status": "limited",
+          "reason": "Type-complete declaration for the pinned optional etcd/JWT path; executing X.509 parsing or certificate operations aborts."
+        },
+        {
+          "package": "crypto/x509",
+          "symbol": "ParseECPrivateKey",
+          "status": "limited",
+          "reason": "Type-complete declaration for the pinned optional etcd/JWT path; executing X.509 parsing or certificate operations aborts."
+        },
+        {
+          "package": "crypto/x509",
+          "symbol": "ParsePKCS1PrivateKey",
+          "status": "limited",
+          "reason": "Type-complete declaration for the pinned optional etcd/JWT path; executing X.509 parsing or certificate operations aborts."
+        },
+        {
+          "package": "crypto/x509",
+          "symbol": "ParsePKIXPublicKey",
+          "status": "limited",
+          "reason": "Type-complete declaration for the pinned optional etcd/JWT path; executing X.509 parsing or certificate operations aborts."
         }
       ]
     },
@@ -7997,6 +8457,15 @@
         },
         {
           "path": "github.com/neria-cloud/gosim/rt/runtime/abi"
+        },
+        {
+          "path": "github.com/neria-cloud/gosim/internal/compat/shims/elliptic"
+        },
+        {
+          "path": "github.com/neria-cloud/gosim/internal/compat/shims/ecdsa"
+        },
+        {
+          "path": "github.com/neria-cloud/gosim/internal/compat/shims/rsa"
         }
       ]
     },

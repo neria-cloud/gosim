@@ -3,12 +3,16 @@
 package shims_test
 
 import (
+	"math/big"
 	"strings"
 	"testing"
 	"time"
 
+	ecdsa "github.com/neria-cloud/gosim/internal/compat/shims/ecdsa"
+	elliptic "github.com/neria-cloud/gosim/internal/compat/shims/elliptic"
 	exec "github.com/neria-cloud/gosim/internal/compat/shims/exec"
 	pprof "github.com/neria-cloud/gosim/internal/compat/shims/pprof"
+	rsa "github.com/neria-cloud/gosim/internal/compat/shims/rsa"
 	rb "github.com/neria-cloud/gosim/internal/compat/shims/runtimebridge"
 	signal "github.com/neria-cloud/gosim/internal/compat/shims/signal"
 	tls "github.com/neria-cloud/gosim/internal/compat/shims/tls"
@@ -19,6 +23,9 @@ import (
 func TestOptionalOperationsAbort(t *testing.T) {
 	t.Parallel()
 	for name, operation := range map[string]func(){
+		"ecdsa-keygen":         func() { _, _ = ecdsa.GenerateKey(nil, nil) },
+		"elliptic-curve":       func() { _ = elliptic.P521() },
+		"rsa-verify":           func() { _ = rsa.VerifyPKCS1v15(&rsa.PublicKey{N: big.NewInt(3), E: 3}, 0, nil, nil) },
 		"tls":                  func() { tls.Client(nil, nil) },
 		"certificate":          func() { _, _ = x509.ParseCertificate(nil) },
 		"process":              func() { exec.Command("unused") },

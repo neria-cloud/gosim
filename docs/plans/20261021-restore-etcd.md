@@ -197,6 +197,8 @@ func IsNullable(kind reflect.Kind) bool
 
 Implement actual type introspection needed during initialization: nil handling, Kind, String, Type1, Elem, type equality/canonicalization, and the applicable public metadata methods. jsoniter's `Config.Froze` calls `TypeOfPtr(...).Elem()` for string, RawMessage and interface extension registration. These are executed initialization paths and must not be replaced with success-shaped placeholders.
 
+The pinned jsoniter **v1.1.11** source also names exported concrete `reflect2.UnsafePtrType`, `UnsafeIFaceType`, `UnsafeSliceType`, `UnsafeArrayType`, `UnsafeMapType` and `UnsafeStructType` in declarations and assertions. Preserve these distinct public type names and their required method sets in the facade so the translated package compiles. A type name containing `Unsafe` does not grant pointer operations: its metadata may be modeled, while raw-pointer operations still abort. If jsoniter actually invokes a pointer operation in the positive scenario, implement its safe translated semantics or record a required gap and leave the task incomplete.
+
 - Intern wrapper values by the selected `reflect.Type` within each translated config. Repeated calls must yield comparable canonical keys for jsoniter's extension maps.
 - Construct kind-specific wrappers. A scalar must not accidentally satisfy `MapType`, `PtrType`, or every other interface because one implementation exposes every method.
 - Keep maps/configs as translated machine state. No native `sync.Map`, host-global registry, address-based cache keys or shared mutable descriptors.
@@ -364,17 +366,18 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A1, A2, A3–A5, A9; historical study “Current restoration gaps”; maintainer guide §§2–3.
 **Estimated authored changes:** ≤350 lines; no package admission change yet.
 
-- [ ] Inventory the exact imported symbols, fields, methods and initialization calls for the pinned etcd graph under both current compilers. Prune replaced/hooked bodies using real translation rules; raw `go list` membership alone is not an executable requirement.
-- [ ] Record the finite upstream signatures and dispositions alongside the contract tests: modeled metadata, declared/guarded operation, or still statically rejected. Include bridge-transitive methods, crypto key interfaces and reflect2/jsoniter initialization.
-- [ ] Confirm the existing module graph/checksums; retain dependency versions and root-module examples. Do not create a forked etcd module.
-- [ ] Define A5's lifecycle helper and phased scenario contract in test fixtures or the plan before implementing; preserve the three original positive test names.
-- [ ] Establish focused fixture locations for import/initialization, recovery-resistant guards and protobuf repeated-worker behavior. Keep incomplete positive fixtures out of ordinary runnable package lists until their dependencies are implemented; do not commit failing tests into active suites.
-- [ ] Record any additional required API here before extending facade scope. Preserve current negative behavior until its replacement has both metadata and implementation.
+- [x] Inventory the exact imported symbols, fields, methods and initialization calls for the pinned etcd graph under both current compilers. Prune replaced/hooked bodies using real translation rules; raw `go list` membership alone is not an executable requirement.
+- [x] Include jsoniter v1.1.11's concrete exported reflect2 type assertions in that inventory; its `Unsafe*Type` names must remain available even while raw-pointer operations are guarded.
+- [x] Record the finite upstream signatures and dispositions alongside the contract tests: modeled metadata, declared/guarded operation, or still statically rejected. Include bridge-transitive methods, crypto key interfaces and reflect2/jsoniter initialization.
+- [x] Confirm the existing module graph/checksums; retain dependency versions and root-module examples. Do not create a forked etcd module.
+- [x] Define A5's lifecycle helper and phased scenario contract in test fixtures or the plan before implementing; preserve the three original positive test names.
+- [x] Establish focused fixture locations for import/initialization, recovery-resistant guards and protobuf repeated-worker behavior. Keep incomplete positive fixtures out of ordinary runnable package lists until their dependencies are implemented; do not commit failing tests into active suites.
+- [x] Record any additional required API here before extending facade scope. Preserve current negative behavior until its replacement has both metadata and implementation.
 
 #### Verification
 
-- [ ] `V-BUILD` and existing focused `V-METADATA` pass on both families. Inventory extraction is source inspection, not positive etcd execution.
-- [ ] Confirm no policy was broadened and no generated support family was added.
+- [x] `V-BUILD` and existing focused `V-METADATA` pass on both families. Inventory extraction is source inspection, not positive etcd execution.
+- [x] Confirm no policy was broadened and no generated support family was added.
 
 ### Task 2: Add guarded crypto declaration facades to the shared baseline
 
@@ -382,18 +385,18 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A2–A3, A7 failure table; maintainer guide “Describe the upstream contract” and “Review a new package's execution policy”.
 **Estimated authored changes:** ≤1,200 lines; generated metadata counted separately.
 
-- [ ] Implement A3's reviewed type shapes, constants and finite required method surface. Use local shared type identities consistently across crypto, JWT, TLS and X509 declarations.
-- [ ] Add precise aborting algorithm boundaries. No native key generation, host entropy, successful cryptographic placeholders or broad crypto allowlist.
-- [ ] Add exact baseline package/bridge/declaration/capability/probe records, including selected runtime-package roots. Existing broad crypto rejection remains for unreviewed packages.
-- [ ] Classify callable-but-guarded methods as limited with explicit execution diagnostics; do not leave static rejected capability records that defeat the intended declaration facade.
-- [ ] Verify both compiler APIs; add a Go 1.26 delta/source variant only for an actual required difference. Preserve existing descendants and type/interface assertions.
-- [ ] Cover dormant imports and executable negative paths with representative translated tests; verify an application recover cannot continue after an unsupported algorithm.
-- [ ] Run `V-GENERATE` for changed contracts and sources.
+- [x] Implement A3's reviewed type shapes, constants and finite required method surface. Use local shared type identities consistently across crypto, JWT, TLS and X509 declarations.
+- [x] Add precise aborting algorithm boundaries. No native key generation, host entropy, successful cryptographic placeholders or broad crypto allowlist.
+- [x] Add exact baseline package/bridge/declaration/capability/probe records, including selected runtime-package roots. Existing broad crypto rejection remains for unreviewed packages.
+- [x] Classify callable-but-guarded methods as limited with explicit execution diagnostics; do not leave static rejected capability records that defeat the intended declaration facade.
+- [x] Verify both compiler APIs; add a Go 1.26 delta/source variant only for an actual required difference. Preserve existing descendants and type/interface assertions.
+- [x] Cover dormant imports and executable negative paths with representative translated tests; verify an application recover cannot continue after an unsupported algorithm.
+- [x] Run `V-GENERATE` for changed contracts and sources.
 
 #### Verification
 
-- [ ] `V-BUILD`, `V-METADATA`, new facade/guard tests, and `V-GENERATE` pass for both families.
-- [ ] A focused etcd transport/auth import fixture passes this boundary; record subsequent distinct blockers without claiming whole-etcd support.
+- [x] `V-BUILD`, `V-METADATA`, new facade/guard tests, and `V-GENERATE` pass for both families.
+- [x] A focused etcd transport/auth import fixture passes this boundary; record subsequent distinct blockers without claiming whole-etcd support.
 
 ### Task 3: Implement reflect2's required type metadata without private runtime access
 
@@ -690,7 +693,13 @@ Use `[_]` for an unresolved required gap at attempted completion. The plan canno
 
 ## NOT PLANNED CHANGES
 
-None during planning. Record each execution-time departure, its source evidence, design impact, affected files and verification here. Update the target sections if a method or interface changes so Task 12 compares against a single coherent specification.
+- `.ci/gofmt`: ordinary validation found that its source search included generated `.gosim` caches inside nested examples, causing a false formatting failure and transient read errors. Prune every `.gosim` directory while retaining all source directories. Verified by `./.ci/gofmt check` and the passing ordinary suite. The change is limited to the find expression:
+
+  ```diff
+  -gofiles=$(find . -name "*.go" -and -not -ipath "./.gosim/*" -exec sh -c 'head -3 {} | grep -q "DO NOT EDIT." || echo {}' \;)
+  +gofiles=$(find . -type d -name .gosim -prune -o -type f -name "*.go" -exec sh -c 'head -3 "$1" | grep -q "DO NOT EDIT." || echo "$1"' _ {} \;)
+  ```
+- A4 and Task 1 now name jsoniter v1.1.11's required exported concrete reflect2 types. Pinned source inspection proved the original interface-only wording incomplete; the safety boundary for raw-pointer operations remains unchanged.
 
 ## NOT CONSIDERED & TODO
 
@@ -708,6 +717,7 @@ None during planning. Record each execution-time departure, its source evidence,
 | Date | Phase | Evidence | Result |
 | --- | --- | --- | --- |
 | 2026-10-21 | Planning | Read user-specified historical report, current shared-profile implementation, maintained architecture/guide, selected dependency initialization, and actual candidate/applicability code | Plan only; restoration not executed |
+| 2026-10-21 | Tasks 1–2 | Pinned module verification on both compilers; exact baseline profile and origin generation/checks; translated crypto fixture and fatal-guard fixture on both compilers; `make test` | 1,998 pass, 20 skip, 0 fail/error in 84 reports. Etcd now advances to reflect2 rejection; positive etcd remains pending. |
 
 ## Plan consistency checklist
 

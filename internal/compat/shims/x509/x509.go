@@ -6,6 +6,7 @@ package x509
 
 import (
 	pkix "crypto/x509/pkix"
+	"encoding/pem"
 	time "time"
 
 	asn1 "encoding/asn1"
@@ -18,6 +19,8 @@ import (
 
 	big "math/big"
 
+	"github.com/neria-cloud/gosim/internal/compat/shims/ecdsa"
+	"github.com/neria-cloud/gosim/internal/compat/shims/rsa"
 	gosimruntime "github.com/neria-cloud/gosim/rt/runtime"
 	"github.com/neria-cloud/gosim/rt/runtime/abi"
 )
@@ -217,5 +220,35 @@ const (
 func NewCertPool() *CertPool                               { unsupported(); panic("abort returned") }
 func ParseCertificate(der []byte) (*Certificate, error)    { unsupported(); panic("abort returned") }
 func ParseCertificates(der []byte) ([]*Certificate, error) { unsupported(); panic("abort returned") }
-func ParsePKCS1PrivateKey(der []byte) (any, error)         { unsupported(); panic("abort returned") }
+func ParsePKCS1PrivateKey(der []byte) (*rsa.PrivateKey, error) {
+	unsupported()
+	panic("abort returned")
+}
 func ParsePKCS8PrivateKey(der []byte) (key any, err error) { unsupported(); panic("abort returned") }
+
+// TODO(not planned): X.509 parsing, certificate creation and PEM decryption
+// require complete selected-key and entropy semantics before execution.
+func ParseECPrivateKey(der []byte) (*ecdsa.PrivateKey, error) {
+	unsupported()
+	panic("abort returned")
+}
+func ParsePKIXPublicKey(der []byte) (any, error) { unsupported(); panic("abort returned") }
+func ParseCRL(crl []byte) (*pkix.CertificateList, error) {
+	unsupported()
+	panic("abort returned")
+}
+
+func MarshalECPrivateKey(key *ecdsa.PrivateKey) ([]byte, error) {
+	unsupported()
+	panic("abort returned")
+}
+
+func CreateCertificate(random io.Reader, template, parent *Certificate, pub, priv any) ([]byte, error) {
+	unsupported()
+	panic("abort returned")
+}
+
+func DecryptPEMBlock(block *pem.Block, password []byte) ([]byte, error) {
+	unsupported()
+	panic("abort returned")
+}
