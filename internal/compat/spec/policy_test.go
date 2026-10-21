@@ -276,17 +276,36 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 					t.Fatalf("trusted import leaked to application: %+v", entry)
 				}
 			}
-			paths, err := filepath.Glob("../" + family + "/shims/*/*.go")
-			if err != nil {
-				t.Fatal(err)
+			var paths []string
+			for _, pattern := range []string{"../" + family + "/shims/*/*.go", "../shims/*/*.go", "../hooks/rt/*.go"} {
+				matches, err := filepath.Glob(pattern)
+				if err != nil {
+					t.Fatal(err)
+				}
+				paths = append(paths, matches...)
 			}
-			hookPaths, err := filepath.Glob("../" + family + "/hooks/rt/*.go")
-			if err != nil {
-				t.Fatal(err)
+			if len(paths) == 0 {
+				t.Fatal("empty native import audit")
 			}
-			paths = append(paths, hookPaths...)
 			for _, filename := range paths {
 				if strings.HasSuffix(filename, "_test.go") {
+					continue
+				}
+				active := false
+				for _, arch := range []string{"amd64", "arm64"} {
+					for _, race := range []bool{false, true} {
+						ctx := sourceContext(family, arch)
+						if race {
+							ctx.BuildTags = append(ctx.BuildTags, "race")
+						}
+						match, err := ctx.MatchFile(filepath.Dir(filename), filepath.Base(filename))
+						if err != nil {
+							t.Fatal(err)
+						}
+						active = active || match
+					}
+				}
+				if !active {
 					continue
 				}
 				file, err := parser.ParseFile(token.NewFileSet(), filename, nil, parser.ParseComments)

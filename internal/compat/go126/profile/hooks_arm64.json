@@ -3,21 +3,21 @@
     "package": "internal/cpu",
     "symbol": "getisar0",
     "signature": "func() uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalCpu_getisar0",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalCpu_getisar0",
     "owner": "rt"
   },
   {
     "package": "internal/cpu",
     "symbol": "getMIDR",
     "signature": "func() uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalCpu_getMIDR",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalCpu_getMIDR",
     "owner": "rt"
   },
   {
     "package": "internal/cpu",
     "symbol": "getpfr0",
     "signature": "func() uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt.InternalCpu_getpfr0",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalCpu_getpfr0",
     "owner": "rt"
   }
 ]

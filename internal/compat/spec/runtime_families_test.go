@@ -66,7 +66,7 @@ func TestGo126RuntimePolicy(t *testing.T) {
 	}
 	for _, symbol := range []string{"Acquire", "ReadObjectPC", "WriteObjectPC", "ReadRange", "WriteRange"} {
 		target, err := m.ResolveSymbol(p, "internal/race", symbol, true)
-		if err != nil || !strings.Contains(target.Package, "/go126/shims/runtimebridge") {
+		if err != nil || target.Package != "github.com/neria-cloud/gosim/internal/compat/shims/runtimebridge" {
 			t.Fatalf("race %s: %+v %v", symbol, target, err)
 		}
 	}

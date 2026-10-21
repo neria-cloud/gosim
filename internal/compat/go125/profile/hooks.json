@@ -18,7 +18,7 @@
     "package": "hash/maphash",
     "symbol": "runtime_memhash",
     "signature": "func(unsafe.Pointer, uintptr, uintptr) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.HashMaphash_runtime_memhash",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.HashMaphash_runtime_memhash",
     "owner": "rt"
   },
   {
@@ -340,7 +340,7 @@
     "package": "hash/maphash",
     "symbol": "runtime_rand",
     "signature": "func() uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.HashMaphash_runtime_rand",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.HashMaphash_runtime_rand",
     "owner": "rt"
   },
   {
@@ -459,154 +459,154 @@
     "package": "internal/race",
     "symbol": "Acquire",
     "signature": "func(unsafe.Pointer)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_Acquire",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_Acquire",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "Disable",
     "signature": "func()",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_Disable",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_Disable",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "Enable",
     "signature": "func()",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_Enable",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_Enable",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "Errors",
     "signature": "func() int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_Errors",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_Errors",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "Read",
     "signature": "func(unsafe.Pointer)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_Read",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_Read",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "ReadObjectPC",
     "signature": "func(*abi.Type, unsafe.Pointer, uintptr, uintptr)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_ReadObjectPC",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_ReadObjectPC",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "ReadPC",
     "signature": "func(unsafe.Pointer, uintptr, uintptr)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_ReadPC",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_ReadPC",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "ReadRange",
     "signature": "func(unsafe.Pointer, int)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_ReadRange",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_ReadRange",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "Release",
     "signature": "func(unsafe.Pointer)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_Release",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_Release",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "ReleaseMerge",
     "signature": "func(unsafe.Pointer)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_ReleaseMerge",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_ReleaseMerge",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "Write",
     "signature": "func(unsafe.Pointer)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_Write",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_Write",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "WriteObjectPC",
     "signature": "func(*abi.Type, unsafe.Pointer, uintptr, uintptr)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_WriteObjectPC",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_WriteObjectPC",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "WritePC",
     "signature": "func(unsafe.Pointer, uintptr, uintptr)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_WritePC",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_WritePC",
     "owner": "rt"
   },
   {
     "package": "internal/race",
     "symbol": "WriteRange",
     "signature": "func(unsafe.Pointer, int)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalRace_WriteRange",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalRace_WriteRange",
     "owner": "rt"
   },
   {
     "package": "internal/sync",
     "symbol": "fatal",
     "signature": "func(string)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalSync_fatal",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalSync_fatal",
     "owner": "rt"
   },
   {
     "package": "internal/sync",
     "symbol": "runtime_SemacquireMutex",
     "signature": "func(*uint32, bool, int)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalSync_runtime_SemacquireMutex",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalSync_runtime_SemacquireMutex",
     "owner": "rt"
   },
   {
     "package": "internal/sync",
     "symbol": "runtime_Semrelease",
     "signature": "func(*uint32, bool, int)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalSync_runtime_Semrelease",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalSync_runtime_Semrelease",
     "owner": "rt"
   },
   {
     "package": "internal/sync",
     "symbol": "runtime_canSpin",
     "signature": "func(int) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalSync_runtime_canSpin",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalSync_runtime_canSpin",
     "owner": "rt"
   },
   {
     "package": "internal/sync",
     "symbol": "runtime_doSpin",
     "signature": "func()",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalSync_runtime_doSpin",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalSync_runtime_doSpin",
     "owner": "rt"
   },
   {
     "package": "internal/sync",
     "symbol": "runtime_nanotime",
     "signature": "func() int64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalSync_runtime_nanotime",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalSync_runtime_nanotime",
     "owner": "rt"
   },
   {
     "package": "internal/sync",
     "symbol": "runtime_rand",
     "signature": "func() uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalSync_runtime_rand",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalSync_runtime_rand",
     "owner": "rt"
   },
   {
     "package": "internal/sync",
     "symbol": "throw",
     "signature": "func(string)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalSync_throw",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalSync_throw",
     "owner": "rt"
   },
   {
@@ -648,21 +648,21 @@
     "package": "maps",
     "symbol": "clone",
     "signature": "func(any) any",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Maps_clone",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Maps_clone",
     "owner": "rt"
   },
   {
     "package": "math/rand",
     "symbol": "runtime_rand",
     "signature": "func() uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.MathRand_runtime_rand",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.MathRand_runtime_rand",
     "owner": "rt"
   },
   {
     "package": "math/rand/v2",
     "symbol": "runtime_rand",
     "signature": "func() uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.MathRandV2_runtime_rand",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.MathRandV2_runtime_rand",
     "owner": "rt"
   },
   {
@@ -711,434 +711,434 @@
     "package": "runtime",
     "symbol": "GOMAXPROCS",
     "signature": "func(int) int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Runtime_GOMAXPROCS",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Runtime_GOMAXPROCS",
     "owner": "rt"
   },
   {
     "package": "runtime",
     "symbol": "NumCPU",
     "signature": "func() int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Runtime_NumCPU",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Runtime_NumCPU",
     "owner": "rt"
   },
   {
     "package": "runtime",
     "symbol": "SetFinalizer",
     "signature": "func(any, any)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Runtime_SetFinalizer",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Runtime_SetFinalizer",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "fatal",
     "signature": "func(string)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_fatal",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_fatal",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_LoadAcquintptr",
     "signature": "func(*uintptr) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_LoadAcquintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_LoadAcquintptr",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_Semacquire",
     "signature": "func(*uint32)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_Semacquire",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_Semacquire",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_SemacquireRWMutex",
     "signature": "func(*uint32, bool, int)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_SemacquireRWMutex",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_SemacquireRWMutex",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_SemacquireRWMutexR",
     "signature": "func(*uint32, bool, int)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_SemacquireRWMutexR",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_SemacquireRWMutexR",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_SemacquireWaitGroup",
     "signature": "func(*uint32, bool)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_SemacquireWaitGroup",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_SemacquireWaitGroup",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_Semrelease",
     "signature": "func(*uint32, bool, int)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_Semrelease",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_Semrelease",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_StoreReluintptr",
     "signature": "func(*uintptr, uintptr) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_StoreReluintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_StoreReluintptr",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_notifyListAdd",
     "signature": "func(*notifyList) uint32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_notifyListAdd",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_notifyListAdd",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_notifyListCheck",
     "signature": "func(uintptr)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_notifyListCheck",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_notifyListCheck",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_notifyListNotifyAll",
     "signature": "func(*notifyList)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_notifyListNotifyAll",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_notifyListNotifyAll",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_notifyListNotifyOne",
     "signature": "func(*notifyList)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_notifyListNotifyOne",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_notifyListNotifyOne",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_notifyListWait",
     "signature": "func(*notifyList, uint32)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_notifyListWait",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_notifyListWait",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_procPin",
     "signature": "func() int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_procPin",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_procPin",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_procUnpin",
     "signature": "func()",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_procUnpin",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_procUnpin",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_randn",
     "signature": "func(uint32) uint32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_randn",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_randn",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "runtime_registerPoolCleanup",
     "signature": "func(func())",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_runtime_registerPoolCleanup",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_runtime_registerPoolCleanup",
     "owner": "rt"
   },
   {
     "package": "sync",
     "symbol": "throw",
     "signature": "func(string)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Sync_throw",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Sync_throw",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AddInt32",
     "signature": "func(*int32, int32) int32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AddInt32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AddInt32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AddInt64",
     "signature": "func(*int64, int64) int64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AddInt64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AddInt64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AddUint32",
     "signature": "func(*uint32, uint32) uint32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AddUint32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AddUint32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AddUint64",
     "signature": "func(*uint64, uint64) uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AddUint64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AddUint64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AddUintptr",
     "signature": "func(*uintptr, uintptr) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AddUintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AddUintptr",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AndInt32",
     "signature": "func(*int32, int32) int32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AndInt32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AndInt32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AndInt64",
     "signature": "func(*int64, int64) int64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AndInt64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AndInt64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AndUint32",
     "signature": "func(*uint32, uint32) uint32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AndUint32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AndUint32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AndUint64",
     "signature": "func(*uint64, uint64) uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AndUint64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AndUint64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "AndUintptr",
     "signature": "func(*uintptr, uintptr) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_AndUintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_AndUintptr",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "CompareAndSwapInt32",
     "signature": "func(*int32, int32, int32) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_CompareAndSwapInt32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_CompareAndSwapInt32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "CompareAndSwapInt64",
     "signature": "func(*int64, int64, int64) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_CompareAndSwapInt64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_CompareAndSwapInt64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "CompareAndSwapPointer",
     "signature": "func(*unsafe.Pointer, unsafe.Pointer, unsafe.Pointer) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_CompareAndSwapPointer",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_CompareAndSwapPointer",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "CompareAndSwapUint32",
     "signature": "func(*uint32, uint32, uint32) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_CompareAndSwapUint32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_CompareAndSwapUint32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "CompareAndSwapUint64",
     "signature": "func(*uint64, uint64, uint64) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_CompareAndSwapUint64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_CompareAndSwapUint64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "CompareAndSwapUintptr",
     "signature": "func(*uintptr, uintptr, uintptr) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_CompareAndSwapUintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_CompareAndSwapUintptr",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "LoadInt32",
     "signature": "func(*int32) int32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_LoadInt32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_LoadInt32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "LoadInt64",
     "signature": "func(*int64) int64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_LoadInt64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_LoadInt64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "LoadPointer",
     "signature": "func(*unsafe.Pointer) unsafe.Pointer",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_LoadPointer",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_LoadPointer",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "LoadUint32",
     "signature": "func(*uint32) uint32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_LoadUint32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_LoadUint32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "LoadUint64",
     "signature": "func(*uint64) uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_LoadUint64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_LoadUint64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "LoadUintptr",
     "signature": "func(*uintptr) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_LoadUintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_LoadUintptr",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "OrInt32",
     "signature": "func(*int32, int32) int32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_OrInt32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_OrInt32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "OrInt64",
     "signature": "func(*int64, int64) int64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_OrInt64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_OrInt64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "OrUint32",
     "signature": "func(*uint32, uint32) uint32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_OrUint32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_OrUint32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "OrUint64",
     "signature": "func(*uint64, uint64) uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_OrUint64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_OrUint64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "OrUintptr",
     "signature": "func(*uintptr, uintptr) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_OrUintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_OrUintptr",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "StoreInt32",
     "signature": "func(*int32, int32)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_StoreInt32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_StoreInt32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "StoreInt64",
     "signature": "func(*int64, int64)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_StoreInt64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_StoreInt64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "StorePointer",
     "signature": "func(*unsafe.Pointer, unsafe.Pointer)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_StorePointer",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_StorePointer",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "StoreUint32",
     "signature": "func(*uint32, uint32)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_StoreUint32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_StoreUint32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "StoreUint64",
     "signature": "func(*uint64, uint64)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_StoreUint64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_StoreUint64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "StoreUintptr",
     "signature": "func(*uintptr, uintptr)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_StoreUintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_StoreUintptr",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "SwapInt32",
     "signature": "func(*int32, int32) int32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_SwapInt32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_SwapInt32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "SwapInt64",
     "signature": "func(*int64, int64) int64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_SwapInt64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_SwapInt64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "SwapPointer",
     "signature": "func(*unsafe.Pointer, unsafe.Pointer) unsafe.Pointer",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_SwapPointer",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_SwapPointer",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "SwapUint32",
     "signature": "func(*uint32, uint32) uint32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_SwapUint32",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_SwapUint32",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "SwapUint64",
     "signature": "func(*uint64, uint64) uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_SwapUint64",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_SwapUint64",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "SwapUintptr",
     "signature": "func(*uintptr, uintptr) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_SwapUintptr",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_SwapUintptr",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "runtime_procPin",
     "signature": "func() int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_runtime_procPin",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_runtime_procPin",
     "owner": "rt"
   },
   {
     "package": "sync/atomic",
     "symbol": "runtime_procUnpin",
     "signature": "func()",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.SyncAtomic_runtime_procUnpin",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.SyncAtomic_runtime_procUnpin",
     "owner": "rt"
   },
   {
@@ -1474,140 +1474,140 @@
     "package": "time",
     "symbol": "Sleep",
     "signature": "func(Duration)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Time_Sleep",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Time_Sleep",
     "owner": "rt"
   },
   {
     "package": "time",
     "symbol": "newTimer",
     "signature": "func(int64, int64, func(any, uintptr, int64), any, unsafe.Pointer) *Timer",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Time_newTimer",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Time_newTimer",
     "owner": "rt"
   },
   {
     "package": "time",
     "symbol": "now",
     "signature": "func() (int64, int32, int64)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Time_now",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Time_now",
     "owner": "rt"
   },
   {
     "package": "time",
     "symbol": "resetTimer",
     "signature": "func(*Timer, int64, int64) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Time_resetTimer",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Time_resetTimer",
     "owner": "rt"
   },
   {
     "package": "time",
     "symbol": "runtimeIsBubbled",
     "signature": "func() bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Time_runtimeIsBubbled",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Time_runtimeIsBubbled",
     "owner": "rt"
   },
   {
     "package": "time",
     "symbol": "runtimeNano",
     "signature": "func() int64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Time_runtimeNano",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Time_runtimeNano",
     "owner": "rt"
   },
   {
     "package": "time",
     "symbol": "runtimeNow",
     "signature": "func() (int64, int32, int64)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Time_runtimeNow",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Time_runtimeNow",
     "owner": "rt"
   },
   {
     "package": "time",
     "symbol": "stopTimer",
     "signature": "func(*Timer) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Time_stopTimer",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Time_stopTimer",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "IndexByteString",
     "signature": "func(string, byte) int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_IndexByteString",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_IndexByteString",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "Equal",
     "signature": "func([]byte, []byte) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_Equal",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_Equal",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "IndexByte",
     "signature": "func([]byte, byte) int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_IndexByte",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_IndexByte",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "MakeNoZero",
     "signature": "func(int) []byte",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_MakeNoZero",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_MakeNoZero",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "Compare",
     "signature": "func([]byte, []byte) int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_Compare",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_Compare",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "abigen_runtime_cmpstring",
     "signature": "func(string, string) int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_abigen_runtime_cmpstring",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_abigen_runtime_cmpstring",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "Count",
     "signature": "func([]byte, byte) int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_Count",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_Count",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "CountString",
     "signature": "func(string, byte) int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_CountString",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_CountString",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "abigen_runtime_memequal",
     "signature": "func(unsafe.Pointer, unsafe.Pointer, uintptr) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_abigen_runtime_memequal",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_abigen_runtime_memequal",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "abigen_runtime_memequal_varlen",
     "signature": "func(unsafe.Pointer, unsafe.Pointer) bool",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_abigen_runtime_memequal_varlen",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_abigen_runtime_memequal_varlen",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "Index",
     "signature": "func([]byte, []byte) int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_Index",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_Index",
     "owner": "rt"
   },
   {
     "package": "internal/bytealg",
     "symbol": "IndexString",
     "signature": "func(string, string) int",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalBytealg_IndexString",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalBytealg_IndexString",
     "owner": "rt"
   },
   {
@@ -1621,28 +1621,28 @@
     "package": "internal/abi",
     "symbol": "FuncPCABI0",
     "signature": "func(interface{}) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalAbi_FuncPCABI0",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalAbi_FuncPCABI0",
     "owner": "rt"
   },
   {
     "package": "internal/abi",
     "symbol": "FuncPCABIInternal",
     "signature": "func(interface{}) uintptr",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalAbi_FuncPCABIInternal",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalAbi_FuncPCABIInternal",
     "owner": "rt"
   },
   {
     "package": "internal/chacha8rand",
     "symbol": "block",
     "signature": "func(*[4]uint64, *[32]uint64, uint32)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalChacha8rand_block",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalChacha8rand_block",
     "owner": "rt"
   },
   {
     "package": "net",
     "symbol": "runtime_rand",
     "signature": "func() uint64",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.Net_runtime_rand",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.Net_runtime_rand",
     "owner": "rt"
   },
   {

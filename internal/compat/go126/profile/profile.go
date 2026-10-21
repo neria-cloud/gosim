@@ -33,7 +33,7 @@ func DescriptorForArch(arch string) (spec.Profile, error) {
 		ID: "go126", Revision: Revision,
 		Support: support(),
 		RuntimePackages: []string{
-			"github.com/neria-cloud/gosim/rt/runtime", "github.com/neria-cloud/gosim/rt/runtime/abi", "github.com/neria-cloud/gosim/internal/compat/go126/hooks/rt",
+			"github.com/neria-cloud/gosim/rt/runtime", "github.com/neria-cloud/gosim/rt/runtime/abi", "github.com/neria-cloud/gosim/internal/compat/hooks/rt",
 			"github.com/neria-cloud/gosim/internal/compat/go126/hooks/kernel",
 			"github.com/neria-cloud/gosim/internal/compat/go126/hooks/fs",
 			"github.com/neria-cloud/gosim/internal/compat/go126/hooks/net",
@@ -42,7 +42,7 @@ func DescriptorForArch(arch string) (spec.Profile, error) {
 			"github.com/neria-cloud/gosim/internal/compat/go126/shims/maps",
 			"github.com/neria-cloud/gosim/internal/compat/go126/shims/synctest",
 			"github.com/neria-cloud/gosim/internal/compat/go126/shims/cryptorand",
-			"github.com/neria-cloud/gosim/internal/compat/go126/shims/runtimebridge",
+			"github.com/neria-cloud/gosim/internal/compat/shims/runtimebridge",
 		},
 	}
 	decode("hooks.json", &p.Hooks)

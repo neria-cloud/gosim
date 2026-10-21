@@ -9,7 +9,7 @@ import (
 
 	exec "github.com/neria-cloud/gosim/internal/compat/go125/shims/exec"
 	pprof "github.com/neria-cloud/gosim/internal/compat/go125/shims/pprof"
-	rb "github.com/neria-cloud/gosim/internal/compat/go125/shims/runtimebridge"
+	rb "github.com/neria-cloud/gosim/internal/compat/shims/runtimebridge"
 	signal "github.com/neria-cloud/gosim/internal/compat/go125/shims/signal"
 	tls "github.com/neria-cloud/gosim/internal/compat/go125/shims/tls"
 	x509 "github.com/neria-cloud/gosim/internal/compat/go125/shims/x509"

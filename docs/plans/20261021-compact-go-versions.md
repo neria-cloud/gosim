@@ -311,15 +311,15 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤400 authored Go lines plus verified moves/deletions. **Dependencies:** 8.
 
-- [ ] Move normalized-identical shims/runtimebridge together with hooks/rt: runtime.go/race.go import that package, so a shared hook cannot retain either bounded family import. Update both families' runtime/internal-race bridge rewrites and root shim guard-test imports atomically. Preserve the full test union and non-release predicates.
-- [ ] Move common runtime hook bodies once and normalize imports; replace hooks_test.go/runtime_families_test.go physical-family target assertions with shared target plus selected signature/permission assertions.
-- [ ] Extract StoreReluintptr into the two small signature variants: bounded baseline and cumulative go1.26 replacement. Do not unify incompatible return signatures with runtime branching.
-- [ ] Update both active family metadata sets, runtime bridge references and exact sync/atomic/native permissions in the same task; preserve simulator scheduling/atomic semantics.
-- [ ] Test family-specific signature/source selection and inherited 1.26 selection for a hypothetical 1.27 context, without declaring support for it.
+- [x] Move normalized-identical shims/runtimebridge together with hooks/rt: runtime.go/race.go import that package, so a shared hook cannot retain either bounded family import. Update both families' runtime/internal-race bridge rewrites and root shim guard-test imports atomically. Preserve the full test union and non-release predicates.
+- [x] Move common runtime hook bodies once and normalize imports; replace hooks_test.go/runtime_families_test.go physical-family target assertions with shared target plus selected signature/permission assertions.
+- [x] Extract StoreReluintptr into the two small signature variants: bounded baseline and cumulative go1.26 replacement. Do not unify incompatible return signatures with runtime branching.
+- [x] Update both active family metadata sets, runtime bridge references and exact sync/atomic/native permissions in the same task; preserve simulator scheduling/atomic semantics.
+- [x] Test family-specific signature/source selection and inherited 1.26 selection for a hypothetical 1.27 context, without declaring support for it.
 
 #### Verification
 
-- [ ] V-REVISIONS, both-family V-BUILD and relevant native hook/spec checks pass. Use V-ORDINARY if changed translated behavior requires execution; do not run sim-only tests as native coverage.
+- [x] V-REVISIONS, both-family V-BUILD and relevant native hook/spec checks pass. Use V-ORDINARY if changed translated behavior requires execution; do not run sim-only tests as native coverage.
 
 ### Task 10: Consolidate kernel, filesystem and network hooks
 

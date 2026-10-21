@@ -4,6 +4,7 @@ import (
 	"go/build"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -79,6 +80,42 @@ func TestExplicitSourcePredicates(t *testing.T) {
 			if err != nil || got != want {
 				t.Fatal(name, native, got, err)
 			}
+		}
+	}
+}
+
+func TestRuntimeStoreSourceInheritance(t *testing.T) {
+	dir := "../hooks/rt"
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, family := range []string{"1.25", "1.26", "1.27"} {
+		ctx, err := explicitSourceContext(family, SourceContext{OS: "linux", Arch: "arm64"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		declarations := map[string]string{}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+				continue
+			}
+			active, err := selectedSourceFile(ctx, dir, entry.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if active {
+				if err := readHookDeclarations(filepath.Join(dir, entry.Name()), "rt", declarations); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		want := "func(*uintptr, uintptr)"
+		if family == "1.25" {
+			want += " uintptr"
+		}
+		if got := declarations["rt.Sync_runtime_StoreReluintptr"]; got != want {
+			t.Fatal(family, got, want)
 		}
 	}
 }

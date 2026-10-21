@@ -57,8 +57,8 @@ func TestPoliciesSelectedMetadata(t *testing.T) {
 				t.Fatal("wrong reflect substitution")
 			}
 			for _, hook := range policies.hooks {
-				if !strings.HasPrefix(hook.Pkg, gosimtool.Module+"/internal/compat/"+family+"/hooks/") {
-					t.Fatalf("hook escapes family: %+v", hook)
+				if spec.ClassifyCompatPackage(hook.Pkg) != spec.CompatHooks {
+					t.Fatalf("hook escapes translated category: %+v", hook)
 				}
 			}
 			if !policies.shared[PackageSelector{Pkg: gosimtool.Module + "/internal/control", Selector: "binding"}] {

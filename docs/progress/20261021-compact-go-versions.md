@@ -97,3 +97,15 @@ One-time provenance assertions compared every parsed JSON field, allowing only t
 Verified genprofile refresh, native command builds, hostabi coroutine/upcall/identity tests, complete spec tests, and independent generation -check under both Go 1.25.14 and Go 1.26.9. All passed. Runtime dependency inspection now requires shared compat/host and rejects old host paths. Guard tests inspect explicit family source contexts; removed the old manual release-tag negative build. Native host/selected/hostabi guards cover unsupported families. Inspected maps/synctest leaves: neither imports native metadata; no new guard dependency was added there.
 
 Race and hypothetical compiler checks were source inspection only. No race/large suite or certification ran. Eight implementation commits completed; Claude review requested next, before Task 9.
+
+## Task 9 — Shared runtime hooks and runtimebridge
+
+Date: 2026-10-21. Implementation commit 9 (this commit).
+
+Moved hooks/rt and its runtimebridge dependency together after normalized body comparisons. Preserved the full test union; the additional timer-prefix test now runs for both families. Extracted unchanged StoreReluintptr bodies into bounded 1.25 and cumulative 1.26 files, with typed result/no-result tests. Shared runtimebridge linkname tests, root guard imports, profile runtime packages, hooks/contracts/bridges and exact native permissions all follow the moved packages. Common time comments now describe the shared behavior. No simulator scheduling/atomic algorithm changed.
+
+Updated physical-family assertions in spec and translate tests to validated hook categories, and extended the native-import audit to shared selected sources (the old glob would silently omit moved files). A source-only regression proves 1.27 inherits the 1.26 store signature without enabling support. Authored changes are below 200 lines beyond verified mechanical moves/metadata rewrites; the 400-line task limit is retained.
+
+Verified both compiler builds, shared rt/runtimebridge native suites, both corresponding root shim guard suites, complete spec tests, and focused translate policy/boundary tests, all with linkname flags. Refreshed both revisions. Fixed an accidentally overbroad test edit and a remaining architecture-test ownership assertion found by the spec suite; final runs pass. No sim-only test was counted as native coverage. Full source-matched ordinary execution is required in Task 10 for the coupled hook/composition transition.
+
+Claude's first checkpoint review is pending against immutable commits through 0abb62a while this next task proceeds. No restricted suite or certification ran.

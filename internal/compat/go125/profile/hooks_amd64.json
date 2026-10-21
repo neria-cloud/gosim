@@ -3,21 +3,21 @@
     "package": "internal/cpu",
     "symbol": "cpuid",
     "signature": "func(uint32, uint32) (uint32, uint32, uint32, uint32)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalCpu_cpuid",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalCpu_cpuid",
     "owner": "rt"
   },
   {
     "package": "internal/cpu",
     "symbol": "xgetbv",
     "signature": "func() (uint32, uint32)",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalCpu_xgetbv",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalCpu_xgetbv",
     "owner": "rt"
   },
   {
     "package": "internal/cpu",
     "symbol": "getGOAMD64level",
     "signature": "func() int32",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/rt.InternalCpu_getGOAMD64level",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/rt.InternalCpu_getGOAMD64level",
     "owner": "rt"
   },
   {

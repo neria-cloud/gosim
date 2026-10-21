@@ -27,7 +27,9 @@ func TestArchitectureHookSelection(t *testing.T) {
 				hooks := map[string]spec.Hook{}
 				for _, h := range p.Hooks {
 					hooks[h.Package+"."+h.Symbol] = h
-					if !strings.Contains(h.Target, "/"+family.name+"/hooks/") {
+					start := strings.LastIndex(h.Target, "/") + 1
+					dot := strings.IndexByte(h.Target[start:], '.')
+					if dot < 1 || spec.ClassifyCompatPackage(h.Target[:start+dot]) != spec.CompatHooks {
 						t.Fatal("non-translated or cross-family hook", h)
 					}
 				}
