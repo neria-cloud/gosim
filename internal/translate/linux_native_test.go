@@ -35,7 +35,7 @@ func TestLinuxArm64SourceBuildsForNativeDarwin(t *testing.T) {
 		t.Run(family.id, func(t *testing.T) {
 			// Use the actual selected Linux layout source, then apply the existing
 			// translator's filename/constraint rewriting before invoking a native compiler.
-			source, err := os.ReadFile("../compat/" + family.id + "/hooks/kernel/layouts_arm64.go")
+			source, err := os.ReadFile("../compat/hooks/kernel/layouts_arm64.go")
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -24,14 +24,14 @@
     "package": "syscall",
     "symbol": "gettimeofday",
     "signature": "func(*Timeval) Errno",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_gettimeofday",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_gettimeofday",
     "owner": "kernel"
   },
   {
     "package": "golang.org/x/sys/unix",
     "symbol": "gettimeofday",
     "signature": "func(*Timeval) syscall.Errno",
-    "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_gettimeofday",
+    "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_gettimeofday",
     "owner": "kernel"
   }
 ]

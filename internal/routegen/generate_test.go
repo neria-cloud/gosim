@@ -234,7 +234,7 @@ func TestArm64GenerationPreservesAMD64(t *testing.T) {
 			t.Fatal("arm64 generation changed existing amd64/common output", path)
 		}
 	}
-	arm := filepath.Join(out, "internal/compat/"+profile.ID+"/hooks/fs/syscalls_arm64.go")
+	arm := filepath.Join(out, "internal/compat/hooks/fs/syscalls_arm64.go")
 	first, err := os.Stat(arm)
 	if err != nil {
 		t.Fatal(err)

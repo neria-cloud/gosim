@@ -98,7 +98,7 @@ Commands below are execution gates, not commands run while writing this plan. Us
 go build -ldflags=-checklinkname=0 -tags=linkname ./cmd/gosim ./cmd/gosim-worker ./cmd/gosim-gen
 ```
 
-For a family-sensitive task run the same command separately with `GOTOOLCHAIN=go1.25.14` and `GOTOOLCHAIN=go1.26.9`. Do not build inactive version packages with a mismatched compiler. This builds host commands, not simulation validation.
+For a family-sensitive task run the same command separately with `GOTOOLCHAIN=go1.25.14` and `GOTOOLCHAIN=go1.26.9`. Do not build inactive version packages with a mismatched compiler. This builds host commands, not simulation validation. During Tasks 10–14 also build `./internal/compat/... ./internal/hostabi/...` with the same flags under each baseline: command dependencies alone do not compile every moved adapter. This is a native non-race build, not cross-architecture execution.
 
 ### V-FOCUS: relevant ordinary package tests
 
@@ -329,14 +329,14 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤500 authored Go lines plus verified generated moves/deletions. **Dependencies:** 9.
 
-- [ ] Move the coupled hook packages together to preserve their kernel layout imports. Keep generated architecture-specific syscall/layout files shared and selected by existing architecture predicates.
-- [ ] Extract clearenv as a go1.26 addition; keep common process/transport code and the union of statfs/GID assertions.
-- [ ] Update composition, selected target metadata, generator expected paths and canonical imports atomically. Preserve exact route IDs, provider isolation and disabled-feature fatal behavior.
-- [ ] Use Task 7 destination selection for shared generated files; neutral headers and authored constraints must byte-match under independent family checks.
+- [x] Move the coupled hook packages together to preserve their kernel layout imports. Keep generated architecture-specific syscall/layout files shared and selected by existing architecture predicates.
+- [x] Extract clearenv as a go1.26 addition; keep common process/transport code and the union of statfs/GID assertions.
+- [x] Update composition, selected target metadata, generator expected paths and canonical imports atomically. Preserve exact route IDs, provider isolation and disabled-feature fatal behavior.
+- [x] Use Task 7 destination selection for shared generated files; neutral headers and authored constraints must byte-match under independent family checks.
 
 #### Verification
 
-- [ ] V-REVISIONS, both-family V-BUILD, routegen/spec focused checks and V-GENERATION pass; run V-ORDINARY for the hook/composition transition and record report totals.
+- [x] V-REVISIONS, both-family V-BUILD, routegen/spec focused checks and V-GENERATION pass; run V-ORDINARY for the hook/composition transition and record report totals.
 
 ### Task 11: Consolidate reflect while preserving each method surface
 
@@ -738,7 +738,8 @@ Review findings were corrected before execution (see review thread 2 and progres
 
 ## NOT PLANNED CHANGES
 
-None. Record any necessary execution-time departure or unrelated failure fix with paths, reason, bounded diff and verification. Do not silently expand runtime behavior or the approved test scope.
+- Task 10: the ordinary formatting gate exposed unsorted Task 9 guard imports in both `internal/compat/go12{5,6}/shims/{guard,guards}_test.go` and missing gofumpt formatting in `internal/compat/spec/resolve_test.go`. Applied import sorting and a blank line/expanded composite literal only (no behavioral changes). Verified repository formatting and both ordinary suites.
+- Peer checkpoint 1: add direct native compatibility/hostabi builds to move-task validation, since host command closures omit adapters.
 
 ## NOT CONSIDERED & TODO
 

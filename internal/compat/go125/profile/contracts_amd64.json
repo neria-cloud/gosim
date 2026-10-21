@@ -3,7 +3,7 @@
   "family": "1.25",
   "architecture": "amd64",
   "hooks": [
-{"package": "os", "symbol": "Executable", "signature": "func() (string, error)", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_Executable", "owner": "rt"},
+{"package": "os", "symbol": "Executable", "signature": "func() (string, error)", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Os_Executable", "owner": "rt"},
     {
       "package": "crypto/rand",
       "symbol": "Int",
@@ -36,329 +36,329 @@
       "package": "golang.org/x/sys/unix",
       "symbol": "Chdir",
       "signature": "func(string) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Chdir",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Chdir",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Close",
       "signature": "func(int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_Close",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_Close",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Fallocate",
       "signature": "func(int, uint32, int64, int64) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fallocate",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fallocate",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "FcntlFlock",
       "signature": "func(uintptr, int, *Flock_t) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_FcntlFlock",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_FcntlFlock",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "FcntlInt",
       "signature": "func(uintptr, int, int) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_FcntlInt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_FcntlInt",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Fdatasync",
       "signature": "func(int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fdatasync",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fdatasync",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Flock",
       "signature": "func(int, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Flock",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Flock",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Fstat",
       "signature": "func(int, *Stat_t) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fstat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fstat",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Fstatat",
       "signature": "func(int, string, *Stat_t, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fstatat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fstatat",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Fsync",
       "signature": "func(int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fsync",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fsync",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Ftruncate",
       "signature": "func(int, int64) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Ftruncate",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Ftruncate",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Getcwd",
       "signature": "func([]byte) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Getcwd",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Getcwd",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Getdents",
       "signature": "func(int, []byte) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Getdents",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Getdents",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Getpid",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_Getpid",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_Getpid",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Getrandom",
       "signature": "func([]byte, int) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_Getrandom",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_Getrandom",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Getrlimit",
       "signature": "func(int, *Rlimit) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_Getrlimit",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_Getrlimit",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Listen",
       "signature": "func(int, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.GolangOrgXSysUnix_Listen",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.GolangOrgXSysUnix_Listen",
       "owner": "net"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Madvise",
       "signature": "func([]byte, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Madvise",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Madvise",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Mkdirat",
       "signature": "func(int, string, uint32) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Mkdirat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Mkdirat",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "RawSyscall",
       "signature": "func(uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, syscall.Errno)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_RawSyscall",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_RawSyscall",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "RawSyscall6",
       "signature": "func(uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, syscall.Errno)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_RawSyscall6",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_RawSyscall6",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "RawSyscallNoError",
       "signature": "func(uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_RawSyscallNoError",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_RawSyscallNoError",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Renameat",
       "signature": "func(int, string, int, string) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Renameat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Renameat",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Seek",
       "signature": "func(int, int64, int) (int64, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Seek",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Seek",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Syscall",
       "signature": "func(uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, syscall.Errno)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_Syscall",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_Syscall",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Syscall6",
       "signature": "func(uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, syscall.Errno)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_Syscall6",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_Syscall6",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "SyscallNoError",
       "signature": "func(uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_SyscallNoError",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_SyscallNoError",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Uname",
       "signature": "func(*Utsname) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_Uname",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_Uname",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "Unlinkat",
       "signature": "func(int, string, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Unlinkat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Unlinkat",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "accept4",
       "signature": "func(int, *RawSockaddrAny, *_Socklen, int) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.GolangOrgXSysUnix_accept4",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.GolangOrgXSysUnix_accept4",
       "owner": "net"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "bind",
       "signature": "func(int, unsafe.Pointer, _Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.GolangOrgXSysUnix_bind",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.GolangOrgXSysUnix_bind",
       "owner": "net"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "connect",
       "signature": "func(int, unsafe.Pointer, _Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.GolangOrgXSysUnix_connect",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.GolangOrgXSysUnix_connect",
       "owner": "net"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "fcntl",
       "signature": "func(int, int, int) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_fcntl",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_fcntl",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "getpeername",
       "signature": "func(int, *RawSockaddrAny, *_Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.GolangOrgXSysUnix_getpeername",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.GolangOrgXSysUnix_getpeername",
       "owner": "net"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "getsockname",
       "signature": "func(int, *RawSockaddrAny, *_Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.GolangOrgXSysUnix_getsockname",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.GolangOrgXSysUnix_getsockname",
       "owner": "net"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "getsockopt",
       "signature": "func(int, int, int, unsafe.Pointer, *_Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.GolangOrgXSysUnix_getsockopt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.GolangOrgXSysUnix_getsockopt",
       "owner": "net"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "gettimeofday",
       "signature": "func(*Timeval) syscall.Errno",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_gettimeofday",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_gettimeofday",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "mmap",
       "signature": "func(uintptr, uintptr, int, int, int, int64) (uintptr, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_mmap",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_mmap",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "munmap",
       "signature": "func(uintptr, uintptr) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_munmap",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_munmap",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "openat",
       "signature": "func(int, string, int, uint32) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_openat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_openat",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "pread",
       "signature": "func(int, []byte, int64) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_pread",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_pread",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "pwrite",
       "signature": "func(int, []byte, int64) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_pwrite",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_pwrite",
       "owner": "fs"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "read",
       "signature": "func(int, []byte) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_read",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_read",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "setsockopt",
       "signature": "func(int, int, int, unsafe.Pointer, uintptr) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.GolangOrgXSysUnix_setsockopt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.GolangOrgXSysUnix_setsockopt",
       "owner": "net"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "socket",
       "signature": "func(int, int, int) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.GolangOrgXSysUnix_socket",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.GolangOrgXSysUnix_socket",
       "owner": "net"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "vgetrandom",
       "signature": "func([]byte, uint32) (int, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_vgetrandom",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_vgetrandom",
       "owner": "kernel"
     },
     {
       "package": "golang.org/x/sys/unix",
       "symbol": "write",
       "signature": "func(int, []byte) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.GolangOrgXSysUnix_write",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.GolangOrgXSysUnix_write",
       "owner": "kernel"
     },
     {
@@ -505,126 +505,126 @@
       "package": "internal/godebug",
       "symbol": "registerMetric",
       "signature": "func(string, func() uint64)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalGodebug_registerMetric",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalGodebug_registerMetric",
       "owner": "kernel"
     },
     {
       "package": "internal/godebug",
       "symbol": "setNewIncNonDefault",
       "signature": "func(func(string) func())",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalGodebug_setNewIncNonDefault",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalGodebug_setNewIncNonDefault",
       "owner": "kernel"
     },
     {
       "package": "internal/godebug",
       "symbol": "setUpdate",
       "signature": "func(func(string, string))",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalGodebug_setUpdate",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalGodebug_setUpdate",
       "owner": "kernel"
     },
     {
       "package": "internal/godebug",
       "symbol": "write",
       "signature": "func(uintptr, unsafe.Pointer, int32) int32",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalGodebug_write",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalGodebug_write",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "SendFile",
       "signature": "func(*FD, uintptr, int64) (int64, error, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.InternalPoll_SendFile",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.InternalPoll_SendFile",
       "owner": "net"
     },
     {
       "package": "internal/poll",
       "symbol": "Splice",
       "signature": "func(*FD, *FD, int64) (int64, bool, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.InternalPoll_Splice",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.InternalPoll_Splice",
       "owner": "net"
     },
     {
       "package": "internal/poll",
       "symbol": "runtimeNano",
       "signature": "func() int64",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtimeNano",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtimeNano",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_Semacquire",
       "signature": "func(*uint32)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_Semacquire",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_Semacquire",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_Semrelease",
       "signature": "func(*uint32)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_Semrelease",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_Semrelease",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_isPollServerDescriptor",
       "signature": "func(uintptr) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_isPollServerDescriptor",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_isPollServerDescriptor",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_pollClose",
       "signature": "func(uintptr)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollClose",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_pollClose",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_pollOpen",
       "signature": "func(uintptr) (uintptr, int)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollOpen",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_pollOpen",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_pollReset",
       "signature": "func(uintptr, int) int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollReset",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_pollReset",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_pollServerInit",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollServerInit",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_pollServerInit",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_pollSetDeadline",
       "signature": "func(uintptr, int64, int)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollSetDeadline",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_pollSetDeadline",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_pollUnblock",
       "signature": "func(uintptr)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollUnblock",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_pollUnblock",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_pollWait",
       "signature": "func(uintptr, int) int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollWait",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_pollWait",
       "owner": "kernel"
     },
     {
       "package": "internal/poll",
       "symbol": "runtime_pollWaitCanceled",
       "signature": "func(uintptr, int)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_runtime_pollWaitCanceled",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_runtime_pollWaitCanceled",
       "owner": "kernel"
     },
     {
@@ -848,35 +848,35 @@
       "package": "internal/syscall/unix",
       "symbol": "GetRandom",
       "signature": "func([]byte, GetRandomFlag) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalSyscallUnix_GetRandom",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalSyscallUnix_GetRandom",
       "owner": "kernel"
     },
     {
       "package": "internal/syscall/unix",
       "symbol": "Openat",
       "signature": "func(int, string, int, uint32) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.InternalSyscallUnix_Openat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.InternalSyscallUnix_Openat",
       "owner": "fs"
     },
     {
       "package": "internal/syscall/unix",
       "symbol": "Unlinkat",
       "signature": "func(int, string, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.InternalSyscallUnix_Unlinkat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.InternalSyscallUnix_Unlinkat",
       "owner": "fs"
     },
     {
       "package": "internal/syscall/unix",
       "symbol": "fcntl",
       "signature": "func(int32, int32, int32) (int32, int32)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalSyscallUnix_fcntl",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalSyscallUnix_fcntl",
       "owner": "kernel"
     },
     {
       "package": "internal/syscall/unix",
       "symbol": "vgetrandom",
       "signature": "func([]byte, uint32) (int, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalSyscallUnix_vgetrandom",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalSyscallUnix_vgetrandom",
       "owner": "kernel"
     },
     {
@@ -904,7 +904,7 @@
       "package": "net",
       "symbol": "maxListenerBacklog",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Net_maxListenerBacklog",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Net_maxListenerBacklog",
       "owner": "net"
     },
     {
@@ -918,49 +918,49 @@
       "package": "os",
       "symbol": "checkClonePidfd",
       "signature": "func() error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_checkClonePidfd",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Os_checkClonePidfd",
       "owner": "kernel"
     },
     {
       "package": "os",
       "symbol": "ignoreSIGSYS",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_ignoreSIGSYS",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Os_ignoreSIGSYS",
       "owner": "kernel"
     },
     {
       "package": "os",
       "symbol": "restoreSIGSYS",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_restoreSIGSYS",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Os_restoreSIGSYS",
       "owner": "kernel"
     },
     {
       "package": "os",
       "symbol": "runtime_args",
       "signature": "func() []string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_runtime_args",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Os_runtime_args",
       "owner": "kernel"
     },
     {
       "package": "os",
       "symbol": "runtime_beforeExit",
       "signature": "func(int)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_runtime_beforeExit",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Os_runtime_beforeExit",
       "owner": "kernel"
     },
     {
       "package": "os",
       "symbol": "runtime_rand",
       "signature": "func() uint64",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_runtime_rand",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Os_runtime_rand",
       "owner": "kernel"
     },
     {
       "package": "os",
       "symbol": "sigpipe",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Os_sigpipe",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Os_sigpipe",
       "owner": "kernel"
     },
     {
@@ -2430,413 +2430,413 @@
       "package": "syscall",
       "symbol": "Chdir",
       "signature": "func(string) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Chdir",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Chdir",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Close",
       "signature": "func(int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_Close",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_Close",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "Exit",
       "signature": "func(int)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_Exit",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_Exit",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "Fallocate",
       "signature": "func(int, uint32, int64, int64) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fallocate",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Fallocate",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "FcntlFlock",
       "signature": "func(uintptr, int, *Flock_t) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_FcntlFlock",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_FcntlFlock",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Fdatasync",
       "signature": "func(int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fdatasync",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Fdatasync",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Flock",
       "signature": "func(int, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Flock",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Flock",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Fstat",
       "signature": "func(int, *Stat_t) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fstat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Fstat",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Fsync",
       "signature": "func(int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fsync",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Fsync",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Ftruncate",
       "signature": "func(int, int64) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Ftruncate",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Ftruncate",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Getcwd",
       "signature": "func([]byte) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Getcwd",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Getcwd",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Getdents",
       "signature": "func(int, []byte) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Getdents",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Getdents",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Getpagesize",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_Getpagesize",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_Getpagesize",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "Getpid",
       "signature": "func() int",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_Getpid",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_Getpid",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "Getrlimit",
       "signature": "func(int, *Rlimit) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_Getrlimit",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_Getrlimit",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "Listen",
       "signature": "func(int, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Syscall_Listen",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Syscall_Listen",
       "owner": "net"
     },
     {
       "package": "syscall",
       "symbol": "Madvise",
       "signature": "func([]byte, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Madvise",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Madvise",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Mkdirat",
       "signature": "func(int, string, uint32) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Mkdirat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Mkdirat",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "RawSyscall",
       "signature": "func(uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, Errno)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_RawSyscall",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_RawSyscall",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "RawSyscall6",
       "signature": "func(uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, Errno)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_RawSyscall6",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_RawSyscall6",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "Renameat",
       "signature": "func(int, string, int, string) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Renameat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Renameat",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Seek",
       "signature": "func(int, int64, int) (int64, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Seek",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Seek",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "Syscall",
       "signature": "func(uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, Errno)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_Syscall",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_Syscall",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "Syscall6",
       "signature": "func(uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, Errno)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_Syscall6",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_Syscall6",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "Uname",
       "signature": "func(*Utsname) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_Uname",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_Uname",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "accept4",
       "signature": "func(int, *RawSockaddrAny, *_Socklen, int) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Syscall_accept4",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Syscall_accept4",
       "owner": "net"
     },
     {
       "package": "syscall",
       "symbol": "bind",
       "signature": "func(int, unsafe.Pointer, _Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Syscall_bind",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Syscall_bind",
       "owner": "net"
     },
     {
       "package": "syscall",
       "symbol": "cgocaller",
       "signature": "func(unsafe.Pointer, ...uintptr) uintptr",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_cgocaller",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_cgocaller",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "connect",
       "signature": "func(int, unsafe.Pointer, _Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Syscall_connect",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Syscall_connect",
       "owner": "net"
     },
     {
       "package": "syscall",
       "symbol": "fcntl",
       "signature": "func(int, int, int) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_fcntl",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_fcntl",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "fstatat",
       "signature": "func(int, string, *Stat_t, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_fstatat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_fstatat",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "getpeername",
       "signature": "func(int, *RawSockaddrAny, *_Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Syscall_getpeername",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Syscall_getpeername",
       "owner": "net"
     },
     {
       "package": "syscall",
       "symbol": "getsockname",
       "signature": "func(int, *RawSockaddrAny, *_Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Syscall_getsockname",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Syscall_getsockname",
       "owner": "net"
     },
     {
       "package": "syscall",
       "symbol": "getsockopt",
       "signature": "func(int, int, int, unsafe.Pointer, *_Socklen) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Syscall_getsockopt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Syscall_getsockopt",
       "owner": "net"
     },
     {
       "package": "syscall",
       "symbol": "gettimeofday",
       "signature": "func(*Timeval) Errno",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_gettimeofday",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_gettimeofday",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "hasWaitingReaders",
       "signature": "func(*sync.RWMutex) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_hasWaitingReaders",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_hasWaitingReaders",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "mmap",
       "signature": "func(uintptr, uintptr, int, int, int, int64) (uintptr, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_mmap",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_mmap",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "munmap",
       "signature": "func(uintptr, uintptr) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_munmap",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_munmap",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "openat",
       "signature": "func(int, string, int, uint32) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_openat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_openat",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "pread",
       "signature": "func(int, []byte, int64) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_pread",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_pread",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "pwrite",
       "signature": "func(int, []byte, int64) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_pwrite",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_pwrite",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "rawSyscallNoError",
       "signature": "func(uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_rawSyscallNoError",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_rawSyscallNoError",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "rawVforkSyscall",
       "signature": "func(uintptr, uintptr, uintptr, uintptr) (uintptr, Errno)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_rawVforkSyscall",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_rawVforkSyscall",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "read",
       "signature": "func(int, []byte) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_read",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_read",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtimeSetenv",
       "signature": "func(string, string)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtimeSetenv",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtimeSetenv",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtimeUnsetenv",
       "signature": "func(string)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtimeUnsetenv",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtimeUnsetenv",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtime_AfterExec",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_AfterExec",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtime_AfterExec",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtime_AfterFork",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_AfterFork",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtime_AfterFork",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtime_AfterForkInChild",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_AfterForkInChild",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtime_AfterForkInChild",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtime_BeforeExec",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_BeforeExec",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtime_BeforeExec",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtime_BeforeFork",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_BeforeFork",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtime_BeforeFork",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtime_doAllThreadsSyscall",
       "signature": "func(uintptr, uintptr, uintptr, uintptr, uintptr, uintptr, uintptr) (uintptr, uintptr, uintptr)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_doAllThreadsSyscall",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtime_doAllThreadsSyscall",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtime_entersyscall",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_entersyscall",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtime_entersyscall",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtime_envs",
       "signature": "func() []string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_envs",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtime_envs",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "runtime_exitsyscall",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_runtime_exitsyscall",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_runtime_exitsyscall",
       "owner": "kernel"
     },
     {
       "package": "syscall",
       "symbol": "setsockopt",
       "signature": "func(int, int, int, unsafe.Pointer, uintptr) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Syscall_setsockopt",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Syscall_setsockopt",
       "owner": "net"
     },
     {
       "package": "syscall",
       "symbol": "socket",
       "signature": "func(int, int, int) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/net.Syscall_socket",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/net.Syscall_socket",
       "owner": "net"
     },
     {
       "package": "syscall",
       "symbol": "unlinkat",
       "signature": "func(int, string, int) error",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_unlinkat",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_unlinkat",
       "owner": "fs"
     },
     {
       "package": "syscall",
       "symbol": "write",
       "signature": "func(int, []byte) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.Syscall_write",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.Syscall_write",
       "owner": "kernel"
     },
     {
@@ -3299,23 +3299,23 @@
       "package": "internal/poll",
       "symbol": "writev",
       "signature": "func(int, []syscall.Iovec) (uintptr, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/kernel.InternalPoll_writev",
+      "target": "github.com/neria-cloud/gosim/internal/compat/hooks/kernel.InternalPoll_writev",
       "owner": "kernel"
     },
-    {"package": "syscall", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Statfs", "owner": "fs"},
-    {"package": "syscall", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fstatfs", "owner": "fs"},
-    {"package": "golang.org/x/sys/unix", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Statfs", "owner": "fs"},
-    {"package": "golang.org/x/sys/unix", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fstatfs", "owner": "fs"},
-    {"package": "syscall", "symbol": "Fchmod", "signature": "func(int, uint32) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fchmod", "owner": "fs"},
-    {"package": "syscall", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fchmodat", "owner": "fs"},
-    {"package": "syscall", "symbol": "Fchown", "signature": "func(int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fchown", "owner": "fs"},
-    {"package": "syscall", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.Syscall_Fchownat", "owner": "fs"},
-    {"package": "golang.org/x/sys/unix", "symbol": "Fchmod", "signature": "func(int, uint32) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fchmod", "owner": "fs"},
-    {"package": "golang.org/x/sys/unix", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fchmodat", "owner": "fs"},
-    {"package": "golang.org/x/sys/unix", "symbol": "Fchown", "signature": "func(int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fchown", "owner": "fs"},
-    {"package": "golang.org/x/sys/unix", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.GolangOrgXSysUnix_Fchownat", "owner": "fs"},
-    {"package": "internal/syscall/unix", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.InternalSyscallUnix_Fchmodat", "owner": "fs"},
-    {"package": "internal/syscall/unix", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/go125/hooks/fs.InternalSyscallUnix_Fchownat", "owner": "fs"}
+    {"package": "syscall", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Statfs", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Fstatfs", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Statfs", "signature": "func(string, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Statfs", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fstatfs", "signature": "func(int, *Statfs_t) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fstatfs", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchmod", "signature": "func(int, uint32) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Fchmod", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Fchmodat", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchown", "signature": "func(int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Fchown", "owner": "fs"},
+    {"package": "syscall", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_Fchownat", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchmod", "signature": "func(int, uint32) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fchmod", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fchmodat", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchown", "signature": "func(int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fchown", "owner": "fs"},
+    {"package": "golang.org/x/sys/unix", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Fchownat", "owner": "fs"},
+    {"package": "internal/syscall/unix", "symbol": "Fchmodat", "signature": "func(int, string, uint32, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.InternalSyscallUnix_Fchmodat", "owner": "fs"},
+    {"package": "internal/syscall/unix", "symbol": "Fchownat", "signature": "func(int, string, int, int, int) error", "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.InternalSyscallUnix_Fchownat", "owner": "fs"}
   ],
   "layouts": [
     {

@@ -14,6 +14,7 @@ func definitionFixture(t *testing.T, family, parent, delta string) FamilyDefinit
 	}
 	return d
 }
+
 func chainFixture(t *testing.T) map[string]FamilyDefinition {
 	t.Helper()
 	return map[string]FamilyDefinition{
@@ -92,7 +93,9 @@ func TestApplyRecords(t *testing.T) {
 		t.Fatal(out, err)
 	}
 	for _, delta := range []RecordDelta[PackagePolicy]{
-		{Add: base}, {Replace: base}, {Remove: [][]string{{"absent"}}},
+		{Add: base},
+		{Replace: base},
+		{Remove: [][]string{{"absent"}}},
 		{Replace: []PackagePolicy{{Path: "absent"}}},
 		{Remove: [][]string{{"p"}}, Add: base},
 		{Remove: [][]string{{"p"}, {"p"}}},

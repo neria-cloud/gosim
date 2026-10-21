@@ -109,3 +109,18 @@ Updated physical-family assertions in spec and translate tests to validated hook
 Verified both compiler builds, shared rt/runtimebridge native suites, both corresponding root shim guard suites, complete spec tests, and focused translate policy/boundary tests, all with linkname flags. Refreshed both revisions. Fixed an accidentally overbroad test edit and a remaining architecture-test ownership assertion found by the spec suite; final runs pass. No sim-only test was counted as native coverage. Full source-matched ordinary execution is required in Task 10 for the coupled hook/composition transition.
 
 Claude's first checkpoint review is pending against immutable commits through 0abb62a while this next task proceeds. No restricted suite or certification ran.
+
+## Task 10 — Shared kernel, filesystem and network hooks
+
+Date: 2026-10-21. Implementation commit 10 (this commit).
+
+Moved the three coupled packages together, including architecture-selected generated syscall/layout files. Normalized comparisons confirmed identical production bodies except the extracted Go 1.26 clearenv addition and version-neutral transport diagnostic. Shared native tests use the selected host identity and retain the union of statfs/GID assertions. The Go 1.26 clearenv map/host isolation test remains bounded by its API introduction; explicit source inspection proves inheritance into hypothetical 1.27. Both profiles, exact targets, runtime package composition and generator fixture paths now point to shared hooks. Authored changes are below 200 lines beyond mechanical moves, constraints, metadata replacements and generated revisions.
+
+Verified both baseline command builds, direct native compatibility/hostabi builds, focused kernel/spec/routegen suites, revision refresh and independent generation -check. Repository formatting initially failed on Task 9 import ordering and a resolver-test gofumpt issue; fixed those formatting-only issues, then reran cleanly. Linux-only statfs/GID execution is not claimed on this Darwin host; the assertions and architecture selection are preserved.
+
+Both source-matched ordinary runs passed, exit 0, with input digest ca458701661912eaf7f5f2ebe2c0c7f55fc73a43202cf9571e3601cff7624e6a and no worktree changes:
+- Go 1.25.14: 82 reports, 1,949 tests, 1,933 passed, 0 failed, 0 errors, 16 skipped; 270.580 s.
+- Go 1.26.9: 82 reports, 1,953 tests, 1,937 passed, 0 failed, 0 errors, 16 skipped; 273.008 s.
+Reports/timelines: .gosim/compact-go-validation/{go125,go126}/unit/latest/. Skips include large/race gates; no restricted suite or certification ran.
+
+Claude's first implementation checkpoint found no P1/P2 and six P3/simplification points. The direct adapter build gap is now closed and recorded in V-BUILD. Remaining small verified findings will receive a separate corrective commit before Task 11. Two implementation commits since the first eight-commit checkpoint.

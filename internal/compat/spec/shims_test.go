@@ -119,3 +119,17 @@ func TestRuntimeStoreSourceInheritance(t *testing.T) {
 		}
 	}
 }
+
+// This inspects hypothetical future source selection without admitting it for use.
+func TestKernelClearenvSourceInheritance(t *testing.T) {
+	for _, family := range []string{"1.25", "1.26", "1.27"} {
+		ctx, err := explicitSourceContext(family, SourceContext{OS: "linux", Arch: "arm64"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		active, err := selectedSourceFile(ctx, "../hooks/kernel", "clearenv_go126.go")
+		if err != nil || active != (family != "1.25") {
+			t.Fatalf("%s clearenv selected=%v: %v", family, active, err)
+		}
+	}
+}

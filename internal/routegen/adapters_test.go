@@ -91,7 +91,7 @@ func TestAdapterInventoryAndProviderBoundary(t *testing.T) {
 		}
 	}
 	for _, owner := range []string{"kernel", "fs", "net"} {
-		data, err := os.ReadFile("../compat/go125/hooks/" + owner + "/syscalls_amd64.go")
+		data, err := os.ReadFile("../compat/hooks/" + owner + "/syscalls_amd64.go")
 		if err != nil {
 			t.Fatal(err)
 		}

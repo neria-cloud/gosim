@@ -35,7 +35,7 @@ func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 		}
 		assertGeneratedMatchesBaseline(t, tc, name, want)
 		got := want
-		if strings.HasSuffix(name, ".go") && strings.Contains(name, "/"+profile.ID+"/") {
+		if strings.HasSuffix(name, ".go") && strings.Contains(name, "/compat/hooks/") {
 			for _, forbidden := range []string{"/internal/compat/" + other + "/", "/internal/simulation", "/internal/fs", "/internal/net", "/internal/hooks/", "/gosimruntime"} {
 				if bytes.Contains(got, []byte(forbidden)) {
 					t.Fatalf("%s imports %s", name, forbidden)
@@ -43,7 +43,7 @@ func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 			}
 		}
 	}
-	file := filepath.Join(output, "internal/compat/"+profile.ID+"/hooks/fs/syscalls_amd64.go")
+	file := filepath.Join(output, "internal/compat/hooks/fs/syscalls_amd64.go")
 	stat, err := os.Stat(file)
 	if err != nil {
 		t.Fatal(err)
@@ -64,7 +64,7 @@ func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 			t.Fatalf("generation changed %s: %v", name, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(output, "internal/compat/"+profile.ID+"/hooks/fs/syscalls_arm64.go")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(output, "internal/compat/hooks/fs/syscalls_arm64.go")); !os.IsNotExist(err) {
 		t.Fatal("unselected architecture emitted")
 	}
 	manifest, err := Load()
@@ -82,7 +82,7 @@ func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 	}
 	// Optional-domain gates precede all argument marshalling, even invalid pointers.
 	for _, owner := range []string{"fs", "net"} {
-		path := filepath.Join(output, "internal/compat/"+profile.ID+"/hooks", owner, "syscalls_amd64.go")
+		path := filepath.Join(output, "internal/compat/hooks", owner, "syscalls_amd64.go")
 		data, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
@@ -109,23 +109,21 @@ func TestSelectedGenerationGatesAndIsolation(t *testing.T) {
 // wrappers. Check their first-operation gate alongside the generated wrappers.
 func TestListenerProbeGate(t *testing.T) {
 	t.Parallel()
-	for _, family := range []string{"go125", "go126"} {
-		data, err := os.ReadFile(filepath.Join("../../internal/compat", family, "hooks/net/listen.go"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		source := string(data)
-		at := strings.Index(source, "func Net_maxListenerBacklog() int {")
-		if at < 0 {
-			t.Fatal("missing listener probe", family)
-		}
-		body := source[at:]
-		brace := strings.Index(body, "{\n")
-		if brace < 0 || !strings.HasPrefix(strings.TrimSpace(body[brace+2:]), "kh.Require(contracts.Net,") {
-			t.Fatal("listener probe lacks first-operation gate", family)
-		}
-		if !strings.Contains(body, "return contracts.ListenerBacklog") {
-			t.Fatal("listener probe detached from model capacity", family)
-		}
+	data, err := os.ReadFile("../compat/hooks/net/listen.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(data)
+	at := strings.Index(source, "func Net_maxListenerBacklog() int {")
+	if at < 0 {
+		t.Fatal("missing listener probe")
+	}
+	body := source[at:]
+	brace := strings.Index(body, "{\n")
+	if brace < 0 || !strings.HasPrefix(strings.TrimSpace(body[brace+2:]), "kh.Require(contracts.Net,") {
+		t.Fatal("listener probe lacks first-operation gate")
+	}
+	if !strings.Contains(body, "return contracts.ListenerBacklog") {
+		t.Fatal("listener probe detached from model capacity")
 	}
 }
