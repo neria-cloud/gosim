@@ -15,10 +15,11 @@
 package etcd
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 
 	zapslog "github.com/tommoulard/zap-slog"
-	"go.etcd.io/etcd/pkg/v3/osutil"
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.uber.org/zap"
 
@@ -33,36 +34,57 @@ func MakeZapLogger() *zap.Logger {
 	return lg
 }
 
-// EtcdMain is a simplified version of the main function in the etcdmain
-// package modified to take a *embed.Config as argument. The test configures the
-// logger using the config.
-func EtcdMain(cfg *embed.Config) {
+// RunEmbedded owns one server lifecycle. The caller supplies a buffered
+// startup channel and cancels ctx to request a graceful close.
+func RunEmbedded(ctx context.Context, cfg *embed.Config, ready chan<- error) error {
+	if cfg == nil {
+		err := errors.New("nil embedded etcd config")
+		ready <- err
+		return err
+	}
 	if err := cfg.Validate(); err != nil {
-		panic(err)
+		ready <- err
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		ready <- err
+		return err
 	}
 	cfg.SetupGlobalLoggers()
-	lg := cfg.GetLogger()
-
 	e, err := embed.StartEtcd(cfg)
 	if err != nil {
-		lg.Fatal("start failed", zap.Error(err))
+		ready <- err
+		return err
 	}
-	osutil.RegisterInterruptHandler(e.Close)
-	select {
-	case <-e.Server.ReadyNotify(): // wait for e.Server to join the cluster
-	case <-e.Server.StopNotify(): // publish aborted from 'ErrStopped'
-	}
-	stopped := e.Server.StopNotify()
-	errc := e.Err()
-
-	osutil.HandleInterrupts(lg)
+	defer e.Close()
 
 	select {
-	case lerr := <-errc:
-		// fatal out on listener errors
-		lg.Fatal("listener failed", zap.Error(lerr))
-	case <-stopped:
+	case <-e.Server.ReadyNotify():
+		ready <- nil
+	case <-ctx.Done():
+		ready <- ctx.Err()
+		return ctx.Err()
+	case <-e.Server.StopNotify():
+		err := errors.New("embedded etcd stopped before readiness")
+		ready <- err
+		return err
+	case err, ok := <-e.Err():
+		if !ok || err == nil {
+			err = errors.New("embedded etcd error channel closed before readiness")
+		}
+		ready <- err
+		return err
 	}
 
-	osutil.Exit(0)
+	select {
+	case <-ctx.Done():
+		return nil
+	case <-e.Server.StopNotify():
+		return errors.New("embedded etcd stopped without cancellation")
+	case err, ok := <-e.Err():
+		if !ok || err == nil {
+			return errors.New("embedded etcd error channel closed unexpectedly")
+		}
+		return err
+	}
 }

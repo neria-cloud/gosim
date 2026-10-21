@@ -507,6 +507,7 @@ func (b *implicitConversionsBuilder) after(c *astutil.Cursor) bool {
 // Generated aliases let translated code name inferred private Go types. These
 // aliases stay in the translated universe and grant no native ABI access.
 var typeAliases = map[string][]string{
-	"encoding/binary": {"littleEndian", "bigEndian"},
-	"internal/poll":   {"errNetClosing"},
+	"encoding/binary":                  {"littleEndian", "bigEndian"},
+	"github.com/golang/protobuf/proto": {"enumsByName"},
+	"internal/poll":                    {"errNetClosing"},
 }

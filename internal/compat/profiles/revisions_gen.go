@@ -3,6 +3,6 @@
 package profiles
 
 var revisions = map[string]string{
-	"go125": "22d81af1e5dcd06ae6a97c871eaf476aeb34556bc75be74caf39c381950faf78",
-	"go126": "89e5febb9f65c6717edeaa96b85ef8dc0423ecb6b82242e8031ccb1e99482e7c",
+	"go125": "5c6d0ee0fd9bb0aa8475d49bd8afe4eb3275193962bfa8e92346aedd0246c915",
+	"go126": "45ea9bda3b630c267356c94cf6f9bafecd6bd88ddb12a0c8774be2a91943add7",
 }

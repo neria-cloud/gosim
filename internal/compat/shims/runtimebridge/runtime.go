@@ -19,6 +19,14 @@ func Runtime_SetBlockProfileRate(rate int) {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.SetBlockProfileRate", Message: "native profiling is not modeled"})
 }
 
+func Runtime_SetMutexProfileFraction(rate int) int {
+	if rate <= 0 {
+		return 0
+	}
+	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.SetMutexProfileFraction", Message: "native mutex profiling is not modeled"})
+	panic("abort returned")
+}
+
 func Runtime_ReadMemStats(stats *runtime.MemStats) {
 	gosimruntime.Abort(abi.Diagnostic{Kind: "UnsupportedOperation", Feature: "rt", Operation: "runtime.ReadMemStats", Message: "native GC statistics are not modeled"})
 }

@@ -16,6 +16,9 @@ func TestDisabledObservabilityInitialization(t *testing.T) {
 	if trace.IsEnabled() {
 		t.Fatal("runtime tracing became active")
 	}
+	if runtime.SetMutexProfileFraction(-1) != 0 {
+		t.Fatal("host mutex profiling became active")
+	}
 	provider := sdktrace.NewTracerProvider()
 	ctx, span := provider.Tracer("etcd-probe").Start(context.Background(), "disabled-runtime-trace")
 	span.End()
@@ -43,4 +46,12 @@ func TestHostMetricsGuard(t *testing.T) {
 		runtime.ReadMemStats(new(runtime.MemStats))
 	}()
 	t.Fatal("application recovered from host metrics collection")
+}
+
+func TestHostMutexProfileGuard(t *testing.T) {
+	func() {
+		defer func() { _ = recover() }()
+		runtime.SetMutexProfileFraction(5)
+	}()
+	t.Fatal("application recovered from host mutex profiling")
 }

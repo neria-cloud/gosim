@@ -6353,6 +6353,11 @@
               "target": "Runtime_SetBlockProfileRate"
             },
             {
+              "symbol": "SetMutexProfileFraction",
+              "package": "github.com/neria-cloud/gosim/internal/compat/shims/runtimebridge",
+              "target": "Runtime_SetMutexProfileFraction"
+            },
+            {
               "symbol": "SetFinalizer",
               "package": "github.com/neria-cloud/gosim/internal/compat/shims/runtimebridge",
               "target": "Runtime_SetFinalizer"
@@ -8025,6 +8030,12 @@
           "symbol": "ReadMemStats",
           "status": "limited",
           "reason": "MemStats is a scalar-only data declaration; requesting host GC statistics aborts in the translated runtime bridge."
+        },
+        {
+          "package": "runtime",
+          "symbol": "SetMutexProfileFraction",
+          "status": "limited",
+          "reason": "Disabled mutex-profile queries return zero; enabling host mutex profiling aborts."
         },
         {
           "package": "runtime",

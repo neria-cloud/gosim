@@ -54,3 +54,25 @@ Verified
 Next boundary
 
 - Focused etcd translation advances past crypto, reflect2 and trace to `go.etcd.io/etcd/pkg/v3/osutil: unsupported syscall.Syscall6`. The current example imports `osutil` for process interrupt handling; Task 5 removes that path through explicit embedded lifecycle. This is not a positive etcd result yet.
+
+## Tasks 5–6 — embedded lifecycle and translated HTTP
+
+Date: 2026-10-21. Pair commit contains this entry.
+
+Implemented
+
+- Replaced process signal, fatal logging and exit orchestration with `RunEmbedded(ctx,cfg,ready)`. The example now configures three isolated machines before start, reports buffered startup/completion outcomes, observes readiness and graceful exits, and closes the client before the servers. Invalid configuration and pre-start cancellation publish one startup error; canceled running servers close normally.
+- Restored `TestNetTcpHttp` to the positive feature inventory. It checks exact request bodies, connection reuse, streamed response assembly, explicit cancellation, deadline propagation and graceful HTTP shutdown over simulated TCP. The existing gRPC test remains unchanged.
+- Added the translated protobuf private map alias required by pinned grpc-gateway, using the existing alias generator. Added a narrow disabled-query/fatal-enablement bridge for etcd's dormant mutex profiling utility; active host metrics remain unsupported.
+
+Verified
+
+- Focused `TestNetTcpHttp` and `TestNetTcpGrpc` with seeds 1–3 under Go 1.25.14 and 1.26.9: all six test/seed records pass for each compiler. No native HTTP transport was used.
+- Focused `TestEtcd` seed 1 under both compilers starts the real three-node cluster, completes the existing KV loop and observes normal shutdown. This is still the historical weak smoke assertion; Task 8 must prove progress before and after repair, exact persistence and seeds 1–3.
+- Focused translated invalid-config and canceled-before-readiness fixtures pass under both compilers. Disabled mutex profiling query initializes; active profiling exits with `UnsupportedOperation` despite an attempted recover, under both compilers.
+- `make build`, focused metadata/translator/runtime bridge tests, and independent AMD64/ARM64 generator checks pass on both exact compilers. `make lint`, `./.ci/gofmt check`, and `git diff --check` pass.
+- `make test`: 86 reports, 2,002 passed, 20 skipped, no failures/errors; wall time 227 seconds. It includes the restored HTTP test in ordinary simulation tests. Positive etcd remains outside the ordinary feature registry until Task 9.
+
+Next boundary
+
+- Task 7 checks protobuf descriptor isolation across repeated runs in one worker. Task 8 strengthens the cluster phase assertions and snapshot/WAL gates; the current smoke pass is insufficient for final support.

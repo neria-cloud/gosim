@@ -440,17 +440,17 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A1, A5, A9 `RunEmbedded`/cluster flow; design “Package ownership” and lifecycle sections.
 **Estimated authored changes:** ≤600 lines.
 
-- [ ] Implement `RunEmbedded` and the test-local `nodeHandle` helpers with exact A5 signatures and buffered startup/completion channels.
-- [ ] Remove process-signal/exit orchestration from this embedded fixture. Keep real `embed.StartEtcd`, error reporting, readiness and close behavior.
-- [ ] Configure network/storage before Start; preserve machine isolation, plaintext/static membership, bounded quota and simulated deadlines.
-- [ ] Propagate startup errors once, close servers on cancellation, report unexpected errors, and observe graceful machine exit. Test cancellation both before and after readiness and a failing startup configuration.
-- [ ] Register deterministic cleanup before operations that can fail; cleanup uses bounded waits and does not rely on a crashed machine running deferred code.
-- [ ] Keep all existing signal guards unchanged. Do not grant os/signal support to make the example compile or run.
+- [x] Implement `RunEmbedded` and the test-local `nodeHandle` helpers with exact A5 signatures and buffered startup/completion channels.
+- [x] Remove process-signal/exit orchestration from this embedded fixture. Keep real `embed.StartEtcd`, error reporting, readiness and close behavior.
+- [x] Configure network/storage before Start; preserve machine isolation, plaintext/static membership, bounded quota and simulated deadlines.
+- [x] Propagate startup errors once, close servers on cancellation, report unexpected errors, and observe graceful machine exit. Test cancellation both before and after readiness and a failing startup configuration.
+- [x] Register deterministic cleanup before operations that can fail; cleanup uses bounded waits and does not rely on a crashed machine running deferred code.
+- [x] Keep all existing signal guards unchanged. Do not grant os/signal support to make the example compile or run.
 
 #### Verification
 
-- [ ] `V-BUILD` and `V-LINT` pass. Focused lifecycle helper and startup fixtures pass where their dependency closure is now available.
-- [ ] Any remaining full-application translation defect is recorded by path and diagnostic for Tasks 6–8; no startup success is fabricated.
+- [x] `V-BUILD` and `V-LINT` pass. Focused lifecycle helper and startup fixtures pass where their dependency closure is now available.
+- [x] Any remaining full-application translation defect is recorded by path and diagnostic for Tasks 6–8; no startup success is fabricated.
 
 ### Task 6: Restore the actual HTTP transport path
 
@@ -458,17 +458,17 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A2, A6–A7; maintainer guide §3; historical HTTP test evidence.
 **Estimated authored changes:** ≤1,000 lines; split if a genuinely new modeled operation is required.
 
-- [ ] Enable the retained `TestNetTcpHttp` under `sim` and update its exact existing inventory constraint without adding/removing historical test entries.
-- [ ] Verify request/body identity, persistent connections, stream/cancel/deadline handling and graceful shutdown through simulated TCP.
-- [ ] Fix concrete typed-boundary, polling or transport defects at the owner. Translate net/http; do not route it through host net or replace the HTTP stack with an etcd-specific mock.
-- [ ] For any missing syscall route, specify its typed payload/signature and provider ownership here first, then change generator inputs and regenerate. Existing IDs remain stable.
-- [ ] Exercise the pinned root gRPC scenario as a regression; retain the newer standalone gRPC example unchanged.
-- [ ] Run profiles maintenance after shared executable inputs change; add a family delta only when the difference is verified.
+- [x] Enable the retained `TestNetTcpHttp` under `sim` and update its exact existing inventory constraint without adding/removing historical test entries.
+- [x] Verify request/body identity, persistent connections, stream/cancel/deadline handling and graceful shutdown through simulated TCP.
+- [x] Fix concrete typed-boundary, polling or transport defects at the owner. Translate net/http; do not route it through host net or replace the HTTP stack with an etcd-specific mock.
+- [x] For any missing syscall route, specify its typed payload/signature and provider ownership here first, then change generator inputs and regenerate. Existing IDs remain stable.
+- [x] Exercise the pinned root gRPC scenario as a regression; retain the newer standalone gRPC example unchanged.
+- [x] Run profiles maintenance after shared executable inputs change; add a family delta only when the difference is verified.
 
 #### Verification
 
-- [ ] `V-HTTP`, focused affected provider/translator tests, `V-BUILD`, `V-METADATA` and applicable generation checks pass on both compilers.
-- [ ] Tests execute real request/response/shutdown paths; compile-only output does not satisfy this task.
+- [x] `V-HTTP`, focused affected provider/translator tests, `V-BUILD`, `V-METADATA` and applicable generation checks pass on both compilers.
+- [x] Tests execute real request/response/shutdown paths; compile-only output does not satisfy this task.
 
 ### Task 7: Verify and fix protobuf descriptor isolation across runs
 
@@ -693,6 +693,16 @@ Use `[_]` for an unresolved required gap at attempted completion. The plan canno
 
 ## NOT PLANNED CHANGES
 
+- Task 5's removal of `osutil` exposed a translated map-conversion type from
+  `github.com/golang/protobuf/proto.enumsByName` while loading the pinned
+  grpc-gateway. The translator now generates an alias for that private named
+  map type in its translated package, using its existing alias mechanism. This
+  does not expose a native protobuf registry or change package selection.
+- The pinned etcd debug utility references
+  `runtime.SetMutexProfileFraction` in its optional pprof handler. A precise
+  baseline rewrite now returns zero for disabled queries and aborts attempts
+  to enable native mutex profiling. Both behaviors have translated fixtures;
+  the plaintext embedded config leaves pprof disabled.
 - Task 3's module-source probe uses the pinned module contract and translated
   initialization/abort fixtures. The current `InitProbe` schema accepts only
   GOROOT `src/` paths; adding an external module path would be a false probe.
