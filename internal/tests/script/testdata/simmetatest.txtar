@@ -1,9 +1,9 @@
 # running gosim
 ! exec gosim test -run=Other -v .
-stderr 'metatesting.*(unsupported application package os/exec|nonselected or host-only compatibility package github.com/neria-cloud/gosim/internal/compat/selected)'
+stderr 'metatesting.*(unsupported application package os/exec|host-only or unknown compatibility package github.com/neria-cloud/gosim/internal/compat/selected)'
 
 ! exec gosim test -run=Self -v .
-stderr 'metatesting.*(unsupported application package os/exec|nonselected or host-only compatibility package github.com/neria-cloud/gosim/internal/compat/selected)'
+stderr 'metatesting.*(unsupported application package os/exec|host-only or unknown compatibility package github.com/neria-cloud/gosim/internal/compat/selected)'
 
 -- machinecrash_test.go --
 package behavior_test

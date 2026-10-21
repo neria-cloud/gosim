@@ -16,7 +16,7 @@
 
 **Plan review:** thread 2 closed after final re-review; all verified findings incorporated. Final small corrections were not sent for another peer round.
 
-**Status:** Tasks 1–32 implemented and verified; final peer review closed; both minor findings corrected and final checks passed. Native certification has not started: its mandatory large-suite coverage needs explicit authorization under AGENTS.md.
+**Status:** Complete. Tasks 1–32 implemented and verified; final peer review closed; both minor findings corrected. All eight native Darwin ARM64 certification tuples passed, including explicitly authorized required large coverage. The requested maintainer guide is complete; race and other platforms remain excluded.
 
 ## Scope and execution rules
 
@@ -32,7 +32,7 @@ The source of design decisions is target revision 3.1. README, AGENTS.md and doc
 - Regenerate affected revision outputs at the end of every source-changing task. Through Task 17 use the existing genprofile command for active old descriptors; Task 18 switches to `gosim-gen profiles`. Both hashing paths must include shared inputs during the transition. Do not leave normal test fixtures reading stale revision constants.
 - No new third-party dependency or database migration is needed. SQLite DDL, CacheEntryV2 and contract-cache schemas/retention remain exactly as target §5; fingerprint changes invalidate artifacts without new cache formats.
 - Race, large, cross-architecture execution, Docker/Colima and certification are **not** part of this plan's validation. Do not enable their environment gates, call their fixtures directly, or substitute tags-only race compilation. Source selection/contract inspection for another architecture or race context is reported as inspection only. Lint remains scoped to cmd/examples.
-- Execution authorized 2026-10-21: commit each pair of completed tasks, request Claude review every eight implementation commits, and pass ordinary tests before final architectural verification. Certification is authorized only after final review and only on native Darwin ARM64; race and large suites remain excluded.
+- Execution authorized 2026-10-21: commit each pair of completed tasks, request Claude review every eight implementation commits, and pass ordinary tests before final architectural verification. Certification is authorized only after final review and only on native Darwin ARM64. After final review, the user separately authorized running and checking its mandatory large coverage; race remains excluded.
 
 ## Architecture and task ordering
 
@@ -814,11 +814,15 @@ Compare implemented code, data and real entry-point flows with the target, not j
 
 ## NOT IMPLEMENTED GAPS
 
-No unresolved implementation gap is accepted. Checkpoint findings through thread 6 are corrected and verified. Final review thread 7 confirmed execution consumption validates correctly, but found that audit parent loading lacked policy validation. Both Observe and Compare now validate effective parent structure and policies for both architectures before collecting observations. Descriptor supplies structural validation without Profile.Validate's support-registry admission, preserving inspection of retired/unregistered parents. Pure resolution still validates ancestry, delta algebra and overlap, preserving metadata bootstrap and partial synthetic fixtures. Audit manifests use exclusive hard-link publication instead of overwrite-capable rename (documented under NOT PLANNED CHANGES). Final correction validation is recorded in progress. Native certification cannot run under the current large-suite exclusion: worker.py passes -large and certify.go invokes make test-large; separate explicit authorization is required by AGENTS.md.
+No unresolved implementation gap is accepted. Checkpoint findings through thread 6 are corrected and verified. Final review thread 7 confirmed execution consumption validates correctly, but found that audit parent loading lacked policy validation. Both Observe and Compare now validate effective parent structure and policies for both architectures before collecting observations. Descriptor supplies structural validation without Profile.Validate's support-registry admission, preserving inspection of retired/unregistered parents. Pure resolution still validates ancestry, delta algebra and overlap, preserving metadata bootstrap and partial synthetic fixtures. Audit manifests use exclusive hard-link publication instead of overwrite-capable rename (documented under NOT PLANNED CHANGES). Final correction validation is recorded in progress. The user explicitly authorized mandatory large-suite coverage for native Darwin ARM64 certification after final review. All eight tuples passed on the corrected source; source identity, worker observations, stage logs and large-suite reports were verified. Race and other platforms remain excluded.
 
 ## NOT PLANNED CHANGES
 
-- Final review thread 7: validate effective parent descriptors and policies in audit.loadParent for both architectures without execution admission; reject invalid inherited bridge policies while retaining unsupported-parent inspection. Iterate the support registry in profile policy tests. Clarify cumulative capability records and unknown package age without a parent snapshot; refresh measured accounting. Both findings are one corrective batch. Native certification requires large-suite coverage and remains unstarted pending explicit authorization.
+- Authorized certification exposed a stale stderr expectation in internal/tests/script/testdata/simmetatest.txtar under both compilers. Updated its two matches to the shared classifier diagnostic; the rejection remains required. Focused fixture passes on both compilers. The initial six-pass/two-fail matrix is archived; all eight tuples subsequently passed on the corrected source, with 38 required stages and 130 large-test records passed, zero failures/errors/skips.
+
+- Added the user-requested docs/MAINTAINER_GUIDE.md covering cumulative Go family onboarding, version-specific APIs/packages, simulation features and stdlib interception, and certification execution/result verification. Linked it from README and validated local references, JSON examples, and the read-only certification summary against the completed run.
+
+- Final review thread 7: validate effective parent descriptors and policies in audit.loadParent for both architectures without execution admission; reject invalid inherited bridge policies while retaining unsupported-parent inspection. Iterate the support registry in profile policy tests. Clarify cumulative capability records and unknown package age without a parent snapshot; refresh measured accounting. Both findings are one corrective batch. Native certification required a separate explicit large-suite authorization, subsequently granted by the user.
 
 - Peer checkpoint 4: missing upstream std packages now produce complete missing-package/contract findings; genuine load errors remain incomplete reports. Unified inventory derivation in spec, added collector and generator dependency boundary checks, grouped report/draft findings with package inventory diffs and spelling-only signature handling, and preflighted output destinations before scanning. Added focused missing-package/parse-error publication coverage. Fixed two existing diagram links while checking documentation. These corrections share the Tasks 29–30 commit; no runtime, persistent-cache or support policy expansion.
 
@@ -838,7 +842,7 @@ No unresolved implementation gap is accepted. Checkpoint findings through thread
 - [too-complex] Whole-standard-library semantic equivalence proof. Reports state declared/API/source coverage and require review for behavioral source changes.
 - [potential-improvement] Interactive draft installation, automatic implementation generation and persistent audit cache. Drafts remain non-installable data and existing destinations cannot be overwritten.
 - [postponed] Actual support for a new real Go family, beta/RC/custom compilers, or extra host platforms. This plan preserves 1.25/1.26 and tests future metadata only with fixtures; prereleases remain rejected.
-- [postponed] Race/large suites and certification/crossarch execution require explicit separate instructions. Their exclusion is not a code defect and must not be replaced by a successful stub or bypass.
+- [postponed] Race and other-platform execution remain excluded. Native Darwin ARM64 certification and its mandatory large coverage were separately authorized and completed; this does not authorize additional suites or platforms.
 - User selection of this target for go-plan authorizes planning from revision 3; previous brainstorm confirmation bookkeeping is not an implementation feature. Plan review is closed and final findings are incorporated; no implementation is started here.
 
 ## Progress and verification log

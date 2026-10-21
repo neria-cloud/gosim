@@ -276,6 +276,10 @@ Go family selectors, and uploads `test-reports`. It has no certification step.
 
 ## Generation and manual certification
 
+See the [maintainer guide](docs/MAINTAINER_GUIDE.md) for adding Go families,
+version-specific APIs, stdlib hooks and simulation features, and verifying
+certification results.
+
 Compatibility implementation lives once in `internal/compat/{hooks,shims,host}`.
 `internal/compat/profiles/go125.json` is the baseline; `go126.json` contains only
 its changes. A future 1.27 definition would inherit **1.25 + 1.26 + 1.27**.
