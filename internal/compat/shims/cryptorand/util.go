@@ -1,4 +1,4 @@
-//go:build go1.26 && !go1.27
+//go:build go1.25
 
 // Copyright 2011 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
@@ -10,8 +10,6 @@ import (
 	"errors"
 	"io"
 	"math/big"
-	"os"
-	"strings"
 )
 
 // Prime returns a number of the given bit length that is prime with high probability.
@@ -21,19 +19,7 @@ func Prime(rand io.Reader, bits int) (*big.Int, error) {
 		return nil, errors.New("crypto/rand: prime size must be at least 2-bit")
 	}
 
-	// Go 1.26 selects its internal default reader unless this compatibility
-	// setting opts back into the supplied reader. Read translated machine state;
-	// never use the host entropy reader or the mutable public Reader as default.
-	custom := ""
-	for _, setting := range strings.Split(os.Getenv("GODEBUG"), ",") {
-		key, value, _ := strings.Cut(setting, "=")
-		if key == "cryptocustomrand" {
-			custom = value
-		}
-	}
-	if custom != "1" {
-		rand = &deterministicReader{}
-	}
+	rand = primeReader(rand)
 	// Omit upstream optional random consumption: simulation replay is exact.
 
 	b := uint(bits % 8)

@@ -1,4 +1,4 @@
-//go:build go1.25 && !go1.26
+//go:build go1.25
 
 // Package rand provides a deterministic replacement for crypto/rand
 // when running under gosim simulation.

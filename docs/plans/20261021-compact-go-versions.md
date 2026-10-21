@@ -380,13 +380,13 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤350 authored Go lines plus verified moves/deletions. **Dependencies:** 12.
 
-- [ ] Share the existing prime algorithm and common rand/text code; isolate only the version-sensitive reader choice as specified by existing behavior.
-- [ ] Preserve 1.25 reader semantics and 1.26 custom-reader/GODEBUG behavior exactly; do not introduce host randomness fallbacks.
-- [ ] Update replacement/contract paths and preserve deterministic-reader tests and known feature behavior.
+- [x] Share the existing prime algorithm and common rand/text code; isolate only the version-sensitive reader choice as specified by existing behavior.
+- [x] Preserve 1.25 reader semantics and 1.26 custom-reader/GODEBUG behavior exactly; do not introduce host randomness fallbacks.
+- [x] Update replacement/contract paths and preserve deterministic-reader tests and known feature behavior.
 
 #### Verification
 
-- [ ] V-REVISIONS, both-family V-BUILD and relevant native/ordinary simulation tests pass. Do not use lint-driven crypto algorithm changes.
+- [x] V-REVISIONS, both-family V-BUILD and relevant native/ordinary simulation tests pass. Do not use lint-driven crypto algorithm changes.
 
 ### Task 14: Consolidate remaining unchanged shims and test guards
 

@@ -8,28 +8,28 @@
       "package": "crypto/rand",
       "symbol": "Int",
       "signature": "func(io.Reader, *big.Int) (*big.Int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/cryptorand.Int",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/cryptorand.Int",
       "owner": "rt"
     },
     {
       "package": "crypto/rand",
       "symbol": "Prime",
       "signature": "func(io.Reader, int) (*big.Int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/cryptorand.Prime",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/cryptorand.Prime",
       "owner": "rt"
     },
     {
       "package": "crypto/rand",
       "symbol": "Read",
       "signature": "func([]byte) (int, error)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/cryptorand.Read",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/cryptorand.Read",
       "owner": "rt"
     },
     {
       "package": "crypto/rand",
       "symbol": "Text",
       "signature": "func() string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go126/shims/cryptorand.Text",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/cryptorand.Text",
       "owner": "rt"
     },
     {

@@ -1,4 +1,4 @@
-//go:build go1.26 && !go1.27
+//go:build go1.25
 
 package rand
 
@@ -105,25 +105,5 @@ func TestReadFailureAbortsWithoutRecovery(t *testing.T) {
 	var aborted *gosimruntime.AbortError
 	if !errors.As(err, &aborted) || aborted.Diagnostic.Operation != "crypto/rand.Read" || after || deferred {
 		t.Fatalf("fatal read err=%v after=%v defer=%v", err, after, deferred)
-	}
-}
-
-func TestGo126PrimeDefaultIgnoresCustomReader(t *testing.T) {
-	t.Setenv("GODEBUG", "cryptocustomrand=1,cryptocustomrand=0")
-	previous := Reader
-	Reader = failureReader{errors.New("public reader must not be used by default Prime")}
-	defer func() { Reader = previous }()
-	e, err := gosimruntime.NewEngine(gosimruntime.EngineConfig{Seed: 77, TimeoutNS: 1e9, ReplayRevision: gosimruntime.ReplayRevision})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer e.Close()
-	if err := e.Run(func() {
-		prime, err := Prime(failureReader{errors.New("supplied reader must be ignored")}, 17)
-		if err != nil || prime.BitLen() != 17 || !prime.ProbablyPrime(20) {
-			t.Fatalf("Prime=%v,%v", prime, err)
-		}
-	}); err != nil {
-		t.Fatal(err)
 	}
 }

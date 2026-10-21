@@ -67,7 +67,7 @@
 {"path":"github.com/minio/minlz","mode":"translate","reason":"Former broad native/assembly exemption removed. Translate application state and reject any assembly or private hook lacking an explicit adapter."},
 {"path":"github.com/modern-go/reflect2/...","mode":"reject","reason":"Private reflection/map ABI is rejected; linking successful panic stubs is not support."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/hooks/rt","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
-{"path":"github.com/neria-cloud/gosim/internal/compat/go126/shims/cryptorand","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
+{"path":"github.com/neria-cloud/gosim/internal/compat/shims/cryptorand","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/go126/shims/maps","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/shims/reflect","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/go126/shims/synctest","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
