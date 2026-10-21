@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -67,15 +68,10 @@ func readDeclarationLedger(t *testing.T) declarationLedger {
 }
 
 func sourceContext(family, arch string) build.Context {
-	ctx := build.Default
-	ctx.GOOS = "linux"
-	ctx.GOARCH = arch
-	ctx.CgoEnabled = false
-	ctx.BuildTags = []string{"linkname"}
-	ctx.ReleaseTags = nil
-	minor := 25
-	if family == "go126" {
-		minor = 26
+	ctx := build.Context{GOOS: "linux", GOARCH: arch, Compiler: "gc", BuildTags: strings.Split(buildspec.TranslatedSourceTags(false), ",")}
+	minor, err := strconv.Atoi(strings.TrimPrefix(family, "go1"))
+	if err != nil {
+		panic(err)
 	}
 	for v := 1; v <= minor; v++ {
 		ctx.ReleaseTags = append(ctx.ReleaseTags, fmt.Sprintf("go1.%d", v))
@@ -133,13 +129,38 @@ func ownedDeclarations(t *testing.T, pkg string, ctx build.Context) map[string]s
 			case *ast.GenDecl:
 				for _, s := range decl.Specs {
 					if typ, ok := s.(*ast.TypeSpec); ok {
-						add(typ.Name.Name, "type")
+						if typ.Name.Name != "_" {
+							add(typ.Name.Name, "type")
+						}
+					}
+					if values, ok := s.(*ast.ValueSpec); ok {
+						for _, name := range values.Names {
+							if name.Name != "_" {
+								add(name.Name, decl.Tok.String())
+							}
+						}
 					}
 				}
 			}
 		}
 	}
+	if len(result) == 0 {
+		t.Fatal("empty selected package inventory", pkg, ctx.GOOS, ctx.GOARCH)
+	}
 	return result
+}
+
+// Preserve immutable ledger spellings; resolve moved targets against the current
+// package layout without changing historical inventory or its digest.
+func currentLedgerTarget(t *testing.T, target, family string) string {
+	t.Helper()
+	pkg, _, _ := strings.Cut(target, ".")
+	if _, err := os.Stat(filepath.Join("../../..", pkg)); err == nil {
+		return target
+	} else if !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	return strings.Replace(target, "internal/compat/"+family+"/", "internal/compat/", 1)
 }
 
 func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
@@ -180,7 +201,7 @@ func TestAllInventoriedHookAndShimDeclarations(t *testing.T) {
 					if !slices.Contains([]string{"hook", "moved-hook", "binding", "replacement"}, d.Disposition) {
 						t.Fatal("unreviewed disposition", label)
 					}
-					target := strings.ReplaceAll(d.Target, "{family}", family.name)
+					target := currentLedgerTarget(t, strings.ReplaceAll(d.Target, "{family}", family.name), family.name)
 					key := d.Package + "." + d.Symbol
 					if len(d.Arches) > 0 && !slices.Contains(d.Arches, arch) || slices.Contains(d.AbsentIn, family.name) {
 						if _, ok := hooks[key]; ok {
@@ -237,66 +258,88 @@ func TestPinnedRemovedHookDeclarations(t *testing.T) {
 	}
 }
 
-func TestExecutableAdaptersHaveBoundedFamilySelection(t *testing.T) {
+func TestSelectedCompatibilityInventories(t *testing.T) {
 	t.Parallel()
 	for _, family := range []string{"go125", "go126"} {
-		root := filepath.Join("..", family)
-		err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") || strings.Contains(filepath.ToSlash(path), "/profile/") {
-				return nil
-			}
-			selected := false
-			for _, arch := range []string{"amd64", "arm64"} {
-				for _, race := range []bool{false, true} {
+		for _, arch := range []string{"amd64", "arm64"} {
+			for _, race := range []bool{false, true} {
+				count := 0
+				for _, root := range []string{"../hooks", "../shims", "../host", "../" + family + "/hooks", "../" + family + "/shims", "../" + family + "/host"} {
+					if _, err := os.Stat(root); os.IsNotExist(err) {
+						continue
+					}
 					ctx := sourceContext(family, arch)
+					if strings.HasSuffix(root, "/host") {
+						ctx.GOOS = runtime.GOOS
+						ctx.BuildTags = []string{"linkname"}
+						ctx.CgoEnabled = race
+					}
 					if race {
 						ctx.BuildTags = append(ctx.BuildTags, "race")
 					}
-					yes, err := ctx.MatchFile(filepath.Dir(path), entry.Name())
-					if err != nil {
-						return err
-					}
-					selected = selected || yes
-					for _, minor := range []int{24, 27} {
-						ctx.ReleaseTags = nil
-						for v := 1; v <= minor; v++ {
-							ctx.ReleaseTags = append(ctx.ReleaseTags, fmt.Sprintf("go1.%d", v))
-						}
-						yes, err := ctx.MatchFile(filepath.Dir(path), entry.Name())
+					err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 						if err != nil {
 							return err
 						}
-						if yes {
-							t.Error("unbounded family source", path, minor)
+						if !entry.IsDir() {
+							return nil
 						}
-					}
-					other := "go125"
-					if family == other {
-						other = "go126"
-					}
-					ctx = sourceContext(other, arch)
-					if race {
-						ctx.BuildTags = append(ctx.BuildTags, "race")
-					}
-					yes, err = ctx.MatchFile(filepath.Dir(path), entry.Name())
+						files, err := os.ReadDir(path)
+						if err != nil {
+							return err
+						}
+						hasSource := false
+						for _, file := range files {
+							if !file.IsDir() && strings.HasSuffix(file.Name(), ".go") && !strings.HasSuffix(file.Name(), "_test.go") {
+								hasSource = true
+							}
+						}
+						if !hasSource {
+							return nil
+						}
+						baseDir, err := filepath.Abs("../../..")
+						if err != nil {
+							return err
+						}
+						absolute, err := filepath.Abs(path)
+						if err != nil {
+							return err
+						}
+						pkg, err := filepath.Rel(baseDir, absolute)
+						if err != nil {
+							return err
+						}
+						count += len(ownedDeclarations(t, filepath.ToSlash(pkg), ctx))
+						return nil
+					})
 					if err != nil {
-						return err
-					}
-					if yes {
-						t.Error("cross-family selection", path)
+						t.Fatal(err)
 					}
 				}
+				if count == 0 {
+					t.Fatal("empty compatibility inventory", family, arch, race)
+				}
 			}
-			if !selected {
-				t.Error("adapter never selected", path)
+		}
+	}
+}
+
+func TestUnsupportedFamilyGuards(t *testing.T) {
+	t.Parallel()
+	for _, dir := range []string{"../selected", "../../hostabi", "../host"} {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			continue
+		}
+		for _, family := range []string{"go124", "go125", "go126", "go127"} {
+			ctx := sourceContext(family, "arm64")
+			selected, err := ctx.MatchFile(dir, "unsupported.go")
+			if err != nil {
+				t.Fatal(err)
 			}
-			return nil
-		})
-		if err != nil {
-			t.Fatal(err)
+			want := family == "go124" || family == "go127"
+			if selected != want {
+				t.Fatal("wrong direct support guard", dir, family, selected)
+			}
 		}
 	}
 }

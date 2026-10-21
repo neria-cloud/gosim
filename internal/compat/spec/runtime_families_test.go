@@ -20,13 +20,18 @@ func TestRuntimeFamilyABIDelta(t *testing.T) {
 	}{
 		{p125.Descriptor(), " uintptr"}, {p126.Descriptor(), ""},
 	} {
+		if err := item.p.Validate(); err != nil {
+			t.Fatal(err)
+		}
 		found := false
 		for _, hook := range item.p.Hooks {
 			if hook.Owner != "rt" {
 				continue
 			}
-			if !strings.Contains(hook.Target, "/"+item.p.ID+"/") {
-				t.Fatalf("cross-family target: %+v", hook)
+			start := strings.LastIndex(hook.Target, "/") + 1
+			dot := strings.IndexByte(hook.Target[start:], '.')
+			if dot < 0 || spec.ClassifyCompatPackage(hook.Target[:start+dot]) != spec.CompatHooks {
+				t.Fatalf("runtime target is not a translated hook: %+v", hook)
 			}
 			if hook.Package == "sync" && hook.Symbol == "runtime_StoreReluintptr" {
 				found = true

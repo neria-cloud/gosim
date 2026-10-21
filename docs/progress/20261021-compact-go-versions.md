@@ -61,3 +61,15 @@ Verified genprofile, native command build, complete spec tests, focused translat
 Baseline migration evidence: `git ls-tree -rl 550d5e3 -- internal/compat/go125` gives 96 files / 877411 bytes; the corresponding go126 command gives 99 / 907653. Counts/sizes are computed from tracked blobs (sum field 4), independent of ignored local state. Task 15 reads that base commit for its one-time metadata comparison; no ordinary test depends on Git history or ignored captures.
 
 No restricted suite or certification ran. Five implementation commits toward the first peer checkpoint.
+
+## Task 6 — Active shim source bindings and inventory checks
+
+Date: 2026-10-21. Implementation commit 6 (this commit).
+
+Changed VerifyShimBindings to the resolved-family/source-context interface. It selects files with explicit target release tags and approved translated/native predicates, ignores tests/inactive filenames, excludes C imports when cgo is off, and retains duplicate declaration/signature checks. Temporary legacy shim target admission supports old descriptors until cutover without a second public verifier. Updated callers atomically.
+
+Replaced per-file bounded-family assertions with nonempty selected package inventories for each family/architecture/source mode, duplicate detection and separate unsupported guard selection checks. The immutable declaration ledger payload/digests are unchanged; its path lookup falls back to shared directories as packages move. Runtime tests now check target categories plus validated metadata instead of demanding physical family ownership. The inventory includes constants/variables so the constant-only maps shim is represented. Authored edits: 345 added/removed lines including new tests, below the 450-line budget.
+
+Verified both native command builds and full spec suites under Go 1.25.14 / Go 1.26.9 after genprofile refresh. Tests prove an inactive file cannot satisfy a missing binding or trigger a duplicate, selected duplicates fail, methods and architecture filenames work, Go 1.26 variants inherit into a hypothetical 1.27, and release tags do not leak from build.Default. Initial inventory failures exposed relative filepath.Rel inputs and the constant-only maps package; both were corrected.
+
+Race/cgo and alternate-architecture cases above are source inspection only. No race build/execution, restricted suite or certification ran. Six implementation commits toward the first eight-commit peer checkpoint.

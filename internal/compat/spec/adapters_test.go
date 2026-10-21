@@ -177,11 +177,11 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 func TestGo125ShimBindings(t *testing.T) {
 	t.Parallel()
 	shims := p125.ShimManifest()
-	if err := spec.VerifyShimBindings("../../..", shims); err != nil {
+	if err := spec.VerifyShimBindings("../../..", shimFamily("1.25", "go125", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err != nil {
 		t.Fatal(err)
 	}
 	shims[0].Signature = "func()"
-	if err := spec.VerifyShimBindings("../../..", shims); err == nil {
+	if err := spec.VerifyShimBindings("../../..", shimFamily("1.25", "go125", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err == nil {
 		t.Fatal("changed shim signature accepted")
 	}
 	if strings.HasPrefix(runtime.Version(), "go1.25.") {
@@ -194,11 +194,11 @@ func TestGo125ShimBindings(t *testing.T) {
 func TestGo126ShimBindings(t *testing.T) {
 	t.Parallel()
 	shims := p126.ShimManifest()
-	if err := spec.VerifyShimBindings("../../..", shims); err != nil {
+	if err := spec.VerifyShimBindings("../../..", shimFamily("1.26", "go126", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err != nil {
 		t.Fatal(err)
 	}
 	shims[0].Signature = "func()"
-	if err := spec.VerifyShimBindings("../../..", shims); err == nil {
+	if err := spec.VerifyShimBindings("../../..", shimFamily("1.26", "go126", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err == nil {
 		t.Fatal("changed shim signature accepted")
 	}
 	if strings.HasPrefix(runtime.Version(), "go1.26.") {
@@ -206,4 +206,13 @@ func TestGo126ShimBindings(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// Temporary conversion while the two legacy descriptors remain the authority.
+func shimFamily(family, profile string, shims []spec.Hook) spec.ResolvedFamily {
+	r := spec.ResolvedFamily{Family: family, ProfileID: profile}
+	for _, h := range shims {
+		r.Declarations = append(r.Declarations, spec.Declaration{Hook: h})
+	}
+	return r
 }

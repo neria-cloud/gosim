@@ -258,15 +258,15 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤450 authored Go lines. **Dependencies:** 5.
 
-- [ ] Implement a private explicit go/build.Context selector with family release tags, OS/arch/filename tags and approved source predicates. Do not inherit the maintenance process's release tags.
-- [ ] Use selected files in existing shim checks; update callers atomically. Final public signature is `VerifyShimBindings(root string, r ResolvedFamily, source SourceContext) error`; while old descriptors remain active, share the private selection implementation rather than inventing a public compatibility facade.
-- [ ] Preserve duplicate rejection in readHookDeclarations; inactive files must neither satisfy required bindings nor trigger false duplicates.
-- [ ] Replace TestExecutableAdaptersHaveBoundedFamilySelection and ownedDeclarations traversal in declaration_ledger_test.go with family/context-aware selected-declaration checks. Inspect shared roots plus still-live old roots during migration; require nonempty expected inventories, complete bindings and no duplicate selected declaration. Common files may serve both families and additions/replacements must select only their intended contexts; do not require every variant to select in every family or prohibit cumulative 1.27 source selection. Test unsupported-family guard reachability separately. Preserve the immutable declaration_ledger.json payload/digests.
-- [ ] Prepare runtime_families_test.go to validate selected signatures/permissions rather than physical `/<profile>/` ownership; Task 9 updates its exact target expectations when paths move. Test selected/inactive variants, methods, filename predicates and hypothetical next-minor inheritance. Translated checks are cgo-off; preserve native race source context separately.
+- [x] Implement a private explicit go/build.Context selector with family release tags, OS/arch/filename tags and approved source predicates. Do not inherit the maintenance process's release tags.
+- [x] Use selected files in existing shim checks; update callers atomically. Final public signature is `VerifyShimBindings(root string, r ResolvedFamily, source SourceContext) error`; while old descriptors remain active, share the private selection implementation rather than inventing a public compatibility facade.
+- [x] Preserve duplicate rejection in readHookDeclarations; inactive files must neither satisfy required bindings nor trigger false duplicates.
+- [x] Replace TestExecutableAdaptersHaveBoundedFamilySelection and ownedDeclarations traversal in declaration_ledger_test.go with family/context-aware selected-declaration checks. Inspect shared roots plus still-live old roots during migration; require nonempty expected inventories, complete bindings and no duplicate selected declaration. Common files may serve both families and additions/replacements must select only their intended contexts; do not require every variant to select in every family or prohibit cumulative 1.27 source selection. Test unsupported-family guard reachability separately. Preserve the immutable declaration_ledger.json payload/digests.
+- [x] Prepare runtime_families_test.go to validate selected signatures/permissions rather than physical `/<profile>/` ownership; Task 9 updates its exact target expectations when paths move. Test selected/inactive variants, methods, filename predicates and hypothetical next-minor inheritance. Translated checks are cgo-off; preserve native race source context separately.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused spec binding/source tests pass under both families. No race build or execution.
+- [x] V-REVISIONS, V-BUILD and focused spec binding/source tests pass under both families. No race build or execution.
 
 ### Task 7: Separate generation rendering from publication and checking
 
