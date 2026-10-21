@@ -294,14 +294,14 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤350 authored Go lines plus verified moves/deletions. **Dependencies:** 7.
 
-- [ ] Move the identical host implementations once, delete the verified duplicate, preserve unsafe/linkname/race semantics and update hostabi imports and profile native target paths together. Rewrite only Gosim-side Hook.Target fields inside each origin file to the shared host path; preserve upstream paths/signatures/file digests/exact baseline. These target annotations are not upstream content hashes. Test the unchanged provenance fields explicitly.
-- [ ] Add direct compat/host unsupported guard using the current supported intervals; keep hostabi/selected rejection. Task 18 takes over guard generation.
-- [ ] Remove union support ceilings from the six shared hostabi facade/test files named in target §2; preserve fixed floor and race predicates. Collapse identical family facade files into shared implementations without forwarding packages.
-- [ ] Update linkname/closure tests and confirm maps/synctest leaf packages do not need native metadata imports to reject unsupported simulations.
+- [x] Move the identical host implementations once, delete the verified duplicate, preserve unsafe/linkname/race semantics and update hostabi imports and profile native target paths together. Rewrite only Gosim-side Hook.Target fields inside each origin file to the shared host path; preserve upstream paths/signatures/file digests/exact baseline. These target annotations are not upstream content hashes. Test the unchanged provenance fields explicitly.
+- [x] Add direct compat/host unsupported guard using the current supported intervals; keep hostabi/selected rejection. Task 18 takes over guard generation.
+- [x] Remove union support ceilings from the six shared hostabi facade/test files named in target §2; preserve fixed floor and race predicates. Collapse identical family facade files into shared implementations without forwarding packages.
+- [x] Update linkname/closure tests and confirm maps/synctest leaf packages do not need native metadata imports to reject unsupported simulations.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD under both families, focused hostabi/spec checks and V-GENERATION pass. Record source-only guard checks separately from execution.
+- [x] V-REVISIONS, V-BUILD under both families, focused hostabi/spec checks and V-GENERATION pass. Record source-only guard checks separately from execution.
 
 ### Task 9: Consolidate runtime hooks and their runtimebridge dependency
 

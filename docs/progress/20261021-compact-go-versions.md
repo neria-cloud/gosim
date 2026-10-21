@@ -85,3 +85,15 @@ Generation/source loading now validates the running compiler and installation be
 Verified regeneration, full routegen tests, independent -check generation, and native command builds under Go 1.25.14 and Go 1.26.9, all passing. Refreshed active revisions. Tests cover empty output trees, missing/ambiguous/inherited destinations, wrong compiler rejection before writes, other-origin and architecture isolation, complete-byte equality, stable mtimes, stale-file rejection without repair, and checks after deleting the ignored generation-record directory.
 
 No runtime behavior changed, restricted suite or certification ran. Seven implementation commits; the first Claude review follows Task 8's commit.
+
+## Task 8 — Shared native host ABI
+
+Date: 2026-10-21. Implementation commit 8 (this commit).
+
+Verified normalized equality of coro/race/norace bodies in both host trees and corresponding facade pairs, then retained one copy under compat/host and shared hostabi facade filenames. Preserved unsafe/linkname/race behavior, added a direct host unsupported guard, and removed union ceilings from the six specified shared facade/test files. Updated both profiles' native contract targets and only their origin Hook.Target annotations. Six old implementation/facade copies were removed; three files moved in each area plus one direct guard. Authored edits remain below 100 lines aside from mechanical moves, constraints, target rewrites and generated revision constants.
+
+One-time provenance assertions compared every parsed JSON field, allowing only the exact host Target prefix rewrite. A second independent canonical hash with Hook.Target blanked remained identical before/after: go125 = 950188f58d59949d8c96a991402b276448a176d18fca85c87d92d0caac76d402; go126 = ff24c71b8662b6bb36c95cc67d466aa75c5d53b8744bb1943a415f32be919b1e. Thus upstream paths, signatures, content digests, schema, family and exact baseline stayed unchanged. The temporary helper is ignored maintainer evidence, never an ordinary test input.
+
+Verified genprofile refresh, native command builds, hostabi coroutine/upcall/identity tests, complete spec tests, and independent generation -check under both Go 1.25.14 and Go 1.26.9. All passed. Runtime dependency inspection now requires shared compat/host and rejects old host paths. Guard tests inspect explicit family source contexts; removed the old manual release-tag negative build. Native host/selected/hostabi guards cover unsupported families. Inspected maps/synctest leaves: neither imports native metadata; no new guard dependency was added there.
+
+Race and hypothetical compiler checks were source inspection only. No race/large suite or certification ran. Eight implementation commits completed; Claude review requested next, before Task 9.

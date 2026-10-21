@@ -2,14 +2,14 @@
 // is governed by a BSD-style license that can be found at
 // https://go.googlesource.com/go/+/refs/heads/master/LICENSE.
 
-//go:build go1.26 && !go1.27 && !race
+//go:build go1.25 && race
 
 package hostabi
 
 import (
 	"unsafe"
 
-	"github.com/neria-cloud/gosim/internal/compat/go126/host"
+	"github.com/neria-cloud/gosim/internal/compat/host"
 )
 
 const RaceEnabled = host.RaceEnabled

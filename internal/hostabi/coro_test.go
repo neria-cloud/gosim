@@ -1,8 +1,11 @@
-//go:build go1.25 && !go1.27
+//go:build go1.25
 
 package hostabi
 
 import (
+	"fmt"
+	"go/build"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -73,24 +76,32 @@ func TestIdentityAndFamilyIsolation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list: %v: %s", err, data)
 	}
-	if strings.Contains(string(data), "/internal/compat/"+other+"/host") || strings.Contains(string(data), "/internal/coro\n") {
+	if strings.Contains(string(data), "/internal/compat/"+other+"/host") || strings.Contains(string(data), "/internal/compat/"+id.Profile+"/host") || strings.Contains(string(data), "/internal/coro\n") {
 		t.Fatalf("wrong native ABI import: %s", data)
 	}
-	if !strings.Contains(string(data), "/internal/compat/"+id.Profile+"/host") {
+	if !strings.Contains(string(data), "/internal/compat/host") {
 		t.Fatalf("selected native ABI missing: %s", data)
 	}
 }
 
-func TestUnsupportedFamilyFailsExplicitly(t *testing.T) {
+// Inspect source selection without synthesizing manual release-tag builds.
+func TestUnsupportedFamilyGuardSelection(t *testing.T) {
 	t.Parallel()
-	for _, pkg := range []string{"hostabi", "compat/selected"} {
-		cmd := buildspec.GoCommand(buildspec.Toolchain{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), GOROOT: runtime.GOROOT(), Version: runtime.Version(), HostOS: runtime.GOOS, HostArch: runtime.GOARCH}, "", "build", "github.com/neria-cloud/gosim/internal/"+pkg)
-		// Deliberate negative compile probe: normal GoCommand rejects user
-		// release tags, but this test must exercise the compiler-level guard.
-		cmd.Args = append(cmd.Args[:2], "-tags=go1.27", cmd.Args[2])
-		data, err := cmd.CombinedOutput()
-		if err == nil || !strings.Contains(string(data), "GOSIM_UNSUPPORTED_GO_FAMILY_USE_GO125_OR_GO126") {
-			t.Fatalf("unsupported build: %v: %s", err, data)
+	for _, pkg := range []string{"hostabi", "compat/selected", "compat/host"} {
+		dir := filepath.Join("..", pkg)
+		guard, err := os.ReadFile(filepath.Join(dir, "unsupported.go"))
+		if err != nil || !strings.Contains(string(guard), "GOSIM_UNSUPPORTED_GO_FAMILY_USE_GO125_OR_GO126") {
+			t.Fatal(pkg, err)
+		}
+		for _, minor := range []int{24, 25, 26, 27} {
+			ctx := build.Context{GOOS: runtime.GOOS, GOARCH: runtime.GOARCH, Compiler: "gc"}
+			for release := 1; release <= minor; release++ {
+				ctx.ReleaseTags = append(ctx.ReleaseTags, fmt.Sprintf("go1.%d", release))
+			}
+			matches, err := ctx.MatchFile(dir, "unsupported.go")
+			if err != nil || matches != (minor == 24 || minor == 27) {
+				t.Fatal(pkg, minor, matches, err)
+			}
 		}
 	}
 }

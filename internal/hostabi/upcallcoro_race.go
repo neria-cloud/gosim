@@ -1,4 +1,4 @@
-//go:build go1.25 && !go1.27 && race
+//go:build go1.25 && race
 
 package hostabi
 
