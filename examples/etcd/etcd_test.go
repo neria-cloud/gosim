@@ -13,6 +13,7 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/embed"
+	"go.uber.org/zap"
 
 	"github.com/neria-cloud/gosim"
 	"github.com/neria-cloud/gosim/examples/etcd"
@@ -249,7 +250,9 @@ func TestEtcd(t *testing.T) {
 		Endpoints:        []string{"10.0.0.1:2379", "10.0.0.2:2379", "10.0.0.3:2379"},
 		DialTimeout:      5 * time.Second,
 		AutoSyncInterval: 5 * time.Second,
-		Logger:           etcd.MakeZapLogger(),
+		// etcd embeds the host address of this client in retry log targets.
+		// Phase assertions provide deterministic diagnostics instead.
+		Logger: zap.NewNop(),
 	})
 	if err != nil {
 		t.Fatal(err)

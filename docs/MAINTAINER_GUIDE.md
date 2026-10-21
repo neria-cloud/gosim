@@ -295,11 +295,29 @@ aliases, method sets, and interfaces. For native symbol bridges, enumerate exact
 symbols and review their state/effects. Native-import permissions are separate
 explicit edges, not permission to import arbitrary native code.
 
+The etcd restoration provides concrete baseline examples. The shared
+`shims/{ecdsa,elliptic,rsa}` and `shims/trace` packages preserve declarations
+needed by dormant dependency paths, while active unsupported algorithms and
+trace operations call `rt/runtime.Abort` with precise diagnostics. Only
+`trace.IsEnabled` is positively modeled, returning false. The exact pinned
+`github.com/modern-go/reflect2` replacement provides kind-specific,
+machine-local type metadata used during jsoniter initialization. Its raw
+pointer and value operations remain fatal; do not admit the upstream private
+reflection ABI to make a dormant method compile. `runtime.ReadMemStats` uses
+the exact `*runtime.MemStats` signature required by Prometheus, but collection
+still aborts. Add a baseline facade only after checking the pinned module and
+both supported compilers; put a true Go 1.26 signature difference in the
+descendant delta.
+
 Update `runtime_packages` when the selected composition needs to include a new
 compatibility package. Update `capabilities` with the actual implemented,
 limited, stub, or rejected behavior and `probes` for relevant init/first-use
 behavior. A capability description does not supply an implementation. Keep
 host-sensitive declarations and architecture layouts in their proper contexts.
+`InitProbe` paths currently refer to GOROOT `src/` files. For an external
+module such as reflect2, pin and inspect its module source, then use translated
+positive initialization and fatal-operation fixtures instead of inventing a
+GOROOT probe path.
 
 After source/metadata changes, regenerate profiles, regenerate/check affected
 adapters, refresh origin only when intentionally changing provenance, and run

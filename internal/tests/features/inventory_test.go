@@ -20,7 +20,7 @@ func TestFeatureApplicabilityAndPreservedInventory(t *testing.T) {
 		{[]string{"rt"}, []string{"./internal/tests/rt", "./examples/simple"}},
 		{[]string{"rt", "fs"}, []string{"./internal/tests/rt", "./internal/tests/fs", "./examples/simple", "./examples/bolt"}},
 		{[]string{"rt", "net"}, []string{"./internal/tests/rt", "./internal/tests/net", "./examples/simple", "./examples/network/machines", "./examples/network/latency"}},
-		{[]string{"rt", "fs", "net"}, []string{"./internal/tests/rt", "./internal/tests/fs", "./internal/tests/net", "./internal/tests/integration", "./nemesis", "./examples/simple", "./examples/bolt", "./examples/network/machines", "./examples/network/latency"}},
+		{[]string{"rt", "fs", "net"}, []string{"./internal/tests/rt", "./internal/tests/fs", "./internal/tests/net", "./internal/tests/integration", "./nemesis", "./examples/simple", "./examples/bolt", "./examples/network/machines", "./examples/network/latency", "./examples/etcd"}},
 	} {
 		got, err := Packages(test.features)
 		if err != nil || !slices.Equal(got, test.packages) {
@@ -115,6 +115,9 @@ func TestMetatestPackagesExcludeSimOnlyExamples(t *testing.T) {
 		}
 		if !slices.Contains(packages, "./internal/tests/rt") || !slices.Contains(packages, "./examples/simple") {
 			t.Fatalf("lost runtime metatest coverage: %v", packages)
+		}
+		if slices.Contains(packages, "./examples/etcd") {
+			t.Fatalf("sim-only etcd package selected for native tests: %v", names)
 		}
 	}
 }

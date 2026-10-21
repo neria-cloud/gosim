@@ -95,3 +95,21 @@ Verified
 - Across the three cluster seeds, Go 1.25.14 recorded 6–7 successful pre-partition KV round trips and 16 successful after-repair round trips; Go 1.26.9 recorded 6 before and 16 after. The partition window produced expected unsuccessful attempts without data mismatches. Simulated cluster durations ranged from about 69 to 79 seconds.
 - `make build`, focused metadata/translator/feature tests, `make lint`, `./.ci/gofmt check`, `git diff --check`, and profile revision checks pass. A8 cache schema/retention and `ReplayRevision` were untouched; `MetaT` verified exact BuildDigest/ReplayRevision at each run.
 - `make test`: 86 reports, 2,007 passed, 20 skipped, no failures/errors; wall time 224 seconds. The ordinary integration suite includes the new fixture and replay metatest. Positive etcd is still excluded from ordinary feature selection until Task 9.
+
+## Tasks 9–10 — ordinary etcd selection, replay and scope documentation
+
+Date: 2026-10-21. Pair commit contains this entry.
+
+Implemented
+
+- Registered `./examples/etcd` as a sim-only suite requiring all three features and added it to the explicit local simulation package list. Reduced-feature package selection excludes it before loading; native metatest package lists continue to omit the sim-only example.
+- Added an integration native metatest that uses `ForOtherPackage` and a matching prebuilt etcd worker. It runs `TestEtcd` seeds 1, 2, 3, then 1 in one worker, and seed 1 in a fresh worker. It checks failure/error fields, nonempty checksums, exact build/replay identity and parsed phase counts.
+- The first replay exposed a non-deterministic pointer string in the pinned etcd client's optional retry target log. The example now uses a no-op logger for that client; KV phase results and errors remain asserted. Repeat and fresh-worker checksum comparisons pass on both compilers. No runtime checksum, scheduler or replay revision behavior changed.
+- Updated the example, feature, root, design and maintainer documentation for the working plaintext cluster and exact guarded optional surfaces. The 207-entry historical test inventory remains intact; its HTTP constraint was restored in Task 6. There was no current `unsupported-etcd` candidate assertion to remove.
+
+Verified
+
+- Focused feature registry/native selection, profile/spec/shim tests, build, independent generation checks and profile revision checks pass under Go 1.25.14 and 1.26.9. The baseline owns the new facades and five replacement roots; Go 1.26 has no copied records or implementation tree. Independent origins remain distinct.
+- Focused exact-compiler same-worker/fresh-worker etcd metatests pass. The artifact lookup rejected an older prebuilt identity after source changed, then passed after a source-matched build.
+- `make lint`, `./.ci/gofmt check`, `git diff --check` and local documentation link checks pass. Existing TLS, crypto, reflection, signal and feature guards remain in place; no large, race or certification suite was enabled.
+- `make test`: 87 reports, 2,013 passed, 20 skipped, no failures/errors; wall time 282 seconds. The report includes five positive etcd simulation tests and the native `TestEtcdReplayAfterInterveningRuns` plus protobuf replay metatest. The ordinary compiler was selected by Go tooling; Task 11 runs separate exact-compiler ordinary gates.

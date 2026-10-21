@@ -14,7 +14,7 @@ export GOSIM_TOOLCHAIN
 MATRIX_PLATFORM ?= darwin/arm64
 COLIMA_PLATFORM ?= linux/arm64
 MATRIX_TOOLCHAINS ?= go1.25.14,go1.26.9
-SIMPACKAGES ?= ./internal/tests/rt ./internal/tests/fs ./internal/tests/net ./internal/tests/integration ./nemesis ./examples/simple ./examples/bolt ./examples/network/machines ./examples/network/latency
+SIMPACKAGES ?= ./internal/tests/rt ./internal/tests/fs ./internal/tests/net ./internal/tests/integration ./nemesis ./examples/simple ./examples/bolt ./examples/network/machines ./examples/network/latency ./examples/etcd
 GOSIM ?= $(CURDIR)/.gosim/gosimtool
 
 help: ## List available targets

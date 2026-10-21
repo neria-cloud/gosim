@@ -512,18 +512,18 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A1, A7–A9; design testing flows and existing `metatesting.MetaT` protocol.
 **Estimated authored changes:** ≤700 lines.
 
-- [ ] Add `./examples/etcd` as a sim-only Suite requiring `rt,fs,net`, and include it in matching build/preparation inputs. Reduced-feature package lists must exclude it before loading.
-- [ ] Add a native integration metatest that uses an already prepared matching worker via `metatesting.ForOtherPackage`; run TestEtcd seeds 1, 2, 3, then 1 on the same MetaT instance. Compare the repeated seed's checksum/semantic output and a fresh matching worker.
-- [ ] Assert `Failed == false`, empty error, matching BuildDigest/ReplayRevision and nonempty checksums. Avoid comparing pointer-bearing etcd logs as raw text or requiring equal results across different compiler identities.
-- [ ] Keep native metatest lists free of sim-only example packages; update preparation so ForOtherPackage cannot silently use an old full-feature artifact.
-- [ ] Preserve the 207-entry historical test inventory, changing only the restored HTTP constraint as appropriate. Add new checks separately rather than rewriting historical provenance.
-- [ ] Correct stale claims of existing `unsupported-etcd` coverage. The current `internal/candidate/build_test.go` has a plaintext-gRPC case, not that old assertion. Search before editing; remove a rejection assertion only if it actually exists. Keep restricted candidate suites gated.
-- [ ] Preserve targeted negative operation tests for TLS, crypto, unsafe reflection, signals and missing features after replacing whole-package rejection with limited declaration admission.
+- [x] Add `./examples/etcd` as a sim-only Suite requiring `rt,fs,net`, and include it in matching build/preparation inputs. Reduced-feature package lists must exclude it before loading.
+- [x] Add a native integration metatest that uses an already prepared matching worker via `metatesting.ForOtherPackage`; run TestEtcd seeds 1, 2, 3, then 1 on the same MetaT instance. Compare the repeated seed's checksum/semantic output and a fresh matching worker.
+- [x] Assert `Failed == false`, empty error, matching BuildDigest/ReplayRevision and nonempty checksums. Avoid comparing pointer-bearing etcd logs as raw text or requiring equal results across different compiler identities.
+- [x] Keep native metatest lists free of sim-only example packages; update preparation so ForOtherPackage cannot silently use an old full-feature artifact.
+- [x] Preserve the 207-entry historical test inventory, changing only the restored HTTP constraint as appropriate. Add new checks separately rather than rewriting historical provenance.
+- [x] Correct stale claims of existing `unsupported-etcd` coverage. The current `internal/candidate/build_test.go` has a plaintext-gRPC case, not that old assertion. Search before editing; remove a rejection assertion only if it actually exists. Keep restricted candidate suites gated.
+- [x] Preserve targeted negative operation tests for TLS, crypto, unsafe reflection, signals and missing features after replacing whole-package rejection with limited declaration admission.
 
 #### Verification
 
-- [ ] Focused feature-registry/native-selection checks and the correctly prepared repeated-worker metatest pass under both families.
-- [ ] `V-BUILD`, `V-METADATA` pass. Confirm ordinary full-feature execution now includes positive etcd; no large-suite environment gate was enabled.
+- [x] Focused feature-registry/native-selection checks and the correctly prepared repeated-worker metatest pass under both families.
+- [x] `V-BUILD`, `V-METADATA` pass. Confirm ordinary full-feature execution now includes positive etcd; no large-suite environment gate was enabled.
 
 ### Task 10: Finalize maintenance metadata and supported-scope documentation
 
@@ -531,17 +531,17 @@ The final gate is actual positive application execution on both families, not ju
 **References:** A2–A4, A7–A8; maintainer guide §§1–4.
 **Estimated authored changes:** ≤350 Go lines; documentation/generated metadata separate.
 
-- [ ] Reconcile every new facade's package/bridge/declaration/capability/probe/module/runtime-root record with actual selected source on both architectures and families. Verify unused optional operations remain guarded.
-- [ ] Audit cumulative inheritance: new common support is in go125, go126 contains only real deltas, no duplicated implementation tree or runtime version switch exists.
-- [ ] Independently run both compiler generation checks. Refresh each origin only when intentionally recording changed upstream-contract provenance, after contracts validate; never copy origins or alter historical evidence.
-- [ ] Verify shared generated outputs satisfy both families, including new runtime-package closure and shim bindings. Preserve generated selectors/guards and unsupported-family behavior.
-- [ ] Update documentation to describe working plaintext cluster/snapshot/WAL scenarios, ordinary coverage, repeated-worker verification and precise exclusions. Remove obsolete blanket HTTP/gRPC rejection wording.
-- [ ] Document the new facades in the maintainer guide using the existing cumulative maintenance workflow. Add only relevant `TODO(not planned)` comments at actual excluded-operation boundaries, without runtime warning spam.
+- [x] Reconcile every new facade's package/bridge/declaration/capability/probe/module/runtime-root record with actual selected source on both architectures and families. Verify unused optional operations remain guarded.
+- [x] Audit cumulative inheritance: new common support is in go125, go126 contains only real deltas, no duplicated implementation tree or runtime version switch exists.
+- [x] Independently run both compiler generation checks. Refresh each origin only when intentionally recording changed upstream-contract provenance, after contracts validate; never copy origins or alter historical evidence.
+- [x] Verify shared generated outputs satisfy both families, including new runtime-package closure and shim bindings. Preserve generated selectors/guards and unsupported-family behavior.
+- [x] Update documentation to describe working plaintext cluster/snapshot/WAL scenarios, ordinary coverage, repeated-worker verification and precise exclusions. Remove obsolete blanket HTTP/gRPC rejection wording.
+- [x] Document the new facades in the maintainer guide using the existing cumulative maintenance workflow. Add only relevant `TODO(not planned)` comments at actual excluded-operation boundaries, without runtime warning spam.
 
 #### Verification
 
-- [ ] `V-BUILD`, `V-METADATA`, full `V-GENERATE`, formatting and documentation link/example checks pass on both families.
-- [ ] Documentation claims match executed evidence and capability dispositions; no certification is claimed for the new source.
+- [x] `V-BUILD`, `V-METADATA`, full `V-GENERATE`, formatting and documentation link/example checks pass on both families.
+- [x] Documentation claims match executed evidence and capability dispositions; no certification is claimed for the new source.
 
 ### Task 11: Execute final ordinary and application acceptance gates
 
@@ -693,6 +693,15 @@ Use `[_]` for an unresolved required gap at attempted completion. The plan canno
 
 ## NOT PLANNED CHANGES
 
+- Task 9's first full-cluster same-worker replay had identical phase results
+  but unequal checksums. The earliest differing log line was an etcd client
+  retry target of the form `etcd-endpoints://0x.../10.0.0.1:2379`; pinned
+  client code formats the client pointer into that target, and Gosim includes
+  log bytes in its checksum. The example now uses a no-op logger for that
+  client's optional retry messages while retaining explicit phase results and
+  failure assertions. Both exact compilers then passed same-worker and fresh
+  worker checksum/semantic comparison. No scheduler, cache or replay revision
+  behavior was weakened.
 - Task 5's removal of `osutil` exposed a translated map-conversion type from
   `github.com/golang/protobuf/proto.enumsByName` while loading the pinned
   grpc-gateway. The translator now generates an alias for that private named

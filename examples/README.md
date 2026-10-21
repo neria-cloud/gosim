@@ -5,7 +5,7 @@ the supported examples:
 
 ```sh
 make build
-./.gosim/gosimtool test -features rt,fs,net ./examples/simple ./examples/bolt ./examples/network/...
+./.gosim/gosimtool test -features rt,fs,net ./examples/simple ./examples/bolt ./examples/network/... ./examples/etcd
 ```
 
 Go tooling selects the compiler from the caller's module/workspace and
@@ -32,7 +32,7 @@ The three latency ranges share the latency case's ping/pong helper.
 | [network/machines](network/machines/machines_test.go) | TCP requests, machine crash/restart, and link latency | `rt,net` |
 | [network/latency](network/latency/latency_test.go) | Three latency ranges without connection drops | `rt,net` |
 | [network/nats](network/nats/README.md) | Embedded NATS publisher/receiver with delayed links; separate module | `rt,fs,net` |
-| [etcd](etcd/README.md) | Retained etcd cluster, snapshot, and WAL fixtures | Unsupported gRPC integration |
+| [etcd](etcd/README.md) | Three-node plaintext cluster, partition recovery, snapshot and WAL | `rt,fs,net` |
 
 Run the supported cases individually:
 
@@ -41,6 +41,7 @@ Run the supported cases individually:
 ./.gosim/gosimtool test -features rt,fs ./examples/bolt
 ./.gosim/gosimtool test -features rt,net ./examples/network/machines
 ./.gosim/gosimtool test -features rt,net ./examples/network/latency
+./.gosim/gosimtool test -features rt,fs,net -seeds 1-3 ./examples/etcd
 ```
 
 The in-module supported cases are included in the feature suites according to the table above.
@@ -110,4 +111,7 @@ keeps the connection open until the window ends. It checks pong identity,
 one-way and round-trip bounds, and logs each exchange plus minimum/mean/maximum RTT.
 Any connection error fails the test; there are no retries or reconnections.
 
-The [etcd examples](etcd/README.md) retain an unsupported HTTP/gRPC application as rejection coverage. They are excluded from successful simulation suites; running all examples recursively is not a supported positive test command.
+The [etcd examples](etcd/README.md) use translated HTTP/gRPC and simulated
+storage. The full-feature ordinary suite runs their positive cluster,
+snapshot and WAL tests. Nested NATS and gRPC examples are separate modules and
+retain their own commands.

@@ -200,7 +200,7 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 | Files and persistence | Bounded in-memory file/directory volume, 1 KiB allocated-block accounting, sync/crash semantics; no live resize or special files |
 | Locks and permissions | Owner/group/other mode and ownership checks; no supplemental groups, ACLs or sticky bits; `flock`/record-lock stubs do not establish ownership or contention |
 | Networking | Simulated IPv4/TCP; UDP, IPv6 and hostname resolution are outside the supported model |
-| HTTP/gRPC/TLS | Plaintext gRPC unary and bidirectional streaming over IPv4/TCP are exercised by the [standalone gRPC example](examples/network/grpc/). Full HTTP support is not established; TLS/certificate operations abort. The [NATS example](examples/network/nats/) exercises plain TCP only. |
+| HTTP/gRPC/TLS | Translated plaintext HTTP request/response, connection reuse, streaming, cancellation and graceful shutdown have focused coverage. The [three-node etcd example](examples/etcd/) exercises HTTP/gRPC over simulated TCP and storage, including partition recovery and snapshot/WAL round trips. The [standalone gRPC example](examples/network/grpc/) covers unary and bidirectional streams; the [NATS example](examples/network/nats/) covers plain TCP. TLS/certificate operations abort; untested HTTP surfaces are not claimed. |
 | Linux process services | Deterministic getrandom, historical fixed PID and limited uname; full signals/procfs/process behavior is absent |
 | Runtime modes | One active run per process; no native-scheduler virtual-I/O mode, mutable feature sets or runtime provider loading |
 | Additional platforms | Go families other than 1.25/1.26, Darwin AMD64, Windows and non-Linux simulated ABIs are unsupported |
@@ -237,6 +237,10 @@ Run `make test` for ordinary local native and simulation checks. Go selects the
 compiler normally; `GOSIM_TOOLCHAIN` is an optional explicit override. The runner
 creates an isolated source snapshot and starts no Docker, Colima, VMs or
 cross-architecture jobs. Package and test concurrency default to 2 and 4:
+
+The full-feature selection includes the plaintext etcd cluster, snapshot and
+WAL example. An integration metatest checks seed replay in one worker and a
+fresh matching worker; these runs do not constitute manual certification.
 
 ```sh
 make test
