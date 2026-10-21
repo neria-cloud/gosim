@@ -49,3 +49,15 @@ Added independent profile/policy/shim views, declaration context/category checks
 Verified command builds and the complete spec package separately with Go 1.25.14 and Go 1.26.9, all using linkname flags; both passed. Refreshed both active revisions. Tests include all nine intentionally added tls/metrics/debug shim contracts, host/callable/shim separation, architecture-specific signatures, mutable-state isolation, invalid category/context/architecture rejection, pure future materialization versus production rejection, and hashing the other architecture's contracts. This confirms derived coverage; real migration equivalence/source verification remains scheduled in Tasks 15/31.
 
 No restricted suite or certification ran. Four implementation commits now count toward the first eight-commit Claude review checkpoint.
+
+## Task 5 — Shared path admission and transitional fingerprints
+
+Date: 2026-10-21. Implementation commit 5 (this commit).
+
+Added category recognition for original and relocated shared paths, with temporary recognition of the two existing family roots. Source/profile paths still reject inactive families, relocated targets and metadata/tooling escapes. Native import permissions stay exact, and compatibility implementations cannot be exempted from translation. Composition derives testing/kernel aliases from the selected runtime package inventory; missing/duplicate roles fail. Active revision inputs now include shared directories as they appear and exclude generated revision outputs. Authored Go approximately 330 lines including tests; no executable files moved yet.
+
+Verified genprofile, native command build, complete spec tests, focused translate policy/boundary tests, and compose generation/publication/tamper/role tests. All passed with linkname flags. These focused checks do not execute a translated simulation; the real compiled graph gate remains Task 21.
+
+Baseline migration evidence: `git ls-tree -rl 550d5e3 -- internal/compat/go125` gives 96 files / 877411 bytes; the corresponding go126 command gives 99 / 907653. Counts/sizes are computed from tracked blobs (sum field 4), independent of ignored local state. Task 15 reads that base commit for its one-time metadata comparison; no ordinary test depends on Git history or ignored captures.
+
+No restricted suite or certification ran. Five implementation commits toward the first peer checkpoint.

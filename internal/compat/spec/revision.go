@@ -21,7 +21,16 @@ func SourceRevision(root, family string) (string, error) {
 		return "", fmt.Errorf("unknown profile %q", family)
 	}
 	var paths []string
-	for _, dir := range []string{"internal/compat/" + family, "internal/hostabi", "internal/compat/selected", "internal/compat/spec", "internal/buildspec"} {
+	dirs := []string{"internal/compat/" + family, "internal/hostabi", "internal/compat/selected", "internal/compat/spec", "internal/buildspec"}
+	for _, shared := range []string{"hooks", "shims", "host", "profiles", "audit"} {
+		dir := "internal/compat/" + shared
+		if _, err := os.Stat(filepath.Join(root, dir)); err == nil {
+			dirs = append(dirs, dir)
+		} else if !os.IsNotExist(err) {
+			return "", err
+		}
+	}
+	for _, dir := range dirs {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -33,7 +42,7 @@ func SourceRevision(root, family string) (string, error) {
 				return nil
 			}
 			name := entry.Name()
-			if strings.HasSuffix(name, "_test.go") || name == "revision.go" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) || name == "tuples.json" || name == "evidence.json" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) {
+			if name == "revisions_gen.go" || strings.HasSuffix(name, "_test.go") || name == "revision.go" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) || name == "tuples.json" || name == "evidence.json" && strings.Contains(path, string(filepath.Separator)+"profile"+string(filepath.Separator)) {
 				return nil
 			}
 			if !strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, ".json") {

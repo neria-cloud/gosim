@@ -240,15 +240,15 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤500 authored Go lines. **Dependencies:** 4.
 
-- [ ] Add `CompatPackageKind` and `ClassifyCompatPackage(path string)` for original/shared and relocated spellings; separate category recognition from exact import authorization.
-- [ ] Allow shared targets through the same reviewed metadata permissions while still recognizing the existing selected family's paths during migration. Do not admit another family's executable target or unknown compat metadata into translated code.
-- [ ] Adapt composition/translation path validation to support incremental package moves without adding forwarding packages or runtime family selection. Retain existing native islands, feature and provider rules.
-- [ ] Broaden the active SourceRevision input inventory to include shared compatibility paths as they appear, while old profiles remain active. Exclude all generated revision constants to avoid self-reference. Final origin-independent chain hash replaces this transitional inventory in Task 17.
-- [ ] Record base revision `550d5e3`, original counts and inventory acquisition command for the one-time migration comparison in Task 15. Optional ignored captures are maintainer evidence only; no committed test may read them or require Git history. No committed expanded-profile copy.
+- [x] Add `CompatPackageKind` and `ClassifyCompatPackage(path string)` for original/shared and relocated spellings; separate category recognition from exact import authorization.
+- [x] Allow shared targets through the same reviewed metadata permissions while still recognizing the existing selected family's paths during migration. Do not admit another family's executable target or unknown compat metadata into translated code.
+- [x] Adapt composition/translation path validation to support incremental package moves without adding forwarding packages or runtime family selection. Retain existing native islands, feature and provider rules.
+- [x] Broaden the active SourceRevision input inventory to include shared compatibility paths as they appear, while old profiles remain active. Exclude all generated revision constants to avoid self-reference. Final origin-independent chain hash replaces this transitional inventory in Task 17.
+- [x] Record base revision `550d5e3`, original counts and inventory acquisition command for the one-time migration comparison in Task 15. Optional ignored captures are maintainer evidence only; no committed test may read them or require Git history. No committed expanded-profile copy.
 
 #### Verification
 
-- [ ] V-REVISIONS, V-BUILD and focused spec/translate/compose boundary tests pass. Test inactive-family rejection and shared paths requiring exact permissions.
+- [x] V-REVISIONS, V-BUILD and focused spec/translate/compose boundary tests pass. Test inactive-family rejection and shared paths requiring exact permissions.
 
 ### Task 6: Select only active shim source bindings
 

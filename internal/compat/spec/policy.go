@@ -117,7 +117,7 @@ func (m PolicyManifest) Validate(p Profile) error {
 	native := make(map[string]bool)
 	for _, entry := range m.NativeImports {
 		key := entry.From + ":" + entry.Package
-		if !strings.HasPrefix(entry.From, module+"/internal/compat/"+p.ID+"/") || entry.Package == "" || entry.Reason == "" || native[key] {
+		if !p.translatedCompatPackage(entry.From) || entry.Package == "" || ClassifyCompatPackage(entry.Package) != CompatOutside || entry.Reason == "" || native[key] {
 			return fmt.Errorf("invalid native import %s", key)
 		}
 		native[key] = true
@@ -133,7 +133,7 @@ func (m PolicyManifest) Validate(p Profile) error {
 		if bridge.NativeIsland && (bridge.Package != module+"/rt/runtime" && bridge.Package != module+"/rt/runtime/abi" || bridge.Replacement != "" || len(bridge.NativeSymbols) > 0 || len(bridge.Rewrites) > 0) {
 			return fmt.Errorf("invalid native island %s", bridge.Package)
 		}
-		if bridge.Replacement != "" && (!strings.HasPrefix(bridge.Replacement, module+"/internal/compat/"+p.ID+"/") || len(bridge.NativeSymbols) > 0 || len(bridge.Rewrites) > 0) {
+		if bridge.Replacement != "" && (!p.translatedCompatPackage(bridge.Replacement) || len(bridge.NativeSymbols) > 0 || len(bridge.Rewrites) > 0) {
 			return fmt.Errorf("invalid bridge replacement %s", bridge.Package)
 		}
 		symbols := make(map[string]bool)
@@ -281,6 +281,9 @@ func (m PolicyManifest) Probe(pkg, symbol string, features []string, arguments m
 // AllowNativeImport checks explicit notranslate imports. An application cannot
 // opt an I/O/time/container package out of translation with a source comment.
 func (m PolicyManifest) AllowNativeImport(p Profile, from, path string, standard bool) error {
+	if ClassifyCompatPackage(path) != CompatOutside {
+		return fmt.Errorf("compatibility package must not cross native import boundary: %s", path)
+	}
 	policy, err := p.Policy(path, standard)
 	if err == nil && policy.Mode == "native-pure" {
 		return nil
