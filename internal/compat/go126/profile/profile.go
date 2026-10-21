@@ -38,7 +38,7 @@ func DescriptorForArch(arch string) (spec.Profile, error) {
 			"github.com/neria-cloud/gosim/internal/compat/hooks/fs",
 			"github.com/neria-cloud/gosim/internal/compat/hooks/net",
 			"github.com/neria-cloud/gosim/internal/compat/shims/reflect",
-			"github.com/neria-cloud/gosim/internal/compat/go126/shims/testing",
+			"github.com/neria-cloud/gosim/internal/compat/shims/testing",
 			"github.com/neria-cloud/gosim/internal/compat/go126/shims/maps",
 			"github.com/neria-cloud/gosim/internal/compat/go126/shims/synctest",
 			"github.com/neria-cloud/gosim/internal/compat/go126/shims/cryptorand",

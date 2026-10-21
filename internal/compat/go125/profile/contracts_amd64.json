@@ -2843,280 +2843,280 @@
       "package": "testing",
       "symbol": "*T.Deadline",
       "signature": "func() (time.Time, bool)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*T.Deadline",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*T.Deadline",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*T.Parallel",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*T.Parallel",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*T.Parallel",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*T.Run",
       "signature": "func(string, func(t *T)) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*T.Run",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*T.Run",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*T.Setenv",
       "signature": "func(string, string)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*T.Setenv",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*T.Setenv",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*chattyPrinter.Printf",
       "signature": "func(string, string, ...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*chattyPrinter.Printf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*chattyPrinter.Printf",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*chattyPrinter.Updatef",
       "signature": "func(string, string, ...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*chattyPrinter.Updatef",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*chattyPrinter.Updatef",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Attr",
       "signature": "func(string, string)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Attr",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Attr",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Chdir",
       "signature": "func(string)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Chdir",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Chdir",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Cleanup",
       "signature": "func(func())",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Cleanup",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Cleanup",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Context",
       "signature": "func() context.Context",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Context",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Context",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Error",
       "signature": "func(...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Error",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Error",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Errorf",
       "signature": "func(string, ...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Errorf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Errorf",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Fail",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Fail",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Fail",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.FailNow",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.FailNow",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.FailNow",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Failed",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Failed",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Failed",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Fatal",
       "signature": "func(...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Fatal",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Fatal",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Fatalf",
       "signature": "func(string, ...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Fatalf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Fatalf",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Helper",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Helper",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Helper",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Log",
       "signature": "func(...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Log",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Log",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Logf",
       "signature": "func(string, ...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Logf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Logf",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Name",
       "signature": "func() string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Name",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Name",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Output",
       "signature": "func() io.Writer",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Output",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Output",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Setenv",
       "signature": "func(string, string)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*B.Setenv",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*B.Setenv",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Skip",
       "signature": "func(...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Skip",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Skip",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.SkipNow",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.SkipNow",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.SkipNow",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Skipf",
       "signature": "func(string, ...any)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Skipf",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Skipf",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.Skipped",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.Skipped",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.Skipped",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "*common.TempDir",
       "signature": "func() string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.*common.TempDir",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.*common.TempDir",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "AllocsPerRun",
       "signature": "func(int, func()) float64",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.AllocsPerRun",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.AllocsPerRun",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "CoverMode",
       "signature": "func() string",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.CoverMode",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.CoverMode",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "Coverage",
       "signature": "func() float64",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.Coverage",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.Coverage",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "Init",
       "signature": "func()",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.Init",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.Init",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "Main",
       "signature": "func(func(pat, str string) (bool, error), []InternalTest, []InternalBenchmark, []InternalExample)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.Main",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.Main",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "RegisterCover",
       "signature": "func(Cover)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.RegisterCover",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.RegisterCover",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "RunBenchmarks",
       "signature": "func(func(pat, str string) (bool, error), []InternalBenchmark)",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.RunBenchmarks",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.RunBenchmarks",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "RunExamples",
       "signature": "func(func(pat, str string) (bool, error), []InternalExample) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.RunExamples",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.RunExamples",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "RunTests",
       "signature": "func(func(pat, str string) (bool, error), []InternalTest) bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.RunTests",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.RunTests",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "Short",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.Short",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.Short",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "Testing",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.Testing",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.Testing",
       "owner": "rt"
     },
     {
       "package": "testing",
       "symbol": "Verbose",
       "signature": "func() bool",
-      "target": "github.com/neria-cloud/gosim/internal/compat/go125/shims/testing.Verbose",
+      "target": "github.com/neria-cloud/gosim/internal/compat/shims/testing.Verbose",
       "owner": "rt"
     },
     {

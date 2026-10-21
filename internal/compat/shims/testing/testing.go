@@ -1,4 +1,4 @@
-//go:build go1.26 && !go1.27
+//go:build go1.25
 
 // Copyright 2009 The Go Authors. All rights reserved.  Use of this source code
 // is governed by a BSD-style license that can be found at
@@ -64,7 +64,7 @@ func fmtDuration(d time.Duration) string {
 }
 
 type TB interface {
-	ArtifactDir() string
+	tbExtension
 	Attr(key, value string)
 	Chdir(dir string)
 	Context() context.Context
@@ -616,7 +616,7 @@ const (
 // recovered value if any.
 func (c *common) runCleanup(ph panicHandling) (panicVal any) {
 	c.Context()
-	c.cancelCtx() // Cancellation precedes cleanup callbacks, as in Go 1.26.
+	c.cancelCtx() // Cancellation precedes cleanup callbacks, as in Go.
 
 	c.cleanupStarted.Store(true)
 	defer c.cleanupStarted.Store(false)
@@ -656,7 +656,7 @@ func (c *common) runCleanup(ph panicHandling) (panicVal any) {
 
 func (c *common) TempDir() string {
 	c.Helper()
-	dir, err := os.MkdirTemp(os.Getenv("GOTMPDIR"), "gosim-test-")
+	dir, err := os.MkdirTemp(testTempRoot(), "gosim-test-")
 	if err != nil {
 		c.Fatalf("TempDir: %v", err)
 	}

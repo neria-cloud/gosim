@@ -31,10 +31,7 @@ func TestPinnedPublicShimInterfaces(t *testing.T) {
 	ctx := sourceContext(family, runtime.GOARCH)
 	for _, item := range []struct{ pkg, name string }{{"reflect", "Type"}, {"testing", "TB"}} {
 		want := interfaceMethods(t, filepath.Join(runtime.GOROOT(), "src", item.pkg), item.name, ctx)
-		dir := filepath.Join("..", family, "shims", item.pkg)
-		if item.pkg == "reflect" {
-			dir = filepath.Join("..", "shims", item.pkg)
-		}
+		dir := filepath.Join("..", "shims", item.pkg)
 		got := interfaceMethods(t, dir, item.name, ctx)
 		if len(got) != len(want) {
 			t.Errorf("%s method count: got %d want %d", item.name, len(got), len(want))

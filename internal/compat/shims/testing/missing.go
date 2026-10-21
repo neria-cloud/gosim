@@ -1,38 +1,38 @@
-//go:build go1.26 && !go1.27
+//go:build go1.25
 
 package testing
 
 func AllocsPerRun(runs int, f func()) (avg float64) {
-	panic("gosim go126 testing: unsupported operation")
+	panic("gosim testing: unsupported operation")
 }
 
 func CoverMode() string { return "" }
 
 func Coverage() float64 {
-	panic("gosim go126 testing: unsupported operation")
+	panic("gosim testing: unsupported operation")
 }
 
 // Init is a modeled init probe: translated tests are registered by composition.
 func Init() {}
 
 func Main(matchString func(pat, str string) (bool, error), tests []InternalTest, benchmarks []InternalBenchmark, examples []InternalExample) {
-	panic("gosim go126 testing: unsupported operation")
+	panic("gosim testing: unsupported operation")
 }
 
 func RegisterCover(c Cover) {
-	panic("gosim go126 testing: unsupported operation")
+	panic("gosim testing: unsupported operation")
 }
 
 func RunBenchmarks(matchString func(pat, str string) (bool, error), benchmarks []InternalBenchmark) {
-	panic("gosim go126 testing: unsupported operation")
+	panic("gosim testing: unsupported operation")
 }
 
 func RunExamples(matchString func(pat, str string) (bool, error), examples []InternalExample) (ok bool) {
-	panic("gosim go126 testing: unsupported operation")
+	panic("gosim testing: unsupported operation")
 }
 
 func RunTests(matchString func(pat, str string) (bool, error), tests []InternalTest) (ok bool) {
-	panic("gosim go126 testing: unsupported operation")
+	panic("gosim testing: unsupported operation")
 }
 
 func Testing() bool { return true }

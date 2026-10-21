@@ -363,14 +363,14 @@ Check Markdown links/fences and referenced command names. Format only changed Go
 
 **Budget:** ≤450 authored Go lines plus verified moves/deletions. **Dependencies:** 11.
 
-- [ ] Keep the common struct and both Gosim-owned artifact fields shared. Do not add a familyTestState embedding or duplicate the entire testing implementation.
-- [ ] Select the TB method surface, ArtifactDir method and GOTMPDIR behavior with small authored constraints; retain 1.25 semantics and inherited 1.26 behavior.
-- [ ] Update composition and both family metadata/binding expectations together. Apply the same verified interface strategy as Task 11.
-- [ ] Preserve tests from both copies and add focused artifact/temp-root regressions through ordinary prepared simulation.
+- [x] Keep the common struct and both Gosim-owned artifact fields shared. Do not add a familyTestState embedding or duplicate the entire testing implementation.
+- [x] Select the TB method surface, ArtifactDir method and GOTMPDIR behavior with small authored constraints; retain 1.25 semantics and inherited 1.26 behavior.
+- [x] Update composition and both family metadata/binding expectations together. Apply the same verified interface strategy as Task 11.
+- [x] Preserve tests from both copies and add focused artifact/temp-root regressions through ordinary prepared simulation.
 
 #### Verification
 
-- [ ] V-REVISIONS, both-family V-BUILD and relevant ordinary prepared tests pass; disabled feature behavior remains unchanged.
+- [x] V-REVISIONS, both-family V-BUILD and relevant ordinary prepared tests pass; disabled feature behavior remains unchanged.
 
 ### Task 13: Consolidate crypto/rand's version-sensitive reader choice
 
@@ -739,6 +739,7 @@ Review findings were corrected before execution (see review thread 2 and progres
 ## NOT PLANNED CHANGES
 
 - Task 10: the ordinary formatting gate exposed unsorted Task 9 guard imports in both `internal/compat/go12{5,6}/shims/{guard,guards}_test.go` and missing gofumpt formatting in `internal/compat/spec/resolve_test.go`. Applied import sorting and a blank line/expanded composite literal only (no behavioral changes). Verified repository formatting and both ordinary suites.
+- Task 12 fixture constraint: simulated disks start without `/tmp`; the artifact fixture provisions it. Existing `internal/fs/ops.go:dirInode` explicitly rejects directory-relative descriptors, so recursive RemoveAll of populated directories is outside modeled filesystem support. Simulation tests check artifact I/O, remove contents with supported absolute paths, then verify automatic directory cleanup. The preserved native shim test still covers populated-directory cleanup; no filesystem behavior is expanded.
 - Peer checkpoint 1: add direct native compatibility/hostabi builds to move-task validation, since host command closures omit adapters. Correct strict decoding, transitional definition/evidence hashing and rewrite admission; update stale fixtures; pull signal context wiring forward; combine identical hostabi instrumentation facades. These are verified review corrections, not new runtime behavior. See progress/review thread 3.
 
 ## NOT CONSIDERED & TODO

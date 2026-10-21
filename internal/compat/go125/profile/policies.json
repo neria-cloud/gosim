@@ -68,7 +68,7 @@
 {"path":"github.com/neria-cloud/gosim/internal/compat/go125/shims/maps","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/shims/reflect","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/compat/go125/shims/synctest","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
-{"path":"github.com/neria-cloud/gosim/internal/compat/go125/shims/testing","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
+{"path":"github.com/neria-cloud/gosim/internal/compat/shims/testing","mode":"translate","reason":"Version-owned translated adapter, with audited private native bridge imports only."},
 {"path":"github.com/neria-cloud/gosim/internal/hostabi","mode":"reject","reason":"Private native facade is reachable only through the original public rt/runtime bridge."},
 {"path":"github.com/neria-cloud/gosim/rt/runtime","mode":"bridge","reason":"Explicit native engine/primitive ABI island. Generated callers use only its reviewed runtime bridge; dependency traversal stays in the original Gosim module."},
 {"path":"github.com/neria-cloud/gosim/rt/runtime/abi","mode":"bridge","reason":"Explicit native engine/primitive ABI island. Generated callers use only its reviewed runtime bridge; dependency traversal stays in the original Gosim module."},
