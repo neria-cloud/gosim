@@ -107,12 +107,6 @@ func (p PackagePolicies) packagePolicy(path string, standard bool) (spec.Package
 		if kind != spec.CompatHooks && kind != spec.CompatShims {
 			return spec.PackagePolicy{}, fmt.Errorf("host-only or unknown compatibility package %s", path)
 		}
-		if suffix, ok := strings.CutPrefix(path, prefix+"compat/"); ok {
-			family, _, _ := strings.Cut(suffix, "/")
-			if strings.HasPrefix(family, "go") && family != p.profile.ID {
-				return spec.PackagePolicy{}, fmt.Errorf("nonselected compatibility package %s", path)
-			}
-		}
 		if strings.HasPrefix(path, "translated/") {
 			return spec.PackagePolicy{}, fmt.Errorf("relocated package in source graph %s", path)
 		}

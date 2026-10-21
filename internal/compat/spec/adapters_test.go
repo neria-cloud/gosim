@@ -173,47 +173,35 @@ func TestSourceRevisionIncludesCodePolicyAndPaths(t *testing.T) {
 	}
 }
 
-func TestGo125ShimBindings(t *testing.T) {
+func TestResolvedFamilyShimBindings(t *testing.T) {
 	t.Parallel()
-	shims := fixtureShims(t, "go125")
-	if err := spec.VerifyShimBindings("../../..", shimFamily("1.25", "go125", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err != nil {
-		t.Fatal(err)
-	}
-	shims[0].Signature = "func()"
-	if err := spec.VerifyShimBindings("../../..", shimFamily("1.25", "go125", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err == nil {
-		t.Fatal("changed shim signature accepted")
-	}
-	if strings.HasPrefix(runtime.Version(), "go1.25.") {
-		if err := spec.VerifyHooks(currentToolchain(), fixtureShims(t, "go125")); err != nil {
+	for _, family := range []string{"1.25", "1.26"} {
+		r, err := profiles.Resolve(family)
+		if err != nil {
 			t.Fatal(err)
 		}
-	}
-}
-
-func TestGo126ShimBindings(t *testing.T) {
-	t.Parallel()
-	shims := fixtureShims(t, "go126")
-	if err := spec.VerifyShimBindings("../../..", shimFamily("1.26", "go126", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err != nil {
-		t.Fatal(err)
-	}
-	shims[0].Signature = "func()"
-	if err := spec.VerifyShimBindings("../../..", shimFamily("1.26", "go126", shims), spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}); err == nil {
-		t.Fatal("changed shim signature accepted")
-	}
-	if strings.HasPrefix(runtime.Version(), "go1.26.") {
-		if err := spec.VerifyHooks(currentToolchain(), fixtureShims(t, "go126")); err != nil {
+		context := spec.SourceContext{OS: "linux", Arch: runtime.GOARCH}
+		if err := spec.VerifyShimBindings("../../..", r, context); err != nil {
 			t.Fatal(err)
 		}
+		shims := r.ShimManifest(runtime.GOARCH)
+		if len(shims) == 0 {
+			t.Fatal("empty shim bindings")
+		}
+		if strings.HasPrefix(runtime.Version(), "go"+family+".") {
+			if err := spec.VerifyHooks(currentToolchain(), shims); err != nil {
+				t.Fatal(err)
+			}
+		}
+		for i := range r.Declarations {
+			if r.Declarations[i].Hook == shims[0] {
+				r.Declarations[i].Hook.Signature = "func()"
+			}
+		}
+		if err := spec.VerifyShimBindings("../../..", r, context); err == nil {
+			t.Fatal("changed shim signature accepted")
+		}
 	}
-}
-
-// Temporary conversion while the two legacy descriptors remain the authority.
-func shimFamily(family, profile string, shims []spec.Hook) spec.ResolvedFamily {
-	r := spec.ResolvedFamily{Family: family, ProfileID: profile}
-	for _, h := range shims {
-		r.Declarations = append(r.Declarations, spec.Declaration{Hook: h})
-	}
-	return r
 }
 
 func fixtureOrigin(t *testing.T, profileID string) spec.Origin {
@@ -237,15 +225,6 @@ func fixtureProfile(t *testing.T, id string) spec.Profile {
 func fixturePolicy(t *testing.T, id string) spec.PolicyManifest {
 	t.Helper()
 	p, err := profiles.Policy(id)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return p
-}
-
-func fixtureShims(t *testing.T, id string) []spec.Hook {
-	t.Helper()
-	p, err := profiles.Shims(id, runtime.GOARCH)
 	if err != nil {
 		t.Fatal(err)
 	}

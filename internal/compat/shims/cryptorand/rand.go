@@ -3,7 +3,7 @@
 // Package rand provides a deterministic replacement for crypto/rand
 // when running under gosim simulation.
 //
-// This version-owned shim uses the application's deterministic random stream.
+// This shared shim uses the application's deterministic random stream.
 // Its io and math/big values stay translated with the caller; it never reads
 // host entropy and must not be used to generate real secrets.
 package rand

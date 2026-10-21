@@ -19,7 +19,7 @@ func fixture() (Profile, buildspec.Identity) {
 	}
 	p := Profile{
 		ID: "go126", Revision: d, Support: buildspec.FamilySupport{Family: "1.26", Profile: "go126"},
-		Hooks:           []Hook{{Package: "runtime", Symbol: "Gosched", Signature: "func()", Target: module + "/internal/compat/go126/hooks/rt.Gosched", Owner: "rt"}},
+		Hooks:           []Hook{{Package: "runtime", Symbol: "Gosched", Signature: "func()", Target: module + "/internal/compat/hooks/rt.Gosched", Owner: "rt"}},
 		Packages:        []PackagePolicy{{Path: "runtime", Mode: "bridge", Reason: "explicit runtime hooks"}},
 		RuntimePackages: []string{module + "/internal/kernel"},
 	}

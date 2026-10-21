@@ -275,7 +275,7 @@ func TestOwnedNativeImportAudit(t *testing.T) {
 				}
 			}
 			var paths []string
-			for _, pattern := range []string{"../" + family + "/shims/*/*.go", "../shims/*/*.go", "../hooks/rt/*.go"} {
+			for _, pattern := range []string{"../shims/*/*.go", "../hooks/rt/*.go"} {
 				matches, err := filepath.Glob(pattern)
 				if err != nil {
 					t.Fatal(err)

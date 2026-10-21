@@ -522,14 +522,14 @@ Durable tests use only committed definitions and frozen semantic digests, not gi
 
 **Budget:** ≤400 authored Go/test lines. **Dependencies:** 19.
 
-- [ ] Remove transitional old-family path acceptance and old fingerprint branches. Only final shared categories and exact reviewed permissions remain.
-- [ ] Search all source/scripts/fixtures for old executable paths, catalog/genprofile, old profile filenames and physical-family selection assumptions. Historical review/evidence text is not executable migration debt and must not be rewritten as new evidence.
-- [ ] Complete call-site error handling for final VerifyShimBindings/Descriptor/Policy signatures; remove temporary private adapters only needed for old descriptors.
-- [ ] Assert no forwarding packages, expanded metadata copies, stale ceilings, old revision generators or unconsumed active definitions remain.
+- [x] Remove transitional old-family path acceptance and old fingerprint branches. Only final shared categories and exact reviewed permissions remain.
+- [x] Search all source/scripts/fixtures for old executable paths, catalog/genprofile, old profile filenames and physical-family selection assumptions. Historical review/evidence text is not executable migration debt and must not be rewritten as new evidence.
+- [x] Complete call-site error handling for final VerifyShimBindings/Descriptor/Policy signatures; remove temporary private adapters only needed for old descriptors.
+- [x] Assert no forwarding packages, expanded metadata copies, stale ceilings, old revision generators or unconsumed active definitions remain.
 
 #### Verification
 
-- [ ] V-REVISIONS, both-family V-BUILD and focused spec/translate/compose tests pass. Final-path negative fixtures reject retired/unknown metadata imports.
+- [x] V-REVISIONS, both-family V-BUILD and focused spec/translate/compose tests pass. Final-path negative fixtures reject retired/unknown metadata imports.
 
 ### Task 21: Enforce the compiled graph's native-island boundary
 

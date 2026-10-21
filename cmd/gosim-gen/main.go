@@ -1,4 +1,4 @@
-// Command gosim-gen generates owned version-profile adapters and transport.
+// Command gosim-gen generates shared compatibility adapters and transport.
 package main
 
 import (

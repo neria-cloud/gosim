@@ -336,9 +336,7 @@ func (r ResolvedFamily) ShimManifest(arch string) []Hook {
 	var result []Hook
 	for _, d := range r.Declarations {
 		role, err := declarationRole(d.Hook)
-		// Temporary old-root admission while executable shims move incrementally.
-		legacy := d.Hook.Context == "" && strings.HasPrefix(d.Hook.Target, module+"/internal/compat/"+r.ProfileID+"/shims/")
-		if (err == nil && role == "shim" || legacy) && declarationApplies(d, arch) {
+		if err == nil && role == "shim" && declarationApplies(d, arch) {
 			result = append(result, d.Hook)
 		}
 	}

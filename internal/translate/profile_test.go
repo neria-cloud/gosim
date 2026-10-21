@@ -263,7 +263,7 @@ func TestProviderAndRetiredImportBoundaries(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, path := range []string{"internal/unreviewed", gosimtool.Module + "/internal/simulation/fs", gosimtool.Module + "/internal/hooks/go125", gosimtool.Module + "/internal/hostabi", gosimtool.Module + "/internal/compat/go124/hooks/rt", gosimtool.Module + "/internal/compat/" + s.Identity.Profile + "/profile"} {
+	for _, path := range []string{"internal/unreviewed", gosimtool.Module + "/internal/simulation/fs", gosimtool.Module + "/internal/hooks/go125", gosimtool.Module + "/internal/hostabi", gosimtool.Module + "/internal/compat/go124/hooks/rt", gosimtool.Module + "/internal/compat/go125/hooks/rt", gosimtool.Module + "/internal/compat/go126/shims/reflect", gosimtool.Module + "/internal/compat/profiles", gosimtool.Module + "/internal/compat/audit", gosimtool.Module + "/internal/compat/" + s.Identity.Profile + "/profile"} {
 		if _, err := p.packagePolicy(path, strings.HasPrefix(path, "internal/")); err == nil {
 			t.Fatalf("unexpected admission %s", path)
 		}

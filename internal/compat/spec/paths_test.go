@@ -11,7 +11,8 @@ func TestCompatPackageClassification(t *testing.T) {
 	for suffix, want := range map[string]CompatPackageKind{
 		"hooks/rt": CompatHooks, "shims/reflect": CompatShims, "host": CompatHost,
 		"profiles": CompatMetadata, "selected": CompatMetadata, "spec": CompatMetadata, "audit": CompatTooling,
-		"unknown": CompatUnknown, "go125/hooks/rt": CompatHooks, "go126/shims/testing": CompatShims,
+		"unknown": CompatUnknown, "go125/hooks/rt": CompatUnknown, "go126/shims/testing": CompatUnknown,
+		"go125/host": CompatUnknown, "go126/profile": CompatUnknown, "profile": CompatUnknown, "catalog": CompatUnknown, "genprofile": CompatUnknown,
 		"go127/hooks/rt": CompatUnknown, "hooks/../host": CompatUnknown,
 	} {
 		for _, prefix := range []string{module + "/internal/compat/", "translated/" + module + "/internal_/compat/"} {

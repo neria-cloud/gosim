@@ -11,7 +11,7 @@ import (
 	"github.com/neria-cloud/gosim/internal/buildspec"
 )
 
-// VerifyShimBindings checks the version-owned implementation side of a shim
+// VerifyShimBindings checks the selected shared implementation side of a shim
 // manifest. VerifyHooks separately checks its upstream side in the pinned GOROOT.
 // Native reflect selectors are an intentional, private implementation detail of
 // the reflect bridge; exported shim signatures still use the wrapped types.
@@ -25,10 +25,7 @@ func VerifyShimBindings(root string, r ResolvedFamily, source SourceContext) err
 	}
 	for _, d := range r.Declarations {
 		if _, err := declarationRole(d.Hook); err != nil {
-			legacy := d.Hook.Context == "" && r.ProfileID != "" && strings.HasPrefix(d.Hook.Target, module+"/internal/compat/"+r.ProfileID+"/shims/")
-			if !legacy {
-				return err
-			}
+			return err
 		}
 	}
 	return verifyShimBindings(root, r.ShimManifest(source.Arch), ctx)

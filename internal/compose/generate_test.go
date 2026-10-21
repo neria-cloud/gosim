@@ -341,7 +341,7 @@ func TestDriver(t *testing.T){
 `
 
 func TestCompatibilityRolePaths(t *testing.T) {
-	for _, prefix := range []string{gosimtool.Module + "/internal/compat/", gosimtool.Module + "/internal/compat/go125/"} {
+	for _, prefix := range []string{gosimtool.Module + "/internal/compat/"} {
 		paths := []string{prefix + "shims/testing", prefix + "hooks/kernel"}
 		aliases, err := compatibilityAliases(paths)
 		if err != nil || aliases[paths[0]] != "simtesting" || aliases[paths[1]] != "processhooks" {
@@ -352,6 +352,15 @@ func TestCompatibilityRolePaths(t *testing.T) {
 		}
 		if _, err := compatibilityAliases(append(paths, paths[0])); err == nil {
 			t.Fatal("duplicate role accepted")
+		}
+	}
+}
+
+func TestRetiredCompatibilityRolesRejected(t *testing.T) {
+	for _, family := range []string{"go125", "go126", "go127"} {
+		prefix := gosimtool.Module + "/internal/compat/" + family + "/"
+		if _, err := compatibilityAliases([]string{prefix + "shims/testing", prefix + "hooks/kernel"}); err == nil {
+			t.Fatal("retired role accepted", family)
 		}
 	}
 }

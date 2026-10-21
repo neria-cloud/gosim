@@ -127,13 +127,9 @@ func (p Profile) checkPackage(pkg string) error {
 		}
 	}
 	packagePath := targetPackage(pkg)
-	if suffix, inside := compatSuffix(packagePath); inside {
+	if _, inside := compatSuffix(packagePath); inside {
 		if strings.HasPrefix(packagePath, "translated/") {
 			return fmt.Errorf("profile contains relocated target %s", pkg)
-		}
-		family, _, _ := strings.Cut(suffix, "/")
-		if strings.HasPrefix(family, "go") && family != p.ID {
-			return fmt.Errorf("profile %s references another or retired adapter: %s", p.ID, pkg)
 		}
 		kind := ClassifyCompatPackage(packagePath)
 		if kind != CompatHooks && kind != CompatShims && kind != CompatHost {

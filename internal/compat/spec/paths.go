@@ -24,11 +24,6 @@ func ClassifyCompatPackage(path string) CompatPackageKind {
 	if !canonicalDefinitionPath(path) {
 		return CompatUnknown
 	}
-	// Transitional family roots disappear with the old metadata facade.
-	first, rest, _ := strings.Cut(suffix, "/")
-	if first == "go125" || first == "go126" {
-		suffix = rest
-	}
 	category, rest, _ := strings.Cut(suffix, "/")
 	switch category {
 	case "hooks":
@@ -43,7 +38,7 @@ func ClassifyCompatPackage(path string) CompatPackageKind {
 		if rest == "" {
 			return CompatHost
 		}
-	case "profiles", "profile", "spec", "selected":
+	case "profiles", "spec", "selected":
 		if rest == "" {
 			return CompatMetadata
 		}
@@ -80,10 +75,5 @@ func (p Profile) translatedCompatPackage(path string) bool {
 		return false
 	}
 	kind := ClassifyCompatPackage(path)
-	if kind != CompatHooks && kind != CompatShims {
-		return false
-	}
-	suffix, _ := compatSuffix(path)
-	family, _, _ := strings.Cut(suffix, "/")
-	return !strings.HasPrefix(family, "go") || family == p.ID
+	return kind == CompatHooks || kind == CompatShims
 }
