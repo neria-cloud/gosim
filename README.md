@@ -14,9 +14,9 @@ Features are fixed for the whole test binary before application initialization. 
 
 See [Features](docs/features.md) for supported, partially supported, and unsupported capabilities. PRs welcome.
 
-## Technicla introduction
+## Technical introduction
 
-Gosim supports stable **Go 1.25.* and Go 1.26.*** releases on Linux AMD64,
+Gosim supports stable **Go 1.25.** and **Go 1.26.*** releases on Linux AMD64,
 Linux ARM64 and Darwin ARM64. The caller uses ordinary Go tooling: `go.mod`,
 `go.work`, and `GOTOOLCHAIN` determine the compiler. Application code does not
 select a Go version. Gosim checks the private runtime contracts it uses against the
