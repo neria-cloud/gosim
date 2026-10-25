@@ -142,54 +142,10 @@ The in-memory filesystem is rooted at `/`; processes start in `/app`. Configure 
 
 After a crash, `fs.CrashStates(machine, fs.EnumerateOptions{MaxStates: n})` owns a synchronous iterator over immutable crash outcomes. A positive budget is required. `Next` returns a snapshot and availability flag; exceeding the budget while more outcomes exist returns `fs.ErrEnumerationLimit`. Close the iterator when finished, and close each returned snapshot separately. Closing the iterator does not invalidate snapshots already returned. `fs.Restore` accepts a retained snapshot from the same simulation for an unstarted or stopped/crashed target; configure its next main function and start/restart it explicitly. Destroying a machine does not invalidate separately owned snapshots.
 
-Directory descriptors retain their inode after rename or replacement. Relative
-`openat`/`fstatat`/`mkdirat`/`renameat`/`unlinkat` operations use that inode;
-absolute paths ignore the directory FD. Symlinks have stored targets and a shared
-40-link traversal limit. `O_DIRECTORY`, `O_NOFOLLOW`, `O_EXCL` and
-`AT_SYMLINK_NOFOLLOW` select the modeled syscall behavior. Go's own `os.Root`
-implementation provides confinement over those calls; raw `openat` is not a
-confinement boundary. `os.NewFile` wrapping a regular file and directory `Sync`
-are covered. See the [Root method matrix](docs/features.md#osroot-and-directory-descriptors)
-for the full supported subset.
 
-Directory reads return one complete batch. A listing too large for the supplied
-buffer aborts with `UnsupportedOperation` before returning entries; it never
-silently reports a partial listing as complete. Directory `Seek(0, SeekStart)`
-rewinds; other directory seeks, integer fcntl flags, `O_NONBLOCK`, append, mounts
-and procfs remain unsupported. Read-only mode deliberately rejects mutations
-early, so combined-error precedence is not Linux-exact.
 
-Graceful stop flushes modeled writes and metadata. Crash behavior preserves uncertainty in non-fsynced operations, including block reservations and mode/ownership changes. Supplemental groups, ACLs, sticky bits, hard links, special files and real POSIX locking remain outside the model. Directory-rename ordering does not make arbitrary child writes durable or substitute for syncing a newly created directory’s parent.
+Graceful stop flushes modeled writes and metadata. Crash behavior preserves uncertainty in non-fsynced operations, including block reservations and mode/ownership changes. Supplemental groups, ACLs, sticky bits, hard links, special files and real POSIX locking remain outside the model.
 
-## Network policy
-
-Use `net.DefaultConfig` and `net.Configure` for global latency/loss defaults. `net.ConfigureMachine` assigns an IPv4 address before the first start; a zero address requests deterministic allocation. `net.Address` returns `ErrNotStarted` before allocation, and restart retains the assigned address.
-
-`net.Config.ConnectionTimeout` sets the connection-opening timeout for new
-attempts. It defaults to one second; zero also selects that default, and negative
-values are invalid. Reconfiguration leaves pending attempts and established
-connections unchanged. A shorter `net.DialTimeout` or dialer context deadline
-still takes precedence. For high-latency links, configure a timeout longer than
-the expected handshake round trip:
-
-```go
-config := simnet.DefaultConfig()
-config.ConnectionTimeout = 10 * time.Second
-config.TCPBufferSize = 256 * 1024
-if err := simnet.Configure(config); err != nil {
-    t.Fatal(err)
-}
-```
-
-`net.Config.TCPBufferSize` sets each direction’s byte capacity for new TCP
-connections. Zero uses the historical 1024-byte default; positive values up to
-16 MiB are accepted. A larger window avoids an unintended throughput bottleneck
-on high-latency links. Reconfiguration leaves pending and established connections
-unchanged.
-
-A `net.Link` selects `From`, `To`, and `Forward` or `Both` directions. `SetLinkPolicy` copies each non-nil latency/loss group; nil leaves that override unchanged. `ResetLinkPolicy` restores global defaults. For fixed latency, set `LatencyConfig{Min: delay, Max: delay, Lambda: 1}`. Values are validated atomically; lambda must be positive and probabilities must lie in `[0,1]`.
-
-`Partition`/`Repair` control explicit connectivity separately from sampled loss state. Fault transitions are traffic-driven; packets retain deterministic delivery order, destination epochs and connection generations. Old packets cannot reach a restarted endpoint or a reused connection. Graceful close may deliver a final immutable packet to a still-live peer; crash does not send a close notification.
 
 ## CLI, metatesting and diagnostics
 
@@ -208,7 +164,7 @@ Debug requires Delve and supports `-headless`. Logging includes machine, gorouti
 
 Artifacts are stored per identity **and package content** at `.gosim/v2/<identity>/packages/<package-digest>/`. Manifests hash the binary and generated files. The separate CLI worker cache uses `workers/v1/<key>/` under the selected cache root, keyed by exact compiler, Gosim source and worker dependency content. The SQLite translation cache uses the v2 namespace and treats corrupt entries as observable misses; old cache formats are not decoded.
 
-## Current scope
+## Current scope of features
 
 | Area | Current boundary |
 | --- | --- |
@@ -218,9 +174,7 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 | HTTP/gRPC/TLS | Translated plaintext HTTP request/response, connection reuse, streaming, cancellation and graceful shutdown have focused coverage. The [three-node etcd example](examples/etcd/) exercises HTTP/gRPC over simulated TCP and storage, including partition recovery and snapshot/WAL round trips. The [standalone gRPC example](examples/network/grpc/) covers unary and bidirectional streams; the [NATS example](examples/network/nats/) covers plain TCP. TLS/certificate operations abort; untested HTTP surfaces are not claimed. |
 | Linux process services | Deterministic getrandom, historical fixed PID and limited uname; full signals/procfs/process behavior is absent |
 | Runtime modes | One active run per process; no native-scheduler virtual-I/O mode, mutable feature sets or runtime provider loading |
-| Additional platforms | Go families other than 1.25/1.26, Darwin AMD64, Windows and non-Linux simulated ABIs are unsupported |
-
-The reviewed [Go 1.25 baseline](internal/compat/profiles/go125.json) distinguishes implemented, limited, stub and rejected behavior. Effective Go 1.26 capabilities combine that baseline with the [Go 1.26 delta](internal/compat/profiles/go126.json). The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records requirements at its original baseline and is not current execution evidence. The [GS-01 execution record](docs/progress/20261025-real-directory-descriptors.md) separates journal acceptance from the remaining archive/statx, hardlink and real-lock requirements; no full gquorum qualification is claimed.
+| Platforms | Linux AMD64 and Darwin ARM 64 |
 
 ## Development and test reports
 
