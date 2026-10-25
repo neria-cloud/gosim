@@ -766,6 +766,9 @@ func syscallRouteResult(value any, err error) (Result, bool, error) {
 	if err == nil {
 		return Result{Value: value}, false, nil
 	}
+	if failure, ok := err.(*contracts.Failure); ok {
+		return Result{}, false, failure
+	}
 	errno, ok := err.(syscall.Errno)
 	if !ok {
 		return Result{}, false, fmt.Errorf("unmodeled syscall error: %w", err)

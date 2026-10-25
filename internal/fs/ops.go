@@ -145,11 +145,18 @@ func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteVi
 	if err != nil {
 		return 0, err
 	}
-	if f.didReaddir {
-		return 0, nil
-	}
 	if !f.read {
 		return 0, syscall.EBADF
+	}
+	stat, err := i.model.Statfd(f.inode)
+	if err != nil {
+		return 0, err
+	}
+	if !stat.IsDir {
+		return 0, syscall.ENOTDIR
+	}
+	if f.didReaddir {
+		return 0, nil
 	}
 	entries, err := i.model.ReadDir(f.inode, i.identity())
 	if err != nil {
@@ -157,15 +164,22 @@ func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteVi
 	}
 	// This explicit Linux dirent64 byte layout is shared by both target arches.
 	// TODO(not planned): resumable directory cursor and real inode/offset fields.
+	// Preflight the whole batch. Partial success followed by EOF can conceal
+	// recovery records; the simulator's capacity limit must not look like EOF.
+	remaining := data.Len()
+	for _, entry := range entries {
+		length := directoryRecordLength(entry.Name)
+		if length > remaining {
+			return 0, &contracts.Failure{Code: contracts.UnsupportedOperation, Diagnostic: contracts.Diagnostic{
+				Feature: "fs", Operation: "getdents64", Epoch: ctx.Epoch, PC: ctx.PC,
+				Message: "directory listing exceeds single-batch buffer; resumable getdents64 is not modeled",
+			}}
+		}
+		remaining -= length
+	}
 	n := 0
 	for _, entry := range entries {
-		length := 19 + len(entry.Name) + 1
-		if length > 4096 {
-			return 0, syscall.EINVAL
-		}
-		if length > data.Len()-n {
-			break
-		}
+		length := directoryRecordLength(entry.Name)
 		record := make([]byte, length)
 		binary.LittleEndian.PutUint64(record[0:8], 1)
 		binary.LittleEndian.PutUint64(record[8:16], 1)
@@ -184,6 +198,8 @@ func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteVi
 	f.didReaddir = true
 	return n, nil
 }
+
+func directoryRecordLength(name string) int { return 19 + len(name) + 1 }
 
 func (i *Instance) Fallocate(ctx contracts.CallContext, fd int, mode uint32, offset, length int64) error {
 	f, err := i.file(ctx, fd)
@@ -213,6 +229,18 @@ func (i *Instance) Seek(ctx contracts.CallContext, fd int, offset int64, whence 
 	f, err := i.file(ctx, fd)
 	if err != nil {
 		return 0, err
+	}
+	stat, err := i.model.Statfd(f.inode)
+	if err != nil {
+		return 0, err
+	}
+	if stat.IsDir {
+		// TODO(not planned): directory cookies and seeks other than rewind.
+		if offset != 0 || whence != io.SeekStart {
+			return 0, syscall.EINVAL
+		}
+		f.pos, f.didReaddir = 0, false
+		return 0, nil
 	}
 	var base int64
 	switch whence {

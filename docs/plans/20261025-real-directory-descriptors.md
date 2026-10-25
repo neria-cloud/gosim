@@ -208,20 +208,20 @@ func (i *Instance) Seek(ctx contracts.CallContext, fd int, offset int64, whence 
 func syscallRouteResult(value any, err error) (Result, bool, error)
 ```
 
-- [ ] Validate the owned readable directory, then preflight every sorted entry using exactly the length rule the encoder uses. Do not write any output or advance didReaddir until the entire batch is known to fit.
-- [ ] Return a typed contracts.Failure/UnsupportedOperation on capacity overflow with Feature="fs", Operation="getdents64", Epoch=ctx.Epoch and PC=ctx.PC. Report the simulator limit, not a fabricated Linux errno or a successful truncated listing.
-- [ ] Preserve typed Failure in generated syscallRouteResult before errno conversion, using the existing control-result pattern. Keep other unmodeled errors on their existing invariant-failure path. Do not add global diagnostic defaults or weaken disabled/raw syscall guards.
-- [ ] Complete-batch success sets didReaddir; only completed enumeration may subsequently report EOF. Empty-directory EOF remains valid. Include symlink dirent types and no partial-output invariant tests.
-- [ ] On directory Seek(0, SeekStart), reset didReaddir and return zero. Other directory seeks, including zero SEEK_CUR, return EINVAL as an explicit model limitation. Regular-file position handling remains unchanged.
-- [ ] Test byte-for-byte unchanged output/cursor on overflow, exact fit, genuinely empty directory, read/rewind/read, closed/unreadable/non-directory resources and independent handles. Use a modest over-buffer fixture, not the restricted large suites.
-- [ ] In a kernel/engine integration test, verify fatal dispatch classification, calling run/machine/epoch/PC attribution, cancellation/cleared borrowed references and inability to continue or recover. Direct provider return-value tests alone do not prove fatal behavior.
-- [ ] Regenerate dispatch/adapters/profiles as required and check both families; no hand-edited generated helper.
+- [x] Validate the owned readable directory, then preflight every sorted entry using exactly the length rule the encoder uses. Do not write any output or advance didReaddir until the entire batch is known to fit.
+- [x] Return a typed contracts.Failure/UnsupportedOperation on capacity overflow with Feature="fs", Operation="getdents64", Epoch=ctx.Epoch and PC=ctx.PC. Report the simulator limit, not a fabricated Linux errno or a successful truncated listing.
+- [x] Preserve typed Failure in generated syscallRouteResult before errno conversion, using the existing control-result pattern. Keep other unmodeled errors on their existing invariant-failure path. Do not add global diagnostic defaults or weaken disabled/raw syscall guards.
+- [x] Complete-batch success sets didReaddir; only completed enumeration may subsequently report EOF. Empty-directory EOF remains valid. Include symlink dirent types and no partial-output invariant tests.
+- [x] On directory Seek(0, SeekStart), reset didReaddir and return zero. Other directory seeks, including zero SEEK_CUR, return EINVAL as an explicit model limitation. Regular-file position handling remains unchanged.
+- [x] Test byte-for-byte unchanged output/cursor on overflow, exact fit, genuinely empty directory, read/rewind/read, closed/unreadable/non-directory resources and independent handles. Use a modest over-buffer fixture, not the restricted large suites.
+- [x] In a kernel/engine integration test, verify fatal dispatch classification, calling run/machine/epoch/PC attribution, cancellation/cleared borrowed references and inability to continue or recover. Direct provider return-value tests alone do not prove fatal behavior.
+- [x] Regenerate dispatch/adapters/profiles as required and check both families; no hand-edited generated helper.
 
 #### Verification
 
-- [ ] Run provider/kernel/routegen checks under both compilers (V1/V2), retaining ordinary errno and unmodeled-error regression coverage.
-- [ ] Confirm the fatal path reaches Dispatcher.AbortRun with the supplied caller diagnostic and does not produce an ignorable result.
-- [ ] Verify the correct limited seek contract without weakening native Linux's legal SEEK_CUR reference behavior.
+- [x] Run provider/kernel/routegen checks under both compilers (V1/V2), retaining ordinary errno and unmodeled-error regression coverage.
+- [x] Confirm the fatal path reaches Dispatcher.AbortRun with the supplied caller diagnostic and does not produce an ignorable result.
+- [x] Verify the correct limited seek contract without weakening native Linux's legal SEEK_CUR reference behavior.
 
 ### Task 5: Add public-API, portability, fatal-guard and translated crash regressions
 
@@ -501,3 +501,5 @@ Future entries must name the completed task, exact checks/results, source identi
 - 2026-10-25 Task 2: Completed final-component policies, one shared prefix/final symlink budget, target metadata/lifetime and inode-base validation. Added nine focused model/provider regressions. fs/model and fs native suites passed under both compilers; three native Darwin public tests and four translated tests × three seeds passed per compiler. Formatting/diff checks clean. Logs: `.gosim/validation/gs01/task2/`; Linux-native errno/dotdot qualification remains user-deferred.
 
 - 2026-10-25 Task 3: Added minimal directory topology and empty-directory dependencies, final mutation validation, owned pending-operation inputs and invariant cycle detection. Both compiler-family model/provider suites passed, including bounded crash enumeration and positive/negative fsync cases; formatting/diff checks clean. Logs: `.gosim/validation/gs01/task3/`.
+
+- 2026-10-25 Task 4: Whole-directory preflight now fails fatally without partial output; directory rewind and typed-failure transport/attribution are verified. fs, kernel and routegen passed under both compilers, along with both-family generation/profile checks and formatting. Logs: `.gosim/validation/gs01/task4/`.

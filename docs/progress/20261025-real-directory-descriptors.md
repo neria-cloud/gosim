@@ -77,3 +77,19 @@ Verified:
 - .ci/gofmt check and git diff --check passed. Logs: .gosim/validation/gs01/task3/.
 
 No new randomness, explicit topology fsync root, provider cross-import or general directory GC was introduced. Translated public CrashStates coverage remains Task 5, rather than inferred from these model tests.
+
+## Task 4 — bounded directory enumeration and fatal failure transport
+
+Date: 2026-10-25. Commit: the task commit containing this entry.
+
+Implemented:
+- Preflight the complete sorted dirent batch using the same length helper as encoding. Overflow returns UnsupportedOperation with fs/getdents64 and the actual invocation epoch/PC before changing bytes or EOF state.
+- Directory Seek(0, SeekStart) rewinds the descriptor; other seeks remain EINVAL. Validity/readability/type checks cannot be bypassed by previous EOF. Regular-file seeking is unchanged.
+- The authored route generator now preserves *contracts.Failure before errno conversion. Regenerated dispatch/profiles; ordinary errno and unmodeled-error classification remain intact.
+
+Verified:
+- Provider tests: zero/partial/one-byte-short overflow, exact fit, file/directory/symlink dirent types, unchanged buffer/cursor, empty directory, closed/unreadable/non-directory resources, rewind and independent handles.
+- Actual kernel/engine test: overflow cannot return or recover; UnsupportedOperation diagnostic carries correct run, machine, epoch and PC; all borrowed invocation fields and descriptors are cleared, with no partial bytes written.
+- fs, kernel and routegen passed under go1.25.14 and go1.26.9 on Darwin ARM64. Both generators passed -check for amd64/arm64; profiles -check, .ci/gofmt check and git diff --check passed.
+
+Evidence: native logs in .gosim/validation/gs01/task4/; generator/profile/format checks returned exit 0. The full translated expected-failure harness follows in Task 5. No restricted suites ran and no Linux getdents pagination claim is made.
