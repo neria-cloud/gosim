@@ -10,7 +10,7 @@ import (
 )
 
 const RouteSchema = 1
-const RouteSchemaDigest = "af9ee0315b1fa70392eb5d5bbaf10ee4bb2ae7f7ede8688cde50a4e76251aed6"
+const RouteSchemaDigest = "da367f5d22d95778418be2d867410f4404096953aadb6e5967bf89523dc2f1e4"
 const (
 	RouteRead                RouteID = 1
 	RouteWrite               RouteID = 2
@@ -95,7 +95,9 @@ const (
 	RouteResetSyscallStats   RouteID = 81
 	RouteSyscallStats        RouteID = 82
 	RouteCountableSyscalls   RouteID = 83
-	routeLimit               RouteID = 84
+	RouteSymlinkat           RouteID = 84
+	RouteReadlinkat          RouteID = 85
+	routeLimit               RouteID = 86
 )
 
 func (r RouteID) String() string {
@@ -266,6 +268,10 @@ func (r RouteID) String() string {
 		return "SyscallStats"
 	case RouteCountableSyscalls:
 		return "CountableSyscalls"
+	case RouteSymlinkat:
+		return "Symlinkat"
+	case RouteReadlinkat:
+		return "Readlinkat"
 	}
 	return fmt.Sprintf("unknown(%d)", r)
 }
@@ -1736,6 +1742,43 @@ func DecodeCountableSyscallsResult(r Result) (CountableSyscallsResult, error) {
 	return decodeRouteResult[CountableSyscallsResult](r, RouteCountableSyscalls)
 }
 
+type SymlinkatRequest struct {
+	Target string
+	DirFD  int
+	Path   string
+}
+type SymlinkatResult struct {
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p SymlinkatRequest) Invocation() Invocation {
+	return Invocation{Route: RouteSymlinkat, Args: [5]any{p}}
+}
+
+func DecodeSymlinkatResult(r Result) (SymlinkatResult, error) {
+	return decodeRouteResult[SymlinkatResult](r, RouteSymlinkat)
+}
+
+type ReadlinkatRequest struct {
+	DirFD int
+	Path  string
+	Into  abi.ByteView
+}
+type ReadlinkatResult struct {
+	Count int
+}
+
+// Invocation copies the request into its exact route envelope. Context is set
+// by the trusted transport from the current machine, never by a public caller.
+func (p ReadlinkatRequest) Invocation() Invocation {
+	return Invocation{Route: RouteReadlinkat, Args: [5]any{p}}
+}
+
+func DecodeReadlinkatResult(r Result) (ReadlinkatResult, error) {
+	return decodeRouteResult[ReadlinkatResult](r, RouteReadlinkat)
+}
+
 func decodeRouteResult[T any](r Result, route RouteID) (T, error) {
 	var zero T
 	if r.R0 != 0 || r.R1 != 0 {
@@ -2118,6 +2161,14 @@ func validateRoutePayload(inv *Invocation) error {
 		}
 	case RouteCountableSyscalls:
 		if _, ok := inv.Args[0].(CountableSyscallsRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteSymlinkat:
+		if _, ok := inv.Args[0].(SymlinkatRequest); !ok {
+			return invalidRoutePayload(inv)
+		}
+	case RouteReadlinkat:
+		if _, ok := inv.Args[0].(ReadlinkatRequest); !ok {
 			return invalidRoutePayload(inv)
 		}
 	default:

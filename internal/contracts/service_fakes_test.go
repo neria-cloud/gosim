@@ -94,3 +94,8 @@ func (*fakeNetControl) Address(MachineRef) ([4]byte, error)              { retur
 func (*fakeNetControl) SetLinkPolicy(NetLink, NetLinkPolicy) error       { return errInjected }
 func (*fakeNetControl) ResetLinkPolicy(NetLink) error                    { return errInjected }
 func (*fakeNetControl) SetConnectivity(NetLink, bool) error              { return errInjected }
+
+func (*fakeFiles) Symlinkat(CallContext, string, int, string) error { return errInjected }
+func (*fakeFiles) Readlinkat(CallContext, int, string, abi.ByteView) (int, error) {
+	return 0, errInjected
+}

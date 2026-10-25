@@ -24,6 +24,8 @@ var syscallCatalogue = [...]syscallDescriptor{
 	RouteGetrandom:      {"getrandom", contracts.RT},
 	RouteGetpid:         {"getpid", contracts.RT},
 	RouteUname:          {"uname", contracts.RT},
+	RouteSymlinkat:      {"symlinkat", contracts.FS},
+	RouteReadlinkat:     {"readlinkat", contracts.FS},
 	RouteOpenat:         {"openat", contracts.FS},
 	RouteRenameat:       {"renameat", contracts.FS},
 	RouteGetdents64:     {"getdents64", contracts.FS},

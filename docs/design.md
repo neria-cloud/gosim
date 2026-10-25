@@ -107,13 +107,16 @@ A session owns per-machine configuration, persistent disk state, retained snapsh
 
 Model algorithms live in `internal/fs/model`. Mutable state is supervisor-owned; provider randomness and clocks come through injected ports. Descriptor and mapping lifetimes follow the shared kernel cleanup protocol.
 
-The inode tree stores files and directories under `/`, while `/app` remains the default process working directory. File content uses copy-on-write 1 KiB chunks. Capacity defaults to 128 MiB; live quota counts allocated chunks of linked or open files, not sparse holes or retained snapshot copies. Writes and fallocate reservations admit all needed blocks before applying operations and fail atomically with `ENOSPC`. Truncation and final unlink/close release the charge. `fs.Stats`, `statfs` and `fstatfs` report the live volume; a recovered image over the configured limit reports zero free and remains readable. Live resizing is out of scope.
+The inode tree stores files, directories and symlinks under `/`, while `/app` remains the default process working directory. File content uses copy-on-write 1 KiB chunks. Capacity defaults to 128 MiB; live quota counts allocated chunks of linked or open files, not sparse holes or retained snapshot copies. Writes and fallocate reservations admit all needed blocks before applying operations and fail atomically with `ENOSPC`. Truncation and final unlink/close release the charge. `fs.Stats`, `statfs` and `fstatfs` report the live volume; a recovered image over the configured limit reports zero free and remains readable. Live resizing is out of scope.
 
 Files and directories retain mode, UID and GID through allocation, metadata pending operations, flush and crash selection. A fixed `0022` umask applies on creation; owner/group/other access uses the machine's primary UID/GID, with root bypass. Directory execute gates traversal and write plus execute gates mutations. Chmod requires owner or root; chown requires root. Read-only is a per-machine policy retained across epochs and restore, immediately rejecting mutations through existing descriptors until toggled off. Configured fixed latency delays scalar completion of filesystem data I/O and mutations after synchronous provider effects; dispatcher epoch events hold no borrowed memory and are canceled with the epoch. Stat and statfs queries are immediate.
 
 `FreezeCrash` retains an immutable crash image. Cloning uses the fs-owned random stream; enumeration uses a deterministic explicit depth-first stack, not a parked iterator goroutine. Closing an iterator releases its state but not snapshots already returned. Snapshots own retained references until close/session teardown and survive destruction of their source machine. Restore validates simulation ownership and target state. A positive public enumeration budget is enforced with lookahead and `ErrEnumerationLimit`.
 
-The provider still omits symlinks, links, special files, supplemental groups, ACLs, sticky bits, real flock/OFD contention, larger mapping support and directory-relative descriptors other than `AT_FDCWD`. Stub/limited operations remain classified in the version manifests and cannot stand in for correctness evidence for applications that need those semantics.
+The provider still omits hard links, distinct mounts/Statx, dup/OFD sharing, special files, supplemental groups, ACLs, sticky bits, real flock/OFD contention and larger mapping support. Integer fcntl returns ENOSYS; NONBLOCK, append, O_PATH, O_TMPFILE and openat2 are unsupported. Timestamps remain zero, directory link counts are incomplete, and there is no procfs fallback. Stub/limited operations remain classified in the version manifests and cannot stand in for correctness evidence for applications that need those semantics.
+
+See [directory handles and os.Root](file-system.md) for the user-facing design,
+capabilities and limitations.
 
 ## Network provider
 
@@ -165,6 +168,13 @@ Generated composition input is identity-scoped. Published artifacts are also **p
 .gosim/v2/<identity-digest>/input/
 .gosim/v2/<identity-digest>/packages/<package-digest>/manifest.json
 ```
+
+Go's indirect test-dependency variants retain their package IDs and selected
+imports in the graph and cache keys. They translate their full production
+source; only the package directly augmented by its own tests filters production
+files from its test-addition pass. A cache miss for an indirect variant reloads
+syntax/types through its owning test root, including dependencies, so test-only
+exports remain available without fabricating a standalone base package.
 
 The manifest records identity, package digests, binary hash and generated-file hashes. Paths are normalized and checked against traversal/symlinks; materialization is exclusive into private staging. OS build locks and atomic publication prevent concurrent partial reuse. Batch/single-package lookup shares the same canonical dependency digest. Lookup never falls back to stale content or another feature/race tuple.
 
@@ -229,4 +239,4 @@ resolved profiles or audit snapshots are committed.
 
 The design does not include mutable/per-machine feature sets, concurrent independent engines, native scheduling with virtual fs/net, external provider plugins, extra host platforms, non-Linux simulation, or complete HTTP/HTTPS and syscall-model semantics beyond the documented supported scope.
 
-The [usage guide](../README.md) describes current APIs and commands. The [historical syscall audit](reports/syscall-support-for-gquorum.md) records application requirements that remain outside this refactor. Family [go125](../internal/compat/profiles/go125.json) and [go126](../internal/compat/profiles/go126.json) capability manifests retain the distinction between modeled, limited, stub and rejected behavior. Passing a simulator test does not establish correctness for an application that relies on a known missing semantic.
+The [usage guide](../README.md) describes current APIs and commands. The [historical syscall audit](reports/syscall-support-for-gquorum.md) records application requirements at its original baseline. Current descriptor/Root semantics are described in the [filesystem guide](file-system.md#osroot-and-directory-descriptors); the historical audit is not rewritten as new execution evidence. Family [go125](../internal/compat/profiles/go125.json) and [go126](../internal/compat/profiles/go126.json) capability manifests retain the distinction between modeled, limited, stub and rejected behavior. Passing a simulator test does not establish correctness for an application that relies on a known missing semantic.

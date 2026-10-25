@@ -735,6 +735,26 @@ func (d *Dispatcher) decode(inv *Invocation) (Result, bool, error) {
 		var err error
 		out.Syscalls, err = k.CountableSyscalls()
 		return controlRouteResult(out, err)
+	case RouteSymlinkat:
+		p := inv.Args[0].(SymlinkatRequest)
+		var out SymlinkatResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		err = service.Symlinkat(ctx, p.Target, p.DirFD, p.Path)
+		return syscallRouteResult(out, err)
+	case RouteReadlinkat:
+		p := inv.Args[0].(ReadlinkatRequest)
+		var out ReadlinkatResult
+		service, serviceErr := k.Filesystem(ctx)
+		if serviceErr != nil {
+			return Result{}, false, serviceErr
+		}
+		var err error
+		out.Count, err = service.Readlinkat(ctx, p.DirFD, p.Path, p.Into)
+		return syscallRouteResult(out, err)
 	}
 	return Result{}, false, invalidPayload(ctx, "unreachable route")
 }
@@ -745,6 +765,9 @@ func invalidPayload(ctx contracts.CallContext, message string) error {
 func syscallRouteResult(value any, err error) (Result, bool, error) {
 	if err == nil {
 		return Result{Value: value}, false, nil
+	}
+	if failure, ok := err.(*contracts.Failure); ok {
+		return Result{}, false, failure
 	}
 	errno, ok := err.(syscall.Errno)
 	if !ok {

@@ -13,6 +13,46 @@ import (
 	"github.com/neria-cloud/gosim/internal/compat/spec"
 )
 
+// Private unix uses syscall.Stat_t while the public syscall/x/sys adapters
+// expose unqualified records. Both must use the reviewed layout, without
+// rewriting an unrelated package's identically named type.
+func TestAdapterStatSelector(t *testing.T) {
+	for _, tc := range []struct{ source, pkg, owner, want string }{
+		{"*syscall.Stat_t", "internal/syscall/unix", "fs", "*kh.Stat_t"},
+		{"*Stat_t", "syscall", "fs", "*kh.Stat_t"},
+		{"*Stat_t", "golang.org/x/sys/unix", "fs", "*kh.XStat_t"},
+		{"*other.Stat_t", "internal/syscall/unix", "fs", "*other.Stat_t"},
+	} {
+		t.Run(tc.pkg+"/"+tc.source, func(t *testing.T) {
+			expr, err := parser.ParseExpr(tc.source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := sourceText(adapterType(expr, tc.pkg, tc.owner)); got != tc.want {
+				t.Fatalf("adapter type = %s, want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestPrivateStatSignaturePreservesSourceContract(t *testing.T) {
+	expr, err := parser.ParseExpr("func(int, string, *syscall.Stat_t, int) error")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := expr.(*ast.FuncType)
+	const wantSource = "func(int, string, *syscall.Stat_t, int) error"
+	const wantTarget = "func(p0 int, p1 string, p2 *kh.Stat_t, p3 int) error"
+	got, err := signatureType(source, true, "internal/syscall/unix", "fs")
+	if err != nil || got != wantTarget {
+		t.Fatalf("target = %s, %v", got, err)
+	}
+	got, err = signatureType(source, false, "internal/syscall/unix", "fs")
+	if err != nil || got != wantSource {
+		t.Fatalf("source contract changed: %s, %v", got, err)
+	}
+}
+
 func TestAdapterSourceAndLayoutDrift(t *testing.T) {
 	t.Parallel()
 	tc, profile, _ := currentGeneration(t)

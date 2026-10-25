@@ -193,6 +193,30 @@ func Syscall_FcntlFlock(p0 uintptr, p1 int, p2 *kh.Flock_t) error {
 	return fcntlLock(int(p0), p1, unsafe.Pointer(p2))
 }
 
+func Syscall_readlinkat(p0 int, p1 string, p2 []byte) (int, error) {
+	kh.Require(contracts.FS, "syscall.readlinkat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return 0, syscall.EINVAL
+	}
+	out, err := kh.Call(k.ReadlinkatRequest{DirFD: p0, Path: p1, Into: abi.ByteView{Ptr: p2}}, k.DecodeReadlinkatResult)
+	if out.Count > 0 {
+		simrt.RaceWriteRange(unsafe.Pointer(unsafe.SliceData(p2)), out.Count)
+	}
+	return out.Count, err
+}
+
+func Syscall_symlinkat(p0 string, p1 int, p2 string) error {
+	kh.Require(contracts.FS, "syscall.symlinkat")
+	if strings.IndexByte(p0, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	if strings.IndexByte(p2, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.SymlinkatRequest{Target: p0, DirFD: p1, Path: p2}, k.DecodeSymlinkatResult)
+	return err
+}
+
 func Syscall_fstatat(p0 int, p1 string, p2 *kh.Stat_t, p3 int) error {
 	kh.Require(contracts.FS, "syscall.fstatat")
 	if strings.IndexByte(p1, 0) >= 0 {
@@ -419,6 +443,30 @@ func GolangOrgXSysUnix_FcntlFlock(p0 uintptr, p1 int, p2 *kh.XFlock_t) error {
 	return fcntlLock(int(p0), p1, unsafe.Pointer(p2))
 }
 
+func GolangOrgXSysUnix_Readlinkat(p0 int, p1 string, p2 []byte) (int, error) {
+	kh.Require(contracts.FS, "golang.org/x/sys/unix.Readlinkat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return 0, syscall.EINVAL
+	}
+	out, err := kh.Call(k.ReadlinkatRequest{DirFD: p0, Path: p1, Into: abi.ByteView{Ptr: p2}}, k.DecodeReadlinkatResult)
+	if out.Count > 0 {
+		simrt.RaceWriteRange(unsafe.Pointer(unsafe.SliceData(p2)), out.Count)
+	}
+	return out.Count, err
+}
+
+func GolangOrgXSysUnix_Symlinkat(p0 string, p1 int, p2 string) error {
+	kh.Require(contracts.FS, "golang.org/x/sys/unix.Symlinkat")
+	if strings.IndexByte(p0, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	if strings.IndexByte(p2, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.SymlinkatRequest{Target: p0, DirFD: p1, Path: p2}, k.DecodeSymlinkatResult)
+	return err
+}
+
 func GolangOrgXSysUnix_Fstatat(p0 int, p1 string, p2 *kh.XStat_t, p3 int) error {
 	kh.Require(contracts.FS, "golang.org/x/sys/unix.Fstatat")
 	if strings.IndexByte(p1, 0) >= 0 {
@@ -506,6 +554,66 @@ func InternalSyscallUnix_Fchownat(p0 int, p1 string, p2 int, p3 int, p4 int) err
 		return syscall.EINVAL
 	}
 	_, err := kh.Call(k.ChownatRequest{DirFD: p0, Path: p1, UID: p2, GID: p3, Flags: p4}, k.DecodeChownatResult)
+	return err
+}
+
+func InternalSyscallUnix_Fstatat(p0 int, p1 string, p2 *kh.Stat_t, p3 int) error {
+	kh.Require(contracts.FS, "internal/syscall/unix.Fstatat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	if p2 == nil {
+		return syscall.EFAULT
+	}
+	out, err := kh.Call(k.StatatRequest{DirFD: p0, Path: p1, Flags: p3}, k.DecodeStatatResult)
+	if err == nil {
+		writeStat(unsafe.Pointer(p2), out.Stat)
+	}
+	return err
+}
+
+func InternalSyscallUnix_Mkdirat(p0 int, p1 string, p2 uint32) error {
+	kh.Require(contracts.FS, "internal/syscall/unix.Mkdirat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.MkdiratRequest{DirFD: p0, Path: p1, Mode: p2}, k.DecodeMkdiratResult)
+	return err
+}
+
+func InternalSyscallUnix_Renameat(p0 int, p1 string, p2 int, p3 string) error {
+	kh.Require(contracts.FS, "internal/syscall/unix.Renameat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	if strings.IndexByte(p3, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.RenameatRequest{OldDirFD: p0, OldPath: p1, NewDirFD: p2, NewPath: p3}, k.DecodeRenameatResult)
+	return err
+}
+
+func InternalSyscallUnix_Readlinkat(p0 int, p1 string, p2 []byte) (int, error) {
+	kh.Require(contracts.FS, "internal/syscall/unix.Readlinkat")
+	if strings.IndexByte(p1, 0) >= 0 {
+		return 0, syscall.EINVAL
+	}
+	out, err := kh.Call(k.ReadlinkatRequest{DirFD: p0, Path: p1, Into: abi.ByteView{Ptr: p2}}, k.DecodeReadlinkatResult)
+	if out.Count > 0 {
+		simrt.RaceWriteRange(unsafe.Pointer(unsafe.SliceData(p2)), out.Count)
+	}
+	return out.Count, err
+}
+
+func InternalSyscallUnix_Symlinkat(p0 string, p1 int, p2 string) error {
+	kh.Require(contracts.FS, "internal/syscall/unix.Symlinkat")
+	if strings.IndexByte(p0, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	if strings.IndexByte(p2, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	_, err := kh.Call(k.SymlinkatRequest{Target: p0, DirFD: p1, Path: p2}, k.DecodeSymlinkatResult)
 	return err
 }
 

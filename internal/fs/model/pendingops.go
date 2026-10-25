@@ -22,6 +22,7 @@ const (
 	depKeyResizeFile // XXX: combine with alloc?
 	depKeyWriteDirEntry
 	depKeyMetadata
+	depKeyDirTopology
 )
 
 // A depKey is used to find fsOp dependencies.

@@ -44,7 +44,9 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `fs` | Sync and crash durability | ✅ | Sync makes modeled operations durable. `SetCrashMode` selects `DurableOnly` or `SamplePending` behavior for non-fsynced operations. |
 | `fs` | Crash-state enumeration and restore | ✅ | `CrashStates` enumerates immutable recovery snapshots with an explicit state budget. `Restore` applies a retained snapshot before starting or restarting a target machine. |
 | `fs` | Crash injection during sync | ✅ | `SetSyncFault` configures bounded crash probabilities around sync, including the probability of crashing before the sync completes. |
-| `fs` | Directory sync | ✅ | The filesystem models directory operations and their synchronization for persistence testing. |
+| `fs` | Directory sync | ✅ | Inode/dependency flush, including narrow directory-move topology ordering; syncing a new child does not implicitly persist its parent entry. |
+| `fs` | Directory descriptors and symlinks | partially | Inode-bound handles survive rename/replacement; one resolver implements relative/absolute and final-link policies. No hard links, mounts, procfs or special files. |
+| `fs` | Directory enumeration | partially | One complete sorted batch; overflow aborts before output. Seek to zero rewinds; no pagination or other directory seeks. |
 | `fs` | Direct-I/O and alignment controls | not supported | There is no public direct-I/O mode or alignment configuration. |
 | `fs` | Storage capacity limits | ✅ | `fs.Config.CapacityBytes` sets a pre-start limit (default 128 MiB); `fs.Stats` reports total, used, and free space in allocated 1 KiB file-data blocks. Sparse holes use no blocks. Writes and reservations that need unavailable blocks fail atomically with `ENOSPC`, leaving file contents, size, and write offset unchanged. Capacity cannot be resized after start. |
 | `fs` | Read-only storage mode | ✅ | `fs.SetReadOnly` can turn writes off and back on while a machine runs, including for already-open writable files. A write attempted while read-only returns `EROFS` without advancing its offset or changing data. The mode persists across restarts. |

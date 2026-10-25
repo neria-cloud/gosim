@@ -16,6 +16,8 @@ type Lock struct {
 	PID          int32
 }
 type FileOps interface {
+	Symlinkat(CallContext, string, int, string) error
+	Readlinkat(CallContext, int, string, abi.ByteView) (int, error)
 	StorageDelayNS(CallContext) int64
 	Openat(CallContext, int, string, int, uint32) (int, error)
 	Renameat(CallContext, int, string, int, string) error

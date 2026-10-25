@@ -99,11 +99,19 @@ func (f *backingFile) clone() *backingFile {
 }
 
 type backingDir struct {
-	inode   int
-	parent  int
-	name    string // name in parent
-	entries map[string]int
-	meta    inodeMetadata
+	inode    int
+	parent   int
+	name     string // name in parent
+	entries  map[string]int
+	meta     inodeMetadata
+	unlinked bool
+}
+
+type backingSymlink struct {
+	inode     int
+	target    string
+	linkCount int
+	meta      inodeMetadata
 }
 
 type inodeMetadata struct {
@@ -157,13 +165,17 @@ func (fss *filesystemState) clone() *filesystemState {
 		switch obj := obj.(type) {
 		case *backingFile:
 			objects[inode] = obj.clone()
+		case *backingSymlink:
+			copy := *obj
+			objects[inode] = &copy
 		case *backingDir:
 			objects[inode] = &backingDir{
-				inode:   obj.inode,
-				parent:  obj.parent,
-				name:    obj.name,
-				entries: maps.Clone(obj.entries),
-				meta:    obj.meta,
+				inode:    obj.inode,
+				parent:   obj.parent,
+				name:     obj.name,
+				entries:  maps.Clone(obj.entries),
+				meta:     obj.meta,
+				unlinked: obj.unlinked,
 			}
 		}
 	}
@@ -174,11 +186,8 @@ func (fss *filesystemState) clone() *filesystemState {
 	}
 }
 
-// TODOs for directories:
-// - handle ., .. consistently
-// - garbage collect directories
-// - prevent cycles
-// - add deps between renames/metadata ops to prevent cycles w/ crashes
+// TODO(not planned): directory garbage collection and complete POSIX directory
+// link counts. Detached objects remain owned until filesystem teardown.
 
 type Filesystem struct {
 	// for now: flat filesystem, only one directory
@@ -427,6 +436,8 @@ func (o *metadataOp) apply(state *filesystemState, _ gcer) {
 		obj.meta = o.value
 	case *backingDir:
 		obj.meta = o.value
+	case *backingSymlink:
+		obj.meta = o.value
 	default:
 		panic("metadata operation on missing inode")
 	}
@@ -470,7 +481,10 @@ func (p *dirOpPart) String() string {
 }
 
 type dirOp struct {
-	parts []dirOpPart
+	parts            []dirOpPart
+	movedDirectory   int
+	destinationChain []int
+	emptyDirs        []int
 }
 
 func (o *dirOp) apply(fs *filesystemState, gcer gcer) {
@@ -486,9 +500,15 @@ func (o *dirOp) apply(fs *filesystemState, gcer gcer) {
 			}
 		}
 		if file, ok := fs.objects[old].(*backingDir); ok {
-			file.parent = 0
+			file.unlinked = true
 			file.name = ""
 			// GC? when?
+		}
+		if link, ok := fs.objects[old].(*backingSymlink); ok {
+			link.linkCount--
+			if link.linkCount == 0 {
+				gcer.maybeGC(old)
+			}
 		}
 
 		if p.file == -1 {
@@ -502,6 +522,10 @@ func (o *dirOp) apply(fs *filesystemState, gcer gcer) {
 			if file, ok := fs.objects[p.file].(*backingDir); ok {
 				file.parent = dir.inode
 				file.name = p.name
+				file.unlinked = false
+			}
+			if link, ok := fs.objects[p.file].(*backingSymlink); ok {
+				link.linkCount++
 			}
 		}
 	}
@@ -520,7 +544,9 @@ func (o *dirOp) String() string {
 }
 
 type allocOp struct {
-	dir bool
+	dir     bool
+	symlink bool
+	target  string
 
 	inode int
 	meta  inodeMetadata
@@ -530,11 +556,14 @@ func (o *allocOp) apply(fs *filesystemState, gcer gcer) {
 	if _, ok := fs.objects[o.inode]; ok {
 		panic("double alloc")
 	}
-	if o.dir {
+	if o.symlink {
+		fs.objects[o.inode] = &backingSymlink{inode: o.inode, target: o.target, meta: o.meta}
+	} else if o.dir {
 		fs.objects[o.inode] = &backingDir{
-			inode:   o.inode,
-			entries: make(map[string]int),
-			meta:    o.meta,
+			inode:    o.inode,
+			unlinked: true,
+			entries:  make(map[string]int),
+			meta:     o.meta,
 		}
 	} else {
 		fs.objects[o.inode] = &backingFile{
@@ -589,6 +618,17 @@ func (o *dirOp) addDeps(p *pendingOps, op *pendingOp) {
 		p.addDep(op, depKey{kind: depKeyWriteDir, inode: int32(part.dir)}, depStoreAs)
 		p.addDep(op, depKey{kind: depKeyWriteDirEntry, inode: int32(part.dir), entry: part.name}, depStoreAsAndDependsOn)
 	}
+	// Only directory moves publish topology. Depending on mkdir's parent link
+	// here would incorrectly let fsync(child) persist that link in its parent.
+	if o.movedDirectory != 0 {
+		p.addDep(op, depKey{kind: depKeyDirTopology, inode: int32(o.movedDirectory)}, depStoreAs)
+		for _, inode := range o.destinationChain {
+			p.addDep(op, depKey{kind: depKeyDirTopology, inode: int32(inode)}, depDependsOn)
+		}
+	}
+	for _, inode := range o.emptyDirs {
+		p.addDep(op, depKey{kind: depKeyWriteDir, inode: int32(inode)}, depDependsOn)
+	}
 }
 
 type nilgc struct{}
@@ -598,6 +638,8 @@ func (nilgc) maybeGC(inode int) {}
 func tryGetLinkCount(s *filesystemState, inode int) (int, bool) {
 	switch file := s.objects[inode].(type) {
 	case *backingFile:
+		return file.linkCount, true
+	case *backingSymlink:
 		return file.linkCount, true
 	}
 	return 0, false
@@ -639,6 +681,10 @@ func (fs *Filesystem) maybeGC(inode int) {
 		return
 	}
 	switch file := fs.mem.objects[inode].(type) {
+	case *backingSymlink:
+		if file.linkCount == 0 {
+			delete(fs.mem.objects, inode)
+		}
 	case *backingFile:
 		if file.linkCount == 0 {
 			// XXX: release the file here
@@ -650,6 +696,10 @@ func (fs *Filesystem) maybeGC(inode int) {
 		}
 	}
 	switch file := fs.persisted.objects[inode].(type) {
+	case *backingSymlink:
+		if file.linkCount == 0 {
+			delete(fs.persisted.objects, inode)
+		}
 	case *backingFile:
 		if file.linkCount == 0 {
 			// XXX: release the file here
@@ -752,77 +802,53 @@ func (fs *Filesystem) Sync(inode int) {
 	fs.flushInode(inode)
 }
 
-func (fs *Filesystem) Getdirinode(dirInode int, path string, who Identity) (int, error) {
-	// For chdir
-	dirInode, _, err := fs.walkpath(dirInode, path, false, who)
+func (fs *Filesystem) Getdirinode(dir int, path string, who Identity) (int, error) {
+	entry, err := fs.resolve(dir, path, resolveOptions{Final: resolveFollowing}, who)
 	if err != nil {
 		return 0, err
 	}
-
-	_, ok := fs.mem.getDir(dirInode)
-	if !ok {
+	if _, ok := fs.mem.getDir(entry.Inode); !ok {
 		return 0, syscall.ENOTDIR
 	}
-	if err := fs.CheckAccess(dirInode, who, AccessExecute); err != nil {
+	if err := fs.CheckAccess(entry.Inode, who, AccessExecute); err != nil {
 		return 0, err
 	}
-
-	return dirInode, nil
+	return entry.Inode, nil
 }
 
-func (fs *Filesystem) Mkdir(dirInode int, path string, mode uint32, who Identity) error {
-	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
+func (fs *Filesystem) Mkdir(dir int, path string, mode uint32, who Identity) error {
+	entry, err := fs.resolve(dir, path, resolveOptions{Final: resolveCreateEntry, AllowMissingFinal: true}, who)
 	if err != nil {
 		return err
 	}
-
-	dir, ok := fs.mem.getDir(dirInode)
-	if !ok {
-		return syscall.ENOTDIR
-	}
-	if err := fs.CheckAccess(dirInode, who, AccessWrite|AccessExecute); err != nil {
-		return err
-	}
-
-	if _, ok := dir.entries[name]; ok {
+	if entry.Inode != 0 {
 		return syscall.EEXIST
 	}
-
+	if err := fs.mutableParent(entry, who); err != nil {
+		return err
+	}
 	inode := fs.mem.next
-	op := &allocOp{
-		dir:   true,
-		inode: inode,
-		meta:  inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID},
-	}
-	fs.apply(op)
-
-	dOp := &dirOp{
-		parts: []dirOpPart{
-			{
-				dir:  dirInode,
-				name: name,
-				file: inode,
-			},
-		},
-	}
-	fs.apply(dOp)
-
+	fs.apply(&allocOp{dir: true, inode: inode, meta: inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID}})
+	fs.apply(&dirOp{parts: []dirOpPart{{dir: entry.Parent, name: entry.Name, file: inode}}})
 	return nil
 }
 
 type StatResp struct {
-	Inode int
-	IsDir bool
-	Size  int64
-	Mode  uint32
-	UID   uint32
-	GID   uint32
-	Nlink uint64
+	Inode     int
+	IsDir     bool
+	IsSymlink bool
+	Size      int64
+	Mode      uint32
+	UID       uint32
+	GID       uint32
+	Nlink     uint64
 }
 
 func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 	obj := fs.mem.objects[inode]
 	switch obj := obj.(type) {
+	case *backingSymlink:
+		return StatResp{Inode: inode, IsSymlink: true, Size: int64(len(obj.target)), Mode: obj.meta.Mode, UID: obj.meta.UID, GID: obj.meta.GID, Nlink: uint64(obj.linkCount)}, nil
 	case *backingDir:
 		return StatResp{
 			Inode: inode,
@@ -845,35 +871,16 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 		}, nil
 
 	default:
-		panic("invalid")
+		return StatResp{}, syscall.ENOENT
 	}
 }
 
-func (fs *Filesystem) Stat(dirInode int, path string, who Identity) (StatResp, error) {
-	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
+func (fs *Filesystem) Stat(dir int, path string, who Identity) (StatResp, error) {
+	entry, err := fs.resolve(dir, path, resolveOptions{Final: resolveFollowing}, who)
 	if err != nil {
 		return StatResp{}, err
 	}
-
-	dir, ok := fs.mem.getDir(dirInode)
-	if !ok {
-		return StatResp{}, syscall.ENOTDIR
-	}
-
-	var inode int
-	if name == "" && path == "" {
-		return StatResp{}, syscall.ENOENT
-	}
-	if name == "." || name == "" {
-		// TODO: clean up...
-		inode = dirInode
-	} else {
-		inode, ok = dir.entries[name]
-		if !ok {
-			return StatResp{}, syscall.ENOENT
-		}
-	}
-	return fs.statLocked(inode)
+	return fs.statLocked(entry.Inode)
 }
 
 func (fs *Filesystem) Statfd(inode int) (StatResp, error) {
@@ -885,6 +892,8 @@ func (fs *Filesystem) metadata(inode int) (inodeMetadata, error) {
 	case *backingFile:
 		return obj.meta, nil
 	case *backingDir:
+		return obj.meta, nil
+	case *backingSymlink:
 		return obj.meta, nil
 	default:
 		return inodeMetadata{}, syscall.ENOENT
@@ -937,10 +946,18 @@ func (fs *Filesystem) Chown(inode, uid, gid int, who Identity) error {
 func (fs *Filesystem) Getpath(dirInode int) (string, error) {
 	var stack_ [16]string
 	s := stack_[:0]
+	seen := make(map[int]bool)
 	for dirInode != RootInode {
+		if seen[dirInode] {
+			panic("filesystem directory topology cycle")
+		}
+		seen[dirInode] = true
 		dir, ok := fs.mem.getDir(dirInode)
 		if !ok {
 			return "", syscall.ENOTDIR
+		}
+		if dir.unlinked {
+			return "", syscall.ENOENT
 		}
 
 		s = append(s, dir.name)
@@ -956,204 +973,199 @@ func (fs *Filesystem) Getpath(dirInode int) (string, error) {
 	return strings.Join(s, "/"), nil
 }
 
-func (fs *Filesystem) Remove(dirInode int, path string, rmDir bool, who Identity) error {
-	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
+func (fs *Filesystem) Remove(dir int, path string, rmDir bool, who Identity) error {
+	entry, err := fs.resolve(dir, path, resolveOptions{Final: resolveMutationEntry}, who)
 	if err != nil {
 		return err
 	}
-
-	dir, ok := fs.mem.getDir(dirInode)
-	if !ok {
-		return syscall.ENOTDIR
-	}
-	if err := fs.CheckAccess(dirInode, who, AccessWrite|AccessExecute); err != nil {
-		return err
-	}
-
-	entry, ok := dir.entries[name]
-	if !ok {
-		return syscall.ENOENT
-	}
-
-	dir2, isDir := fs.mem.getDir(entry)
-
-	// make sure isDir matches rmDir
-	if !rmDir && isDir {
-		return syscall.EISDIR
-	}
-	if rmDir && !isDir {
-		return syscall.EINVAL
-	}
-
-	if isDir {
-		// only allow deleting empty directories
-		if len(dir2.entries) > 0 {
+	if entry.Name == "" || entry.Name == "." || entry.Name == ".." {
+		if !rmDir {
+			return syscall.EISDIR
+		}
+		switch entry.Name {
+		case "":
+			return syscall.EBUSY
+		case ".":
+			return syscall.EINVAL
+		default:
 			return syscall.ENOTEMPTY
 		}
 	}
-
-	dOp := &dirOp{
-		parts: []dirOpPart{
-			{
-				dir:  dirInode,
-				name: name,
-				file: -1,
-			},
-		},
+	target, isDir := fs.mem.getDir(entry.Inode)
+	if entry.TrailingSlash && !isDir {
+		return syscall.ENOTDIR
 	}
-	// XXX: clean up backing?
-	fs.apply(dOp)
-
+	if err := fs.mutableParent(entry, who); err != nil {
+		return err
+	}
+	if isDir && !rmDir {
+		return syscall.EISDIR
+	}
+	if !isDir && rmDir {
+		return syscall.ENOTDIR
+	}
+	if isDir && len(target.entries) > 0 {
+		return syscall.ENOTEMPTY
+	}
+	var empty []int
+	if isDir {
+		empty = []int{entry.Inode}
+	}
+	fs.apply(fs.prepareDirOp([]dirOpPart{{dir: entry.Parent, name: entry.Name, file: -1}}, 0, nil, empty))
 	return nil
 }
 
-func (fs *Filesystem) Rename(fromInode int, fromPath string, toInode int, toPath string, who Identity) error {
-	fromInode, fromName, err := fs.walkpath(fromInode, fromPath, true, who)
+func (fs *Filesystem) Rename(oldDir int, oldPath string, newDir int, newPath string, who Identity) error {
+	old, err := fs.resolve(oldDir, oldPath, resolveOptions{Final: resolveMutationEntry}, who)
 	if err != nil {
 		return err
 	}
-
-	fromDir, ok := fs.mem.getDir(fromInode)
-	if !ok {
-		return syscall.ENOTDIR
-	}
-	if err := fs.CheckAccess(fromInode, who, AccessWrite|AccessExecute); err != nil {
-		return err
-	}
-
-	inode, ok := fromDir.entries[fromName]
-	if !ok {
-		return syscall.ENOENT
-	}
-
-	toInode, toName, err := fs.walkpath(toInode, toPath, true, who)
+	next, err := fs.resolve(newDir, newPath, resolveOptions{Final: resolveMutationEntry, AllowMissingFinal: true}, who)
 	if err != nil {
 		return err
 	}
-
-	if _, ok := fs.mem.getDir(toInode); !ok {
+	if old.Name == "" || old.Name == "." || old.Name == ".." || next.Name == "" || next.Name == "." || next.Name == ".." {
+		return syscall.EBUSY
+	}
+	_, oldIsDir := fs.mem.getDir(old.Inode)
+	target, newIsDir := fs.mem.getDir(next.Inode)
+	if !oldIsDir && (old.TrailingSlash || next.TrailingSlash) {
 		return syscall.ENOTDIR
 	}
-	if err := fs.CheckAccess(toInode, who, AccessWrite|AccessExecute); err != nil {
+	var destinationChain []int
+	if oldIsDir {
+		destinationChain, err = fs.directoryAncestorsInclusive(next.Parent)
+		if err != nil {
+			return err
+		}
+		if slices.Contains(destinationChain, old.Inode) {
+			return syscall.EINVAL
+		}
+	}
+	if newIsDir {
+		sourceChain, err := fs.directoryAncestorsInclusive(old.Parent)
+		if err != nil {
+			return err
+		}
+		if slices.Contains(sourceChain, next.Inode) {
+			return syscall.ENOTEMPTY
+		}
+	}
+	if old.Inode == next.Inode {
+		return nil
+	}
+	if err := fs.mutableParent(old, who); err != nil {
 		return err
 	}
-
-	// TODO: prevent cycles?
-
-	// slog.Info("fs rename", "from", from, "to", to, "inode", inode)
-
-	dOp := &dirOp{
-		parts: []dirOpPart{
-			{
-				dir:  fromInode,
-				name: fromName,
-				file: -1,
-			},
-			{
-				dir:  toInode,
-				name: toName,
-				file: inode,
-			},
-		},
+	if err := fs.mutableParent(next, who); err != nil {
+		return err
 	}
-	fs.apply(dOp)
-
+	if oldIsDir && next.Inode != 0 && !newIsDir {
+		return syscall.ENOTDIR
+	}
+	if !oldIsDir && newIsDir {
+		return syscall.EISDIR
+	}
+	if newIsDir && len(target.entries) > 0 {
+		return syscall.ENOTEMPTY
+	}
+	var empty []int
+	if newIsDir {
+		empty = []int{next.Inode}
+	}
+	moved := 0
+	if oldIsDir {
+		moved = old.Inode
+	}
+	fs.apply(fs.prepareDirOp([]dirOpPart{
+		{dir: old.Parent, name: old.Name, file: -1},
+		{dir: next.Parent, name: next.Name, file: old.Inode},
+	}, moved, destinationChain, empty))
 	return nil
 }
 
-func (fs *Filesystem) OpenFile(dirInode int, path string, flag int, mode uint32, who Identity) (int, error) {
-	dirInode, name, err := fs.walkpath(dirInode, path, true, who)
+func (fs *Filesystem) OpenFile(dir int, path string, flag int, mode uint32, who Identity) (int, error) {
+	return fs.OpenFileWithOptions(dir, path, flag, mode, OpenOptions{}, who)
+}
+
+type OpenOptions struct {
+	Directory bool
+	NoFollow  bool
+}
+
+func (fs *Filesystem) OpenFileWithOptions(dir int, path string, flag int, mode uint32, options OpenOptions, who Identity) (int, error) {
+	create, exclusive := flag&os.O_CREATE != 0, flag&os.O_EXCL != 0
+	if options.Directory && create {
+		return 0, syscall.EINVAL
+	}
+	policy := resolveFollowing
+	if options.NoFollow {
+		policy = resolveNoFollow
+	}
+	if create {
+		policy = resolveCreateEntry
+	}
+	links := 0
+	entry, err := fs.resolveWithLinks(dir, path, resolveOptions{Final: policy, AllowMissingFinal: create}, who, &links)
 	if err != nil {
 		return 0, err
 	}
-
-	// A trailing slash has already resolved a directory, including the root.
-	// Do not look up an empty directory entry (or create one for an empty path).
-	if name == "" {
-		if path == "" {
-			return 0, syscall.ENOENT
-		}
-		name = "."
+	if create && entry.TrailingSlash && entry.Name != "" && entry.Name != "." && entry.Name != ".." {
+		return 0, syscall.EISDIR
 	}
-
-	dir, ok := fs.mem.getDir(dirInode)
-	if !ok {
-		return 0, syscall.ENOTDIR
-	}
-
-	var inode int
-	created := false
-	if name != "." {
-		inode, ok = dir.entries[name]
-		if !ok {
-			if flag&os.O_CREATE == 0 {
-				return 0, syscall.ENOENT
-			}
-			if err := fs.CheckAccess(dirInode, who, AccessWrite|AccessExecute); err != nil {
-				return 0, err
-			}
-
-			inode = fs.mem.next
-			op := &allocOp{
-				dir:   false,
-				inode: inode,
-				meta:  inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID},
-			}
-			fs.apply(op)
-
-			dOp := &dirOp{
-				parts: []dirOpPart{
-					{
-						dir:  dirInode,
-						name: name,
-						file: inode,
-					},
-				},
-			}
-			fs.apply(dOp)
-			created = true
-
-			// slog.Info("fs create", "path", args.Path, "inode", inode)
-		}
-	} else {
-		// janky...
-		// TODO: handle "." everywhere that reads dir, and do it cleanly
-		// TODO: handle "..",
-		inode = dirInode
-		ok = true
-	}
-
-	if ok && flag&os.O_EXCL != 0 && flag&os.O_CREATE != 0 {
+	if entry.Inode != 0 && create && exclusive {
 		return 0, syscall.EEXIST
 	}
-	if _, isDir := fs.mem.getDir(inode); !isDir {
+	if link, ok := fs.mem.objects[entry.Inode].(*backingSymlink); ok && create && !options.NoFollow {
+		links++
+		if links > 40 {
+			return 0, syscall.ELOOP
+		}
+		entry, err = fs.resolveWithLinks(entry.Parent, link.target, resolveOptions{Final: resolveFollowing, AllowMissingFinal: true}, who, &links)
+		if err != nil {
+			return 0, err
+		}
+	}
+	_, isDir := fs.mem.getDir(entry.Inode)
+	if options.Directory && !isDir {
+		return 0, syscall.ENOTDIR
+	}
+	if _, isLink := fs.mem.objects[entry.Inode].(*backingSymlink); isLink {
+		return 0, syscall.ELOOP
+	}
+	if isDir && (flag&3 != os.O_RDONLY || flag&os.O_TRUNC != 0 || create) {
+		return 0, syscall.EISDIR
+	}
+	inode := entry.Inode
+	if inode == 0 {
+		if entry.TrailingSlash {
+			return 0, syscall.EISDIR
+		}
+		if err := fs.mutableParent(entry, who); err != nil {
+			return 0, err
+		}
+		inode = fs.mem.next
+		fs.apply(&allocOp{inode: inode, meta: inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID}})
+		fs.apply(&dirOp{parts: []dirOpPart{{dir: entry.Parent, name: entry.Name, file: inode}}})
+	} else {
 		var need Access
 		if flag&3 != os.O_WRONLY {
 			need |= AccessRead
 		}
-		if flag&3 != os.O_RDONLY {
+		if flag&3 != os.O_RDONLY || flag&os.O_TRUNC != 0 {
 			need |= AccessWrite
 		}
-		if !created {
-			if err := fs.CheckAccess(inode, who, need); err != nil {
-				return 0, err
-			}
+		if err := fs.CheckAccess(inode, who, need); err != nil {
+			return 0, err
 		}
-	} else if flag&3 != os.O_RDONLY {
-		return 0, syscall.EISDIR
 	}
-	if ok && flag&os.O_TRUNC != 0 {
+	if flag&os.O_TRUNC != 0 {
 		file := fs.mem.getFile(inode)
 		if file.len() != 0 {
-			op := &resizeOp{
-				inode: inode,
-				size:  0,
-			}
-			fs.apply(op)
+			fs.apply(&resizeOp{inode: inode, size: 0})
 		}
 	}
 	fs.openCountByInode[inode]++
-
 	return inode, nil
 }
 
@@ -1171,8 +1183,9 @@ func (fs *Filesystem) CloseFile(inode int) error {
 }
 
 type ReadDirEntry struct {
-	Name  string
-	IsDir bool
+	Name      string
+	IsDir     bool
+	IsSymlink bool
 }
 
 func (fs *Filesystem) ReadDir(inode int, who Identity) ([]ReadDirEntry, error) {
@@ -1190,6 +1203,8 @@ func (fs *Filesystem) ReadDir(inode int, who Identity) ([]ReadDirEntry, error) {
 
 		obj := fs.mem.objects[inode]
 		switch obj.(type) {
+		case *backingSymlink:
+			de = ReadDirEntry{Name: name, IsSymlink: true}
 		case *backingDir:
 			de = ReadDirEntry{
 				Name:  name, // XXX?
@@ -1217,75 +1232,6 @@ func (fs *Filesystem) ReadDir(inode int, who Identity) ([]ReadDirEntry, error) {
 
 func (fs *Filesystem) GetInodeInfo(inode int) InodeInfo {
 	return fs.getInodeInfo(inode)
-}
-
-func (fs *Filesystem) walkpath(baseInode int, path string, keepLast bool, who Identity) (inode int, entry string, err error) {
-	// TODO(not planned): symlink traversal; the model contains only files and directories.
-	// TODO: harden and test; this function and its callers are not not well
-	// tested and brittle
-
-	if len(path) > 0 && path[0:1] == "/" {
-		baseInode = RootInode
-	}
-
-	inode = baseInode
-	for {
-		for len(path) > 0 && path[0:1] == "/" {
-			path = path[1:]
-		}
-
-		nextSlash := strings.Index(path, "/")
-		var name string
-		if nextSlash == -1 {
-			name = path
-		} else {
-			name = path[:nextSlash]
-		}
-
-		if len(name) == len(path) && keepLast {
-			if _, ok := fs.mem.getDir(inode); !ok {
-				return 0, "", syscall.ENOTDIR
-			}
-			if err := fs.CheckAccess(inode, who, AccessExecute); err != nil {
-				return 0, "", err
-			}
-			return inode, name, nil
-		}
-
-		if name == "" {
-			// entire path is empty? assume current dir
-			if err := fs.CheckAccess(inode, who, AccessExecute); err != nil {
-				return 0, "", err
-			}
-			return inode, "", nil
-		}
-
-		// check it is a dir
-		dir, ok := fs.mem.getDir(inode)
-		if !ok {
-			return 0, "", syscall.ENOTDIR
-		}
-		if err := fs.CheckAccess(inode, who, AccessExecute); err != nil {
-			return 0, "", err
-		}
-
-		if name == "." {
-			// stay
-			inode = dir.inode
-		} else if name == ".." {
-			// go up
-			inode = dir.parent
-		} else {
-			// check it has
-			entry, ok := dir.entries[name]
-			if !ok {
-				return 0, "", syscall.ENOENT
-			}
-			inode = entry
-		}
-
-		path = path[len(name):]
-	}
 }
 
 // Open a mmap for the given inode. Mmap starts at offset 0.
@@ -1316,5 +1262,40 @@ func (fs *Filesystem) Munmap(m *Mmap) {
 	file.mmaps = slices.Delete(file.mmaps, idx, idx+1)
 	if err := fs.CloseFile(m.Inode); err != nil {
 		panic(err)
+	}
+}
+
+// Include Q itself: when B has just moved out of A, moving A into B must
+// retain B's earlier move, not merely the parent moves above B.
+func (fs *Filesystem) directoryAncestorsInclusive(inode int) ([]int, error) {
+	var chain []int
+	seen := make(map[int]bool)
+	for inode != RootInode {
+		if inode == 0 {
+			return nil, syscall.ENOENT
+		}
+		if seen[inode] {
+			panic("filesystem directory topology cycle")
+		}
+		seen[inode] = true
+		dir, ok := fs.mem.getDir(inode)
+		if !ok {
+			panic("filesystem directory parent is not a directory")
+		}
+		if dir.unlinked {
+			return nil, syscall.ENOENT
+		}
+		chain = append(chain, inode)
+		inode = dir.parent
+	}
+	return chain, nil
+}
+
+// Dependency inputs are owned and immutable after preparation. Crash plans
+// copy the dependency keys separately; these slices are inert during apply.
+func (fs *Filesystem) prepareDirOp(parts []dirOpPart, moved int, chain, empty []int) *dirOp {
+	return &dirOp{
+		parts: slices.Clone(parts), movedDirectory: moved,
+		destinationChain: slices.Clone(chain), emptyDirs: slices.Clone(empty),
 	}
 }

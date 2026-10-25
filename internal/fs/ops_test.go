@@ -227,7 +227,7 @@ func TestFileDescriptorOwnerFailuresAndCleanup(t *testing.T) {
 			t.Fatal(flags, err)
 		}
 	}
-	if _, err := i.Openat(ctx, foreign, "unsupported", 0, 0); !errors.Is(err, syscall.EINVAL) {
+	if _, err := i.Openat(ctx, foreign, "unsupported", 0, 0); !errors.Is(err, syscall.ENOTDIR) {
 		t.Fatal(err)
 	}
 	ro := open(t, i, ctx, "allocation", 0)
@@ -309,5 +309,30 @@ func TestStatErrorPreservesErrno(t *testing.T) {
 	}
 	if got := statError(errors.New("unclassified model error")); got != syscall.EINVAL {
 		t.Fatal(got)
+	}
+}
+
+func TestDirectoryCapabilitiesDescribeLimits(t *testing.T) {
+	t.Parallel()
+	capabilities := map[string]Capability{}
+	for _, c := range Capabilities() {
+		capabilities[c.Operation] = c
+	}
+	for _, name := range []string{"readlinkat", "symlinkat", "openat", "fstatat", "newfstatat", "getdents64", "lseek"} {
+		c := capabilities[name]
+		if c.Status != "limited" || c.Detail == "" {
+			t.Fatalf("missing qualified capability %s: %+v", name, c)
+		}
+	}
+	for _, name := range []string{"Name", "Close", "Open", "Create", "OpenFile", "OpenRoot", "Chmod", "Chown", "Lchown", "Mkdir", "MkdirAll", "Remove", "RemoveAll", "Stat", "Lstat", "Readlink", "Symlink", "Rename", "ReadFile", "WriteFile", "FS"} {
+		c := capabilities["os.Root."+name]
+		if c.Status != "supported" && c.Status != "limited" {
+			t.Fatalf("unclassified Root.%s: %+v", name, c)
+		}
+	}
+	for _, name := range []string{"Link", "Chtimes"} {
+		if c := capabilities["os.Root."+name]; c.Status != "rejected" {
+			t.Fatalf("Root.%s overclaimed: %+v", name, c)
+		}
 	}
 }

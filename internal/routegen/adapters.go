@@ -18,6 +18,7 @@ import (
 // A declaration is selected explicitly even when several upstream names map to
 // the same service. No absent function can disappear from generated output.
 var adapterOperations = map[string]string{
+	"readlinkat": "Readlinkat", "Readlinkat": "Readlinkat", "symlinkat": "Symlinkat", "Symlinkat": "Symlinkat",
 	"accept4": "Accept", "bind": "Bind", "Chdir": "Chdir", "Close": "Close", "connect": "Connect",
 	"Fallocate": "Fallocate", "fcntl": "FcntlInt", "FcntlInt": "FcntlInt", "FcntlFlock": "FcntlLock",
 	"Fdatasync": "DataSync", "Flock": "Flock", "Fstat": "Fstat", "Fstatfs": "FstatFS", "Statfs": "StatFS", "fstatat": "Statat", "Fstatat": "Statat", "Fsync": "Sync",
@@ -32,7 +33,7 @@ var adapterOperations = map[string]string{
 }
 
 func adapterOwner(operation string) string {
-	if slices.Contains(strings.Fields("Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync DataSync Fstat Statat StatFS FstatFS Fchmod Chmodat Fchown Chownat Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise"), operation) {
+	if slices.Contains(strings.Fields("Symlinkat Readlinkat Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync DataSync Fstat Statat StatFS FstatFS Fchmod Chmodat Fchown Chownat Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise"), operation) {
 		return "fs"
 	}
 	if slices.Contains(strings.Fields("Socket Bind Listen Accept Connect LocalAddress PeerAddress SetOption GetOption"), operation) {
@@ -45,11 +46,11 @@ func adapterSymbols(pkg string) []string {
 	symbols := strings.Fields("accept4 bind Chdir Close connect Fallocate Fdatasync Flock Fstat Fstatfs Statfs Fsync Ftruncate Getcwd Getdents getpeername Getpid getsockname getsockopt Listen Madvise Mkdirat mmap munmap openat pread pwrite read Renameat Seek setsockopt socket Uname write fcntl FcntlFlock Getrlimit RawSyscall RawSyscall6 Syscall Syscall6")
 	switch pkg {
 	case "syscall":
-		return append(symbols, "fstatat", "unlinkat", "rawSyscallNoError", "rawVforkSyscall", "Fchmod", "Fchmodat", "Fchown", "Fchownat")
+		return append(symbols, "readlinkat", "symlinkat", "fstatat", "unlinkat", "rawSyscallNoError", "rawVforkSyscall", "Fchmod", "Fchmodat", "Fchown", "Fchownat")
 	case "golang.org/x/sys/unix":
-		return append(symbols, "Fstatat", "Unlinkat", "Getrandom", "vgetrandom", "FcntlInt", "SyscallNoError", "RawSyscallNoError", "Fchmod", "Fchmodat", "Fchown", "Fchownat")
+		return append(symbols, "Readlinkat", "Symlinkat", "Fstatat", "Unlinkat", "Getrandom", "vgetrandom", "FcntlInt", "SyscallNoError", "RawSyscallNoError", "Fchmod", "Fchmodat", "Fchown", "Fchownat")
 	case "internal/syscall/unix":
-		return strings.Fields("fcntl GetRandom vgetrandom Openat Unlinkat Fchmodat Fchownat")
+		return strings.Fields("fcntl GetRandom vgetrandom Openat Unlinkat Fchmodat Fchownat Fstatat Mkdirat Renameat Readlinkat Symlinkat")
 	}
 	panic(pkg)
 }
@@ -121,6 +122,10 @@ func signatureType(source *ast.FuncType, target bool, pkg, owner string) (string
 
 func adapterType(expr ast.Expr, pkg, owner string) ast.Expr {
 	switch x := expr.(type) {
+	case *ast.SelectorExpr:
+		if ident, ok := x.X.(*ast.Ident); ok && ident.Name == "syscall" && slices.Contains(layoutNames, x.Sel.Name) {
+			return adapterType(x.Sel, "syscall", owner)
+		}
 	case *ast.StarExpr:
 		x.X = adapterType(x.X, pkg, owner)
 	case *ast.Ident:

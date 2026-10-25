@@ -257,7 +257,7 @@ func (d *Dispatcher) fsDelay(inv *Invocation, openMutation bool) (int64, error) 
 		}
 	case RoutePread, RoutePwrite, RouteFallocate, RouteTruncate, RouteSync,
 		RouteMkdirat, RouteRenameat, RouteUnlinkat, RouteFchmod, RouteChmodat,
-		RouteFchown, RouteChownat:
+		RouteFchown, RouteChownat, RouteSymlinkat:
 	default:
 		return 0, nil
 	}

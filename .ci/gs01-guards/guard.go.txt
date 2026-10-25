@@ -1,0 +1,25 @@
+//go:build sim
+
+package guards_test
+
+import (
+    "os"
+    "testing"
+    {{IMPORTS}}
+)
+
+const probePath = {{PROBE}}
+
+func must(err error) {
+    if err != nil { panic(err) }
+}
+
+func operation() {
+    defer func() { _ = recover(); panic("GS01_UNWOUND") }()
+    {{BODY}}
+    panic("GS01_RETURNED")
+}
+
+{{INIT}}
+
+func TestGS01Guard(t *testing.T) { operation() }

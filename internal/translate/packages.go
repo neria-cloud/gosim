@@ -26,6 +26,7 @@ const (
 )
 
 func classifyPackage(pkg *packages.Package) (packageKind, string) {
+	owner := testOwner(pkg)
 	switch {
 	case pkg.Name == "main" && strings.HasSuffix(pkg.PkgPath, ".test"):
 		// XXX: is this correct?
@@ -34,8 +35,15 @@ func classifyPackage(pkg *packages.Package) (packageKind, string) {
 	case strings.HasSuffix(pkg.Name, "_test"):
 		return PackageKindTests, strings.TrimSuffix(pkg.PkgPath, "_test")
 
-	case strings.HasSuffix(pkg.ID, ".test]"):
+	case owner != "" && owner == pkg.PkgPath:
 		return PackageKindForTest, pkg.PkgPath
+
+	case owner != "":
+		// Go also recompiles ordinary dependencies for a test binary when
+		// they import its augmented package. They contain production source,
+		// not the package-under-test's extra declarations. Translate them in
+		// full, retaining their distinct ID and imports for cache identity.
+		return PackageKindBase, pkg.PkgPath
 
 	case !strings.HasSuffix(pkg.Name, "_test") && pkg.PkgPath == pkg.ID:
 		return PackageKindBase, pkg.PkgPath
@@ -43,4 +51,14 @@ func classifyPackage(pkg *packages.Package) (packageKind, string) {
 	default:
 		panic(fmt.Errorf("unclassified package %s %s %s", pkg.Name, pkg.PkgPath, pkg.ID))
 	}
+}
+
+// testOwner returns the package whose test binary induced this variant. An
+// indirect dependency must be type checked in that context, not as its own test.
+func testOwner(pkg *packages.Package) string {
+	prefix, suffix, ok := strings.Cut(pkg.ID, " [")
+	if !ok || prefix != pkg.PkgPath || !strings.HasSuffix(suffix, ".test]") {
+		return ""
+	}
+	return strings.TrimSuffix(suffix, ".test]")
 }

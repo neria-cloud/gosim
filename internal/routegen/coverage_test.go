@@ -21,7 +21,7 @@ func TestTargetServiceRouteCoverage(t *testing.T) {
 		routes[r.Name] = r
 	}
 	for _, group := range []struct{ owner, prefix, methods string }{
-		{"fs", "", "Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync Fstat Statat Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise"},
+		{"fs", "", "Symlinkat Readlinkat Openat Renameat Getdents64 Fallocate Seek Pwrite Pread Sync Fstat Statat Unlinkat Truncate Chdir Getcwd Mkdirat Flock FcntlLock Map Unmap Advise"},
 		{"net", "", "Socket Bind Listen Accept Connect LocalAddress PeerAddress SetOption GetOption"},
 		{"fs", "FS", "ConfigureMachine SetCrashMode SetSyncFault InspectInode Enumerate NextSnapshot CloseIterator Restore CloseSnapshot"},
 		{"net", "Net", "Configure ConfigureMachine Address SetLinkPolicy ResetLinkPolicy SetConnectivity"},
