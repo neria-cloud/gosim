@@ -223,9 +223,18 @@ func reloadSelectedPackages(project, inputDir string, appRoots []*packages.Packa
 		}
 	}
 	groups := map[bool]map[string]bool{false: {}, true: {}}
+	indirectTests := false
 	for id := range misses {
-		kind, path := classifyPackage(graph.nodes[id])
+		pkg := graph.nodes[id]
+		kind, path := classifyPackage(pkg)
 		if kind == PackageKindTestBinary {
+			continue
+		}
+		if owner := testOwner(pkg); owner != "" {
+			groups[true][owner] = true
+			if kind == PackageKindBase {
+				indirectTests = true
+			}
 			continue
 		}
 		groups[app[path]][path] = true
@@ -244,13 +253,22 @@ func reloadSelectedPackages(project, inputDir string, appRoots []*packages.Packa
 		if tests {
 			dir = project
 		}
-		roots, err := loadSelectedPackages(dir, patterns, cfg, loadSyntaxAndTypes, tests)
+		mode := loadSyntaxAndTypes
+		if tests && indirectTests {
+			// Induced variants are dependencies of the owning test roots, not
+			// roots themselves. Request their syntax and types as well.
+			mode |= packages.NeedDeps
+		}
+		roots, err := loadSelectedPackages(dir, patterns, cfg, mode, tests)
 		if err != nil {
 			return nil, err
 		}
-		for _, pkg := range roots {
-			typed[pkg.ID] = pkg
-		}
+		packages.Visit(roots, func(pkg *packages.Package) bool {
+			if misses[pkg.ID] {
+				typed[pkg.ID] = pkg
+			}
+			return tests && indirectTests
+		}, nil)
 	}
 	return typed, nil
 }

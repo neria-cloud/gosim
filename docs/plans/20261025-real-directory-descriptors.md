@@ -261,17 +261,21 @@ func syscallRouteResult(value any, err error) (Result, bool, error)
 
 **Target references:** [Consumer acceptance gates](../brainstorms/20261025-real-directory-descriptors-target.md#consumer-acceptance-gates--simulation-and-native-evidence), [Disposable consumer harness](../brainstorms/20261025-real-directory-descriptors-target.md#disposable-consumer-harness), agreed evidence matrix and execution boundary. Peer Thread 2 supplies pinned consumer paths and compiler applicability.
 
+**Scope extension approved by the user, 2026-10-25:** “Include the translator fix in Task 6.” Repair indirect test-dependency classification, graph handling and typed reload; add focused regressions and rerun unchanged consumer gate A. Preserve consumer source/assertions, replay identity, package boundaries and native Darwin/Linux compatibility.
+
+- [x] Fix and test indirect test-dependency translation, including full production declarations/globals, owning-test-context typed reload and cache/dependency identity.
+
 **Files:** new host-only `.ci/gs01-consumer/` preparation helper and helper tests; generated copies/manifests/bootstrap under ignored `.gosim/gs01-consumer/`. No changes to the real consumer repository, production consumer bodies or existing test assertions. The helper is ordinary preparation tooling, not certification or a new library API. Use package main with its own focused Go tests under .ci/gs01-consumer; no nested module or new production dependency is needed. The normal root ./... traversal does not discover dot-prefixed tooling directories, so V6 explicitly runs its helper tests.
 
-- [ ] Prepare from local Git objects at full revision `10c78f90aab45267d4dc29265c59f410c1d87c40`; verify that object and repository identity. Do not use the current consumer worktree HEAD or copy its untracked edits. Require a fresh destination and refuse overwrite.
-- [ ] Materialize two independent copies: original native functional source and simulation-only harness. Use safe archive extraction, keeping output inside its destination. Do not mutate either original checkout.
-- [ ] In the simulation copy only, parse build constraints and replace the functional atom with sim while preserving negation/boolean structure. Rewrite consistent legacy +build constraints if present. Keep test bodies and all non-test production source byte-identical. Verify the assumption that no compiled non-test source uses functional before proceeding; surface a changed baseline instead of silently transforming production code.
-- [ ] Add only the target-approved sim temporary-directory bootstrap, schema-2 feature configuration and Gosim module requirement/replacement selecting the exact implementation checkout. Keep gquorum's Go 1.26 directive and dependency graph requirements; do not force Go 1.25, substitute Darwin source in simulation, or downgrade x/sys to conceal a compatibility mismatch.
-- [ ] Record the manifest fields below, including the precise added files and module/config differences. Verify production/body hashes before and after simulation execution. Compare original Linux functional selection with transformed Linux sim selection, including when the host is Darwin; separately retain native Darwin selection. Do not require identical selected source sets between different native OSes or substitute Linux files into the native Darwin copy.
-- [ ] Unit-test atom substitution for positive, negative and combined expressions; matching legacy constraints; unchanged bodies; selection equivalence; fresh-output refusal; and manifest integrity. These tests use synthetic local fixtures, not consumer test execution or network access.
-- [ ] Run gate A with Go 1.26 and exact names/seeds, retaining t.Parallel and actual descriptor operations. Inspect execution to confirm the static call-graph assumption; first-use third-party failures must be diagnosed by their actual route/declaration, not called a statx blocker in advance.
-- [ ] Require all four A tests to pass. If a new required capability is outside the accepted target, record the concrete blocker and return it for scope resolution; do not replace production operations, disable checks, or count compilation/skip/abort as acceptance.
-- [ ] Keep B/C tests in the copied sources and manifest but report their simulation dependencies separately. Select any supported staging shapes by exact subtest name; never label the whole staging test passed with hardlink omitted. If a required unchanged fixture exceeds the listing limit, report the pagination dependency instead of shrinking it.
+- [x] Prepare from local Git objects at full revision `10c78f90aab45267d4dc29265c59f410c1d87c40`; verify that object and repository identity. Do not use the current consumer worktree HEAD or copy its untracked edits. Require a fresh destination and refuse overwrite.
+- [x] Materialize two independent copies: original native functional source and simulation-only harness. Use safe archive extraction, keeping output inside its destination. Do not mutate either original checkout.
+- [x] In the simulation copy only, parse build constraints and replace the functional atom with sim while preserving negation/boolean structure. Rewrite consistent legacy +build constraints if present. Keep test bodies and all non-test production source byte-identical. Verify the assumption that no compiled non-test source uses functional before proceeding; surface a changed baseline instead of silently transforming production code.
+- [x] Add only the target-approved sim temporary-directory bootstrap, schema-2 feature configuration and Gosim module requirement/replacement selecting the exact implementation checkout. Keep gquorum's Go 1.26 directive and dependency graph requirements; do not force Go 1.25, substitute Darwin source in simulation, or downgrade x/sys to conceal a compatibility mismatch.
+- [x] Record the manifest fields below, including the precise added files and module/config differences. Verify production/body hashes before and after simulation execution. Compare original Linux functional selection with transformed Linux sim selection, including when the host is Darwin; separately retain native Darwin selection. Do not require identical selected source sets between different native OSes or substitute Linux files into the native Darwin copy.
+- [x] Unit-test atom substitution for positive, negative and combined expressions; matching legacy constraints; unchanged bodies; selection equivalence; fresh-output refusal; and manifest integrity. These tests use synthetic local fixtures, not consumer test execution or network access.
+- [x] Run gate A with Go 1.26 and exact names/seeds, retaining t.Parallel and actual descriptor operations. Inspect execution to confirm the static call-graph assumption; first-use third-party failures must be diagnosed by their actual route/declaration, not called a statx blocker in advance.
+- [x] Require all four A tests to pass. If a new required capability is outside the accepted target, record the concrete blocker and return it for scope resolution; do not replace production operations, disable checks, or count compilation/skip/abort as acceptance.
+- [x] Keep B/C tests in the copied sources and manifest but report their simulation dependencies separately. Select any supported staging shapes by exact subtest name; never label the whole staging test passed with hardlink omitted. If a required unchanged fixture exceeds the listing limit, report the pagination dependency instead of shrinking it.
 
 The harness manifest is evidence, not a new runtime schema. It records: schema version; consumer repository/revision; exact Go version; Gosim source identity/path; native/sim copy paths; original and final file hashes; rewritten constraint expressions; test-body/production hashes; added bootstrap/config/module edits; selected files/tests/subtests; features/seeds; command log paths; exit status and passed/failed/skipped/blocked outcomes. Add no secrets or host credentials.
 
@@ -284,9 +288,9 @@ Gate A exact names:
 
 #### Verification
 
-- [ ] Run preparation-helper tests with host linkname flags and inspect the generated manifest (V6).
-- [ ] Run simulated A on seeds 1–3 with Go 1.26.5 where available, or a recorded supported 1.26 patch with the baseline difference explicit (V6). Require real test execution and unchanged assertions/production code.
-- [ ] Verify B/C and lock-exclusion limitations are reported separately. The journal boundary-error tests do not replace translated crash-state enumeration.
+- [x] Run preparation-helper tests with host linkname flags and inspect the generated manifest (V6).
+- [x] Run simulated A on seeds 1–3 with Go 1.26.5 where available, or a recorded supported 1.26 patch with the baseline difference explicit (V6). Require real test execution and unchanged assertions/production code.
+- [x] Verify B/C and lock-exclusion limitations are reported separately. The journal boundary-error tests do not replace translated crash-state enumeration.
 
 ### Task 7: Complete capability metadata, architectural documentation and generated checks
 
@@ -458,7 +462,7 @@ No entry is complete at planning time. Earlier prototype runs are historical onl
 | Native Darwin ARM64 | Both Gosim families, native common/Darwin behavior | Not run for final implementation |
 | Native Linux ARM64 | Both families, reference and shared behavior | Deferred by current Darwin-only execution scope; no native result |
 | Native Linux AMD64 | Focused native/translated evidence, both families | Explicitly user-deferred to future testing |
-| Simulated consumer A | Four exact journal tests on pinned Go 1.26 consumer | Not run; required, not blocked on statx in advance |
+| Simulated consumer A | Four exact journal tests on pinned Go 1.26 consumer | Passed four unchanged tests × seeds 1–3 on Go 1.26.5 after the approved translator repair; 12 top-level and 36 total pass lines, zero skips. Final-identity revalidation belongs to Task 8. |
 | Simulated consumer B | Archive/artifact mount identity | Depends on GS-03 increment 2 |
 | Simulated consumer C | Staging hardlink safety | Depends on GS-03 increment 1 |
 | Native consumer A/B/C | Original source/tags, Go 1.26 | Darwin ARM64 required in this run; Linux deferred by user scope |
@@ -479,16 +483,18 @@ Plan implementation completion, native qualification and full issue #12 acceptan
 
 ## NOT PLANNED CHANGES
 
-None during planning. During execution record the affected file, reason, task, targeted verification and a focused diff/reference for every incidental change. Do not attach unrelated code to a feature commit or silently broaden the target.
+None during planning. The user explicitly extended Task 6 to repair indirect test-dependency translation after the unchanged consumer exposed it. `internal/translate/packages.go` now distinguishes indirect production variants from direct test additions; `internal/translate/main.go` reloads indirect misses with their owning test context. `internal/translate/indirect_test.go` covers classification, graph/cache identity and native/translated batch/cache behavior under both families. The Task 6 commit contains the focused diff. No consumer bodies or production operations changed.
 
 ## NOT IMPLEMENTED GAPS
 
 This is an execution ledger, not a list of waived requirements. Use `[_]` for a still-unresolved item; replace it with a recorded fix/evidence reference only when resolved.
 
-- [_] All implementation tasks are unexecuted. The preserved prototype has known target mismatches, including resolver policies, optional fcntl, topology, listing behavior and capability/test coverage. Resolve through Tasks 1–7 after direct execution authorization.
+- [_] Tasks 1–6 are implemented with focused evidence, including consumer gate A after the approved translator fix. Tasks 7–9 remain unexecuted; capability documentation and full final validation/audit are pending.
 - [_] [user-deferred] Native Linux ARM64/AMD64 qualification awaits future testing; the user limited this execution to Darwin ARM64. This is a declared qualification gap, not a passing result or a current-run infrastructure blocker.
 - [_] Darwin qualification and final consumer A execution are pending. Native Linux errno/removed-directory-dotdot qualification is user-deferred; source review is not native execution evidence.
 - [_] Simulated consumer B/C requires GS-03 capabilities by the accepted scope. Preserve this dependency in final reporting and do not claim full issue #12 acceptance prematurely.
+
+- [x] Task 6 scope resolution and repair: `internal/translate/packages.go` classifies an indirect recompiled dependency (`gquorum [disk.test]`) as its own test variant; `internal/translate/graph.go:152` rejects its absent base. A minimal parent/leaf/external-test fixture passes native Darwin/Go 1.26.5 but fails under rt simulation with the same error. The user approved the repair on 2026-10-25. Production classification and owning-context typed reload now pass focused regressions under both families and unchanged gquorum A under Go 1.26.5. No consumer assertions/imports were changed. See `.ci/gs01-consumer/README.md` and `.gosim/validation/gs01/task6/`.
 
 ## Progress log
 
@@ -505,3 +511,7 @@ Future entries must name the completed task, exact checks/results, source identi
 - 2026-10-25 Task 4: Whole-directory preflight now fails fatally without partial output; directory rewind and typed-failure transport/attribution are verified. fs, kernel and routegen passed under both compilers, along with both-family generation/profile checks and formatting. Logs: `.gosim/validation/gs01/task4/`.
 
 - 2026-10-25 Task 5: Added portable/native-only/sim-only API and CrashStates regressions, exact file-selection inventory, and a dedicated nine-case fatal guard checker. Both compiler families passed native Darwin tests, 16 translated top-level tests × three seeds (plus subtests), existing determinism/seed metatests, and all guard cases. Linux-native references remain user-deferred. Logs: `.gosim/validation/gs01/task5/`, `test-reports/gs01/guards/`.
+
+- 2026-10-25 Task 6 (incomplete): Added pinned native/sim preparation, hash/selection verification and strict gate-A execution checking. Four host helper tests passed on go1.26.9; pinned preparation and post-failure integrity verification passed on go1.26.5. Gate A failed before test execution at the translator missing-base check; independently reproduced with a minimal rt-only fixture whose two tests pass natively. No A/B/C consumer passes are claimed. Scope resolution is required by Task 6 before a translator repair; Tasks 7–9 were not started.
+
+- 2026-10-25 Task 6 completed: The user-approved translator repair passed three focused regression functions and related graph/cache checks under go1.25.14 and go1.26.9. Four unchanged gquorum A tests passed seeds 1–3 under go1.26.5 (12 top-level / 36 total pass lines, no skips), with source/body integrity verified afterward. Manifest: `.gosim/gs01-consumer/go1265-v4/manifest.json`; logs: `.gosim/validation/gs01/task6/`. Simulation B/C and lock-exclusion limits remain separate.
