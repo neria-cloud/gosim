@@ -16,7 +16,15 @@
 
 **Target SHA-256 at planning:** `7d5716c709dd3d93cca085a4ffaf6e0e0c55d12cd586d82512fe0759f91e31cc`
 
-**Status:** planned, not executed. The user approved the nine-task grouping. Creating this plan does not authorize implementation or test execution; a separate direct task is required.
+**Status:** execution in progress, directly requested by the user on 2026-10-25. Start from the first unchecked task. Restricted suites and missing native-runner evidence remain subject to the explicit boundaries below.
+
+## Active goal addendum — user steering, 2026-10-25
+
+Execute this plan by aligning every change and the final architectural audit to the verified target architecture at `docs/brainstorms/20261025-real-directory-descriptors-target.md`. The target defines the desired end state; the incomplete prototype and passing narrow tests are not substitutes for it. If the schedule conflicts with the target, record the discrepancy and follow the target, except for explicit later user instructions.
+
+The user specified: "arm64 Darwin for the plan. Amd64 we will test in future" and "Use the verified target architecture for aligning take to the target state. Add this info to the goal". Current execution is therefore Darwin ARM64, including native Darwin checks and translated Linux semantics under both Go families. AMD64 execution is deferred; native Linux execution is also outside this Darwin-only run. Keep Linux/macOS source compatibility and all corresponding test fixtures in scope. Report deferred native results explicitly, without claiming Linux execution, cross-platform qualification or full issue acceptance. No extra runner or infrastructure is required to finish the currently authorized execution scope.
+
+This addendum is persisted here because the active goal references this plan and the goal API exposes status changes only; the API objective text itself was not edited. It supersedes the original execution requirements for native runners, without changing the verified implementation architecture or permitting restricted suites.
 
 ## Outcome and accepted scope
 
@@ -78,21 +86,21 @@ Readlinkat(contracts.CallContext, int, string, abi.ByteView) (int, error)
 
 Within package contracts, use the local CallContext spelling. Existing FileOps signatures remain otherwise unchanged.
 
-- [ ] Inventory and preserve the useful prototype changes. Confirm the current route maximum and retain appended IDs 84 Symlinkat and 85 Readlinkat rather than adding duplicates. Keep their target argument/result order: Target/DirFD/Path, and DirFD/Path/Into → Count.
-- [ ] Retain real provider implementations already present in the draft; do not add successful temporary stubs to get a build. Finish their ordinary contract/fake wiring as a single buildable change.
-- [ ] Reconcile FcntlInt to validated-file ENOSYS; remove prototype-only statusFlags/descriptorFlags behavior and O_NONBLOCK acceptance. Preserve the existing File inode, read/write access, position and release ownership. Restore only the corresponding fcntl/NONBLOCK test expectations deliberately, retaining unrelated descriptor improvements.
-- [ ] Keep O_CLOEXEC accepted/stripped. Keep DIRECTORY/NOFOLLOW values in the simulated-architecture files: ARM64 0x4000/0x8000, AMD64 0x10000/0x20000. Do not import Darwin constants into provider decisions.
-- [ ] Verify the added private hooks Fstatat, Mkdirat, Renameat, Readlinkat and Symlinkat plus syscall readlinkat/symlinkat and x/sys Readlinkat/Symlinkat against both compiler families. Preserve existing Openat/Unlinkat hooks and raw-call rejection.
-- [ ] Implement/test adapterType's selector handling for private `*syscall.Stat_t` using the existing reviewed kernel Stat_t layout. Preserve NUL validation, Require(FS), borrowed-view and race annotations. No new native-I/O bypass or Statx layout is introduced.
-- [ ] Author shared declarations/capabilities in the go125 baseline and inherit them in go126. Do not copy family implementations or introduce runtime version switches. Refresh origins only when required, with the matching recorded compiler and contract validation; leave historical evidence untouched.
-- [ ] Keep catalogue names/counts consistent: rt 8, rt/fs 36, rt/net 17, full 45. Directory-context FDs remain outside primary descriptor attribution. Add Symlinkat mutation latency; Readlinkat remains immediate metadata.
-- [ ] Regenerate adapters and profiles in the documented order and inspect the diff. Format the touched draft Go files, including the unformatted prototype test, as part of future execution only.
+- [x] Inventory and preserve the useful prototype changes. Confirm the current route maximum and retain appended IDs 84 Symlinkat and 85 Readlinkat rather than adding duplicates. Keep their target argument/result order: Target/DirFD/Path, and DirFD/Path/Into → Count.
+- [x] Retain real provider implementations already present in the draft; do not add successful temporary stubs to get a build. Finish their ordinary contract/fake wiring as a single buildable change.
+- [x] Reconcile FcntlInt to validated-file ENOSYS; remove prototype-only statusFlags/descriptorFlags behavior and O_NONBLOCK acceptance. Preserve the existing File inode, read/write access, position and release ownership. Restore only the corresponding fcntl/NONBLOCK test expectations deliberately, retaining unrelated descriptor improvements.
+- [x] Keep O_CLOEXEC accepted/stripped. Keep DIRECTORY/NOFOLLOW values in the simulated-architecture files: ARM64 0x4000/0x8000, AMD64 0x10000/0x20000. Do not import Darwin constants into provider decisions.
+- [x] Verify the added private hooks Fstatat, Mkdirat, Renameat, Readlinkat and Symlinkat plus syscall readlinkat/symlinkat and x/sys Readlinkat/Symlinkat against both compiler families. Preserve existing Openat/Unlinkat hooks and raw-call rejection.
+- [x] Implement/test adapterType's selector handling for private `*syscall.Stat_t` using the existing reviewed kernel Stat_t layout. Preserve NUL validation, Require(FS), borrowed-view and race annotations. No new native-I/O bypass or Statx layout is introduced.
+- [x] Author shared declarations/capabilities in the go125 baseline and inherit them in go126. Do not copy family implementations or introduce runtime version switches. Refresh origins only when required, with the matching recorded compiler and contract validation; leave historical evidence untouched.
+- [x] Keep catalogue names/counts consistent: rt 8, rt/fs 36, rt/net 17, full 45. Directory-context FDs remain outside primary descriptor attribution. Add Symlinkat mutation latency; Readlinkat remains immediate metadata.
+- [x] Regenerate adapters and profiles in the documented order and inspect the diff. Format the touched draft Go files, including the unformatted prototype test, as part of future execution only.
 
 #### Verification
 
-- [ ] Run focused contracts, kernel, provider and routegen checks under Go 1.25.14 and 1.26.9 (V1); test hook selector conversion, route ownership/coverage and catalogue counts.
-- [ ] Run generation checks for both recorded families (V2); no generated-output mismatch or stale revision remains.
-- [ ] Through the launcher, run the existing descriptor/Root prototypes and filesystem monitor under both compilers (V3). Confirm NewFile and the directory chain work through ENOSYS fallback; no extra fcntl success expectation is retained.
+- [x] Run focused contracts, kernel, provider and routegen checks under Go 1.25.14 and 1.26.9 (V1); test hook selector conversion, route ownership/coverage and catalogue counts.
+- [x] Run generation checks for both recorded families (V2); no generated-output mismatch or stale revision remains.
+- [x] Through the launcher, run the existing descriptor/Root prototypes and filesystem monitor under both compilers (V3). Confirm NewFile and the directory chain work through ENOSYS fallback; no extra fcntl success expectation is retained.
 
 ### Task 2: Complete component resolution, symlink storage and inode-bound operations
 
@@ -303,18 +311,18 @@ Gate A exact names:
 - [ ] Run the formatting check (V7). Lint only changed cmd/examples files if any are actually introduced; do not expand lint scope into runtime/providers/generated code.
 - [ ] Review documentation against implemented behavior and explicit incomplete evidence, including native/simulation file selection.
 
-### Task 8: Execute ordinary validation and obtain native Linux/macOS qualification
+### Task 8: Execute Darwin ARM64 validation and record deferred native qualification
 
-**Depends on:** Tasks 1–7; concrete native runners must be available and execution separately requested. **Authored changes:** normally none except fixes justified by failures and plan evidence entries.
+**Depends on:** Tasks 1–7; current execution is Darwin ARM64 under the user steering recorded above. **Authored changes:** normally none except fixes justified by failures and plan evidence entries.
 
 **Target references:** [Mandatory portability requirement](../brainstorms/20261025-real-directory-descriptors-target.md#mandatory-portability-requirement), [Verification specification](../brainstorms/20261025-real-directory-descriptors-target.md#verification-specification), [Agreed evidence matrix](../brainstorms/20261025-real-directory-descriptors-target.md#agreed-nativetranslated-evidence-matrix), consumer gates and design completion boundary.
 
 - [ ] Run ordinary make test under Go 1.25.14 and 1.26.9 with separate report roots (V7). Read report.md and failing package logs; distinguish skipped large suites from passed tests. Record tested snapshot identity and any concurrent-checkout-edit warning.
 - [ ] On native Darwin ARM64, execute the shared/public and Darwin-specific cases under both Gosim families, plus translated Linux regressions separately. Require actual unskipped native tests for handle rename/replacement/unlink/close, Root links/confinement, NewFile/Sync and complete listings.
-- [ ] Obtain ordinary native Linux ARM64 results under both families, including the native-only reference table and shared tests. Existing CI can supply evidence only after the revised source actually runs; do not trigger jobs or start infrastructure without the separately requested execution context.
-- [ ] Run focused native Linux AMD64 descriptor/flag/ABI and translated regressions under both families when its runner is supplied. This is ordinary focused qualification, never disabled AMD64 certification. Until then leave this checkbox and the evidence gap open.
-- [ ] Resolve source-derived errno and held-removed-directory dotdot expectations against native Linux results, keeping the approved divergences explicit. Do not change native expectations to match the prototype or promote cross-compilation to an executed comparison.
-- [ ] Run native pinned gquorum A plus supported B/C archive/alias and relevant mount/descriptor cases on Linux and Darwin with Go 1.26 and original functional tags (V6). Preserve native Fstatfs/F_FULLFSYNC paths; do not install simulator fcntl behavior or batch limits on native execution.
+- [ ] Record native Linux ARM64 checks as deferred for this Darwin-only run. Preserve the native-only reference/shared fixtures for later CI; do not claim simulated Linux execution on Darwin is a native Linux result.
+- [ ] Record Linux AMD64 execution as explicitly deferred by the user. Retain AMD64 source/constants/generation checks, without presenting them as executed AMD64 semantics or certification.
+- [ ] Record source-derived Linux errno and held-removed-directory dotdot expectations as awaiting native Linux qualification. Implement the verified target and retain its reference fixtures; do not weaken native expectations to match the prototype or promote cross-compilation/Darwin results to Linux execution.
+- [ ] Run native pinned gquorum A plus supported B/C archive/alias and relevant descriptor cases on Darwin ARM64 with Go 1.26 and original functional tags (V6); record native Linux consumer runs as deferred. Preserve native Fstatfs/F_FULLFSYNC paths; do not install simulator fcntl behavior or batch limits on native execution.
 - [ ] Confirm the final simulated A result belongs to the final source identity; rerun it if relevant source/dependency changes since Task 6 invalidate that evidence. Do not rerun unchanged successful checks without a reason.
 - [ ] Collect exact compiler/OS/kernel/architecture/filesystem, command/test selections, source identities and report paths. Separate model crash outcomes, native reopen/error tests and actual hardware durability claims. Native results do not satisfy simulated B/C when its capability is still missing.
 - [ ] Fix failures within the accepted target and revalidate the affected checks. Log incidental changes, external blockers and unimplemented gaps. Do not claim the full issue closed while its archive gate or mandatory native evidence is outstanding.
@@ -322,7 +330,7 @@ Gate A exact names:
 #### Verification
 
 - [ ] Both ordinary suite reports have no unaccounted failures/errors and all relevant skipped/missing cases are explicitly listed.
-- [ ] Every required native row has an actual result or remains visibly incomplete; missing infrastructure is not a passing check.
+- [ ] Every required Darwin ARM64 row has an actual result. Deferred native Linux/AMD64 rows remain visibly deferred by user scope, never counted as passes or removed from future qualification.
 - [ ] No race/large/certification or extra infrastructure was invoked through an alias, environment variable or helper.
 
 ### Task 9: Architectural delta verification and final wiring audit
@@ -448,12 +456,12 @@ No entry is complete at planning time. Earlier prototype runs are historical onl
 | Translated public APIs and crash/determinism tests | Both families, complete identity and repeat evidence | Not run for final implementation |
 | Fatal feature/raw/Root/overflow boundaries | Correct failure, attribution, no recovery/host effects | Not run |
 | Native Darwin ARM64 | Both Gosim families, native common/Darwin behavior | Not run for final implementation |
-| Native Linux ARM64 | Both families, reference and shared behavior | Existing CI available as mechanism; no new result |
-| Native Linux AMD64 | Focused native/translated evidence, both families | Runner selection and execution pending |
+| Native Linux ARM64 | Both families, reference and shared behavior | Deferred by current Darwin-only execution scope; no native result |
+| Native Linux AMD64 | Focused native/translated evidence, both families | Explicitly user-deferred to future testing |
 | Simulated consumer A | Four exact journal tests on pinned Go 1.26 consumer | Not run; required, not blocked on statx in advance |
 | Simulated consumer B | Archive/artifact mount identity | Depends on GS-03 increment 2 |
 | Simulated consumer C | Staging hardlink safety | Depends on GS-03 increment 1 |
-| Native consumer A/B/C | Original source/tags on Linux and Darwin, Go 1.26 | Not run; simulation dependencies do not excuse native skips |
+| Native consumer A/B/C | Original source/tags, Go 1.26 | Darwin ARM64 required in this run; Linux deferred by user scope |
 | Real locking/exclusion | Ownership/contention/lifetime | GS-02; journal test passes do not qualify it |
 
 Plan implementation completion, native qualification and full issue #12 acceptance are different claims. Keep all three explicit. Required missing evidence leaves the relevant task/gate open. Approved GS-03 exclusions remain dependencies even if every GS-01 local test passes.
@@ -467,7 +475,7 @@ Plan implementation completion, native qualification and full issue #12 acceptan
 - [postponed] General directory garbage collection and complete POSIX directory link counts. Retained detached directory objects must remain safe and be released at filesystem teardown.
 - [postponed] Linux-exact read-only-mount error precedence and integer status-flag support. Preserve the accepted limited gate/ENOSYS behavior; native references remain separate.
 - [postponed] Exhaustive multiply-invalid syscall precedence outside the target's named cases. Named flags/terminal/descriptor/no-mutation cases and removed-directory dotdot still require native qualification.
-- [execution dependency] Linux AMD64 and any unavailable native Linux/Darwin runner. No cross-architecture or host-infrastructure workaround is silently authorized.
+- [user-deferred] Native Linux ARM64/AMD64 execution: current execution is Darwin ARM64 only. Keep future qualification gaps visible; no cross-architecture/infrastructure workaround is authorized.
 
 ## NOT PLANNED CHANGES
 
@@ -478,8 +486,8 @@ None during planning. During execution record the affected file, reason, task, t
 This is an execution ledger, not a list of waived requirements. Use `[_]` for a still-unresolved item; replace it with a recorded fix/evidence reference only when resolved.
 
 - [_] All implementation tasks are unexecuted. The preserved prototype has known target mismatches, including resolver policies, optional fcntl, topology, listing behavior and capability/test coverage. Resolve through Tasks 1–7 after direct execution authorization.
-- [_] Native Linux AMD64 runner and execution are not supplied. Do not mark Task 8 complete without the required evidence or an explicit user decision changing qualification scope.
-- [_] Native OS/errno/removed-directory-dotdot qualification and the final consumer A run are pending; source review is not their substitute.
+- [_] [user-deferred] Native Linux ARM64/AMD64 qualification awaits future testing; the user limited this execution to Darwin ARM64. This is a declared qualification gap, not a passing result or a current-run infrastructure blocker.
+- [_] Darwin qualification and final consumer A execution are pending. Native Linux errno/removed-directory-dotdot qualification is user-deferred; source review is not native execution evidence.
 - [_] Simulated consumer B/C requires GS-03 capabilities by the accepted scope. Preserve this dependency in final reporting and do not claim full issue #12 acceptance prematurely.
 
 ## Progress log
@@ -487,3 +495,5 @@ This is an execution ledger, not a list of waived requirements. Use `[_]` for a 
 - 2026-10-25: Created the nine-task plan after the user selected “Use nine focused tasks (Recommended).” Read the finalized target, repository guidance, package/test/generation paths and prior peer findings. Verified documentation is in the project repository. No implementation changes, generation or test execution performed.
 
 Future entries must name the completed task, exact checks/results, source identity and remaining evidence/gaps. Checkbox completion without supporting evidence is invalid.
+
+- 2026-10-25 Task 1: Reconciled typed routes/hooks and approved descriptor-flag scope. Seven native packages passed under go1.25.14 and go1.26.9; both-family amd64/arm64 generation checks and profiles check passed; four translated tests × three seeds passed for each compiler. Logs: `.gosim/validation/gs01/task1/`. Includes the preserved model/provider draft required by the live interfaces; detailed path/topology correction remains Tasks 2–3.

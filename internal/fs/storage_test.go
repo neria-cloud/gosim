@@ -252,8 +252,8 @@ func TestMetadataRoutesIdentityAndReadOnly(t *testing.T) {
 			t.Fatalf("read-only metadata mutation: %v", err)
 		}
 	}
-	if err := i.Chmodat(ctx, 4, "metadata-route", 0o644, 0); !errors.Is(err, syscall.EINVAL) {
-		t.Fatalf("unsupported directory descriptor: %v", err)
+	if err := i.Chmodat(ctx, 4, "metadata-route", 0o644, 0); !errors.Is(err, syscall.EBADF) {
+		t.Fatalf("invalid directory descriptor: %v", err)
 	}
 	if err := i.Chownat(ctx, atFDCWD, "metadata-route", -1, -1, 2); !errors.Is(err, syscall.EINVAL) {
 		t.Fatalf("unsupported chown flags: %v", err)

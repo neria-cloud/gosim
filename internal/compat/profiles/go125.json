@@ -4813,6 +4813,87 @@
             "target": "github.com/neria-cloud/gosim/internal/compat/shims/trace.Logf",
             "owner": "rt"
           }
+        },
+        {
+          "hook": {
+            "package": "golang.org/x/sys/unix",
+            "symbol": "Readlinkat",
+            "signature": "func(int, string, []byte) (int, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Readlinkat",
+            "owner": "fs"
+          }
+        },
+        {
+          "hook": {
+            "package": "golang.org/x/sys/unix",
+            "symbol": "Symlinkat",
+            "signature": "func(string, int, string) error",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.GolangOrgXSysUnix_Symlinkat",
+            "owner": "fs"
+          }
+        },
+        {
+          "hook": {
+            "package": "internal/syscall/unix",
+            "symbol": "Fstatat",
+            "signature": "func(int, string, *syscall.Stat_t, int) error",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.InternalSyscallUnix_Fstatat",
+            "owner": "fs"
+          }
+        },
+        {
+          "hook": {
+            "package": "internal/syscall/unix",
+            "symbol": "Mkdirat",
+            "signature": "func(int, string, uint32) error",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.InternalSyscallUnix_Mkdirat",
+            "owner": "fs"
+          }
+        },
+        {
+          "hook": {
+            "package": "internal/syscall/unix",
+            "symbol": "Readlinkat",
+            "signature": "func(int, string, []byte) (int, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.InternalSyscallUnix_Readlinkat",
+            "owner": "fs"
+          }
+        },
+        {
+          "hook": {
+            "package": "internal/syscall/unix",
+            "symbol": "Renameat",
+            "signature": "func(int, string, int, string) error",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.InternalSyscallUnix_Renameat",
+            "owner": "fs"
+          }
+        },
+        {
+          "hook": {
+            "package": "internal/syscall/unix",
+            "symbol": "Symlinkat",
+            "signature": "func(string, int, string) error",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.InternalSyscallUnix_Symlinkat",
+            "owner": "fs"
+          }
+        },
+        {
+          "hook": {
+            "package": "syscall",
+            "symbol": "readlinkat",
+            "signature": "func(int, string, []byte) (int, error)",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_readlinkat",
+            "owner": "fs"
+          }
+        },
+        {
+          "hook": {
+            "package": "syscall",
+            "symbol": "symlinkat",
+            "signature": "func(string, int, string) error",
+            "target": "github.com/neria-cloud/gosim/internal/compat/hooks/fs.Syscall_symlinkat",
+            "owner": "fs"
+          }
         }
       ]
     },
@@ -8798,6 +8879,60 @@
           "symbol": "Logf",
           "status": "limited",
           "reason": "Declaration admitted; active tracing execution aborts."
+        },
+        {
+          "package": "golang.org/x/sys/unix",
+          "symbol": "Readlinkat",
+          "status": "limited",
+          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+        },
+        {
+          "package": "golang.org/x/sys/unix",
+          "symbol": "Symlinkat",
+          "status": "limited",
+          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+        },
+        {
+          "package": "internal/syscall/unix",
+          "symbol": "Fstatat",
+          "status": "limited",
+          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+        },
+        {
+          "package": "internal/syscall/unix",
+          "symbol": "Mkdirat",
+          "status": "limited",
+          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+        },
+        {
+          "package": "internal/syscall/unix",
+          "symbol": "Readlinkat",
+          "status": "limited",
+          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+        },
+        {
+          "package": "internal/syscall/unix",
+          "symbol": "Renameat",
+          "status": "limited",
+          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+        },
+        {
+          "package": "internal/syscall/unix",
+          "symbol": "Symlinkat",
+          "status": "limited",
+          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+        },
+        {
+          "package": "syscall",
+          "symbol": "readlinkat",
+          "status": "limited",
+          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+        },
+        {
+          "package": "syscall",
+          "symbol": "symlinkat",
+          "status": "limited",
+          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
         }
       ]
     },

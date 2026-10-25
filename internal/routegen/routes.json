@@ -83,5 +83,7 @@
 {"id":80,"name":"SetSyscallCounting","owner":"kernel","kind":"control","inputs":[{"name":"Machine","type":"contracts.MachineRef"},{"name":"Enabled","type":"bool"}],"results":[],"legacy":[]},
 {"id":81,"name":"ResetSyscallStats","owner":"kernel","kind":"control","inputs":[{"name":"Machine","type":"contracts.MachineRef"}],"results":[],"legacy":[]},
 {"id":82,"name":"SyscallStats","owner":"kernel","kind":"control","inputs":[{"name":"Machine","type":"contracts.MachineRef"}],"results":[{"name":"Records","type":"[]contracts.SyscallRecord"}],"legacy":[]},
-{"id":83,"name":"CountableSyscalls","owner":"kernel","kind":"control","inputs":[],"results":[{"name":"Syscalls","type":"[]contracts.SyscallInfo"}],"legacy":[]}
+{"id":83,"name":"CountableSyscalls","owner":"kernel","kind":"control","inputs":[],"results":[{"name":"Syscalls","type":"[]contracts.SyscallInfo"}],"legacy":[]},
+{"id":84,"name":"Symlinkat","owner":"fs","kind":"syscall","inputs":[{"name":"Target","type":"string"},{"name":"DirFD","type":"int"},{"name":"Path","type":"string"}],"results":[],"legacy":[]},
+{"id":85,"name":"Readlinkat","owner":"fs","kind":"syscall","inputs":[{"name":"DirFD","type":"int"},{"name":"Path","type":"string"},{"name":"Into","type":"abi.ByteView"}],"results":[{"name":"Count","type":"int"}],"legacy":[]}
 ]}

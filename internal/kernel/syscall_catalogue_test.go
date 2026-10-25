@@ -57,7 +57,7 @@ func TestSyscallCatalogueCoversManifest(t *testing.T) {
 	seen[syscallDataSyncSlot] = true
 	groups := map[string][]string{
 		"rt":  strings.Fields("read write writev close fcntl getrandom getpid uname"),
-		"fs":  strings.Fields("openat renameat getdents64 fallocate lseek pwrite64 pread64 fsync fdatasync fstat fstatat unlinkat ftruncate chdir getcwd mkdirat flock mmap munmap madvise statfs fstatfs fchmod fchmodat fchown fchownat"),
+		"fs":  strings.Fields("symlinkat readlinkat openat renameat getdents64 fallocate lseek pwrite64 pread64 fsync fdatasync fstat fstatat unlinkat ftruncate chdir getcwd mkdirat flock mmap munmap madvise statfs fstatfs fchmod fchmodat fchown fchownat"),
 		"net": strings.Fields("socket bind listen accept4 connect getsockname getpeername setsockopt getsockopt"),
 	}
 	want := map[string]string{}
@@ -80,7 +80,7 @@ func TestSyscallCatalogueCoversManifest(t *testing.T) {
 			descriptorBased++
 		}
 	}
-	if len(names) != 43 || descriptorBased != 27 {
+	if len(names) != 45 || descriptorBased != 27 {
 		t.Fatalf("names %d descriptor-based %d", len(names), descriptorBased)
 	}
 	inv := Invocation{Route: syscallDataSyncSlot}
@@ -95,9 +95,9 @@ func TestSyscallCatalogueFeatureSets(t *testing.T) {
 		size     int
 	}{
 		{contracts.FeatureSet(contracts.RT), 8},
-		{contracts.FeatureSet(contracts.RT | contracts.FS), 34},
+		{contracts.FeatureSet(contracts.RT | contracts.FS), 36},
 		{contracts.FeatureSet(contracts.RT | contracts.Net), 17},
-		{contracts.FeatureSet(contracts.RT | contracts.FS | contracts.Net), 43},
+		{contracts.FeatureSet(contracts.RT | contracts.FS | contracts.Net), 45},
 	} {
 		var log []string
 		fs, net, _ := providersFor(&log)

@@ -29,12 +29,33 @@ const (
 	maxMapping        = 16 * 1024 * 1024
 )
 
-func (i *Instance) dirInode(dirfd int) (int, error) {
-	// TODO(not planned): directory-relative descriptors beyond AT_FDCWD.
-	if dirfd != atFDCWD {
-		return 0, syscall.EINVAL
+func (i *Instance) dirInode(dirfd int, path string) (int, error) {
+	// Absolute names ignore dirfd, including invalid and closed descriptors.
+	if len(path) > 0 && path[0] == '/' {
+		return model.RootInode, nil
 	}
-	return i.workingDir, nil
+	if dirfd == atFDCWD {
+		return i.workingDir, nil
+	}
+	resource, err := i.fds.Lookup(dirfd)
+	if err != nil {
+		return 0, err
+	}
+	f, ok := resource.(*File)
+	if !ok {
+		return 0, syscall.ENOTDIR
+	}
+	if f.instance != i || f.released {
+		return 0, syscall.EBADF
+	}
+	stat, err := i.model.Statfd(f.inode)
+	if err != nil {
+		return 0, err
+	}
+	if !stat.IsDir {
+		return 0, syscall.ENOTDIR
+	}
+	return f.inode, nil
 }
 
 func (i *Instance) identity() model.Identity {
@@ -52,12 +73,12 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 	if err := i.validateCall(ctx); err != nil {
 		return 0, err
 	}
-	dir, err := i.dirInode(dirfd)
+	dir, err := i.dirInode(dirfd, path)
 	if err != nil {
 		return 0, err
 	}
 	flags &^= openCloseExec
-	const supported = 3 | openCreate | openExclusive | openTruncate | openDirectory
+	const supported = 3 | openCreate | openExclusive | openTruncate | openDirectory | openNoFollow
 	if flags&^supported != 0 || flags&3 == 3 {
 		return 0, syscall.EINVAL
 	}
@@ -66,14 +87,14 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 			return 0, err
 		}
 	}
-	// TODO(not planned): O_APPEND and strict O_DIRECTORY semantics.
+	// O_APPEND and other unsupported status flags remain explicit errors.
 	modelFlags := flags & 3
 	for _, flag := range []struct{ linux, host int }{{openCreate, os.O_CREATE}, {openExclusive, os.O_EXCL}, {openTruncate, os.O_TRUNC}} {
 		if flags&flag.linux != 0 {
 			modelFlags |= flag.host
 		}
 	}
-	inode, err := i.model.OpenFile(dir, path, modelFlags, mode, i.identity())
+	inode, err := i.model.OpenFileWithOptions(dir, path, modelFlags, mode, model.OpenOptions{Directory: flags&openDirectory != 0, NoFollow: flags&openNoFollow != 0}, i.identity())
 	if err != nil {
 		return 0, err
 	}
@@ -90,11 +111,11 @@ func (i *Instance) Renameat(ctx contracts.CallContext, oldFD int, oldPath string
 	if err := i.validateCall(ctx); err != nil {
 		return err
 	}
-	old, err := i.dirInode(oldFD)
+	old, err := i.dirInode(oldFD, oldPath)
 	if err != nil {
 		return err
 	}
-	new, err := i.dirInode(newFD)
+	new, err := i.dirInode(newFD, newPath)
 	if err != nil {
 		return err
 	}
@@ -137,6 +158,9 @@ func (i *Instance) Getdents64(ctx contracts.CallContext, fd int, data abi.ByteVi
 		record[18] = 8 // DT_REG
 		if entry.IsDir {
 			record[18] = 4
+		}
+		if entry.IsSymlink {
+			record[18] = 10
 		}
 		copy(record[19:], entry.Name)
 		data.Slice(n, n+length).Write(record)
@@ -250,6 +274,9 @@ func statResult(stat model.StatResp) contracts.Stat {
 	if stat.IsDir {
 		mode = 0o040000
 	}
+	if stat.IsSymlink {
+		mode = 0o120000
+	}
 	return contracts.Stat{Inode: uint64(stat.Inode), Size: stat.Size, Mode: mode | stat.Mode, UID: stat.UID, GID: stat.GID, Nlink: stat.Nlink}
 }
 
@@ -276,17 +303,19 @@ func (i *Instance) Statat(ctx contracts.CallContext, dirfd int, path string, fla
 	if err := i.validateCall(ctx); err != nil {
 		return contracts.Stat{}, err
 	}
-	dir, err := i.dirInode(dirfd)
+	dir, err := i.dirInode(dirfd, path)
 	if err != nil {
 		return contracts.Stat{}, err
 	}
-	// The model contains files and directories only, so following and not
-	// following the final component have identical results. Accept lstat's
-	// Linux flag without implying support for symlink creation.
 	if flags&^atSymlinkNoFollow != 0 {
 		return contracts.Stat{}, syscall.EINVAL
 	}
-	stat, err := i.model.Stat(dir, path, i.identity())
+	var stat model.StatResp
+	if flags&atSymlinkNoFollow != 0 {
+		stat, err = i.model.Lstat(dir, path, i.identity())
+	} else {
+		stat, err = i.model.Stat(dir, path, i.identity())
+	}
 	return statResult(stat), statError(err)
 }
 
@@ -327,19 +356,27 @@ func (i *Instance) Chmodat(ctx contracts.CallContext, dirfd int, path string, mo
 	if err := i.validateCall(ctx); err != nil {
 		return err
 	}
-	dir, err := i.dirInode(dirfd)
+	dir, err := i.dirInode(dirfd, path)
 	if err != nil {
 		return err
 	}
 	if flags != 0 && flags != atSymlinkNoFollow {
 		return syscall.EINVAL
 	}
-	stat, err := i.model.Stat(dir, path, i.identity())
+	var stat model.StatResp
+	if flags&atSymlinkNoFollow != 0 {
+		stat, err = i.model.Lstat(dir, path, i.identity())
+	} else {
+		stat, err = i.model.Stat(dir, path, i.identity())
+	}
 	if err != nil {
 		return err
 	}
 	if err := i.checkMutation(); err != nil {
 		return err
+	}
+	if stat.IsSymlink {
+		return syscall.EOPNOTSUPP
 	}
 	return i.model.Chmod(stat.Inode, mode, i.identity())
 }
@@ -359,14 +396,19 @@ func (i *Instance) Chownat(ctx contracts.CallContext, dirfd int, path string, ui
 	if err := i.validateCall(ctx); err != nil {
 		return err
 	}
-	dir, err := i.dirInode(dirfd)
+	dir, err := i.dirInode(dirfd, path)
 	if err != nil {
 		return err
 	}
 	if flags != 0 && flags != atSymlinkNoFollow {
 		return syscall.EINVAL
 	}
-	stat, err := i.model.Stat(dir, path, i.identity())
+	var stat model.StatResp
+	if flags&atSymlinkNoFollow != 0 {
+		stat, err = i.model.Lstat(dir, path, i.identity())
+	} else {
+		stat, err = i.model.Stat(dir, path, i.identity())
+	}
 	if err != nil {
 		return err
 	}
@@ -380,7 +422,7 @@ func (i *Instance) Unlinkat(ctx contracts.CallContext, dirfd int, path string, f
 	if err := i.validateCall(ctx); err != nil {
 		return err
 	}
-	dir, err := i.dirInode(dirfd)
+	dir, err := i.dirInode(dirfd, path)
 	if err != nil {
 		return err
 	}
@@ -449,7 +491,7 @@ func (i *Instance) Mkdirat(ctx contracts.CallContext, dirfd int, path string, mo
 	if err := i.validateCall(ctx); err != nil {
 		return err
 	}
-	dir, err := i.dirInode(dirfd)
+	dir, err := i.dirInode(dirfd, path)
 	if err != nil {
 		return err
 	}
@@ -471,6 +513,8 @@ func (i *Instance) FcntlInt(ctx contracts.CallContext, fd, command, arg int) (in
 	if _, err := i.file(ctx, fd); err != nil {
 		return 0, err
 	}
+	// TODO(not planned): integer status/descriptor flags. Go disk-file wrappers
+	// use their blocking, non-pollable fallback when F_GETFL/SetNonblock fails.
 	return 0, syscall.ENOSYS
 }
 

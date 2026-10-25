@@ -227,7 +227,7 @@ func TestFileDescriptorOwnerFailuresAndCleanup(t *testing.T) {
 			t.Fatal(flags, err)
 		}
 	}
-	if _, err := i.Openat(ctx, foreign, "unsupported", 0, 0); !errors.Is(err, syscall.EINVAL) {
+	if _, err := i.Openat(ctx, foreign, "unsupported", 0, 0); !errors.Is(err, syscall.ENOTDIR) {
 		t.Fatal(err)
 	}
 	ro := open(t, i, ctx, "allocation", 0)
