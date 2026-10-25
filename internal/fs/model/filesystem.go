@@ -186,11 +186,8 @@ func (fss *filesystemState) clone() *filesystemState {
 	}
 }
 
-// TODOs for directories:
-// - handle ., .. consistently
-// - garbage collect directories
-// - prevent cycles
-// - add deps between renames/metadata ops to prevent cycles w/ crashes
+// TODO(not planned): directory garbage collection and complete POSIX directory
+// link counts. Detached objects remain owned until filesystem teardown.
 
 type Filesystem struct {
 	// for now: flat filesystem, only one directory
@@ -560,9 +557,10 @@ func (o *allocOp) apply(fs *filesystemState, gcer gcer) {
 		fs.objects[o.inode] = &backingSymlink{inode: o.inode, target: o.target, meta: o.meta}
 	} else if o.dir {
 		fs.objects[o.inode] = &backingDir{
-			inode:   o.inode,
-			entries: make(map[string]int),
-			meta:    o.meta,
+			inode:    o.inode,
+			unlinked: true,
+			entries:  make(map[string]int),
+			meta:     o.meta,
 		}
 	} else {
 		fs.objects[o.inode] = &backingFile{
@@ -791,25 +789,25 @@ func (fs *Filesystem) Sync(inode int) {
 }
 
 func (fs *Filesystem) Getdirinode(dir int, path string, who Identity) (int, error) {
-	entry, err := fs.resolve(dir, path, resolveOptions{followFinal: true}, who)
+	entry, err := fs.resolve(dir, path, resolveOptions{Final: resolveFollowing}, who)
 	if err != nil {
 		return 0, err
 	}
-	if _, ok := fs.mem.getDir(entry.inode); !ok {
+	if _, ok := fs.mem.getDir(entry.Inode); !ok {
 		return 0, syscall.ENOTDIR
 	}
-	if err := fs.CheckAccess(entry.inode, who, AccessExecute); err != nil {
+	if err := fs.CheckAccess(entry.Inode, who, AccessExecute); err != nil {
 		return 0, err
 	}
-	return entry.inode, nil
+	return entry.Inode, nil
 }
 
 func (fs *Filesystem) Mkdir(dir int, path string, mode uint32, who Identity) error {
-	entry, err := fs.resolve(dir, path, resolveOptions{allowMissing: true, mutation: true}, who)
+	entry, err := fs.resolve(dir, path, resolveOptions{Final: resolveCreateEntry, AllowMissingFinal: true}, who)
 	if err != nil {
 		return err
 	}
-	if entry.inode != 0 {
+	if entry.Inode != 0 {
 		return syscall.EEXIST
 	}
 	if err := fs.mutableParent(entry, who); err != nil {
@@ -817,7 +815,7 @@ func (fs *Filesystem) Mkdir(dir int, path string, mode uint32, who Identity) err
 	}
 	inode := fs.mem.next
 	fs.apply(&allocOp{dir: true, inode: inode, meta: inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID}})
-	fs.apply(&dirOp{parts: []dirOpPart{{dir: entry.parent, name: entry.name, file: inode}}})
+	fs.apply(&dirOp{parts: []dirOpPart{{dir: entry.Parent, name: entry.Name, file: inode}}})
 	return nil
 }
 
@@ -864,11 +862,11 @@ func (fs *Filesystem) statLocked(inode int) (StatResp, error) {
 }
 
 func (fs *Filesystem) Stat(dir int, path string, who Identity) (StatResp, error) {
-	entry, err := fs.resolve(dir, path, resolveOptions{followFinal: true}, who)
+	entry, err := fs.resolve(dir, path, resolveOptions{Final: resolveFollowing}, who)
 	if err != nil {
 		return StatResp{}, err
 	}
-	return fs.statLocked(entry.inode)
+	return fs.statLocked(entry.Inode)
 }
 
 func (fs *Filesystem) Statfd(inode int) (StatResp, error) {
@@ -957,46 +955,53 @@ func (fs *Filesystem) Getpath(dirInode int) (string, error) {
 }
 
 func (fs *Filesystem) Remove(dir int, path string, rmDir bool, who Identity) error {
-	entry, err := fs.resolve(dir, path, resolveOptions{mutation: true}, who)
+	entry, err := fs.resolve(dir, path, resolveOptions{Final: resolveMutationEntry}, who)
 	if err != nil {
 		return err
 	}
-	target, isDir := fs.mem.getDir(entry.inode)
+	if entry.Name == "" || entry.Name == "." || entry.Name == ".." {
+		if !rmDir {
+			return syscall.EISDIR
+		}
+		switch entry.Name {
+		case "":
+			return syscall.EBUSY
+		case ".":
+			return syscall.EINVAL
+		default:
+			return syscall.ENOTEMPTY
+		}
+	}
+	target, isDir := fs.mem.getDir(entry.Inode)
+	if entry.TrailingSlash && !isDir {
+		return syscall.ENOTDIR
+	}
+	if err := fs.mutableParent(entry, who); err != nil {
+		return err
+	}
 	if isDir && !rmDir {
 		return syscall.EISDIR
 	}
 	if !isDir && rmDir {
 		return syscall.ENOTDIR
 	}
-	if entry.inode == RootInode {
-		return syscall.EBUSY
-	}
-	if entry.name == "." {
-		return syscall.EINVAL
-	}
-	if entry.name == ".." {
-		return syscall.ENOTEMPTY
-	}
-	if err := fs.mutableParent(entry, who); err != nil {
-		return err
-	}
 	if isDir && len(target.entries) > 0 {
 		return syscall.ENOTEMPTY
 	}
-	fs.apply(&dirOp{parts: []dirOpPart{{dir: entry.parent, name: entry.name, file: -1}}})
+	fs.apply(&dirOp{parts: []dirOpPart{{dir: entry.Parent, name: entry.Name, file: -1}}})
 	return nil
 }
 
 func (fs *Filesystem) Rename(oldDir int, oldPath string, newDir int, newPath string, who Identity) error {
-	old, err := fs.resolve(oldDir, oldPath, resolveOptions{mutation: true}, who)
+	old, err := fs.resolve(oldDir, oldPath, resolveOptions{Final: resolveMutationEntry}, who)
 	if err != nil {
 		return err
 	}
-	next, err := fs.resolve(newDir, newPath, resolveOptions{allowMissing: true, mutation: true}, who)
+	next, err := fs.resolve(newDir, newPath, resolveOptions{Final: resolveMutationEntry, AllowMissingFinal: true}, who)
 	if err != nil {
 		return err
 	}
-	if old.inode == RootInode || next.inode == RootInode || old.name == "." || old.name == ".." || next.name == "." || next.name == ".." {
+	if old.Inode == RootInode || next.Inode == RootInode || old.Name == "." || old.Name == ".." || next.Name == "." || next.Name == ".." {
 		return syscall.EBUSY
 	}
 	if err := fs.mutableParent(old, who); err != nil {
@@ -1005,20 +1010,23 @@ func (fs *Filesystem) Rename(oldDir int, oldPath string, newDir int, newPath str
 	if err := fs.mutableParent(next, who); err != nil {
 		return err
 	}
-	if old.inode == next.inode {
+	if old.Inode == next.Inode {
 		return nil
 	}
-	_, oldIsDir := fs.mem.getDir(old.inode)
-	target, newIsDir := fs.mem.getDir(next.inode)
+	_, oldIsDir := fs.mem.getDir(old.Inode)
+	if !oldIsDir && (old.TrailingSlash || next.TrailingSlash) {
+		return syscall.ENOTDIR
+	}
+	target, newIsDir := fs.mem.getDir(next.Inode)
 	if oldIsDir {
-		if next.inode != 0 && !newIsDir {
+		if next.Inode != 0 && !newIsDir {
 			return syscall.ENOTDIR
 		}
 		if newIsDir && len(target.entries) != 0 {
 			return syscall.ENOTEMPTY
 		}
-		for parent := next.parent; ; {
-			if parent == old.inode {
+		for parent := next.Parent; ; {
+			if parent == old.Inode {
 				return syscall.EINVAL
 			}
 			if parent == RootInode {
@@ -1034,13 +1042,13 @@ func (fs *Filesystem) Rename(oldDir int, oldPath string, newDir int, newPath str
 		if newIsDir {
 			return syscall.EISDIR
 		}
-		if next.trailing {
+		if next.TrailingSlash {
 			return syscall.ENOTDIR
 		}
 	}
 	fs.apply(&dirOp{parts: []dirOpPart{
-		{dir: old.parent, name: old.name, file: -1},
-		{dir: next.parent, name: next.name, file: old.inode},
+		{dir: old.Parent, name: old.Name, file: -1},
+		{dir: next.Parent, name: next.Name, file: old.Inode},
 	}})
 	return nil
 }
@@ -1059,26 +1067,47 @@ func (fs *Filesystem) OpenFileWithOptions(dir int, path string, flag int, mode u
 	if options.Directory && create {
 		return 0, syscall.EINVAL
 	}
-	entry, err := fs.resolve(dir, path, resolveOptions{followFinal: !options.NoFollow && !(create && exclusive), allowMissing: create}, who)
+	policy := resolveFollowing
+	if options.NoFollow {
+		policy = resolveNoFollow
+	}
+	if create {
+		policy = resolveCreateEntry
+	}
+	links := 0
+	entry, err := fs.resolveWithLinks(dir, path, resolveOptions{Final: policy, AllowMissingFinal: create}, who, &links)
 	if err != nil {
 		return 0, err
 	}
-	if entry.inode != 0 && create && exclusive {
+	if create && entry.TrailingSlash && entry.Name != "" && entry.Name != "." && entry.Name != ".." {
+		return 0, syscall.EISDIR
+	}
+	if entry.Inode != 0 && create && exclusive {
 		return 0, syscall.EEXIST
 	}
-	_, isDir := fs.mem.getDir(entry.inode)
+	if link, ok := fs.mem.objects[entry.Inode].(*backingSymlink); ok && create && !options.NoFollow {
+		links++
+		if links > 40 {
+			return 0, syscall.ELOOP
+		}
+		entry, err = fs.resolveWithLinks(entry.Parent, link.target, resolveOptions{Final: resolveFollowing, AllowMissingFinal: true}, who, &links)
+		if err != nil {
+			return 0, err
+		}
+	}
+	_, isDir := fs.mem.getDir(entry.Inode)
 	if options.Directory && !isDir {
 		return 0, syscall.ENOTDIR
 	}
-	if _, isLink := fs.mem.objects[entry.inode].(*backingSymlink); isLink {
+	if _, isLink := fs.mem.objects[entry.Inode].(*backingSymlink); isLink {
 		return 0, syscall.ELOOP
 	}
 	if isDir && (flag&3 != os.O_RDONLY || flag&os.O_TRUNC != 0 || create) {
 		return 0, syscall.EISDIR
 	}
-	inode := entry.inode
+	inode := entry.Inode
 	if inode == 0 {
-		if entry.trailing {
+		if entry.TrailingSlash {
 			return 0, syscall.EISDIR
 		}
 		if err := fs.mutableParent(entry, who); err != nil {
@@ -1086,7 +1115,7 @@ func (fs *Filesystem) OpenFileWithOptions(dir int, path string, flag int, mode u
 		}
 		inode = fs.mem.next
 		fs.apply(&allocOp{inode: inode, meta: inodeMetadata{Mode: mode & 0o7777 &^ 0o022, UID: who.UID, GID: who.GID}})
-		fs.apply(&dirOp{parts: []dirOpPart{{dir: entry.parent, name: entry.name, file: inode}}})
+		fs.apply(&dirOp{parts: []dirOpPart{{dir: entry.Parent, name: entry.Name, file: inode}}})
 	} else {
 		var need Access
 		if flag&3 != os.O_WRONLY {

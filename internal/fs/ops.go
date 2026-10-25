@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"slices"
+	"strings"
 	"syscall"
 	"unsafe"
 
@@ -30,6 +31,15 @@ const (
 )
 
 func (i *Instance) dirInode(dirfd int, path string) (int, error) {
+	if path == "" {
+		return 0, syscall.ENOENT
+	}
+	if strings.IndexByte(path, 0) >= 0 {
+		return 0, syscall.EINVAL
+	}
+	if len(path) >= 4096 {
+		return 0, syscall.ENAMETOOLONG
+	}
 	// Absolute names ignore dirfd, including invalid and closed descriptors.
 	if len(path) > 0 && path[0] == '/' {
 		return model.RootInode, nil
@@ -62,6 +72,8 @@ func (i *Instance) identity() model.Identity {
 	return model.Identity{UID: i.machine.config.UID, GID: i.machine.config.GID}
 }
 
+// The read-only fault gate intentionally precedes model pathname lookup; it
+// denies mutations but does not model every Linux read-only errno precedence.
 func (i *Instance) checkMutation() error {
 	if i.machine.readOnly {
 		return syscall.EROFS
@@ -73,14 +85,17 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 	if err := i.validateCall(ctx); err != nil {
 		return 0, err
 	}
-	dir, err := i.dirInode(dirfd, path)
-	if err != nil {
-		return 0, err
-	}
 	flags &^= openCloseExec
 	const supported = 3 | openCreate | openExclusive | openTruncate | openDirectory | openNoFollow
 	if flags&^supported != 0 || flags&3 == 3 {
 		return 0, syscall.EINVAL
+	}
+	if flags&openDirectory != 0 && flags&openCreate != 0 {
+		return 0, syscall.EINVAL
+	}
+	dir, err := i.dirInode(dirfd, path)
+	if err != nil {
+		return 0, err
 	}
 	if flags&(openCreate|openTruncate) != 0 {
 		if err := i.checkMutation(); err != nil {

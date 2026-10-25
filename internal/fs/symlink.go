@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"strings"
 	"syscall"
 
 	"github.com/neria-cloud/gosim/internal/contracts"
@@ -10,6 +11,15 @@ import (
 func (i *Instance) Symlinkat(ctx contracts.CallContext, target string, dirfd int, path string) error {
 	if err := i.validateCall(ctx); err != nil {
 		return err
+	}
+	if target == "" {
+		return syscall.ENOENT
+	}
+	if strings.IndexByte(target, 0) >= 0 {
+		return syscall.EINVAL
+	}
+	if len(target) >= 4096 {
+		return syscall.ENAMETOOLONG
 	}
 	dir, err := i.dirInode(dirfd, path)
 	if err != nil {

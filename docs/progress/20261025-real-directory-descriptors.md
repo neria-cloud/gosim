@@ -38,3 +38,22 @@ Verified:
 Evidence: .gosim/validation/gs01/task1/{native-go125,native-go126,generation-go125,generation-go126,sim-go125,sim-go126}.log. Host Darwin ARM64. Source generation for two architectures is not native Linux/AMD64 execution. No restricted suites were run.
 
 Task 1 formatting correction: the initial combined shell command masked a gofumpt failure behind a successful git diff --check. Inspected the actual output, formatted only the two architecture-constant files, and reran .ci/gofmt check separately: exit 0. This was whitespace-only, after the semantic test runs. The task commit is amended with this correction before Task 2.
+
+## Task 2 — component resolution and inode-bound operations
+
+Date: 2026-10-25. Commit: the task commit containing this entry.
+
+Implemented:
+- Replaced boolean final lookup options with the verified four final policies and explicit lexical root/dot/dotdot handling. Open creation continues through the same resolver and link counter after existence/exclusive checks, enforcing a single 40-link budget across prefix and final links.
+- Distinguished mkdir/symlink existing-entry and trailing-slash rules from open/create and remove/rename rules. Enforced directory/no-follow/create/truncate checks before effects, including RDONLY|TRUNC write access and ignored EXCL without CREATE.
+- Added empty/path-length validation before relative FD lookup and target validation before Symlinkat's dirfd. Absolute paths ignore invalid/closed/non-directory descriptors. Kept the accepted early read-only gate.
+- Completed symlink stat/dirent metadata, ownership, immutable clone and unlink/rename collection behavior. Directory allocations are detached until publication; held removed directories reject new entries and Getcwd fails.
+- Added nine model/provider regression tests with semantic subcases: component traversal, failure atomicity, shared symlink budget, detached directories, persistent symlink/clone isolation, all *at descriptor bases, identity/reference rollback, foreign instances, metadata/read-only denial/re-enable.
+
+Verified:
+- go1.25.14 and go1.26.9: native fs/model and fs suites passed.
+- Both compilers on native Darwin ARM64: TestDirectoryDescriptorRenameAndClose, TestRootSymlinkConfinement, TestDirectoryNoFollowSemantics passed.
+- Both compilers, rt,fs simulation, seeds 1–3: the three public tests plus TestSyscallMonitorFilesystem passed (12 runs each).
+- .ci/gofmt check and git diff --check passed. No new public API/configuration, concrete-provider boundary crossing, host fallback or random stream was added.
+
+Evidence: .gosim/validation/gs01/task2/. Native Linux errno/removed-directory dotdot qualification remains explicitly deferred under the user's Darwin-only scope. Full namespace topology and ordering follow in Task 3; no such coverage is inferred from these tests.
