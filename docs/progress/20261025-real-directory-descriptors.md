@@ -93,3 +93,26 @@ Verified:
 - fs, kernel and routegen passed under go1.25.14 and go1.26.9 on Darwin ARM64. Both generators passed -check for amd64/arm64; profiles -check, .ci/gofmt check and git diff --check passed.
 
 Evidence: native logs in .gosim/validation/gs01/task4/; generator/profile/format checks returned exit 0. The full translated expected-failure harness follows in Task 5. No restricted suites ran and no Linux getdents pagination claim is made.
+
+## Task 5 — public APIs, portability, guards and translated crash states
+
+Date: 2026-10-25. Commit: the task commit containing this entry.
+
+Implemented:
+- Expanded common descriptor/Root coverage through actual os/x/sys calls: cwd changes, absolute/mixed operands, raw intermediate-link escape versus Root confinement, nested Root and FS wrapper methods, metadata, held replacement and rewind.
+- Added deliberately shared Linux/sim terminal/rename policy tests; native-only Linux status/seek/permission/removed-parent references use linux && !sim. Darwin-only checks preserve native F_GETFL, F_FULLFSYNC, Fstatfs and complete over-buffer enumeration. Sim-only tests retain the approved fcntl/NONBLOCK/read-only/seek limitations.
+- Added five public CrashStates scenarios with a 128-state bound: directory-cycle avoidance, missing-parent sync plus symlink retention, own-link/dependent-child moves, emptied removal/replacement and unrelated namespace/data uncertainty. All snapshots, iterators and machines are closed/destroyed.
+- Added source-selection checks for both Go families and native/simulated Linux/Darwin contexts, and reused existing fs determinism/seed metatests.
+- Added a focused guard helper with nine cases: six disabled symlink/readlink/Root init/test cases, unsupported Root.Link and Chtimes, and fatal over-buffer enumeration. It uses the normal launcher and records identities, source/fixture hashes, commands and diagnostics; no candidate/large/race/matrix path is invoked.
+
+Verified:
+- Both compilers on native Darwin ARM64: eight filesystem top-level tests plus the selection-inventory test (eight selection subcases) passed.
+- Both compilers in rt,fs simulation: 16 top-level tests × seeds 1–3, plus nested subcases, passed.
+- Fresh matching build-tests artifacts and rt,fs config: existing CheckDeterministic and CheckSeeds passed for the new common/simulated cases. After adding the final Linux rename/reference assertions, reran the updated Linux cases through those same metatests; passed under both families.
+- Guard reports for go1.25.14 and go1.26.9: 9/9 cases passed each, including three package-init failures explicitly labeled as init execution rather than test-body passes. Two helper unit tests reject setup/compile/timeout/zero-exit/wrong-diagnostic/recovered/host-effect outcomes.
+- .ci/gofmt check and git diff --check passed. Logs: .gosim/validation/gs01/task5/ and test-reports/gs01/guards/{go125,go126}/report.json.
+
+Findings corrected during this task:
+- Go os.Rename itself refuses an existing directory target before the syscall. The held-replacement fixtures now use the target's actual unix.Renameat contract; no production workaround was added.
+- Minimal guard modules lacked the full reviewed shim dependency graph. Their isolated go.mod/go.sum now inherit exact framework requirements, followed by Go dependency preparation; translator read-only graph checks remain unchanged. Preparation failures were reported as failures, never expected abort passes.
+- Package-init aborts precede the testing banner; the classifier now distinguishes init from test phase, while requiring the exact failure kind/feature/operation, machine/epoch and nonzero PC. Native Linux/AMD64 execution remains deferred by user scope; no results were invented for it.

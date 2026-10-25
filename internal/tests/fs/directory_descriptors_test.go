@@ -3,8 +3,10 @@ package behavior_test
 import (
 	"errors"
 	"io"
+	stdfs "io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -13,10 +15,7 @@ import (
 // These cases exercise the same public Go/x/sys entry points natively and in
 // simulation. Linux-specific errno/flag precedence has separate coverage.
 func TestDirectoryDescriptorRenameAndClose(t *testing.T) {
-	if err := os.MkdirAll(os.TempDir(), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	base := t.TempDir()
+	base := descriptorTempDir(t)
 	original := filepath.Join(base, "original")
 	moved := filepath.Join(base, "moved")
 	must := func(err error) {
@@ -30,6 +29,14 @@ func TestDirectoryDescriptorRenameAndClose(t *testing.T) {
 	must(err)
 	defer dir.Close()
 	fd := int(dir.Fd())
+	previous, err := os.Getwd()
+	must(err)
+	must(os.Chdir(base))
+	defer func() {
+		if err := os.Chdir(previous); err != nil {
+			t.Error(err)
+		}
+	}()
 	opened, err := unix.Openat(fd, ".", unix.O_RDONLY|unix.O_DIRECTORY, 0)
 	must(err)
 	defer unix.Close(opened)
@@ -82,10 +89,7 @@ func TestDirectoryDescriptorRenameAndClose(t *testing.T) {
 }
 
 func TestRootSymlinkConfinement(t *testing.T) {
-	if err := os.MkdirAll(os.TempDir(), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	base := t.TempDir()
+	base := descriptorTempDir(t)
 	rootPath := filepath.Join(base, "root")
 	must := func(err error) {
 		t.Helper()
@@ -157,10 +161,7 @@ func TestRootSymlinkConfinement(t *testing.T) {
 }
 
 func TestDirectoryNoFollowSemantics(t *testing.T) {
-	if err := os.MkdirAll(os.TempDir(), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	base := t.TempDir()
+	base := descriptorTempDir(t)
 	must := func(err error) {
 		t.Helper()
 		if err != nil {
@@ -220,4 +221,224 @@ func TestDirectoryNoFollowSemantics(t *testing.T) {
 	if string(data) != "keep" {
 		t.Fatal(string(data))
 	}
+}
+
+func descriptorTempDir(t *testing.T) string {
+	t.Helper()
+	setupRealDisk(t)
+	dir, err := os.MkdirTemp(".", "gs01-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err = filepath.Abs(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Error(err)
+		}
+	})
+	return dir
+}
+
+func TestRootMethodsAndFilesystemView(t *testing.T) {
+	base := descriptorTempDir(t)
+	check := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	root, err := os.OpenRoot(base)
+	check(err)
+	defer root.Close()
+	if root.Name() != base {
+		t.Fatal(root.Name(), base)
+	}
+	check(root.MkdirAll("one/two", 0o750))
+	check(root.WriteFile("one/two/file", []byte("inside"), 0o600))
+	check(root.Symlink("two/file", "one/link"))
+	target, err := root.Readlink("one/link")
+	check(err)
+	if target != "two/file" {
+		t.Fatal(target)
+	}
+	check(root.Chmod("one/link", 0o640))
+	check(root.Chown("one/two/file", -1, -1))
+	check(root.Lchown("one/link", -1, -1))
+	info, err := root.Stat("one/link")
+	check(err)
+	if info.Mode().Perm() != 0o640 || !info.Mode().IsRegular() {
+		t.Fatal(info.Mode())
+	}
+	view := root.FS()
+	opened, err := view.Open("one/two/file")
+	check(err)
+	check(opened.Close())
+	viewed, err := stdfs.Stat(view, "one/link")
+	check(err)
+	if !viewed.Mode().IsRegular() {
+		t.Fatal(viewed.Mode())
+	}
+	data, err := stdfs.ReadFile(view, "one/link")
+	check(err)
+	if string(data) != "inside" {
+		t.Fatal(string(data))
+	}
+	entries, err := stdfs.ReadDir(view, "one")
+	check(err)
+	names := []string{}
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	if !slices.Equal(names, []string{"link", "two"}) {
+		t.Fatal(names)
+	}
+	readlinks, ok := view.(interface{ ReadLink(string) (string, error) })
+	if !ok {
+		t.Fatal("Root.FS lacks ReadLink")
+	}
+	target, err = readlinks.ReadLink("one/link")
+	check(err)
+	if target != "two/file" {
+		t.Fatal(target)
+	}
+	statfs, ok := view.(interface {
+		Lstat(string) (os.FileInfo, error)
+	})
+	if !ok {
+		t.Fatal("Root.FS lacks Lstat")
+	}
+	info, err = statfs.Lstat("one/link")
+	check(err)
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Fatal(info.Mode())
+	}
+	if _, err := view.Open("../outside"); err == nil {
+		t.Fatal("FS accepted invalid path")
+	}
+	nested, err := root.OpenRoot("one")
+	check(err)
+	defer nested.Close()
+	data, err = nested.ReadFile("link")
+	check(err)
+	if string(data) != "inside" {
+		t.Fatal(string(data))
+	}
+	outside := filepath.Join(base, "outside")
+	check(root.WriteFile("outside", []byte("keep"), 0o600))
+	check(root.Symlink(outside, "one/two/escape"))
+	check(root.RemoveAll("one"))
+	data, err = os.ReadFile(outside)
+	check(err)
+	if string(data) != "keep" {
+		t.Fatal("RemoveAll followed link outside removed tree")
+	}
+}
+
+func TestDirectoryRawTraversalIsDistinctFromRootConfinement(t *testing.T) {
+	base := descriptorTempDir(t)
+	check := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	check(os.Mkdir(filepath.Join(base, "root"), 0o700))
+	check(os.WriteFile(filepath.Join(base, "outside"), []byte("outside"), 0o600))
+	check(os.Symlink("..", filepath.Join(base, "root", "up")))
+	directory, err := os.Open(filepath.Join(base, "root"))
+	check(err)
+	defer directory.Close()
+	fd, err := unix.Openat(int(directory.Fd()), "up/outside", unix.O_RDONLY|unix.O_NOFOLLOW, 0)
+	check(err)
+	file := os.NewFile(uintptr(fd), "outside")
+	defer file.Close()
+	data, err := io.ReadAll(file)
+	check(err)
+	if string(data) != "outside" {
+		t.Fatal(string(data))
+	}
+	root, err := os.OpenRoot(filepath.Join(base, "root"))
+	check(err)
+	defer root.Close()
+	if f, err := root.Open("up/outside"); err == nil {
+		f.Close()
+		t.Fatal("Root escaped through intermediate link")
+	}
+}
+
+func TestDirectoryRewindAndHeldReplacement(t *testing.T) {
+	base := descriptorTempDir(t)
+	check := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, name := range []string{"old", "replacement"} {
+		check(os.Mkdir(filepath.Join(base, name), 0o700))
+	}
+	check(os.WriteFile(filepath.Join(base, "old", "a"), nil, 0o600))
+	dir, err := os.Open(filepath.Join(base, "old"))
+	check(err)
+	defer dir.Close()
+	first, err := dir.Readdirnames(-1)
+	check(err)
+	_, err = dir.Seek(0, io.SeekStart)
+	check(err)
+	second, err := dir.Readdirnames(-1)
+	check(err)
+	if !slices.Equal(first, second) || len(second) != 1 {
+		t.Fatal(first, second)
+	}
+	replaced, err := os.Open(filepath.Join(base, "replacement"))
+	check(err)
+	defer replaced.Close()
+	before, err := replaced.Stat()
+	check(err)
+	check(unix.Renameat(unix.AT_FDCWD, filepath.Join(base, "old"), unix.AT_FDCWD, filepath.Join(base, "replacement")))
+	after, err := replaced.Stat()
+	check(err)
+	if !os.SameFile(before, after) {
+		t.Fatal("overwritten directory handle rebound")
+	}
+	held, err := dir.Stat()
+	check(err)
+	named, err := os.Stat(filepath.Join(base, "replacement"))
+	check(err)
+	if !os.SameFile(held, named) {
+		t.Fatal("moved directory lost identity")
+	}
+	check(dir.Sync())
+	check(replaced.Sync())
+}
+
+func TestDirectoryAbsoluteOperandsIgnoreInvalidFD(t *testing.T) {
+	base := descriptorTempDir(t)
+	check := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	const invalid = -999
+	folder := filepath.Join(base, "folder")
+	check(unix.Mkdirat(invalid, folder, 0o700))
+	old := filepath.Join(folder, "old")
+	fd, err := unix.Openat(invalid, old, unix.O_CREAT|unix.O_RDWR|unix.O_EXCL, 0o600)
+	check(err)
+	check(unix.Close(fd))
+	var info unix.Stat_t
+	check(unix.Fstatat(invalid, old, &info, unix.AT_SYMLINK_NOFOLLOW))
+	moved := filepath.Join(folder, "moved")
+	check(unix.Renameat(invalid, old, invalid, moved))
+	dir, err := os.Open(folder)
+	check(err)
+	defer dir.Close()
+	check(unix.Renameat(invalid, moved, int(dir.Fd()), "relative"))
+	check(unix.Renameat(int(dir.Fd()), "relative", invalid, moved))
+	check(unix.Unlinkat(invalid, moved, 0))
+	check(unix.Unlinkat(invalid, folder, unix.AT_REMOVEDIR))
 }
