@@ -170,3 +170,26 @@ Verified
 - Profiles generation updated revisions_gen.go only. Independent adapter/source checks passed for go125/go1.25.14 and go126/go1.26.9 on both Linux source architectures; final profiles check passed. No adapter bytes, origins, baseline versions or historical evidence changed; no stringer regeneration was needed.
 - `.ci/gofmt check` and `git diff --check` passed. Reviewed current docs for obsolete directory-descriptor/symlink/catalogue claims; none remain in the changed current-state documents.
 - Logs: `.gosim/validation/gs01/task7/`. Source/metadata changes invalidate prior final-identity evidence; Task 8 performs the final ordinary/native/simulated qualification within the user’s Darwin ARM64 scope.
+
+## Task 8 — final Darwin ARM64 execution validation
+Date: 2026-10-25. Tested executable source: f4d32046850678780dbc76a3582f98824c6a6ef1.
+
+Results
+- Ordinary make test with go1.25.14: 2,235 passed, 18 skipped, zero failures/errors, 80 reports, 323.647 seconds.
+- Ordinary make test with go1.26.9: 2,251 passed, 16 skipped, zero failures/errors, 80 reports, 315.521 seconds.
+- Both isolated snapshots used input digest `1460d097c791c93aded6b95b06ebff16607c0296cb5b12452b4f4b2c3052adcc` (705 inputs), status passed, no checkout changes, race=false and large=false. Read both report.md and timeline.md files and examined raw skip events; counts include parent tests/subtests.
+- Both families: eight native descriptor/Root/Darwin tests passed; 16 translated top-level tests × three seeds passed (48 top-level / 60 total pass lines per compiler, zero skips). Ordinary FS suites also passed the existing determinism and five-seed metatests, including all new crash/flag cases.
+- Final failure checker: nine fixtures per family passed with expected fatal classification and no recovered/host effects. This is the dedicated GS-01 checker, not the restricted candidate/large suite.
+- Consumer simulation: unchanged four journal tests × seeds 1–3 passed under Go 1.26.5, 12 top-level / 36 total passes, zero skips. Fresh v5 manifest binds f4d3204; hash verification passed after both simulated and native execution.
+- Native consumer: 13 selected original functional tests / 33 cases including subtests passed, zero skips. Selection includes A, both archive tests, all staging shapes including hardlink, both artifact cases, root/lock replacement and alias checks, lease close and atomic publication. Native Fstatfs/F_FULLFSYNC and native links are preserved.
+
+Evidence
+- Reports: `test-reports/gs01/go125/unit/latest/{report,timeline}.md` and corresponding go126 paths; raw package logs/JSON remain alongside them.
+- Consolidated identity/selection evidence: `.gosim/validation/gs01/task8/summary.json`, `host.json`, `source-selection.json`, `consumer-native.json`, focused logs and skips-go125.json / skips-go126.json.
+- Final consumer manifest and command logs: `.gosim/gs01-consumer/go1265-v5/`; failure fixtures: `test-reports/gs01/final-guards/{go125,go126}/report.json`. Both failure reports have source-manifest hash `0869df76b8c632253816ca9b702d36351d1fc215edbfdf6a9fe27e1e1b2b8ec2`.
+- Host: macOS 27.0, Darwin 27.0.0, ARM64. Both checkout and native temporary fixtures are on APFS with 4096-byte device blocks. Initial diskutil probing of a directory was rejected; querying its actual df mount point produced the recorded filesystem evidence.
+
+Skips and boundaries
+- The 16 common ordinary skips are five large-only candidate/script/selected-translation entries, two race-disabled tests, one subprocess-helper entry, and eight expected-failure/logging fixtures that deliberately skip in the positive runner. Go 1.25 additionally skips two Go-1.26-specific audit fixtures. None is a new GS-01 semantic case; no skipped test is counted as passed.
+- Source-selection checks confirm native Linux references are linux && !sim, simulator tests select Linux source, and Darwin cases stay native. Source selection does not establish native Linux behavior.
+- Native Linux ARM64 and Linux AMD64 remain explicitly deferred by user scope. Linux errno and removed-directory dotdot references remain unqualified natively. Simulation B/statx, C/hardlink and lock-exclusion remain GS-03/GS-02 dependencies, despite native passes. No hardware power-loss guarantee, full issue #12 acceptance, certification, race/large run or extra infrastructure is claimed.

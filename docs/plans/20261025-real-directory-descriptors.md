@@ -321,21 +321,21 @@ Gate A exact names:
 
 **Target references:** [Mandatory portability requirement](../brainstorms/20261025-real-directory-descriptors-target.md#mandatory-portability-requirement), [Verification specification](../brainstorms/20261025-real-directory-descriptors-target.md#verification-specification), [Agreed evidence matrix](../brainstorms/20261025-real-directory-descriptors-target.md#agreed-nativetranslated-evidence-matrix), consumer gates and design completion boundary.
 
-- [ ] Run ordinary make test under Go 1.25.14 and 1.26.9 with separate report roots (V7). Read report.md and failing package logs; distinguish skipped large suites from passed tests. Record tested snapshot identity and any concurrent-checkout-edit warning.
-- [ ] On native Darwin ARM64, execute the shared/public and Darwin-specific cases under both Gosim families, plus translated Linux regressions separately. Require actual unskipped native tests for handle rename/replacement/unlink/close, Root links/confinement, NewFile/Sync and complete listings.
-- [ ] Record native Linux ARM64 checks as deferred for this Darwin-only run. Preserve the native-only reference/shared fixtures for later CI; do not claim simulated Linux execution on Darwin is a native Linux result.
-- [ ] Record Linux AMD64 execution as explicitly deferred by the user. Retain AMD64 source/constants/generation checks, without presenting them as executed AMD64 semantics or certification.
-- [ ] Record source-derived Linux errno and held-removed-directory dotdot expectations as awaiting native Linux qualification. Implement the verified target and retain its reference fixtures; do not weaken native expectations to match the prototype or promote cross-compilation/Darwin results to Linux execution.
-- [ ] Run native pinned gquorum A plus supported B/C archive/alias and relevant descriptor cases on Darwin ARM64 with Go 1.26 and original functional tags (V6); record native Linux consumer runs as deferred. Preserve native Fstatfs/F_FULLFSYNC paths; do not install simulator fcntl behavior or batch limits on native execution.
-- [ ] Confirm the final simulated A result belongs to the final source identity; rerun it if relevant source/dependency changes since Task 6 invalidate that evidence. Do not rerun unchanged successful checks without a reason.
-- [ ] Collect exact compiler/OS/kernel/architecture/filesystem, command/test selections, source identities and report paths. Separate model crash outcomes, native reopen/error tests and actual hardware durability claims. Native results do not satisfy simulated B/C when its capability is still missing.
-- [ ] Fix failures within the accepted target and revalidate the affected checks. Log incidental changes, external blockers and unimplemented gaps. Do not claim the full issue closed while its archive gate or mandatory native evidence is outstanding.
+- [x] Run ordinary make test under Go 1.25.14 and 1.26.9 with separate report roots (V7). Read report.md and failing package logs; distinguish skipped large suites from passed tests. Record tested snapshot identity and any concurrent-checkout-edit warning.
+- [x] On native Darwin ARM64, execute the shared/public and Darwin-specific cases under both Gosim families, plus translated Linux regressions separately. Require actual unskipped native tests for handle rename/replacement/unlink/close, Root links/confinement, NewFile/Sync and complete listings.
+- [x] Record native Linux ARM64 checks as deferred for this Darwin-only run. Preserve the native-only reference/shared fixtures for later CI; do not claim simulated Linux execution on Darwin is a native Linux result.
+- [x] Record Linux AMD64 execution as explicitly deferred by the user. Retain AMD64 source/constants/generation checks, without presenting them as executed AMD64 semantics or certification.
+- [x] Record source-derived Linux errno and held-removed-directory dotdot expectations as awaiting native Linux qualification. Implement the verified target and retain its reference fixtures; do not weaken native expectations to match the prototype or promote cross-compilation/Darwin results to Linux execution.
+- [x] Run native pinned gquorum A plus supported B/C archive/alias and relevant descriptor cases on Darwin ARM64 with Go 1.26 and original functional tags (V6); record native Linux consumer runs as deferred. Preserve native Fstatfs/F_FULLFSYNC paths; do not install simulator fcntl behavior or batch limits on native execution.
+- [x] Confirm the final simulated A result belongs to the final source identity; rerun it if relevant source/dependency changes since Task 6 invalidate that evidence. Do not rerun unchanged successful checks without a reason.
+- [x] Collect exact compiler/OS/kernel/architecture/filesystem, command/test selections, source identities and report paths. Separate model crash outcomes, native reopen/error tests and actual hardware durability claims. Native results do not satisfy simulated B/C when its capability is still missing.
+- [x] Fix failures within the accepted target and revalidate the affected checks. Log incidental changes, external blockers and unimplemented gaps. Do not claim the full issue closed while its archive gate or mandatory native evidence is outstanding.
 
 #### Verification
 
-- [ ] Both ordinary suite reports have no unaccounted failures/errors and all relevant skipped/missing cases are explicitly listed.
-- [ ] Every required Darwin ARM64 row has an actual result. Deferred native Linux/AMD64 rows remain visibly deferred by user scope, never counted as passes or removed from future qualification.
-- [ ] No race/large/certification or extra infrastructure was invoked through an alias, environment variable or helper.
+- [x] Both ordinary suite reports have no unaccounted failures/errors and all relevant skipped/missing cases are explicitly listed.
+- [x] Every required Darwin ARM64 row has an actual result. Deferred native Linux/AMD64 rows remain visibly deferred by user scope, never counted as passes or removed from future qualification.
+- [x] No race/large/certification or extra infrastructure was invoked through an alias, environment variable or helper.
 
 ### Task 9: Architectural delta verification and final wiring audit
 
@@ -452,20 +452,20 @@ Read `unit/latest/report.md`, `timeline.md`/JSON and failing per-package logs be
 
 ## Acceptance and evidence ledger
 
-No entry is complete at planning time. Earlier prototype runs are historical only.
+Updated after Task 8. Earlier prototype runs remain historical; the entries below reference final executable source f4d3204 and the recorded user-scoped Darwin ARM64 validation.
 
 | Gate | Required result | Current state |
 | --- | --- | --- |
-| Model/provider/kernel/routegen checks | Target behavior and errors, both families | Not run for final implementation |
-| Translated public APIs and crash/determinism tests | Both families, complete identity and repeat evidence | Not run for final implementation |
-| Fatal feature/raw/Root/overflow boundaries | Correct failure, attribution, no recovery/host effects | Not run |
-| Native Darwin ARM64 | Both Gosim families, native common/Darwin behavior | Not run for final implementation |
+| Model/provider/kernel/routegen checks | Target behavior and errors, both families | Passed focused checks and both final ordinary suites |
+| Translated public APIs and crash/determinism tests | Both families, complete identity and repeat evidence | 16 focused top-level tests × 3 seeds per family passed; ordinary FS determinism and five-seed metatests passed |
+| Fatal feature/raw/Root/overflow boundaries | Correct failure, attribution, no recovery/host effects | All 9 focused failure fixtures passed per family on final source; provider/kernel assertions passed |
+| Native Darwin ARM64 | Both Gosim families, native common/Darwin behavior | 8 focused tests passed per family; ordinary suites passed on macOS 27.0 / Darwin 27.0.0 / APFS |
 | Native Linux ARM64 | Both families, reference and shared behavior | Deferred by current Darwin-only execution scope; no native result |
 | Native Linux AMD64 | Focused native/translated evidence, both families | Explicitly user-deferred to future testing |
-| Simulated consumer A | Four exact journal tests on pinned Go 1.26 consumer | Passed four unchanged tests × seeds 1–3 on Go 1.26.5 after the approved translator repair; 12 top-level and 36 total pass lines, zero skips. Final-identity revalidation belongs to Task 8. |
+| Simulated consumer A | Four exact journal tests on pinned Go 1.26 consumer | Passed four unchanged tests × seeds 1–3 on Go 1.26.5 after the approved translator repair; 12 top-level and 36 total pass lines, zero skips. Task 8 repeated the result on final source; manifest `.gosim/gs01-consumer/go1265-v5/manifest.json`. |
 | Simulated consumer B | Archive/artifact mount identity | Depends on GS-03 increment 2 |
 | Simulated consumer C | Staging hardlink safety | Depends on GS-03 increment 1 |
-| Native consumer A/B/C | Original source/tags, Go 1.26 | Darwin ARM64 required in this run; Linux deferred by user scope |
+| Native consumer A/B/C | Original source/tags, Go 1.26 | 13 selected tests / 33 cases including subtests passed, zero skips, original source/functional tags, Go 1.26.5 on Darwin ARM64; Linux deferred |
 | Real locking/exclusion | Ownership/contention/lifetime | GS-02; journal test passes do not qualify it |
 
 Plan implementation completion, native qualification and full issue #12 acceptance are different claims. Keep all three explicit. Required missing evidence leaves the relevant task/gate open. Approved GS-03 exclusions remain dependencies even if every GS-01 local test passes.
@@ -489,12 +489,12 @@ None during planning. The user explicitly extended Task 6 to repair indirect tes
 
 This is an execution ledger, not a list of waived requirements. Use `[_]` for a still-unresolved item; replace it with a recorded fix/evidence reference only when resolved.
 
-- [_] Tasks 1–7 are implemented with focused evidence, current capability/documentation records and consumer gate A after the approved translator fix. Full final validation and the architectural audit remain Tasks 8–9.
+- [_] Tasks 1–8 are implemented and validated within the user-approved Darwin ARM64 scope. Only the final architectural/wiring audit remains Task 9.
 - [_] [user-deferred] Native Linux ARM64/AMD64 qualification awaits future testing; the user limited this execution to Darwin ARM64. This is a declared qualification gap, not a passing result or a current-run infrastructure blocker.
-- [_] Darwin qualification and final consumer A execution are pending. Native Linux errno/removed-directory-dotdot qualification is user-deferred; source review is not native execution evidence.
+- [x] Darwin qualification and final-source consumer A execution passed in Task 8. Native Linux errno/removed-directory-dotdot qualification remains user-deferred; source review is not native execution evidence.
 - [_] Simulated consumer B/C requires GS-03 capabilities by the accepted scope. Preserve this dependency in final reporting and do not claim full issue #12 acceptance prematurely.
 
-- [x] Task 6 scope resolution and repair: `internal/translate/packages.go` classifies an indirect recompiled dependency (`gquorum [disk.test]`) as its own test variant; `internal/translate/graph.go:152` rejects its absent base. A minimal parent/leaf/external-test fixture passes native Darwin/Go 1.26.5 but fails under rt simulation with the same error. The user approved the repair on 2026-10-25. Production classification and owning-context typed reload now pass focused regressions under both families and unchanged gquorum A under Go 1.26.5. No consumer assertions/imports were changed. See `.ci/gs01-consumer/README.md` and `.gosim/validation/gs01/task6/`.
+- [x] Task 6 scope resolution and repair: `internal/translate/packages.go` previously classified an indirect recompiled dependency (`gquorum [disk.test]`) as its own test variant, causing the graph to reject its absent base. The original minimal parent/leaf/external-test fixture passed natively and reproduced the same simulation error before the repair. The user approved the repair on 2026-10-25. Production classification and owning-context typed reload now pass focused regressions under both families and unchanged gquorum A under Go 1.26.5. No consumer assertions/imports were changed. See `.ci/gs01-consumer/README.md` and `.gosim/validation/gs01/task6/`.
 
 ## Progress log
 
@@ -517,3 +517,5 @@ Future entries must name the completed task, exact checks/results, source identi
 - 2026-10-25 Task 6 completed: The user-approved translator repair passed three focused regression functions and related graph/cache checks under go1.25.14 and go1.26.9. Four unchanged gquorum A tests passed seeds 1–3 under go1.26.5 (12 top-level / 36 total pass lines, no skips), with source/body integrity verified afterward. Manifest: `.gosim/gs01-consumer/go1265-v4/manifest.json`; logs: `.gosim/validation/gs01/task6/`. Simulation B/C and lock-exclusion limits remain separate.
 
 - 2026-10-25 Task 7: Updated provider/Root semantic capabilities, shared-family syscall reasons, current architecture/features/README and catalogue counts. Regenerated profile revisions; both-family AMD64/ARM64 adapter checks and profiles check passed without origin/adapter/evidence changes. FS, spec, profiles and routegen packages passed under both compilers; the new external-package metadata test needed a spec.Capability qualification, then passed. Formatting/diff checks clean. Logs: `.gosim/validation/gs01/task7/`.
+
+- 2026-10-25 Task 8: Both final ordinary suites passed (go1.25.14: 2,235 pass / 18 skip; go1.26.9: 2,251 pass / 16 skip; zero fail/error). Both tested input digest `1460d097c791c93aded6b95b06ebff16607c0296cb5b12452b4f4b2c3052adcc`, with no checkout changes. Final native FS (8 per family), translated FS (16 × 3 seeds per family), nine failure fixtures per family, simulated consumer A (4 × 3 seeds) and native consumer A/B/C plus descriptor/artifact cases (13 top-level / 33 total) passed. Host Darwin ARM64/APFS; native Linux/AMD64 deferred, simulation B/C and locks remain external dependencies. Evidence `.gosim/validation/gs01/task8/summary.json`, `test-reports/gs01/{go125,go126}/unit/latest/`, and final consumer v5 manifest.
