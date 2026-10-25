@@ -56,10 +56,12 @@ ByDescriptor={fs:2, net:1}. Individual descriptor numbers are not retained.
 Ownership is captured before execution, including before close removes an FD.
 Directory-context and output descriptors do not count as primary inputs: openat
 and socket use `none`, accept4 uses its listener, and mmap uses its input FD.
+Symlinkat and Readlinkat also use `none`: their dirfd supplies pathname context,
+not a primary descriptor. Symlinkat has mutation latency; Readlinkat is immediate.
 `DescriptorBased` in the dictionary describes this static input rule,
 independently of successful execution.
-Discovery respects the immutable feature set: 8 names for rt, 34 for rt/fs,
-17 for rt/net, and 43 with all features.
+Discovery respects the immutable feature set: 8 names for rt, 36 for rt/fs,
+17 for rt/net, and 45 with all features.
 
 Monitor operations work before machine Start and after stop/crash; counters and
 enabled state survive Restart. Enabling before Start includes package init.

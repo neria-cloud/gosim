@@ -44,7 +44,9 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `fs` | Sync and crash durability | ✅ | Sync makes modeled operations durable. `SetCrashMode` selects `DurableOnly` or `SamplePending` behavior for non-fsynced operations. |
 | `fs` | Crash-state enumeration and restore | ✅ | `CrashStates` enumerates immutable recovery snapshots with an explicit state budget. `Restore` applies a retained snapshot before starting or restarting a target machine. |
 | `fs` | Crash injection during sync | ✅ | `SetSyncFault` configures bounded crash probabilities around sync, including the probability of crashing before the sync completes. |
-| `fs` | Directory sync | ✅ | The filesystem models directory operations and their synchronization for persistence testing. |
+| `fs` | Directory sync | ✅ | Inode/dependency flush, including narrow directory-move topology ordering; syncing a new child does not implicitly persist its parent entry. |
+| `fs` | Directory descriptors and symlinks | partially | Inode-bound handles survive rename/replacement; one resolver implements relative/absolute and final-link policies. No hard links, mounts, procfs or special files. |
+| `fs` | Directory enumeration | partially | One complete sorted batch; overflow aborts before output. Seek to zero rewinds; no pagination or other directory seeks. |
 | `fs` | Direct-I/O and alignment controls | not supported | There is no public direct-I/O mode or alignment configuration. |
 | `fs` | Storage capacity limits | ✅ | `fs.Config.CapacityBytes` sets a pre-start limit (default 128 MiB); `fs.Stats` reports total, used, and free space in allocated 1 KiB file-data blocks. Sparse holes use no blocks. Writes and reservations that need unavailable blocks fail atomically with `ENOSPC`, leaving file contents, size, and write offset unchanged. Capacity cannot be resized after start. |
 | `fs` | Read-only storage mode | ✅ | `fs.SetReadOnly` can turn writes off and back on while a machine runs, including for already-open writable files. A write attempted while read-only returns `EROFS` without advancing its offset or changing data. The mode persists across restarts. |
@@ -54,3 +56,52 @@ The table covers the inventory in the [Gosim–turmoil feature report](reports/t
 | `fs` | File locking | not supported | Existing `flock` and record-lock stubs do not model ownership, contention, or exclusion. |
 | `fs` | POSIX permissions | partially | Mode, UID, and GID metadata and owner/group/other access checks are modeled. The default identity is root; `fs.Config` can set a machine's effective UID/GID. Chmod requires the owner or root; chown requires root. Supplemental groups, ACLs, and special permission-bit behavior are not modeled. |
 | `fs` | `io_uring` | not supported | There is no simulated ring API for asynchronous read, write, fsync, or cancellation. |
+
+## os.Root and directory descriptors
+
+Both supported Go families use their unchanged Root traversal implementation over
+the simulated Linux syscall ABI. These are modeled semantics on Linux or macOS
+hosts; this table does not claim complete POSIX coverage. `os.OpenRoot` enters
+through openat and fstat, and regular files wrapped by `os.NewFile` retain normal
+file I/O and Sync despite the documented integer-fcntl limitation.
+
+| Root methods | Status | Underlying behavior / limit |
+| --- | --- | --- |
+| Name, Close | Supported | Go lifecycle and descriptor release; closed operations fail |
+| Open, Create, OpenFile | Limited | openat/fstat/read/write; DIRECTORY/NOFOLLOW/EXCL; no append, NONBLOCK, O_PATH, O_TMPFILE or special files |
+| OpenRoot | Supported in modeled namespace | Nested/renamed roots, links and confinement through openat/fstatat/readlinkat |
+| Chmod, Chown, Lchown | Limited | fchmodat/fchownat, owner/root rules and explicit link/target behavior |
+| Mkdir, MkdirAll | Supported in modeled namespace | mkdirat and Go traversal; parent synchronization remains caller-owned |
+| Remove, RemoveAll | Limited | unlinkat type/emptiness rules; recursive listing inherits fatal overflow |
+| Stat, Lstat | Limited | fstatat link policy; timestamps zero and directory link counts incomplete |
+| Readlink, Symlink | Supported in modeled namespace | readlinkat/symlinkat; stored targets and Go Root confinement |
+| Rename | Supported in modeled namespace | renameat; replacement, types, cycles, inode handles and narrow crash ordering; no no-replace semantics |
+| Link | Rejected when reached | Unsupported Linkat; hard links belong to GS-03 |
+| Chtimes | Rejected when reached | Unsupported utimensat; no timestamp model |
+| ReadFile, WriteFile | Limited | Go wrappers inherit the open/data limits |
+| FS | Limited | Open/ReadFile/ReadDir/ReadLink/Stat/Lstat preserve Root checks and inherit corresponding metadata/listing limits |
+
+Integer fcntl operations (including F_GETFL) return ENOSYS. O_CLOEXEC is accepted
+and ignored; O_NONBLOCK is rejected. Directory SEEK_CUR and nonzero seeks are
+unsupported. Read-only mutation denial is early, so error precedence can differ
+from a Linux read-only mount. Raw openat is not a confinement API: intermediate
+symlinks may escape the supplied directory when the syscall permits it.
+
+Native Linux and macOS checks remain distinct from simulated Linux behavior.
+Common tests run on all three; native Linux reference files use `linux && !sim`,
+simulator divergences use `sim`, intentionally shared Linux contracts use
+`_linux_test.go`, and native Darwin cases use `_darwin_test.go`. The GS-01 run was
+scoped by the user to Darwin ARM64; native Linux/AMD64 qualification remains
+explicitly deferred. Existing CI configuration is not fresh execution evidence.
+Exact compilers, source identities and results are in the
+[execution record](progress/20261025-real-directory-descriptors.md).
+
+Pinned gquorum 10c78f9 requires Go 1.26 and retains x/sys v0.45.0. Its gates are
+reported separately: A is the four journal publication/history/reset tests; B is
+archive/artifact behavior requiring simulated statx (GS-03 increment 2); C's
+hardlink subtest requires Linkat (GS-03 increment 1). Native Darwin B/C still
+exercise native Fstatfs/F_FULLFSYNC and links. A success neither qualifies lock
+exclusion (GS-02) nor replaces CrashStates coverage, and does not establish full
+issue #12 acceptance. Consumer production code and assertions are preserved in
+the pinned harness; only simulation test headers, bootstrap and module/config
+setup differ from the native copy.

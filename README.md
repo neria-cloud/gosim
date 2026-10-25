@@ -142,7 +142,24 @@ The in-memory filesystem is rooted at `/`; processes start in `/app`. Configure 
 
 After a crash, `fs.CrashStates(machine, fs.EnumerateOptions{MaxStates: n})` owns a synchronous iterator over immutable crash outcomes. A positive budget is required. `Next` returns a snapshot and availability flag; exceeding the budget while more outcomes exist returns `fs.ErrEnumerationLimit`. Close the iterator when finished, and close each returned snapshot separately. Closing the iterator does not invalidate snapshots already returned. `fs.Restore` accepts a retained snapshot from the same simulation for an unstarted or stopped/crashed target; configure its next main function and start/restart it explicitly. Destroying a machine does not invalidate separately owned snapshots.
 
-Graceful stop flushes modeled writes and metadata. Crash behavior preserves uncertainty in non-fsynced operations, including block reservations and mode/ownership changes. Supplemental groups, ACLs, sticky bits, symlinks, special files and real POSIX locking remain outside the model.
+Directory descriptors retain their inode after rename or replacement. Relative
+`openat`/`fstatat`/`mkdirat`/`renameat`/`unlinkat` operations use that inode;
+absolute paths ignore the directory FD. Symlinks have stored targets and a shared
+40-link traversal limit. `O_DIRECTORY`, `O_NOFOLLOW`, `O_EXCL` and
+`AT_SYMLINK_NOFOLLOW` select the modeled syscall behavior. Go's own `os.Root`
+implementation provides confinement over those calls; raw `openat` is not a
+confinement boundary. `os.NewFile` wrapping a regular file and directory `Sync`
+are covered. See the [Root method matrix](docs/features.md#osroot-and-directory-descriptors)
+for the full supported subset.
+
+Directory reads return one complete batch. A listing too large for the supplied
+buffer aborts with `UnsupportedOperation` before returning entries; it never
+silently reports a partial listing as complete. Directory `Seek(0, SeekStart)`
+rewinds; other directory seeks, integer fcntl flags, `O_NONBLOCK`, append, mounts
+and procfs remain unsupported. Read-only mode deliberately rejects mutations
+early, so combined-error precedence is not Linux-exact.
+
+Graceful stop flushes modeled writes and metadata. Crash behavior preserves uncertainty in non-fsynced operations, including block reservations and mode/ownership changes. Supplemental groups, ACLs, sticky bits, hard links, special files and real POSIX locking remain outside the model. Directory-rename ordering does not make arbitrary child writes durable or substitute for syncing a newly created directory’s parent.
 
 ## Network policy
 
@@ -195,7 +212,7 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 
 | Area | Current boundary |
 | --- | --- |
-| Files and persistence | Bounded in-memory file/directory volume, 1 KiB allocated-block accounting, sync/crash semantics; no live resize or special files |
+| Files and persistence | Bounded file/directory/symlink volume, inode-bound directory descriptors, limited os.Root, 1 KiB file-block accounting and sync/crash semantics; no hard links, mounts, live resize or special files |
 | Locks and permissions | Owner/group/other mode and ownership checks; no supplemental groups, ACLs or sticky bits; `flock`/record-lock stubs do not establish ownership or contention |
 | Networking | Simulated IPv4/TCP; UDP, IPv6 and hostname resolution are outside the supported model |
 | HTTP/gRPC/TLS | Translated plaintext HTTP request/response, connection reuse, streaming, cancellation and graceful shutdown have focused coverage. The [three-node etcd example](examples/etcd/) exercises HTTP/gRPC over simulated TCP and storage, including partition recovery and snapshot/WAL round trips. The [standalone gRPC example](examples/network/grpc/) covers unary and bidirectional streams; the [NATS example](examples/network/nats/) covers plain TCP. TLS/certificate operations abort; untested HTTP surfaces are not claimed. |
@@ -203,7 +220,7 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 | Runtime modes | One active run per process; no native-scheduler virtual-I/O mode, mutable feature sets or runtime provider loading |
 | Additional platforms | Go families other than 1.25/1.26, Darwin AMD64, Windows and non-Linux simulated ABIs are unsupported |
 
-The reviewed [Go 1.25 baseline](internal/compat/profiles/go125.json) distinguishes implemented, limited, stub and rejected behavior. Effective Go 1.26 capabilities combine that baseline with the [Go 1.26 delta](internal/compat/profiles/go126.json). The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records remaining application requirements; modularization does not claim to implement them.
+The reviewed [Go 1.25 baseline](internal/compat/profiles/go125.json) distinguishes implemented, limited, stub and rejected behavior. Effective Go 1.26 capabilities combine that baseline with the [Go 1.26 delta](internal/compat/profiles/go126.json). The historical [syscall audit](docs/reports/syscall-support-for-gquorum.md) records requirements at its original baseline and is not current execution evidence. The [GS-01 execution record](docs/progress/20261025-real-directory-descriptors.md) separates journal acceptance from the remaining archive/statx, hardlink and real-lock requirements; no full gquorum qualification is claimed.
 
 ## Development and test reports
 

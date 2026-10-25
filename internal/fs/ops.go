@@ -74,6 +74,8 @@ func (i *Instance) identity() model.Identity {
 
 // The read-only fault gate intentionally precedes model pathname lookup; it
 // denies mutations but does not model every Linux read-only errno precedence.
+// TODO(not planned): Linux-exact read-only-mount precedence among invalid
+// operands. This machine policy deliberately denies mutation early.
 func (i *Instance) checkMutation() error {
 	if i.machine.readOnly {
 		return syscall.EROFS
@@ -102,7 +104,8 @@ func (i *Instance) Openat(ctx contracts.CallContext, dirfd int, path string, fla
 			return 0, err
 		}
 	}
-	// O_APPEND and other unsupported status flags remain explicit errors.
+	// TODO(not planned): append, NONBLOCK, O_PATH, O_TMPFILE and special files.
+	// Unsupported status flags remain explicit errors.
 	modelFlags := flags & 3
 	for _, flag := range []struct{ linux, host int }{{openCreate, os.O_CREATE}, {openExclusive, os.O_EXCL}, {openTruncate, os.O_TRUNC}} {
 		if flags&flag.linux != 0 {

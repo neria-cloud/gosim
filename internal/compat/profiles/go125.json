@@ -7216,25 +7216,25 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "Fchmod",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "golang.org/x/sys/unix",
           "symbol": "Fchmodat",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "golang.org/x/sys/unix",
           "symbol": "Fchown",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "golang.org/x/sys/unix",
           "symbol": "Fchownat",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7246,7 +7246,7 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "FcntlInt",
           "status": "limited",
-          "reason": "Typed kernel service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Integer descriptor/status operations return ENOSYS, including F_GETFL; no O_NONBLOCK support."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7270,7 +7270,7 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "Fstatat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-relative metadata; flags=0 follows final links, AT_SYMLINK_NOFOLLOW reports links. Timestamps remain zero and directory link counts are incomplete."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7300,7 +7300,7 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "Getdents",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "One complete sorted directory batch; overflow aborts UnsupportedOperation before output. Dummy inode/offset fields and no pagination; Seek(0, SeekStart) rewinds."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7336,7 +7336,7 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "Mkdirat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-relative mkdir with permissions and fixed 0022 umask; no implicit persistence of the new directory link by syncing the child."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7360,13 +7360,13 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "Renameat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Independent inode-relative operands; type/cycle/empty replacement checks. Directory moves add narrow ancestor-topology dependencies; no no-replace guarantee."
         },
         {
           "package": "golang.org/x/sys/unix",
           "symbol": "Seek",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Regular-file offsets are modeled. Directories accept only Seek(0, SeekStart) to rewind; SEEK_CUR and directory cookies are unsupported."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7402,7 +7402,7 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "Unlinkat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-relative removal; flags=0 for files/links, AT_REMOVEDIR for empty directories; open handles retain inode identity."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7426,7 +7426,7 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "fcntl",
           "status": "limited",
-          "reason": "Typed kernel service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Integer descriptor/status operations return ENOSYS; pointer record-lock form remains a successful stub without ownership or contention."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7468,7 +7468,7 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "openat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-bound directory FDs or cwd; absolute paths ignore dirfd. DIRECTORY/NOFOLLOW/EXCL enforced; CLOEXEC ignored. No append, NONBLOCK, O_PATH, O_TMPFILE or special files."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7822,13 +7822,13 @@
           "package": "internal/syscall/unix",
           "symbol": "Fchmodat",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "internal/syscall/unix",
           "symbol": "Fchownat",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "internal/syscall/unix",
@@ -7840,19 +7840,19 @@
           "package": "internal/syscall/unix",
           "symbol": "Openat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-bound directory FDs or cwd; absolute paths ignore dirfd. DIRECTORY/NOFOLLOW/EXCL enforced; CLOEXEC ignored. No append, NONBLOCK, O_PATH, O_TMPFILE or special files."
         },
         {
           "package": "internal/syscall/unix",
           "symbol": "Unlinkat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-relative removal; flags=0 for files/links, AT_REMOVEDIR for empty directories; open handles retain inode identity."
         },
         {
           "package": "internal/syscall/unix",
           "symbol": "fcntl",
           "status": "limited",
-          "reason": "Typed kernel service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Integer descriptor/status operations return ENOSYS; pointer record-lock form remains a successful stub without ownership or contention."
         },
         {
           "package": "internal/syscall/unix",
@@ -8206,25 +8206,25 @@
           "package": "syscall",
           "symbol": "Fchmod",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "syscall",
           "symbol": "Fchmodat",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "syscall",
           "symbol": "Fchown",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "syscall",
           "symbol": "Fchownat",
           "status": "limited",
-          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and AT_FDCWD path scope."
+          "reason": "Typed filesystem metadata route; owner/root checks, read-only policy, and inode-relative directory-FD/cwd resolution and explicit final-link policy."
         },
         {
           "package": "syscall",
@@ -8278,7 +8278,7 @@
           "package": "syscall",
           "symbol": "Getdents",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "One complete sorted directory batch; overflow aborts UnsupportedOperation before output. Dummy inode/offset fields and no pagination; Seek(0, SeekStart) rewinds."
         },
         {
           "package": "syscall",
@@ -8314,7 +8314,7 @@
           "package": "syscall",
           "symbol": "Mkdirat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-relative mkdir with permissions and fixed 0022 umask; no implicit persistence of the new directory link by syncing the child."
         },
         {
           "package": "syscall",
@@ -8332,13 +8332,13 @@
           "package": "syscall",
           "symbol": "Renameat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Independent inode-relative operands; type/cycle/empty replacement checks. Directory moves add narrow ancestor-topology dependencies; no no-replace guarantee."
         },
         {
           "package": "syscall",
           "symbol": "Seek",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Regular-file offsets are modeled. Directories accept only Seek(0, SeekStart) to rewind; SEEK_CUR and directory cookies are unsupported."
         },
         {
           "package": "syscall",
@@ -8392,13 +8392,13 @@
           "package": "syscall",
           "symbol": "fcntl",
           "status": "limited",
-          "reason": "Typed kernel service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Integer descriptor/status operations return ENOSYS; pointer record-lock form remains a successful stub without ownership or contention."
         },
         {
           "package": "syscall",
           "symbol": "fstatat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-relative metadata; flags=0 follows final links, AT_SYMLINK_NOFOLLOW reports links. Timestamps remain zero and directory link counts are incomplete."
         },
         {
           "package": "syscall",
@@ -8446,7 +8446,7 @@
           "package": "syscall",
           "symbol": "openat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-bound directory FDs or cwd; absolute paths ignore dirfd. DIRECTORY/NOFOLLOW/EXCL enforced; CLOEXEC ignored. No append, NONBLOCK, O_PATH, O_TMPFILE or special files."
         },
         {
           "package": "syscall",
@@ -8560,7 +8560,7 @@
           "package": "syscall",
           "symbol": "unlinkat",
           "status": "limited",
-          "reason": "Typed fs service route; only modeled operations are supported, and unsupported options retain explicit errors."
+          "reason": "Inode-relative removal; flags=0 for files/links, AT_REMOVEDIR for empty directories; open handles retain inode identity."
         },
         {
           "package": "syscall",
@@ -8884,55 +8884,55 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "Readlinkat",
           "status": "limited",
-          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+          "reason": "Copies stored final-link target bytes without NUL; short buffers truncate. Inode-relative traversal; no procfs or mount model."
         },
         {
           "package": "golang.org/x/sys/unix",
           "symbol": "Symlinkat",
           "status": "limited",
-          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+          "reason": "Creates immutable target inodes relative to a directory FD or cwd. One resolver with a shared 40-link budget; Root confinement remains in Go."
         },
         {
           "package": "internal/syscall/unix",
           "symbol": "Fstatat",
           "status": "limited",
-          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+          "reason": "Inode-relative metadata; flags=0 follows final links, AT_SYMLINK_NOFOLLOW reports links. Timestamps remain zero and directory link counts are incomplete."
         },
         {
           "package": "internal/syscall/unix",
           "symbol": "Mkdirat",
           "status": "limited",
-          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+          "reason": "Inode-relative mkdir with permissions and fixed 0022 umask; no implicit persistence of the new directory link by syncing the child."
         },
         {
           "package": "internal/syscall/unix",
           "symbol": "Readlinkat",
           "status": "limited",
-          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+          "reason": "Copies stored final-link target bytes without NUL; short buffers truncate. Inode-relative traversal; no procfs or mount model."
         },
         {
           "package": "internal/syscall/unix",
           "symbol": "Renameat",
           "status": "limited",
-          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+          "reason": "Independent inode-relative operands; type/cycle/empty replacement checks. Directory moves add narrow ancestor-topology dependencies; no no-replace guarantee."
         },
         {
           "package": "internal/syscall/unix",
           "symbol": "Symlinkat",
           "status": "limited",
-          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+          "reason": "Creates immutable target inodes relative to a directory FD or cwd. One resolver with a shared 40-link budget; Root confinement remains in Go."
         },
         {
           "package": "syscall",
           "symbol": "readlinkat",
           "status": "limited",
-          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+          "reason": "Copies stored final-link target bytes without NUL; short buffers truncate. Inode-relative traversal; no procfs or mount model."
         },
         {
           "package": "syscall",
           "symbol": "symlinkat",
           "status": "limited",
-          "reason": "Inode-relative filesystem lookup with explicit final symlink policy; one modeled volume, no special files or mount traversal."
+          "reason": "Creates immutable target inodes relative to a directory FD or cwd. One resolver with a shared 40-link budget; Root confinement remains in Go."
         }
       ]
     },

@@ -107,13 +107,77 @@ A session owns per-machine configuration, persistent disk state, retained snapsh
 
 Model algorithms live in `internal/fs/model`. Mutable state is supervisor-owned; provider randomness and clocks come through injected ports. Descriptor and mapping lifetimes follow the shared kernel cleanup protocol.
 
-The inode tree stores files and directories under `/`, while `/app` remains the default process working directory. File content uses copy-on-write 1 KiB chunks. Capacity defaults to 128 MiB; live quota counts allocated chunks of linked or open files, not sparse holes or retained snapshot copies. Writes and fallocate reservations admit all needed blocks before applying operations and fail atomically with `ENOSPC`. Truncation and final unlink/close release the charge. `fs.Stats`, `statfs` and `fstatfs` report the live volume; a recovered image over the configured limit reports zero free and remains readable. Live resizing is out of scope.
+The inode tree stores files, directories and symlinks under `/`, while `/app` remains the default process working directory. File content uses copy-on-write 1 KiB chunks. Capacity defaults to 128 MiB; live quota counts allocated chunks of linked or open files, not sparse holes or retained snapshot copies. Writes and fallocate reservations admit all needed blocks before applying operations and fail atomically with `ENOSPC`. Truncation and final unlink/close release the charge. `fs.Stats`, `statfs` and `fstatfs` report the live volume; a recovered image over the configured limit reports zero free and remains readable. Live resizing is out of scope.
 
 Files and directories retain mode, UID and GID through allocation, metadata pending operations, flush and crash selection. A fixed `0022` umask applies on creation; owner/group/other access uses the machine's primary UID/GID, with root bypass. Directory execute gates traversal and write plus execute gates mutations. Chmod requires owner or root; chown requires root. Read-only is a per-machine policy retained across epochs and restore, immediately rejecting mutations through existing descriptors until toggled off. Configured fixed latency delays scalar completion of filesystem data I/O and mutations after synchronous provider effects; dispatcher epoch events hold no borrowed memory and are canceled with the epoch. Stat and statfs queries are immediate.
 
 `FreezeCrash` retains an immutable crash image. Cloning uses the fs-owned random stream; enumeration uses a deterministic explicit depth-first stack, not a parked iterator goroutine. Closing an iterator releases its state but not snapshots already returned. Snapshots own retained references until close/session teardown and survive destruction of their source machine. Restore validates simulation ownership and target state. A positive public enumeration budget is enforced with lookahead and `ErrEnumerationLimit`.
 
-The provider still omits symlinks, links, special files, supplemental groups, ACLs, sticky bits, real flock/OFD contention, larger mapping support and directory-relative descriptors other than `AT_FDCWD`. Stub/limited operations remain classified in the version manifests and cannot stand in for correctness evidence for applications that need those semantics.
+The provider still omits hard links, distinct mounts/Statx, dup/OFD sharing, special files, supplemental groups, ACLs, sticky bits, real flock/OFD contention and larger mapping support. Integer fcntl returns ENOSYS; NONBLOCK, append, O_PATH, O_TMPFILE and openat2 are unsupported. Timestamps remain zero, directory link counts are incomplete, and there is no procfs fallback. Stub/limited operations remain classified in the version manifests and cannot stand in for correctness evidence for applications that need those semantics.
+
+### Directory identity and pathname resolution
+
+The shared kernel descriptor table owns each `File` and its inode reference.
+`dirInode` resolves a live, instance-owned directory descriptor for relative
+names, uses cwd for AT_FDCWD, and uses the root inode for absolute operands
+without consulting dirfd. A closed or foreign descriptor fails with EBADF and a
+regular-file base with ENOTDIR. Rename changes namespace edges, never the inode
+held by a descriptor. Open handles to replaced or removed directories remain
+attached to their original objects; new entries cannot be created in a detached
+directory. Directory objects may remain allocated until filesystem teardown.
+Epoch validation and resource release remain in the existing kernel/provider
+lifecycle; no pathname handles, provider cross-imports or host I/O were added.
+
+`model.resolve` is the single component walker. Its final-component policies
+are following, no-follow, create-entry and mutation-entry. It preserves lexical
+`.`, `..`, slash-only root and trailing slash, checks prefix search permissions,
+and shares a 40-link expansion budget across prefix/final traversal. It never
+cleans away `link/..`. Symlink inodes retain immutable target bytes, ownership,
+link/reference counts and snapshot state. `Readlinkat` returns target bytes
+without NUL, truncated to the supplied buffer. Stat/lstat and metadata calls
+select final-link behavior explicitly. Open validates DIRECTORY, NOFOLLOW,
+EXCL/create, access and trailing-slash policies before mutation; rename/removal
+retain the final entry identity and enforce type, emptiness and cycle checks.
+Read-only mutation denial intentionally occurs early; Linux-exact precedence
+among multiple errors is not claimed.
+
+Go's Root algorithm is unchanged. Private unix Fstatat/Mkdirat/Renameat and
+Readlinkat/Symlinkat adapters route through typed `FileOps`, with generated FS
+feature gates and invocation-scoped views. Public syscall/x/sys calls use the
+same provider. Root confines traversal; raw `*at` calls can follow links outside
+the supplied directory under their syscall contract. Symlinkat is a delayed
+mutation; Readlinkat is an immediate metadata read. No redundant Root method
+hooks exist; [the method table](features.md#osroot-and-directory-descriptors)
+maps each method to its underlying route or rejection.
+
+Directory enumeration sorts and preflights every record before copying bytes or
+advancing the handle. If the full batch cannot fit, typed `UnsupportedOperation`
+reaches AbortRun with the current call context; partial output is not returned.
+Inode/offset dirent fields remain placeholders. Seek(0, SeekStart) clears the
+listing state; all other directory seeks, including SEEK_CUR, return EINVAL.
+Pagination and richer dirent fields remain GS-05 work.
+
+### Directory topology across crash recovery
+
+Namespace changes remain single atomic multi-part operations. Moving directory
+D publishes `Topo(D)` with store-as and depends on the topology of destination
+parent Q itself and every non-root directory whose parent pointer the cycle
+check reads. Entry dependencies already order D's earlier locations. Mkdir,
+ordinary child changes and source-parent chains do not publish or read extra
+topology edges. Removal/replacement of an empty directory X depends on pending
+`WriteDir(X)` operations so a recovered removal cannot resurrect its children.
+The dependency-key list also governs flush closure; topology is not added as a
+direct `fsync` root.
+
+This prevents the crash cycle from moving B out of A and then A into B without
+making `mkdir P; create P/f; fsync(P)` persist P's otherwise unsynced parent
+entry. Syncing a moved D alone leaves its own link uncertain. If E is subsequently
+moved into D, syncing D flushes E's move and therefore D's prior move through
+`Topo(D)`. More generally, syncing a directory move's destination persists
+pending moves on its inclusive ancestor chain, while unrelated file/sibling
+renames and child data remain uncertain. Bounded model and public CrashStates
+regressions cover both the retained and deliberately uncertain outcomes. These
+are model ordering guarantees, not claims about hardware power-loss behavior.
 
 ## Network provider
 
@@ -165,6 +229,13 @@ Generated composition input is identity-scoped. Published artifacts are also **p
 .gosim/v2/<identity-digest>/input/
 .gosim/v2/<identity-digest>/packages/<package-digest>/manifest.json
 ```
+
+Go's indirect test-dependency variants retain their package IDs and selected
+imports in the graph and cache keys. They translate their full production
+source; only the package directly augmented by its own tests filters production
+files from its test-addition pass. A cache miss for an indirect variant reloads
+syntax/types through its owning test root, including dependencies, so test-only
+exports remain available without fabricating a standalone base package.
 
 The manifest records identity, package digests, binary hash and generated-file hashes. Paths are normalized and checked against traversal/symlinks; materialization is exclusive into private staging. OS build locks and atomic publication prevent concurrent partial reuse. Batch/single-package lookup shares the same canonical dependency digest. Lookup never falls back to stale content or another feature/race tuple.
 
@@ -229,4 +300,4 @@ resolved profiles or audit snapshots are committed.
 
 The design does not include mutable/per-machine feature sets, concurrent independent engines, native scheduling with virtual fs/net, external provider plugins, extra host platforms, non-Linux simulation, or complete HTTP/HTTPS and syscall-model semantics beyond the documented supported scope.
 
-The [usage guide](../README.md) describes current APIs and commands. The [historical syscall audit](reports/syscall-support-for-gquorum.md) records application requirements that remain outside this refactor. Family [go125](../internal/compat/profiles/go125.json) and [go126](../internal/compat/profiles/go126.json) capability manifests retain the distinction between modeled, limited, stub and rejected behavior. Passing a simulator test does not establish correctness for an application that relies on a known missing semantic.
+The [usage guide](../README.md) describes current APIs and commands. The [historical syscall audit](reports/syscall-support-for-gquorum.md) records application requirements at its original baseline. Current descriptor/Root semantics and the separate journal, archive/statx, hardlink and lock-exclusion gates are described in [features](features.md#osroot-and-directory-descriptors); the historical audit is not rewritten as new execution evidence. Family [go125](../internal/compat/profiles/go125.json) and [go126](../internal/compat/profiles/go126.json) capability manifests retain the distinction between modeled, limited, stub and rejected behavior. Passing a simulator test does not establish correctness for an application that relies on a known missing semantic.

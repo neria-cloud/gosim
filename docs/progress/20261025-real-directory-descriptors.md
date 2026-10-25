@@ -156,3 +156,17 @@ Verified
 
 Limitations
 - The repaired initial graph failure is no longer a blocker. Simulation archive/statx (B), hardlink staging (C/hardlink) and lock-exclusion remain their distinct GS-03/GS-02 limitations. Other staging shapes were not selected in this gate-A run. Native consumer and final-source ordinary validation remain Task 8 obligations.
+
+## Task 7 — capability metadata and current architecture
+Date: 2026-10-25. Commit recorded by the Task 7 documentation/metadata commit.
+
+Implemented
+- Replaced obsolete cwd-only/no-symlink capabilities with inode-bound descriptors, final-link policies, fatal complete-batch enumeration and directory rewind. Added a full Root semantic method inventory without additional Root hooks or static method rejections.
+- Updated only the shared Go 1.25 capability reasons; Go 1.26 inherits them. Added checks for inherited limitations and the complete supported/rejected Root inventory.
+- README, design, features and syscall monitoring now describe real semantics, topology fsync effects including move-E-into-D, 36 rt/fs and 45 full names, and the separate native/simulation consumer gates. Historical audit and certification evidence were not rewritten. Existing unsupported boundaries retain explicit TODOs; early read-only precedence and unsupported open modes are now annotated.
+
+Verified
+- FS, spec, profiles and routegen packages passed under go1.25.14 and go1.26.9. An initial compile error in the new external spec test was corrected by qualifying spec.Capability; both full spec reruns passed.
+- Profiles generation updated revisions_gen.go only. Independent adapter/source checks passed for go125/go1.25.14 and go126/go1.26.9 on both Linux source architectures; final profiles check passed. No adapter bytes, origins, baseline versions or historical evidence changed; no stringer regeneration was needed.
+- `.ci/gofmt check` and `git diff --check` passed. Reviewed current docs for obsolete directory-descriptor/symlink/catalogue claims; none remain in the changed current-state documents.
+- Logs: `.gosim/validation/gs01/task7/`. Source/metadata changes invalidate prior final-identity evidence; Task 8 performs the final ordinary/native/simulated qualification within the user’s Darwin ARM64 scope.

@@ -300,20 +300,20 @@ Gate A exact names:
 
 **Files:** `internal/fs/capabilities.go`, `internal/compat/profiles/go125.json` and actual required descendant deltas only; generated revisions/guards/adapters; `README.md`, `docs/design.md`, `docs/features.md`, `docs/syscalls.md`; owning capability/metadata tests. Do not rewrite the historical audit as if it described today's execution evidence.
 
-- [ ] Remove stale AT_FDCWD-only/no-symlink statements for implemented paths. Describe actual real-FD, symlink/final-policy, metadata and Root coverage without claiming full POSIX compatibility.
-- [ ] Explicitly retain integer-fcntl/NONBLOCK, early read-only precedence, limited stat metadata, absent hard links/mounts/real locks, bounded directory listing with fatal overflow, limited directory seek including SEEK_CUR, and lack of procfs/special-file fallbacks.
-- [ ] Map every Root row to its underlying implemented or rejected capability. Link and Chtimes remain fatal when reached with valid inputs. Do not introduce redundant Root hooks only to fill a table.
-- [ ] Update syscall catalogue documentation/counts (36 rt/fs, 45 full) and preserve monitoring's directory-context ownership rule and real failure accounting.
-- [ ] Document the single inode-bound resolver, narrow topology graph and its precise fsync effects, including the positive move-E-into-D exception. Preserve the distinction between model ordering and hardware power-loss guarantees.
-- [ ] Document mandatory native Linux/macOS evidence, gquorum's Go 1.26 applicability and simulation-only B/C blockers. Do not present existing CI configuration or historical prototype passes as fresh qualification.
-- [ ] Add appropriate `TODO(not planned)` comments for exclusions where the implementation would otherwise imply support. Prefer explicit existing rejection paths; do not add warning noise or success stubs for unsupported features.
-- [ ] Regenerate all changed adapters/revisions/profiles/stringers as appropriate, inspect origin changes, and run independent generation checks for both recorded baselines. Historical evidence remains unchanged.
+- [x] Remove stale AT_FDCWD-only/no-symlink statements for implemented paths. Describe actual real-FD, symlink/final-policy, metadata and Root coverage without claiming full POSIX compatibility.
+- [x] Explicitly retain integer-fcntl/NONBLOCK, early read-only precedence, limited stat metadata, absent hard links/mounts/real locks, bounded directory listing with fatal overflow, limited directory seek including SEEK_CUR, and lack of procfs/special-file fallbacks.
+- [x] Map every Root row to its underlying implemented or rejected capability. Link and Chtimes remain fatal when reached with valid inputs. Do not introduce redundant Root hooks only to fill a table.
+- [x] Update syscall catalogue documentation/counts (36 rt/fs, 45 full) and preserve monitoring's directory-context ownership rule and real failure accounting.
+- [x] Document the single inode-bound resolver, narrow topology graph and its precise fsync effects, including the positive move-E-into-D exception. Preserve the distinction between model ordering and hardware power-loss guarantees.
+- [x] Document mandatory native Linux/macOS evidence, gquorum's Go 1.26 applicability and simulation-only B/C blockers. Do not present existing CI configuration or historical prototype passes as fresh qualification.
+- [x] Add appropriate `TODO(not planned)` comments for exclusions where the implementation would otherwise imply support. Prefer explicit existing rejection paths; do not add warning noise or success stubs for unsupported features.
+- [x] Regenerate all changed adapters/revisions/profiles/stringers as appropriate, inspect origin changes, and run independent generation checks for both recorded baselines. Historical evidence remains unchanged.
 
 #### Verification
 
-- [ ] Run capability/spec/profile/routegen tests and both generator checks (V1/V2); verify declarations, metadata and source are mutually consistent.
-- [ ] Run the formatting check (V7). Lint only changed cmd/examples files if any are actually introduced; do not expand lint scope into runtime/providers/generated code.
-- [ ] Review documentation against implemented behavior and explicit incomplete evidence, including native/simulation file selection.
+- [x] Run capability/spec/profile/routegen tests and both generator checks (V1/V2); verify declarations, metadata and source are mutually consistent.
+- [x] Run the formatting check (V7). Lint only changed cmd/examples files if any are actually introduced; do not expand lint scope into runtime/providers/generated code.
+- [x] Review documentation against implemented behavior and explicit incomplete evidence, including native/simulation file selection.
 
 ### Task 8: Execute Darwin ARM64 validation and record deferred native qualification
 
@@ -489,7 +489,7 @@ None during planning. The user explicitly extended Task 6 to repair indirect tes
 
 This is an execution ledger, not a list of waived requirements. Use `[_]` for a still-unresolved item; replace it with a recorded fix/evidence reference only when resolved.
 
-- [_] Tasks 1–6 are implemented with focused evidence, including consumer gate A after the approved translator fix. Tasks 7–9 remain unexecuted; capability documentation and full final validation/audit are pending.
+- [_] Tasks 1–7 are implemented with focused evidence, current capability/documentation records and consumer gate A after the approved translator fix. Full final validation and the architectural audit remain Tasks 8–9.
 - [_] [user-deferred] Native Linux ARM64/AMD64 qualification awaits future testing; the user limited this execution to Darwin ARM64. This is a declared qualification gap, not a passing result or a current-run infrastructure blocker.
 - [_] Darwin qualification and final consumer A execution are pending. Native Linux errno/removed-directory-dotdot qualification is user-deferred; source review is not native execution evidence.
 - [_] Simulated consumer B/C requires GS-03 capabilities by the accepted scope. Preserve this dependency in final reporting and do not claim full issue #12 acceptance prematurely.
@@ -515,3 +515,5 @@ Future entries must name the completed task, exact checks/results, source identi
 - 2026-10-25 Task 6 (incomplete): Added pinned native/sim preparation, hash/selection verification and strict gate-A execution checking. Four host helper tests passed on go1.26.9; pinned preparation and post-failure integrity verification passed on go1.26.5. Gate A failed before test execution at the translator missing-base check; independently reproduced with a minimal rt-only fixture whose two tests pass natively. No A/B/C consumer passes are claimed. Scope resolution is required by Task 6 before a translator repair; Tasks 7–9 were not started.
 
 - 2026-10-25 Task 6 completed: The user-approved translator repair passed three focused regression functions and related graph/cache checks under go1.25.14 and go1.26.9. Four unchanged gquorum A tests passed seeds 1–3 under go1.26.5 (12 top-level / 36 total pass lines, no skips), with source/body integrity verified afterward. Manifest: `.gosim/gs01-consumer/go1265-v4/manifest.json`; logs: `.gosim/validation/gs01/task6/`. Simulation B/C and lock-exclusion limits remain separate.
+
+- 2026-10-25 Task 7: Updated provider/Root semantic capabilities, shared-family syscall reasons, current architecture/features/README and catalogue counts. Regenerated profile revisions; both-family AMD64/ARM64 adapter checks and profiles check passed without origin/adapter/evidence changes. FS, spec, profiles and routegen packages passed under both compilers; the new external-package metadata test needed a spec.Capability qualification, then passed. Formatting/diff checks clean. Logs: `.gosim/validation/gs01/task7/`.

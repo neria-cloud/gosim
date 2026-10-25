@@ -380,3 +380,40 @@ func TestAuditedShimLimitationsAreNamed(t *testing.T) {
 		}
 	}
 }
+
+func TestDirectoryCapabilitiesInheritedAcrossFamilies(t *testing.T) {
+	baseline := fixturePolicy(t, "go125")
+	child := fixturePolicy(t, "go126")
+	for _, item := range []struct{ pkg, symbol, limit string }{
+		{"internal/syscall/unix", "Openat", "NOFOLLOW"},
+		{"internal/syscall/unix", "Fstatat", "AT_SYMLINK_NOFOLLOW"},
+		{"internal/syscall/unix", "Renameat", "topology"},
+		{"internal/syscall/unix", "Readlinkat", "no procfs"},
+		{"internal/syscall/unix", "Symlinkat", "40-link"},
+		{"golang.org/x/sys/unix", "FcntlInt", "ENOSYS"},
+		{"golang.org/x/sys/unix", "Getdents", "overflow aborts"},
+		{"syscall", "Seek", "SEEK_CUR"},
+	} {
+		var parentRecord spec.Capability
+		for _, c := range baseline.Capabilities {
+			if c.Package == item.pkg && c.Symbol == item.symbol {
+				parentRecord = c
+			}
+		}
+		if parentRecord.Status != "limited" || !strings.Contains(parentRecord.Reason, item.limit) {
+			t.Fatalf("missing baseline limit %s.%s: %+v", item.pkg, item.symbol, parentRecord)
+		}
+		found := false
+		for _, c := range child.Capabilities {
+			if c.Package == item.pkg && c.Symbol == item.symbol {
+				found = true
+				if c != parentRecord {
+					t.Fatalf("family delta changed shared semantics: %+v vs %+v", c, parentRecord)
+				}
+			}
+		}
+		if !found {
+			t.Fatalf("child omitted %s.%s", item.pkg, item.symbol)
+		}
+	}
+}
