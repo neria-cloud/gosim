@@ -481,7 +481,10 @@ func (p *dirOpPart) String() string {
 }
 
 type dirOp struct {
-	parts []dirOpPart
+	parts            []dirOpPart
+	movedDirectory   int
+	destinationChain []int
+	emptyDirs        []int
 }
 
 func (o *dirOp) apply(fs *filesystemState, gcer gcer) {
@@ -614,6 +617,17 @@ func (o *dirOp) addDeps(p *pendingOps, op *pendingOp) {
 		p.addDep(op, depKey{kind: depKeyAlloc, inode: int32(part.dir)}, depDependsOn)
 		p.addDep(op, depKey{kind: depKeyWriteDir, inode: int32(part.dir)}, depStoreAs)
 		p.addDep(op, depKey{kind: depKeyWriteDirEntry, inode: int32(part.dir), entry: part.name}, depStoreAsAndDependsOn)
+	}
+	// Only directory moves publish topology. Depending on mkdir's parent link
+	// here would incorrectly let fsync(child) persist that link in its parent.
+	if o.movedDirectory != 0 {
+		p.addDep(op, depKey{kind: depKeyDirTopology, inode: int32(o.movedDirectory)}, depStoreAs)
+		for _, inode := range o.destinationChain {
+			p.addDep(op, depKey{kind: depKeyDirTopology, inode: int32(inode)}, depDependsOn)
+		}
+	}
+	for _, inode := range o.emptyDirs {
+		p.addDep(op, depKey{kind: depKeyWriteDir, inode: int32(inode)}, depDependsOn)
 	}
 }
 
@@ -932,7 +946,12 @@ func (fs *Filesystem) Chown(inode, uid, gid int, who Identity) error {
 func (fs *Filesystem) Getpath(dirInode int) (string, error) {
 	var stack_ [16]string
 	s := stack_[:0]
+	seen := make(map[int]bool)
 	for dirInode != RootInode {
+		if seen[dirInode] {
+			panic("filesystem directory topology cycle")
+		}
+		seen[dirInode] = true
 		dir, ok := fs.mem.getDir(dirInode)
 		if !ok {
 			return "", syscall.ENOTDIR
@@ -988,7 +1007,11 @@ func (fs *Filesystem) Remove(dir int, path string, rmDir bool, who Identity) err
 	if isDir && len(target.entries) > 0 {
 		return syscall.ENOTEMPTY
 	}
-	fs.apply(&dirOp{parts: []dirOpPart{{dir: entry.Parent, name: entry.Name, file: -1}}})
+	var empty []int
+	if isDir {
+		empty = []int{entry.Inode}
+	}
+	fs.apply(fs.prepareDirOp([]dirOpPart{{dir: entry.Parent, name: entry.Name, file: -1}}, 0, nil, empty))
 	return nil
 }
 
@@ -1001,8 +1024,35 @@ func (fs *Filesystem) Rename(oldDir int, oldPath string, newDir int, newPath str
 	if err != nil {
 		return err
 	}
-	if old.Inode == RootInode || next.Inode == RootInode || old.Name == "." || old.Name == ".." || next.Name == "." || next.Name == ".." {
+	if old.Name == "" || old.Name == "." || old.Name == ".." || next.Name == "" || next.Name == "." || next.Name == ".." {
 		return syscall.EBUSY
+	}
+	_, oldIsDir := fs.mem.getDir(old.Inode)
+	target, newIsDir := fs.mem.getDir(next.Inode)
+	if !oldIsDir && (old.TrailingSlash || next.TrailingSlash) {
+		return syscall.ENOTDIR
+	}
+	var destinationChain []int
+	if oldIsDir {
+		destinationChain, err = fs.directoryAncestorsInclusive(next.Parent)
+		if err != nil {
+			return err
+		}
+		if slices.Contains(destinationChain, old.Inode) {
+			return syscall.EINVAL
+		}
+	}
+	if newIsDir {
+		sourceChain, err := fs.directoryAncestorsInclusive(old.Parent)
+		if err != nil {
+			return err
+		}
+		if slices.Contains(sourceChain, next.Inode) {
+			return syscall.ENOTEMPTY
+		}
+	}
+	if old.Inode == next.Inode {
+		return nil
 	}
 	if err := fs.mutableParent(old, who); err != nil {
 		return err
@@ -1010,46 +1060,27 @@ func (fs *Filesystem) Rename(oldDir int, oldPath string, newDir int, newPath str
 	if err := fs.mutableParent(next, who); err != nil {
 		return err
 	}
-	if old.Inode == next.Inode {
-		return nil
-	}
-	_, oldIsDir := fs.mem.getDir(old.Inode)
-	if !oldIsDir && (old.TrailingSlash || next.TrailingSlash) {
+	if oldIsDir && next.Inode != 0 && !newIsDir {
 		return syscall.ENOTDIR
 	}
-	target, newIsDir := fs.mem.getDir(next.Inode)
-	if oldIsDir {
-		if next.Inode != 0 && !newIsDir {
-			return syscall.ENOTDIR
-		}
-		if newIsDir && len(target.entries) != 0 {
-			return syscall.ENOTEMPTY
-		}
-		for parent := next.Parent; ; {
-			if parent == old.Inode {
-				return syscall.EINVAL
-			}
-			if parent == RootInode {
-				break
-			}
-			d, ok := fs.mem.getDir(parent)
-			if !ok {
-				return syscall.ENOENT
-			}
-			parent = d.parent
-		}
-	} else {
-		if newIsDir {
-			return syscall.EISDIR
-		}
-		if next.TrailingSlash {
-			return syscall.ENOTDIR
-		}
+	if !oldIsDir && newIsDir {
+		return syscall.EISDIR
 	}
-	fs.apply(&dirOp{parts: []dirOpPart{
+	if newIsDir && len(target.entries) > 0 {
+		return syscall.ENOTEMPTY
+	}
+	var empty []int
+	if newIsDir {
+		empty = []int{next.Inode}
+	}
+	moved := 0
+	if oldIsDir {
+		moved = old.Inode
+	}
+	fs.apply(fs.prepareDirOp([]dirOpPart{
 		{dir: old.Parent, name: old.Name, file: -1},
 		{dir: next.Parent, name: next.Name, file: old.Inode},
-	}})
+	}, moved, destinationChain, empty))
 	return nil
 }
 
@@ -1231,5 +1262,40 @@ func (fs *Filesystem) Munmap(m *Mmap) {
 	file.mmaps = slices.Delete(file.mmaps, idx, idx+1)
 	if err := fs.CloseFile(m.Inode); err != nil {
 		panic(err)
+	}
+}
+
+// Include Q itself: when B has just moved out of A, moving A into B must
+// retain B's earlier move, not merely the parent moves above B.
+func (fs *Filesystem) directoryAncestorsInclusive(inode int) ([]int, error) {
+	var chain []int
+	seen := make(map[int]bool)
+	for inode != RootInode {
+		if inode == 0 {
+			return nil, syscall.ENOENT
+		}
+		if seen[inode] {
+			panic("filesystem directory topology cycle")
+		}
+		seen[inode] = true
+		dir, ok := fs.mem.getDir(inode)
+		if !ok {
+			panic("filesystem directory parent is not a directory")
+		}
+		if dir.unlinked {
+			return nil, syscall.ENOENT
+		}
+		chain = append(chain, inode)
+		inode = dir.parent
+	}
+	return chain, nil
+}
+
+// Dependency inputs are owned and immutable after preparation. Crash plans
+// copy the dependency keys separately; these slices are inert during apply.
+func (fs *Filesystem) prepareDirOp(parts []dirOpPart, moved int, chain, empty []int) *dirOp {
+	return &dirOp{
+		parts: slices.Clone(parts), movedDirectory: moved,
+		destinationChain: slices.Clone(chain), emptyDirs: slices.Clone(empty),
 	}
 }

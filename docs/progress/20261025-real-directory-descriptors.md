@@ -57,3 +57,23 @@ Verified:
 - .ci/gofmt check and git diff --check passed. No new public API/configuration, concrete-provider boundary crossing, host fallback or random stream was added.
 
 Evidence: .gosim/validation/gs01/task2/. Native Linux errno/removed-directory dotdot qualification remains explicitly deferred under the user's Darwin-only scope. Full namespace topology and ordering follow in Task 3; no such coverage is inferred from these tests.
+
+## Task 3 — namespace validation and minimal crash dependencies
+
+Date: 2026-10-25. Commit: the task commit containing this entry.
+
+Implemented:
+- Finished namespace type/permission/special-name/ancestor validation and held replacement behavior. Same-inode rename is a no-op before parent write checks; invalid operations produce no pending mutation.
+- Only directory renames publish depKeyDirTopology with depStoreAs. Dependencies include destination Q itself and its non-root ancestor chain. Removing/replacing empty X depends on WriteDir(X).
+- Kept mkdir, ordinary file/symlink operations and source ancestry free of topology edges; topology is not a direct fsync root. No extra dependency-only inode retention was added.
+- prepareDirOp owns its input slices, which are immutable after insertion. Existing crash-plan dependency snapshots and part copying remain sufficient. Added cycle guards for ancestor and Getpath traversal and regenerated the dependency stringer.
+
+Verified:
+- Native fs/model and fs suites passed with go1.25.14 and go1.26.9 on Darwin ARM64.
+- B-out-of-A/A-into-B enumerates exactly the three legal states, without a cycle.
+- Child fsync still permits its unsynced parent link to disappear. Syncing a moved directory alone leaves its own move uncertain; a later flushed child-directory move deliberately retains that move.
+- Unrelated file/sibling renames and file bytes retain both old/new outcomes. Removed/replaced empty directories cannot recover their previously deleted children.
+- Tests cover namespace failure atomicity, open overwritten handles, same-inode permission ordering, owned preparation inputs and corrupt-parent invariant detection. All crash fixtures have a 256-state hard test bound.
+- .ci/gofmt check and git diff --check passed. Logs: .gosim/validation/gs01/task3/.
+
+No new randomness, explicit topology fsync root, provider cross-import or general directory GC was introduced. Translated public CrashStates coverage remains Task 5, rather than inferred from these model tests.

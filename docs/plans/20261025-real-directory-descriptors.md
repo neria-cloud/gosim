@@ -176,22 +176,22 @@ func (fs *Filesystem) prepareDirOp(parts []dirOpPart, moved int, chain, empty []
 func (o *dirOp) addDeps(p *pendingOps, op *pendingOp)
 ```
 
-- [ ] Complete rename/removal validation before a single atomic dirOp: existing source, special terminal names, trailing slashes, same-inode no-op, permissions, replacement types, empty-directory replacement and cycle rejection. Do not strengthen ordinary rename into no-replace.
-- [ ] Represent linked/unlinked directory state independently of retained parent identity. Preserve already-open overwritten directory handles. Prevent traversal from looping on impossible parent state; do not invent complete directory GC or POSIX directory link-count support.
-- [ ] Append depKeyDirTopology without renumbering keys. Only a directory rename publishes Topo(D), using depStoreAs. Its read dependencies are Topo(Q) and each other non-root destination ancestor visited by the cycle check, including Q itself.
-- [ ] Removing/replacing empty X depends on pending WriteDir(X). Retain existing allocation and per-entry dependencies. Do not publish topology on mkdir or add ordinary child-parent, source-chain or file/symlink-mutation topology edges.
-- [ ] Do not add topology keys to flushInode and do not expand touched-inode reference bookkeeping for dependency-only directory IDs. Existing entry-key chains already order subsequent moves of D.
-- [ ] prepareDirOp owns copies of input slices; maintain their immutability after addOp. Crash-plan snapshotting already records dependency keys; keep dirOp.parts copying and symlink value cloning without unnecessary deep-copy work for inert dependency inputs.
-- [ ] Generate the model stringer output. Keep scheduler/provider streams and replay revision unchanged; source identity captures changed algorithms.
-- [ ] Enumerate a small crash graph for B moved out of A, then A moved into B. Check reachable-entry and parent-pointer consistency, detached objects, at-most-one location and absence of cycles.
-- [ ] Add the negative durability cases: mkdir P/create P/f/fsync(P) without parent sync permits P to be missing; moving D then syncing D without a flushed Topo(D) dependent does not force its own link; unrelated file renames, sibling moves and unsynced data remain uncertain.
-- [ ] Add the positive exception: move D, then move E into D, then fsync(D) persists D's move through E's destination dependency. Never drop Q to make the negative case pass. Empty-directory removal/replacement must not recover deleted children.
+- [x] Complete rename/removal validation before a single atomic dirOp: existing source, special terminal names, trailing slashes, same-inode no-op, permissions, replacement types, empty-directory replacement and cycle rejection. Do not strengthen ordinary rename into no-replace.
+- [x] Represent linked/unlinked directory state independently of retained parent identity. Preserve already-open overwritten directory handles. Prevent traversal from looping on impossible parent state; do not invent complete directory GC or POSIX directory link-count support.
+- [x] Append depKeyDirTopology without renumbering keys. Only a directory rename publishes Topo(D), using depStoreAs. Its read dependencies are Topo(Q) and each other non-root destination ancestor visited by the cycle check, including Q itself.
+- [x] Removing/replacing empty X depends on pending WriteDir(X). Retain existing allocation and per-entry dependencies. Do not publish topology on mkdir or add ordinary child-parent, source-chain or file/symlink-mutation topology edges.
+- [x] Do not add topology keys to flushInode and do not expand touched-inode reference bookkeeping for dependency-only directory IDs. Existing entry-key chains already order subsequent moves of D.
+- [x] prepareDirOp owns copies of input slices; maintain their immutability after addOp. Crash-plan snapshotting already records dependency keys; keep dirOp.parts copying and symlink value cloning without unnecessary deep-copy work for inert dependency inputs.
+- [x] Generate the model stringer output. Keep scheduler/provider streams and replay revision unchanged; source identity captures changed algorithms.
+- [x] Enumerate a small crash graph for B moved out of A, then A moved into B. Check reachable-entry and parent-pointer consistency, detached objects, at-most-one location and absence of cycles.
+- [x] Add the negative durability cases: mkdir P/create P/f/fsync(P) without parent sync permits P to be missing; moving D then syncing D without a flushed Topo(D) dependent does not force its own link; unrelated file renames, sibling moves and unsynced data remain uncertain.
+- [x] Add the positive exception: move D, then move E into D, then fsync(D) persists D's move through E's destination dependency. Never drop Q to make the negative case pass. Empty-directory removal/replacement must not recover deleted children.
 
 #### Verification
 
-- [ ] Run model pending-operation, topology and crash tests under both compilers (V1). Keep enumeration fixtures small and positively bounded.
-- [ ] Assert both allowed uncertainty and forbidden states; a test that only validates the all-durable outcome is insufficient.
-- [ ] Confirm filesystem teardown and snapshot/iterator ownership still balance resources and no topology dependency accidentally becomes a direct fsync root.
+- [x] Run model pending-operation, topology and crash tests under both compilers (V1). Keep enumeration fixtures small and positively bounded.
+- [x] Assert both allowed uncertainty and forbidden states; a test that only validates the all-durable outcome is insufficient.
+- [x] Confirm filesystem teardown and snapshot/iterator ownership still balance resources and no topology dependency accidentally becomes a direct fsync root.
 
 ### Task 4: Make directory listings bounded and fatal on overflow; support rewind
 
@@ -499,3 +499,5 @@ Future entries must name the completed task, exact checks/results, source identi
 - 2026-10-25 Task 1: Reconciled typed routes/hooks and approved descriptor-flag scope. Seven native packages passed under go1.25.14 and go1.26.9; both-family amd64/arm64 generation checks and profiles check passed; four translated tests × three seeds passed for each compiler. Logs: `.gosim/validation/gs01/task1/`. Includes the preserved model/provider draft required by the live interfaces; detailed path/topology correction remains Tasks 2–3.
 
 - 2026-10-25 Task 2: Completed final-component policies, one shared prefix/final symlink budget, target metadata/lifetime and inode-base validation. Added nine focused model/provider regressions. fs/model and fs native suites passed under both compilers; three native Darwin public tests and four translated tests × three seeds passed per compiler. Formatting/diff checks clean. Logs: `.gosim/validation/gs01/task2/`; Linux-native errno/dotdot qualification remains user-deferred.
+
+- 2026-10-25 Task 3: Added minimal directory topology and empty-directory dependencies, final mutation validation, owned pending-operation inputs and invariant cycle detection. Both compiler-family model/provider suites passed, including bounded crash enumeration and positive/negative fsync cases; formatting/diff checks clean. Logs: `.gosim/validation/gs01/task3/`.
