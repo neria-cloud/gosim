@@ -132,21 +132,6 @@ Run this example with `-features rt,fs,net`. `Stop` is graceful; `Crash` retains
 
 Returning self-targeted `Stop`, `Crash` and `Wait` calls report `ErrSelfTransition`; `gosim.ExitSelf()` and `gosim.CrashSelf()` are the non-returning alternatives. Native error-returning controls return `gosim.ErrNotSim`; native `IsSim`, `CurrentMachine` and `rt.Info` return false/zero values. Pure defaults and handle ID accessors remain usable.
 
-## Filesystem recovery
-
-The in-memory filesystem is rooted at `/`; processes start in `/app`. Configure each machine before its first start with `fs.ConfigureMachine`. Capacity defaults to 128 MiB and must be a multiple of 1 KiB. `fs.Stats` reports total, used and free bytes in allocated 1 KiB file-data blocks, plus block size and read-only status. Sparse holes consume no blocks; `/etc/hosts` initially consumes one. A write or `fallocate` reservation that would exceed capacity fails atomically with `ENOSPC`. Capacity cannot be resized after configuration. A restored image above the target capacity remains readable, reports zero free space and rejects new allocation until usage falls.
-
-`fs.Config` also sets the machine's effective UID/GID (root/root by default) and a fixed per-operation `Latency`. Files and directories store mode and ownership; creation applies a fixed `0022` umask. Owner/group/other checks cover file opens, directory traversal and mutations; chmod requires the owner or root, and chown requires root. `fs.SetReadOnly(machine, true)` immediately rejects data and metadata mutation with `EROFS`, including writes through existing descriptors. Set it to `false` to resume writes. The policy survives stop, crash, restart and snapshot restore. Configured latency delays completion of data I/O and mutating filesystem calls, including `ENOSPC` and `EROFS`; metadata reads such as stat and statfs remain immediate.
-
-`fs.SetCrashMode` selects `DurableOnly` or `SamplePending`; `fs.SetSyncFault` configures bounded sync-failure probabilities.
-
-After a crash, `fs.CrashStates(machine, fs.EnumerateOptions{MaxStates: n})` owns a synchronous iterator over immutable crash outcomes. A positive budget is required. `Next` returns a snapshot and availability flag; exceeding the budget while more outcomes exist returns `fs.ErrEnumerationLimit`. Close the iterator when finished, and close each returned snapshot separately. Closing the iterator does not invalidate snapshots already returned. `fs.Restore` accepts a retained snapshot from the same simulation for an unstarted or stopped/crashed target; configure its next main function and start/restart it explicitly. Destroying a machine does not invalidate separately owned snapshots.
-
-
-
-Graceful stop flushes modeled writes and metadata. Crash behavior preserves uncertainty in non-fsynced operations, including block reservations and mode/ownership changes. Supplemental groups, ACLs, sticky bits, hard links, special files and real POSIX locking remain outside the model.
-
-
 ## CLI, metatesting and diagnostics
 
 All build commands share configuration and identity validation:
