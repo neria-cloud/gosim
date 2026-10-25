@@ -193,3 +193,29 @@ Skips and boundaries
 - The 16 common ordinary skips are five large-only candidate/script/selected-translation entries, two race-disabled tests, one subprocess-helper entry, and eight expected-failure/logging fixtures that deliberately skip in the positive runner. Go 1.25 additionally skips two Go-1.26-specific audit fixtures. None is a new GS-01 semantic case; no skipped test is counted as passed.
 - Source-selection checks confirm native Linux references are linux && !sim, simulator tests select Linux source, and Darwin cases stay native. Source selection does not establish native Linux behavior.
 - Native Linux ARM64 and Linux AMD64 remain explicitly deferred by user scope. Linux errno and removed-directory dotdot references remain unqualified natively. Simulation B/statx, C/hardlink and lock-exclusion remain GS-03/GS-02 dependencies, despite native passes. No hardware power-loss guarantee, full issue #12 acceptance, certification, race/large run or extra infrastructure is claimed.
+
+## Task 9 — architecture audit, coverage correction
+Date: 2026-10-25.
+
+The section-by-section audit found no production mismatch, but the exact Root.Open(".") → Fd → Openat → directory NewFile → Sync → Close chain was only established by the Go 1.26 consumer. Added TestRootDirectoryDescriptorChain to the common native/simulated suite, also checking renamed inode identity, independent child lifetime, repeated Root.Close and closed-handle rejection. This closes the target's explicit both-family coverage gap. Earlier Task 8 reports remain valid for their recorded source; refreshed final-source evidence will follow before completing Task 9.
+
+The audit also extended the explicit invalid-dirfd absolute-path matrix to Symlinkat, Readlinkat, Fchmodat and Fchownat, alongside the existing five requested *at operations. The first Task 9 snapshot runs had already started with the chain addition; they are intermediate snapshots and will not be labeled final-source evidence. Final validation follows the completed test-only audit corrections.
+
+## Task 9 — final architecture audit complete
+Date: 2026-10-25. Final audit: docs/reports/20261025-gs01-architecture-audit.md.
+
+Reviewed every target section, structure/method inventory, algorithm, failure flow, exclusion and evidence gate against actual source. Confirmed all 83 existing routes are unchanged and only IDs 84/85 are appended; production kernel/contracts/provider imports preserve boundaries. Followed real composition → provider session/bindings → generated hooks → typed dispatch → inode resolver/model and the failure path to AbortRun. No production mismatch remained. The two explicit portable-test coverage gaps were corrected without changing production behavior.
+
+Final verification
+- Ordinary go1.25.14: 2,240 passed / 18 skipped, zero failures/errors; 80 reports, 332.794 seconds.
+- Ordinary go1.26.9: 2,256 passed / 16 skipped, zero failures/errors; 80 reports, 363.432 seconds.
+- Both final snapshots bind digest `75c95a5c22c17a07412e63f93549005f1e87180f50b00fc934a27ddba1561d8b` (705 inputs), passed status, no checkout changes, race=false/large=false. Final reports and timelines were inspected; raw events have no fail entries. Skip inventories remain the expected restricted/helper/family-specific cases, with no GS-01 semantic skip.
+- Both families: nine native tests passed; 17 translated tests × three seeds passed (51 top-level / 63 total pass lines); nine fatal fixtures passed. Existing ordinary FS determinism and five-seed metatests include the new RootDirectoryDescriptorChain and passed.
+- Final consumer v6 gate A passed on Go 1.26.5 with all original bodies/assertions and seeds 1–3, followed by integrity verification. Native v5 consumer evidence remains valid for the identical original source/compiler: all 1,421 original hashes match v6. Its 13 top-level / 33 total native passes are not relabeled as a new run.
+- Final guard source hash `17e17640951a8f3922db6d0f1054a9ab4061a83754e23e15c2962c46a54184d5` was checked file-by-file against the worktree. Final portable-test file hash is `679071eead13d6aa4205b1cb218b0ffbbd855ef74ee8990f90638911ccf281a4`. Generation/profile results remain current because those sources did not change. Formatting and diff checks passed.
+
+Evidence and closure
+- Final ordinary reports: test-reports/gs01/audit-go125/unit/latest/ and audit-go126/unit/latest/.
+- Final focused/identity/skip evidence: .gosim/validation/gs01/task9/summary.json and sibling logs; fatal fixtures: test-reports/gs01/audit-guards/; consumer: .gosim/gs01-consumer/go1265-v6/manifest.json.
+- Superseded Task 9 snapshot groups were deliberately interrupted after the last test-matrix edit; terminal exit 130 was observed and those partial runs were not promoted to passes. The completed fresh snapshots above are authoritative.
+- All nine plan tasks are complete within the explicit user scope, including the approved translator extension. No local implementation/wiring gap remains. Native Linux ARM64/AMD64 qualification is user-deferred; simulated archive/statx, hardlink and real-lock gates remain GS-03/GS-02 work. Full issue #12 acceptance, physical power-loss equivalence and certification are not claimed. No release, merge, push or publication was performed.

@@ -439,6 +439,77 @@ func TestDirectoryAbsoluteOperandsIgnoreInvalidFD(t *testing.T) {
 	defer dir.Close()
 	check(unix.Renameat(invalid, moved, int(dir.Fd()), "relative"))
 	check(unix.Renameat(int(dir.Fd()), "relative", invalid, moved))
+	link := filepath.Join(folder, "link")
+	check(unix.Symlinkat("moved", invalid, link))
+	target := make([]byte, 32)
+	n, err := unix.Readlinkat(invalid, link, target)
+	check(err)
+	if string(target[:n]) != "moved" {
+		t.Fatal("absolute readlink used directory descriptor", string(target[:n]))
+	}
+	check(unix.Fchmodat(invalid, moved, 0o640, 0))
+	check(unix.Fchownat(invalid, link, -1, -1, unix.AT_SYMLINK_NOFOLLOW))
+	check(unix.Fstatat(invalid, moved, &info, 0))
+	if info.Mode&0o777 != 0o640 {
+		t.Fatal("absolute chmod did not reach file", info.Mode)
+	}
+	check(unix.Unlinkat(invalid, link, 0))
 	check(unix.Unlinkat(invalid, moved, 0))
 	check(unix.Unlinkat(invalid, folder, unix.AT_REMOVEDIR))
+}
+
+func TestRootDirectoryDescriptorChain(t *testing.T) {
+	base := descriptorTempDir(t)
+	check := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	root, err := os.OpenRoot(base)
+	check(err)
+	defer root.Close()
+	check(root.Mkdir("child", 0o700))
+	parent, err := root.Open(".")
+	check(err)
+	defer parent.Close()
+	fd, err := unix.Openat(int(parent.Fd()), "child", unix.O_RDONLY|unix.O_DIRECTORY|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
+	check(err)
+	child := os.NewFile(uintptr(fd), "child")
+	if child == nil {
+		unix.Close(fd)
+		t.Fatal("NewFile rejected directory descriptor")
+	}
+	defer child.Close()
+	held, err := child.Stat()
+	check(err)
+	named, err := root.Stat("child")
+	check(err)
+	if !held.IsDir() || !os.SameFile(held, named) {
+		t.Fatal("directory descriptor changed inode")
+	}
+	check(root.Rename("child", "renamed"))
+	named, err = root.Stat("renamed")
+	check(err)
+	if !os.SameFile(held, named) {
+		t.Fatal("rename changed directory identity")
+	}
+	// Closing both ancestors must not release the independently opened child.
+	check(parent.Close())
+	check(root.Close())
+	check(root.Close())
+	check(child.Sync())
+	check(child.Close())
+	if opened, err := unix.Openat(fd, ".", unix.O_RDONLY|unix.O_DIRECTORY, 0); !errors.Is(err, unix.EBADF) {
+		if err == nil {
+			unix.Close(opened)
+		}
+		t.Fatal("closed directory descriptor remained usable", err)
+	}
+	if opened, err := root.Open("."); !errors.Is(err, os.ErrClosed) {
+		if opened != nil {
+			opened.Close()
+		}
+		t.Fatal("closed Root remained usable", err)
+	}
 }
