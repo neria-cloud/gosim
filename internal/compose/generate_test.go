@@ -42,6 +42,23 @@ func selection(t *testing.T, features ...string) buildspec.Selection {
 	return s
 }
 
+func TestFlockHostPolicySelection(t *testing.T) {
+	for host, want := range map[string]string{"linux": "FlockLinux", "darwin": "FlockDarwin"} {
+		s := selection(t, "rt", "fs")
+		s.Identity.HostOS = host
+		data, _, err := render(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(data, []byte("fsprovider.NewProvider(fsprovider."+want+")")) {
+			t.Fatal("wrong host policy", host)
+		}
+	}
+	if _, err := filesystemConstructor("unknown"); err == nil {
+		t.Fatal("unknown host accepted")
+	}
+}
+
 func TestGeneratedImportSetsAndConcurrentPublication(t *testing.T) {
 	t.Parallel()
 	for _, features := range [][]string{{"rt"}, {"rt", "fs"}, {"rt", "net"}, {"rt", "fs", "net"}} {
@@ -73,7 +90,7 @@ func TestGeneratedImportSetsAndConcurrentPublication(t *testing.T) {
 				if bytes.Contains(data, []byte(path)) != slices.Contains(features, feature) {
 					t.Fatalf("wrong %s provider import", feature)
 				}
-				if bytes.Contains(data, []byte(feature+"provider.NewProvider()")) != slices.Contains(features, feature) {
+				if bytes.Contains(data, []byte(feature+"provider.NewProvider(")) != slices.Contains(features, feature) {
 					t.Fatalf("wrong %s constructor", feature)
 				}
 			}

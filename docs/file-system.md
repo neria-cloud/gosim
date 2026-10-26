@@ -1,8 +1,9 @@
 # Filesystem: directory handles and os.Root
 
 Gosim supports directory handles, symbolic links and Go's `os.Root` API for
-filesystem tests. The simulation follows Linux behavior on supported Linux and
-macOS hosts, within the limits below.
+filesystem tests. The simulation loads Linux application source and syscall ABI on supported Linux
+and macOS hosts. Flock lifetime follows the executable host, as described below;
+this does not implement general Darwin application/source ABI selection.
 
 For filesystem configuration, capacity, permissions and crash controls, see
 [Filesystem recovery](../README.md#filesystem-recovery). The full feature list
@@ -61,6 +62,46 @@ directory does not make its name durable in its parent. Synchronizing a director
 does not make arbitrary child file data durable. These simulated persistence
 outcomes do not establish hardware power-loss behavior for a native filesystem.
 
+## File locks and Go file lifetime
+
+`syscall.Flock` and `unix.Flock` support `LOCK_EX|LOCK_NB` and `LOCK_UN`
+(optionally combined with `LOCK_NB`). Separate opens of the same inode contend,
+even within a single simulated machine. A competing nonblocking acquisition
+returns `EWOULDBLOCK`. `LOCK_EX` without `LOCK_NB` also succeeds when it can
+acquire immediately; if it would wait, the simulation aborts explicitly. Reacquiring through the same open description is
+idempotent; unlocking or closing an unrelated open cannot release its owner.
+The lock is advisory and inode-bound: rename/unlink does not unlock it, while a
+replacement inode at the same pathname can have a different owner. Applications
+must detect replacement themselves when they require a stable lock-file identity.
+
+The resolved executable host selects lock lifetime. On Linux, a mapping from the
+owning open description retains its lock after descriptor close until its last
+mapping is released. On Darwin, descriptor close releases the lock even while a
+mapping survives. Explicit unlock releases immediately on both. Mappings from
+another independent open do not retain the owner's lock. This distinction is a
+scoped host-native behavior within the current Linux source ABI.
+
+Release follows actual descriptor destruction, which may occur after Go's
+`os.File.Close` returns while another goroutine still owns an in-flight operation.
+Join that operation before asserting successful teardown released the lock. An
+application-level Close error retains ownership only if the application has kept
+its lease descriptor open. Gosim does not undo a descriptor close when cleanup
+reports an error. Finalizers do not close files in the simulation: dropping an
+unclosed `os.File` retains its lock until explicit cleanup or machine teardown.
+
+Crash/complete machine teardown releases all locks and mappings. Locks are never
+stored in snapshots and do not delete files or make writes durable. Sync data
+and affected parent directories to establish durable content and names. Restoring
+one snapshot into two machines creates private filesystems, not shared-volume
+contention. Native process tests remain necessary for that real-system contract.
+
+Shared flock and contended blocking flock abort with `UnsupportedOperation`.
+POSIX pointer-form record-lock commands likewise abort; OFD/unknown pointer
+commands return `EINVAL`, preserving etcd's negative OFD probe and flock fallback.
+No lock result or `F_GETLK` output is fabricated. Integer fcntl remains `ENOSYS`.
+Descriptor duplication, process inheritance and descriptor passing are unsupported;
+wrapping the same FD with `os.NewFile` does not duplicate it.
+
 ## Limits
 
 | Capability | Current boundary |
@@ -70,7 +111,7 @@ outcomes do not establish hardware power-loss behavior for a native filesystem.
 | Read-only errors | Mutation attempts may report `EROFS` before other errors, so precedence can differ from a native Linux read-only filesystem |
 | Hard links and mounts | Hard links, distinct mounts, bind mounts, mount replacement and `statx` are unsupported |
 | Special files | No special-file or procfs behavior |
-| File locking | Lock calls do not establish ownership, contention or exclusion |
+| File locking | Exclusive inode/open-description ownership; immediately grantable `LOCK_EX` succeeds; contended blocking/shared acquisition and record locks unsupported |
 
 Use native tests for behavior the simulation cannot establish, including mount
-identity, hard-link safety and file-lock exclusion.
+identity, hard-link safety and independent native process exclusion.

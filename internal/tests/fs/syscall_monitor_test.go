@@ -37,8 +37,8 @@ func TestSyscallMonitorFilesystem(t *testing.T) {
 	if _, err := unix.FcntlInt(uintptr(fd), unix.F_GETFL, 0); !errors.Is(err, unix.ENOSYS) {
 		t.Fatal(err)
 	}
-	lock := unix.Flock_t{Type: unix.F_WRLCK}
-	testsupport.Check(t, unix.FcntlFlock(uintptr(fd), unix.F_SETLK, &lock))
+	testsupport.Check(t, unix.Flock(fd, unix.LOCK_EX|unix.LOCK_NB))
+	testsupport.Check(t, unix.Flock(fd, unix.LOCK_UN))
 	testsupport.Check(t, unix.Close(fd))
 	if err := unix.Close(fd); !errors.Is(err, unix.EBADF) {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestSyscallMonitorFilesystem(t *testing.T) {
 	testsupport.Check(t, monitor.Stop())
 	counts, err := monitor.Counts()
 	testsupport.Check(t, err)
-	want := map[string]uint64{"openat": 1, "write": 1, "lseek": 2, "read": 2, "fsync": 1, "fdatasync": 1, "fstat": 1, "fcntl": 2, "close": 2}
+	want := map[string]uint64{"openat": 1, "write": 1, "lseek": 2, "read": 2, "fsync": 1, "fdatasync": 1, "fstat": 1, "fcntl": 1, "flock": 2, "close": 2}
 	if !reflect.DeepEqual(counts, want) {
 		t.Fatal("counts", counts)
 	}

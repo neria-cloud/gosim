@@ -32,7 +32,7 @@ func withKernel(t *testing.T, extra []contracts.Provider, body func(*kernel.Kern
 	}
 	defer engine.Close()
 	return engine.Run(func() {
-		provider := &captureProvider{}
+		provider := &captureProvider{Provider: Provider{flockSemantics: FlockLinux}}
 		features := contracts.FeatureSet(contracts.RT | contracts.FS)
 		if len(extra) > 0 {
 			features |= contracts.FeatureSet(contracts.Net)
@@ -168,5 +168,47 @@ func TestSecondProviderFailureReleasesFilesystemPreparation(t *testing.T) {
 			t.Fatal("failed transaction published filesystem state")
 		}
 		must(t, controls(t, k, ref).ConfigureMachine(ref, contracts.FSConfig{WorkingDir: "/app"}))
+	}))
+}
+
+func TestFlockLinuxMappedCrashAndRestart(t *testing.T) {
+	must(t, withKernel(t, nil, func(k *kernel.Kernel, s *Session) {
+		ref := create(t, k)
+		must(t, k.Start(ref))
+		i := s.machines[ref.ID].active
+		if s.flockSemantics != FlockLinux {
+			t.Fatal("fixture did not select Linux lifetime")
+		}
+		ctx := contracts.CallContext{Epoch: i.ref}
+		fd := open(t, i, ctx, "lock", openCreate|2)
+		_, err := i.Pwrite(ctx, fd, bytesView("durable"), 0)
+		must(t, err)
+		must(t, i.Sync(ctx, fd, false))
+		dir := open(t, i, ctx, ".", 0)
+		must(t, i.Sync(ctx, dir, false))
+		address, err := i.Map(ctx, 0, 7, protRead, mapShared, fd, 0)
+		must(t, err)
+		owner := i.mappings[address].owner
+		must(t, i.Flock(ctx, fd, exclusiveNB))
+		must(t, k.Stop(ref, contracts.StopCrash))
+		if !owner.released || !owner.modelRefReleased || owner.mappingRefs != 0 || i.flocks != nil || i.mappings != nil || i.model != nil {
+			t.Fatal("Linux mapped owner survived kernel crash cleanup")
+		}
+		must(t, k.Restart(ref))
+		next := s.machines[ref.ID].active
+		nextCtx := contracts.CallContext{Epoch: next.ref}
+		nextFD := open(t, next, nextCtx, "lock", 0)
+		must(t, next.Flock(nextCtx, nextFD, exclusiveNB))
+		must(t, owner.Release(contracts.CloseCrash))
+		// Even an old owner with the same inode must not release the new row.
+		next.releaseFlock(owner)
+		busy(t, next, nextCtx, open(t, next, nextCtx, "lock", 0))
+		if err := next.Flock(ctx, nextFD, exclusiveNB); !errors.Is(err, contracts.ErrInvalidState) {
+			t.Fatal("stale epoch admitted", err)
+		}
+		if got := read(t, next.model, "/app/lock"); got != "durable" {
+			t.Fatal(got)
+		}
+		must(t, k.Stop(ref, contracts.StopGraceful))
 	}))
 }

@@ -42,7 +42,7 @@ func TestDirectoryOverflowAbortsWithCallerAndClearsBorrowedView(t *testing.T) {
 	before := bytes.Clone(buffer)
 	err := e.Run(func() {
 		var err error
-		k, err = New(configFor(contracts.FeatureSet(contracts.RT|contracts.FS)), e, []contracts.Provider{fsprovider.NewProvider()})
+		k, err = New(configFor(contracts.FeatureSet(contracts.RT|contracts.FS)), e, []contracts.Provider{fsprovider.NewProvider(fsprovider.FlockLinux)})
 		if err != nil {
 			t.Fatal(err)
 		}

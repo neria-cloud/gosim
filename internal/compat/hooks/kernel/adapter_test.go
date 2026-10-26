@@ -25,7 +25,7 @@ func runABI(t *testing.T, features contracts.FeatureSet, main func()) error {
 	return e.Run(func() {
 		var providers []contracts.Provider
 		if features.Has(contracts.FS) {
-			providers = append(providers, fp.NewProvider())
+			providers = append(providers, fp.NewProvider(fp.FlockLinux))
 		}
 		if features.Has(contracts.Net) {
 			providers = append(providers, np.NewProvider())

@@ -73,7 +73,8 @@ and progress log for final-source revalidation.
 
 Simulation gate B still depends on GS-03 statx, and C/hardlink on GS-03 Linkat.
 Other C shapes remain unexecuted; no whole staging-test pass is claimed. The
-existing lock stub does not establish ownership/exclusion, and journal
+GS-02 flock model is available, but this consumer run does not qualify lock
+ownership/exclusion. Journal
 boundary-error tests do not establish crash-state coverage. Native consumer
 A/B/C validation is still pending under Task 8; native Linux/AMD64 execution is
 user-deferred.

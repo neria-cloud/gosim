@@ -411,7 +411,7 @@ func TestFailedDescriptorTransferAndControlCopies(t *testing.T) {
 // The real filesystem provider participates before the real network provider.
 // Address collision is a genuine second-provider preparation failure.
 func TestRealNetworkFailureRollsBackFilesystem(t *testing.T) {
-	withKernel(t, []contracts.Provider{fsprovider.NewProvider()}, func(k *kernel.Kernel, s *Session, e *simrt.Engine) {
+	withKernel(t, []contracts.Provider{fsprovider.NewProvider(fsprovider.FlockLinux)}, func(k *kernel.Kernel, s *Session, e *simrt.Engine) {
 		a := start(t, k, s)
 		ref := create(t, k)
 		c := netControl(t, k, ref)
@@ -474,7 +474,7 @@ func TestSocketPendingAndFailedConnectStatus(t *testing.T) {
 
 func TestFailedPreparationDoesNotConsumeRandomStreams(t *testing.T) {
 	run := func(fail bool) (draws [3]uint64) {
-		withKernel(t, []contracts.Provider{fsprovider.NewProvider()}, func(k *kernel.Kernel, s *Session, e *simrt.Engine) {
+		withKernel(t, []contracts.Provider{fsprovider.NewProvider(fsprovider.FlockLinux)}, func(k *kernel.Kernel, s *Session, e *simrt.Engine) {
 			a := start(t, k, s)
 			ref := create(t, k)
 			c := netControl(t, k, ref)

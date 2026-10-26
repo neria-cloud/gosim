@@ -107,13 +107,32 @@ A session owns per-machine configuration, persistent disk state, retained snapsh
 
 Model algorithms live in `internal/fs/model`. Mutable state is supervisor-owned; provider randomness and clocks come through injected ports. Descriptor and mapping lifetimes follow the shared kernel cleanup protocol.
 
+Exclusive flock ownership is transient provider state, keyed by inode
+and owned by the exact open `File`. Composition supplies a validated Linux or
+Darwin lifetime policy from executable HostOS; translated Linux source selection
+does not determine this policy. Linux mappings retain their source open's lock
+after descriptor destruction; Darwin releases at descriptor destruction. Immediately grantable LOCK_EX is supported; contended blocking requests abort
+rather than waiting. Explicit unlock releases immediately. Mappings from independent opens do not extend an
+owner's lifetime. Snapshots never copy locks, and private machines do not contend
+with each other. This is host-native flock behavior, not general Darwin source
+or syscall ABI support.
+
+Go internal/poll may defer descriptor destruction until pending I/O releases its
+references even after os.File.Close returns. Finalizers do not close abandoned
+files in simulation. Locks therefore require explicit descriptor cleanup or epoch
+teardown. Teardown protects individual releases, continues through cleanup errors
+and clears transient ownership before reporting failures. Bulk detach walks the
+provider mapping order once; individual unmap retains its existing index-removal
+cost. Flock adds no explicit random sampling; translated map draws remain part
+of deterministic replay for the same complete identity and seed.
+
 The inode tree stores files, directories and symlinks under `/`, while `/app` remains the default process working directory. File content uses copy-on-write 1 KiB chunks. Capacity defaults to 128 MiB; live quota counts allocated chunks of linked or open files, not sparse holes or retained snapshot copies. Writes and fallocate reservations admit all needed blocks before applying operations and fail atomically with `ENOSPC`. Truncation and final unlink/close release the charge. `fs.Stats`, `statfs` and `fstatfs` report the live volume; a recovered image over the configured limit reports zero free and remains readable. Live resizing is out of scope.
 
 Files and directories retain mode, UID and GID through allocation, metadata pending operations, flush and crash selection. A fixed `0022` umask applies on creation; owner/group/other access uses the machine's primary UID/GID, with root bypass. Directory execute gates traversal and write plus execute gates mutations. Chmod requires owner or root; chown requires root. Read-only is a per-machine policy retained across epochs and restore, immediately rejecting mutations through existing descriptors until toggled off. Configured fixed latency delays scalar completion of filesystem data I/O and mutations after synchronous provider effects; dispatcher epoch events hold no borrowed memory and are canceled with the epoch. Stat and statfs queries are immediate.
 
 `FreezeCrash` retains an immutable crash image. Cloning uses the fs-owned random stream; enumeration uses a deterministic explicit depth-first stack, not a parked iterator goroutine. Closing an iterator releases its state but not snapshots already returned. Snapshots own retained references until close/session teardown and survive destruction of their source machine. Restore validates simulation ownership and target state. A positive public enumeration budget is enforced with lookahead and `ErrEnumerationLimit`.
 
-The provider still omits hard links, distinct mounts/Statx, dup/OFD sharing, special files, supplemental groups, ACLs, sticky bits, real flock/OFD contention and larger mapping support. Integer fcntl returns ENOSYS; NONBLOCK, append, O_PATH, O_TMPFILE and openat2 are unsupported. Timestamps remain zero, directory link counts are incomplete, and there is no procfs fallback. Stub/limited operations remain classified in the version manifests and cannot stand in for correctness evidence for applications that need those semantics.
+The provider still omits hard links, distinct mounts/Statx, dup/OFD sharing, special files, supplemental groups, ACLs, sticky bits, shared flock and blocking waits, record locks and larger mapping support. Exclusive flock models nonblocking independent-open contention and host-native descriptor/mmap lifetime; immediately grantable LOCK_EX succeeds and contended blocking requests abort. Integer fcntl returns ENOSYS; NONBLOCK, append, O_PATH, O_TMPFILE and openat2 are unsupported. Timestamps remain zero, directory link counts are incomplete, and there is no procfs fallback. Stub/limited operations remain classified in the version manifests and cannot stand in for correctness evidence for applications that need those semantics.
 
 See [directory handles and os.Root](file-system.md) for the user-facing design,
 capabilities and limitations.

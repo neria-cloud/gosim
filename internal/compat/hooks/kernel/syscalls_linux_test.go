@@ -5,6 +5,7 @@ package kernel_test
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"os"
 	"os/exec"
 	"syscall"
@@ -106,16 +107,20 @@ func TestLinuxFileRoutes(t *testing.T) {
 			t.Fatal(xvolume)
 		}
 		lock := syscall.Flock_t{Type: syscall.F_WRLCK, Whence: 0}
-		must(t, linkedLock(uintptr(fd), syscall.F_SETLK, &lock))
+		if err := linkedLock(uintptr(fd), unix.F_OFD_SETLK, &lock); err != syscall.EINVAL {
+			t.Fatal("unsupported OFD lock", err)
+		}
 		xlock := unix.Flock_t{Type: unix.F_WRLCK, Whence: 0}
-		must(t, linkedXLock(uintptr(fd), unix.F_GETLK, &xlock))
+		if err := linkedXLock(uintptr(fd), unix.F_OFD_GETLK, &xlock); err != syscall.EINVAL {
+			t.Fatal("unsupported OFD query", err)
+		}
 		if xlock.Type != unix.F_WRLCK {
 			t.Fatal(xlock)
 		}
 		if _, err := kh.GolangOrgXSysUnix_FcntlInt(uintptr(fd), syscall.F_GETLK, 0); err != syscall.EINVAL {
 			t.Fatal("integer pointer command", err)
 		}
-		must(t, fh.Syscall_Flock(fd, syscall.LOCK_EX))
+		must(t, fh.Syscall_Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB))
 		must(t, fh.Syscall_Madvise(data, 0))
 		mapped, err := fh.Syscall_mmap(0, 6, 1, 1, fd, 0)
 		must(t, err)
@@ -248,6 +253,32 @@ func TestLinuxProcessAndSocketRoutes(t *testing.T) {
 		must(t, nh.Syscall_setsockopt(fd, 1, 2, unsafe.Pointer(&option), 4))
 		must(t, kh.Syscall_Close(fd))
 	}))
+}
+
+func TestLinuxRecordLockAdaptersAbort(t *testing.T) {
+	for _, command := range []int{syscall.F_GETLK, syscall.F_SETLK, syscall.F_SETLKW} {
+		for _, xsys := range []bool{false, true} {
+			lock := syscall.Flock_t{Type: syscall.F_WRLCK, Pid: 7}
+			xlock := unix.Flock_t{Type: unix.F_WRLCK, Pid: 7}
+			before, xbefore := lock, xlock
+			reached, recovered := false, false
+			err := runABI(t, contracts.FeatureSet(contracts.RT|contracts.FS), func() {
+				fd, err := fh.Syscall_openat(-100, "lock", 2|0x40, 0o600)
+				must(t, err)
+				defer func() { _ = recover(); recovered = true }()
+				if xsys {
+					_ = linkedXLock(uintptr(fd), command, &xlock)
+				} else {
+					_ = linkedLock(uintptr(fd), command, &lock)
+				}
+				reached = true
+			})
+			var abort *simrt.AbortError
+			if !errors.As(err, &abort) || abort.Diagnostic.Kind != "UnsupportedOperation" || reached || recovered || lock != before || xlock != xbefore {
+				t.Fatal("record-lock adapter did not fail closed", command, xsys, err)
+			}
+		}
+	}
 }
 
 func TestLinuxDisabledAndRawBoundaries(t *testing.T) {

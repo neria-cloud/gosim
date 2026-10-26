@@ -132,11 +132,15 @@ func TestFileOpsDirectoriesAndCapabilities(t *testing.T) {
 	if n != 0 {
 		t.Fatal("historical one-batch behavior changed")
 	}
-	must(t, i.Flock(ctx, fd, 123))
+	if err := i.Flock(ctx, fd, 123); !errors.Is(err, syscall.EINVAL) {
+		t.Fatal(err)
+	}
 	lock := contracts.Lock{Type: 7, PID: 99}
-	must(t, i.FcntlLock(ctx, fd, 123, &lock))
+	if err := i.FcntlLock(ctx, fd, 123, &lock); !errors.Is(err, syscall.EINVAL) {
+		t.Fatal(err)
+	}
 	if lock.PID != 99 {
-		t.Fatal("lock stub changed input")
+		t.Fatal("rejected lock changed input")
 	}
 	if _, err := i.FcntlInt(ctx, fd, 1, 0); !errors.Is(err, syscall.ENOSYS) {
 		t.Fatal(err)
@@ -254,7 +258,7 @@ func TestMappingSurvivesUnlinkCloseAndCleansUp(t *testing.T) {
 	must(t, i.Sync(ctx, directory, false))
 	address, err := i.Map(ctx, 0, 8, protRead, mapShared|mapPopulate, fd, 0)
 	must(t, err)
-	mapping := i.mappings[address]
+	mapping := i.mappings[address].model
 	if !slices.Equal(mapping.Data.Ptr, []byte{'d', 'a', 't', 'a', 0, 0, 0, 0}) {
 		t.Fatal(mapping.Data.Ptr)
 	}

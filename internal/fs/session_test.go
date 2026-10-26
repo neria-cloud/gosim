@@ -49,7 +49,7 @@ type noDescriptors struct{ contracts.DescriptorTable }
 func newSession(t *testing.T) (*Session, *testPorts) {
 	t.Helper()
 	ports := &testPorts{draws: make(map[contracts.MachineRef]*countingRandom)}
-	session, err := NewProvider().Open(ports.ports())
+	session, err := NewProvider(FlockLinux).Open(ports.ports())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,7 +278,7 @@ func TestSamplePendingSelectedAtCrashAndNotRestart(t *testing.T) {
 func TestInvalidAndStaleLifecycle(t *testing.T) {
 	t.Parallel()
 	s, _ := newSession(t)
-	if _, err := NewProvider().Open(contracts.Ports{}); !errors.Is(err, contracts.ErrInvalidConfig) {
+	if _, err := NewProvider(FlockLinux).Open(contracts.Ports{}); !errors.Is(err, contracts.ErrInvalidConfig) {
 		t.Fatal(err)
 	}
 	p := prepare(t, s, ref1, 1, false)

@@ -8,13 +8,14 @@ import (
 )
 
 type Session struct {
-	ports      contracts.Ports
-	runID      uint64
-	machines   map[uint64]*machine
-	destroyed  map[uint64]bool
-	handles    map[uint64]*recoveryHandle
-	nextHandle uint64
-	closed     bool
+	flockSemantics FlockSemantics
+	ports          contracts.Ports
+	runID          uint64
+	machines       map[uint64]*machine
+	destroyed      map[uint64]bool
+	handles        map[uint64]*recoveryHandle
+	nextHandle     uint64
+	closed         bool
 }
 type machine struct {
 	ref       contracts.MachineRef
@@ -100,59 +101,62 @@ func (s *Session) Destroy(ref contracts.MachineRef) {
 	if s.runID == 0 {
 		s.runID = ref.RunID
 	}
+	var cleanup cleanupErrors
 	m := s.machines[ref.ID]
 	if m != nil {
 		// Kernel destruction happens only after epoch cleanup. Close also uses this
 		// path defensively to release partially staged/published state.
 		if m.prepared != nil {
-			m.prepared.Abort()
+			cleanup.run(func() error { m.prepared.Abort(); return nil })
 		}
 		if m.active != nil {
-			m.active.Quiesce()
-			m.active.Detach()
+			cleanup.run(func() error { m.active.Detach(); return nil })
 		}
 		if m.disk != nil {
-			m.disk.Release()
+			cleanup.run(func() error { m.disk.Release(); return nil })
 			m.disk = nil
 		}
 		if m.crash != nil {
-			m.crash.Release()
+			cleanup.run(func() error { m.crash.Release(); return nil })
 			m.crash = nil
 		}
 	}
 	for _, id := range s.handleIDs() {
 		h := s.handles[id]
 		if h.iterator != nil && h.iterator.owner == ref {
-			s.closeIterator(h)
+			cleanup.run(func() error { s.closeIterator(h); return nil })
 		}
 	}
 	delete(s.machines, ref.ID)
 	s.destroyed[ref.ID] = true
+	cleanup.finish()
 }
 
 func (s *Session) Close() {
 	if s.closed {
 		return
 	}
+	var cleanup cleanupErrors
 	var ids []uint64
 	for id := range s.machines {
 		ids = append(ids, id)
 	}
 	slices.Sort(ids)
 	for _, id := range ids {
-		s.Destroy(s.machines[id].ref)
+		cleanup.run(func() error { s.Destroy(s.machines[id].ref); return nil })
 	}
 	for _, id := range s.handleIDs() {
 		h := s.handles[id]
-		s.closeIterator(h)
+		cleanup.run(func() error { s.closeIterator(h); return nil })
 		if h.snapshot != nil {
-			h.snapshot.Release()
+			cleanup.run(func() error { h.snapshot.Release(); return nil })
 			h.snapshot = nil
 		}
 	}
 	s.machines, s.destroyed, s.handles = nil, nil, nil
 	s.ports = contracts.Ports{}
 	s.closed = true
+	cleanup.finish()
 }
 
 func (s *Session) handleIDs() []uint64 {

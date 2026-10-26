@@ -29,5 +29,8 @@ simulated deadlines and per-node data directories. It disables auto-TLS,
 tracing export, pprof and metrics scraping. It does not exercise certificate
 algorithms, JWT authentication, etcd v2 discovery, unsafe reflect2 value
 operations or host runtime metrics. Those optional declarations remain guarded
-and abort if executed. The filesystem's current lock stubs do not establish
-contention or crash-durability guarantees beyond the snapshot/WAL checks here.
+and abort if executed. WAL locking uses the flock fallback after the unsupported
+OFD probe returns EINVAL. Immediately grantable LOCK_EX succeeds; a contended
+blocking request aborts because lock waiting is not modeled. Machines have
+private filesystems and do not establish shared-volume/process contention.
+Lock ownership does not add durability guarantees beyond the snapshot/WAL checks.
