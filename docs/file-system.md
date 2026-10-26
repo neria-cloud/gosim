@@ -1,13 +1,19 @@
 # Filesystem: directory handles and os.Root
 
 Gosim supports directory handles, symbolic links and Go's `os.Root` API for
-filesystem tests. The simulation loads Linux application source and syscall ABI on supported Linux
-and macOS hosts. Flock lifetime follows the executable host, as described below;
-this does not implement general Darwin application/source ABI selection.
+filesystem tests. The simulation loads Linux application source and syscall ABI
+on supported Linux and macOS hosts. Flock lifetime follows the executable host,
+as described below; this does not implement general Darwin source/ABI selection.
 
-For filesystem configuration, capacity, permissions and crash controls, see
-[Filesystem recovery](../README.md#filesystem-recovery). The full feature list
-remains in the [features table](features.md).
+The in-memory filesystem is rooted at `/`; processes start in `/app`. Configure each machine before its first start with `fs.ConfigureMachine`. Capacity defaults to 128 MiB and must be a multiple of 1 KiB. `fs.Stats` reports total, used and free bytes in allocated 1 KiB file-data blocks, plus block size and read-only status. Sparse holes consume no blocks; `/etc/hosts` initially consumes one. A write or `fallocate` reservation that would exceed capacity fails atomically with `ENOSPC`. Capacity cannot be resized after configuration. A restored image above the target capacity remains readable, reports zero free space and rejects new allocation until usage falls.
+
+`fs.Config` also sets the machine's effective UID/GID (root/root by default) and a fixed per-operation `Latency`. Files and directories store mode and ownership; creation applies a fixed `0022` umask. Owner/group/other checks cover file opens, directory traversal and mutations; chmod requires the owner or root, and chown requires root. `fs.SetReadOnly(machine, true)` immediately rejects data and metadata mutation with `EROFS`, including writes through existing descriptors. Set it to `false` to resume writes. The policy survives stop, crash, restart and snapshot restore. Configured latency delays completion of data I/O and mutating filesystem calls, including `ENOSPC` and `EROFS`; metadata reads such as stat and statfs remain immediate.
+
+`fs.SetCrashMode` selects `DurableOnly` or `SamplePending`; `fs.SetSyncFault` configures bounded sync-failure probabilities.
+
+After a crash, `fs.CrashStates(machine, fs.EnumerateOptions{MaxStates: n})` owns a synchronous iterator over immutable crash outcomes. A positive budget is required. `Next` returns a snapshot and availability flag; exceeding the budget while more outcomes exist returns `fs.ErrEnumerationLimit`. Close the iterator when finished, and close each returned snapshot separately. Closing the iterator does not invalidate snapshots already returned. `fs.Restore` accepts a retained snapshot from the same simulation for an unstarted or stopped/crashed target; configure its next main function and start/restart it explicitly. Destroying a machine does not invalidate separately owned snapshots.
+
+Graceful stop flushes modeled writes and metadata. Crash behavior preserves uncertainty in non-fsynced operations, including block reservations and mode/ownership changes. Supplemental groups, ACLs, sticky bits, hard links, special files and real POSIX locking remain outside the model.
 
 ## Directory handles and symbolic links
 
@@ -68,8 +74,9 @@ outcomes do not establish hardware power-loss behavior for a native filesystem.
 (optionally combined with `LOCK_NB`). Separate opens of the same inode contend,
 even within a single simulated machine. A competing nonblocking acquisition
 returns `EWOULDBLOCK`. `LOCK_EX` without `LOCK_NB` also succeeds when it can
-acquire immediately; if it would wait, the simulation aborts explicitly. Reacquiring through the same open description is
-idempotent; unlocking or closing an unrelated open cannot release its owner.
+acquire immediately; if it would wait, the simulation aborts explicitly.
+Reacquiring through the same open description is idempotent; unlocking or closing
+an unrelated open cannot release its owner.
 The lock is advisory and inode-bound: rename/unlink does not unlock it, while a
 replacement inode at the same pathname can have a different owner. Applications
 must detect replacement themselves when they require a stable lock-file identity.
