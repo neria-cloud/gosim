@@ -154,7 +154,7 @@ Artifacts are stored per identity **and package content** at `.gosim/v2/<identit
 | Area | Current boundary |
 | --- | --- |
 | Files and persistence | Bounded file/directory/symlink volume, inode-bound directory descriptors, limited os.Root, 1 KiB file-block accounting and sync/crash semantics; no hard links, mounts, live resize or special files |
-| Locks and permissions | Owner/group/other mode and ownership checks; no supplemental groups, ACLs or sticky bits; `flock`/record-lock stubs do not establish ownership or contention |
+| Locks and permissions | Owner/group/other mode and ownership checks; no supplemental groups, ACLs or sticky bits; exclusive flock models ownership and nonblocking contention with host-specific mmap lifetime; immediately grantable `LOCK_EX` succeeds and a contended blocking request aborts; shared flock and record locks are unsupported |
 | Networking | Simulated IPv4/TCP; UDP, IPv6 and hostname resolution are outside the supported model |
 | HTTP/gRPC/TLS | Translated plaintext HTTP request/response, connection reuse, streaming, cancellation and graceful shutdown have focused coverage. The [three-node etcd example](examples/etcd/) exercises HTTP/gRPC over simulated TCP and storage, including partition recovery and snapshot/WAL round trips. The [standalone gRPC example](examples/network/grpc/) covers unary and bidirectional streams; the [NATS example](examples/network/nats/) covers plain TCP. TLS/certificate operations abort; untested HTTP surfaces are not claimed. |
 | Linux process services | Deterministic getrandom, historical fixed PID and limited uname; full signals/procfs/process behavior is absent |

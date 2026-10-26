@@ -7239,8 +7239,8 @@
         {
           "package": "golang.org/x/sys/unix",
           "symbol": "FcntlFlock",
-          "status": "stub",
-          "reason": "POSIX record-lock commands 5/6/7 preserve the existing no-op model: no lock acquisition, ownership, contention or GETLK mutation. Other commands return EINVAL."
+          "status": "limited",
+          "reason": "POSIX record-lock commands 5/6/7 abort UnsupportedOperation; no ownership or GETLK result is fabricated. OFD/other commands return EINVAL, preserving negative capability probes."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7257,8 +7257,8 @@
         {
           "package": "golang.org/x/sys/unix",
           "symbol": "Flock",
-          "status": "stub",
-          "reason": "Existing file-lock stub: no acquisition, ownership or contention."
+          "status": "limited",
+          "reason": "Exclusive flock by inode/open description: nonblocking contention returns EWOULDBLOCK; immediately grantable LOCK_EX succeeds; contended blocking/shared acquisition aborts. Unlock and descriptor destruction release ownership; Linux mmap retains ownership, Darwin mmap does not. No dup or GC release."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7426,7 +7426,7 @@
           "package": "golang.org/x/sys/unix",
           "symbol": "fcntl",
           "status": "limited",
-          "reason": "Integer descriptor/status operations return ENOSYS; pointer record-lock form remains a successful stub without ownership or contention."
+          "reason": "Integer descriptor/status operations return ENOSYS; POSIX pointer record-lock commands abort UnsupportedOperation; OFD/other pointer commands return EINVAL."
         },
         {
           "package": "golang.org/x/sys/unix",
@@ -7852,7 +7852,7 @@
           "package": "internal/syscall/unix",
           "symbol": "fcntl",
           "status": "limited",
-          "reason": "Integer descriptor/status operations return ENOSYS; pointer record-lock form remains a successful stub without ownership or contention."
+          "reason": "Integer descriptor/status operations return ENOSYS; POSIX pointer record-lock commands abort UnsupportedOperation; OFD/other pointer commands return EINVAL."
         },
         {
           "package": "internal/syscall/unix",
@@ -8229,8 +8229,8 @@
         {
           "package": "syscall",
           "symbol": "FcntlFlock",
-          "status": "stub",
-          "reason": "POSIX record-lock commands 5/6/7 preserve the existing no-op model: no lock acquisition, ownership, contention or GETLK mutation. Other commands return EINVAL."
+          "status": "limited",
+          "reason": "POSIX record-lock commands 5/6/7 abort UnsupportedOperation; no ownership or GETLK result is fabricated. OFD/other commands return EINVAL, preserving negative capability probes."
         },
         {
           "package": "syscall",
@@ -8241,8 +8241,8 @@
         {
           "package": "syscall",
           "symbol": "Flock",
-          "status": "stub",
-          "reason": "Existing file-lock stub: no acquisition, ownership or contention."
+          "status": "limited",
+          "reason": "Exclusive flock by inode/open description: nonblocking contention returns EWOULDBLOCK; immediately grantable LOCK_EX succeeds; contended blocking/shared acquisition aborts. Unlock and descriptor destruction release ownership; Linux mmap retains ownership, Darwin mmap does not. No dup or GC release."
         },
         {
           "package": "syscall",
@@ -8392,7 +8392,7 @@
           "package": "syscall",
           "symbol": "fcntl",
           "status": "limited",
-          "reason": "Integer descriptor/status operations return ENOSYS; pointer record-lock form remains a successful stub without ownership or contention."
+          "reason": "Integer descriptor/status operations return ENOSYS; POSIX pointer record-lock commands abort UnsupportedOperation; OFD/other pointer commands return EINVAL."
         },
         {
           "package": "syscall",

@@ -10,13 +10,15 @@ import (
 
 // File owns one model inode reference after a successful descriptor transfer.
 type File struct {
-	instance    *Instance
-	inode       int
-	pos         int64
-	read, write bool
-	didReaddir  bool
-	released    bool
-	closeReason contracts.CloseReason
+	instance         *Instance
+	inode            int
+	pos              int64
+	read, write      bool
+	didReaddir       bool
+	released         bool
+	closeReason      contracts.CloseReason
+	mappingRefs      int
+	modelRefReleased bool
 }
 
 func (*File) Owner() contracts.Feature { return contracts.FS }
@@ -28,6 +30,22 @@ func (f *File) Release(reason contracts.CloseReason) error {
 		return contracts.ErrInvalidConfig
 	}
 	f.released, f.closeReason = true, reason
+	if f.instance.session.flockSemantics == FlockDarwin {
+		f.instance.releaseFlock(f)
+	}
+	return f.releaseIfUnreferenced()
+}
+
+func (f *File) releaseIfUnreferenced() error {
+	if !f.released || f.mappingRefs != 0 || f.modelRefReleased {
+		return nil
+	}
+	f.modelRefReleased = true
+	f.instance.releaseFlock(f)
+	// Session destruction may have already disposed the entire private model.
+	if f.instance.model == nil {
+		return nil
+	}
 	return f.instance.model.CloseFile(f.inode)
 }
 

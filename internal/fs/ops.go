@@ -547,14 +547,6 @@ func (i *Instance) Mkdirat(ctx contracts.CallContext, dirfd int, path string, mo
 	return i.model.Mkdir(dir, path, mode, i.identity())
 }
 
-func (i *Instance) Flock(ctx contracts.CallContext, fd, how int) error {
-	if _, err := i.file(ctx, fd); err != nil {
-		return err
-	}
-	// TODO(not planned): locks/ownership/contention. This inherited stub takes no lock.
-	return nil
-}
-
 func (i *Instance) FcntlInt(ctx contracts.CallContext, fd, command, arg int) (int, error) {
 	if _, err := i.file(ctx, fd); err != nil {
 		return 0, err
@@ -568,8 +560,13 @@ func (i *Instance) FcntlLock(ctx contracts.CallContext, fd, command int, lock *c
 	if _, err := i.file(ctx, fd); err != nil {
 		return err
 	}
-	// TODO(not planned): POSIX/OFD locks. This inherited stub takes no lock.
-	return nil
+	if command != 5 && command != 6 && command != 7 {
+		return syscall.EINVAL
+	}
+	if lock == nil {
+		return syscall.EFAULT
+	}
+	return unsupportedLock(ctx, "fcntl", "POSIX record locks are not modeled; OFD locks are unavailable")
 }
 
 func (i *Instance) Map(ctx contracts.CallContext, addr, length uintptr, prot, flags, fd int, offset int64) (uintptr, error) {
@@ -588,12 +585,21 @@ func (i *Instance) Map(ctx contracts.CallContext, addr, length uintptr, prot, fl
 	if stat.IsDir {
 		return 0, syscall.EISDIR
 	}
+	if f.mappingRefs == math.MaxInt {
+		panic("filesystem mapping reference overflow")
+	}
 	mapping := i.model.Mmap(f.inode, int(length))
 	address := uintptr(unsafe.Pointer(unsafe.SliceData(mapping.Data.Ptr)))
-	if i.mappings == nil {
-		i.mappings = make(map[uintptr]*model.Mmap)
+	if i.mappings[address] != nil {
+		// Fresh live backing arrays cannot alias. If the allocator/model violates
+		// this invariant, epoch teardown releases the entire private model.
+		panic("duplicate live filesystem mapping address")
 	}
-	i.mappings[address] = mapping
+	if i.mappings == nil {
+		i.mappings = make(map[uintptr]*fileMapping)
+	}
+	i.mappings[address] = &fileMapping{model: mapping, owner: f}
+	f.mappingRefs++
 	i.mappingOrder = append(i.mappingOrder, address)
 	return address, nil
 }
@@ -607,10 +613,9 @@ func (i *Instance) Unmap(ctx contracts.CallContext, addr, length uintptr) error 
 		return syscall.EINVAL
 	}
 	// Existing API releases the whole mapping by start address, ignoring length.
-	i.model.Munmap(mapping)
 	delete(i.mappings, addr)
 	i.mappingOrder = slices.DeleteFunc(i.mappingOrder, func(address uintptr) bool { return address == addr })
-	return nil
+	return i.releaseMappingResources(mapping)
 }
 
 func (i *Instance) Advise(ctx contracts.CallContext, data abi.ByteView, advice int) error {

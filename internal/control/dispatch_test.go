@@ -43,7 +43,7 @@ func run(t *testing.T, features contracts.FeatureSet, main func()) error {
 	return e.Run(func() {
 		var providers []contracts.Provider
 		if features.Has(contracts.FS) {
-			providers = append(providers, fsprovider.NewProvider())
+			providers = append(providers, fsprovider.NewProvider(fsprovider.FlockLinux))
 		}
 		if features.Has(contracts.Net) {
 			providers = append(providers, netprovider.NewProvider())

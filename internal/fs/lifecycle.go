@@ -18,7 +18,8 @@ type Instance struct {
 	workingDir                             int
 	published, quiesced, settled, detached bool
 	settleErr                              error
-	mappings                               map[uintptr]*model.Mmap
+	flocks                                 map[int]*File
+	mappings                               map[uintptr]*fileMapping
 	mappingOrder                           []uintptr
 }
 
@@ -110,18 +111,20 @@ func (i *Instance) Detach() {
 	if i.machine.active == i {
 		i.machine.active = nil
 	}
+	var cleanup cleanupErrors
 	if i.model != nil {
 		for _, address := range i.mappingOrder {
 			if mapping := i.mappings[address]; mapping != nil {
-				i.model.Munmap(mapping)
 				delete(i.mappings, address)
+				cleanup.run(func() error { return i.releaseMappingResources(mapping) })
 			}
 		}
-		i.mappings, i.mappingOrder = nil, nil
-		i.model.Release()
+		cleanup.run(func() error { i.model.Release(); return nil })
 		i.model = nil
 	}
+	i.flocks, i.mappings, i.mappingOrder = nil, nil, nil
 	i.fds = nil
+	cleanup.finish()
 }
 
 func (i *Instance) validateCall(ctx contracts.CallContext) error {

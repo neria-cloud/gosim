@@ -391,6 +391,10 @@ func TestDirectoryCapabilitiesInheritedAcrossFamilies(t *testing.T) {
 		{"internal/syscall/unix", "Readlinkat", "no procfs"},
 		{"internal/syscall/unix", "Symlinkat", "40-link"},
 		{"golang.org/x/sys/unix", "FcntlInt", "ENOSYS"},
+		{"golang.org/x/sys/unix", "Flock", "Linux mmap"},
+		{"syscall", "Flock", "Darwin mmap"},
+		{"golang.org/x/sys/unix", "FcntlFlock", "negative capability probes"},
+		{"syscall", "FcntlFlock", "UnsupportedOperation"},
 		{"golang.org/x/sys/unix", "Getdents", "overflow aborts"},
 		{"syscall", "Seek", "SEEK_CUR"},
 	} {

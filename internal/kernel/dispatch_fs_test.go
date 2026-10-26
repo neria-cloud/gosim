@@ -22,7 +22,7 @@ func TestFilesystemApplicationDispatch(t *testing.T) {
 	e := engineFor(t)
 	var completed atomic.Bool
 	err := e.Run(func() {
-		k, err := New(configFor(contracts.FeatureSet(contracts.RT|contracts.FS)), e, []contracts.Provider{fsprovider.NewProvider()})
+		k, err := New(configFor(contracts.FeatureSet(contracts.RT|contracts.FS)), e, []contracts.Provider{fsprovider.NewProvider(fsprovider.FlockLinux)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -51,9 +51,9 @@ func TestFilesystemApplicationDispatch(t *testing.T) {
 			address := fsCall(t, k, MapRequest{Address: uintptr(0), Length: uintptr(4), Protection: int(1), Flags: int(1), FD: int(fd), Offset: int64(0)}, DecodeMapResult).Address
 			fsCall(t, k, UnmapRequest{Address: uintptr(address), Length: uintptr(4)}, DecodeUnmapResult)
 			lock := contracts.Lock{Type: 1, PID: 17}
-			fsCall(t, k, FcntlLockRequest{FD: int(fd), Command: int(37), Lock: abi.NewValueView(&lock)}, DecodeFcntlLockResult)
+			netCall(t, k, FcntlLockRequest{FD: int(fd), Command: int(37), Lock: abi.NewValueView(&lock)}, syscall.EINVAL, DecodeFcntlLockResult)
 			if lock.PID != 17 {
-				t.Fatal("lock stub changed payload")
+				t.Fatal("rejected lock changed payload")
 			}
 			fsCall(t, k, CloseRequest{FD: int(fd)}, DecodeCloseResult)
 			fsCall(t, k, UnlinkatRequest{DirFD: int(-100), Path: "renamed", Flags: int(0)}, DecodeUnlinkatResult)
@@ -67,7 +67,7 @@ func TestFilesystemApplicationDispatch(t *testing.T) {
 			other := fsCall(t, k, OpenatRequest{DirFD: int(-100), Path: "size", Flags: int(0x40 | 2), Mode: uint32(0o600)}, DecodeOpenatResult).FD
 			fsCall(t, k, FallocateRequest{FD: int(other), Mode: uint32(0), Offset: int64(0), Length: int64(16)}, DecodeFallocateResult)
 			fsCall(t, k, TruncateRequest{FD: int(other), Length: int64(8)}, DecodeTruncateResult)
-			fsCall(t, k, FlockRequest{FD: int(other), How: int(2)}, DecodeFlockResult)
+			fsCall(t, k, FlockRequest{FD: int(other), How: int(2 | 4)}, DecodeFlockResult)
 			fsCall(t, k, AdviseRequest{Data: abi.ByteView{Ptr: cwd}, Advice: int(1)}, DecodeAdviseResult)
 			directory := fsCall(t, k, OpenatRequest{DirFD: int(-100), Path: ".", Flags: int(0), Mode: uint32(0)}, DecodeOpenatResult).FD
 			n = fsCall(t, k, Getdents64Request{FD: int(directory), Into: abi.ByteView{Ptr: cwd}}, DecodeGetdents64Result).Count
@@ -91,7 +91,7 @@ func TestFilesystemApplicationDispatch(t *testing.T) {
 func TestFilesystemLatencyDelaysCompletionAndClearsBorrowedInput(t *testing.T) {
 	const delay = int64(100)
 	var inspected atomic.Bool
-	_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider()}, func(k *Kernel) {
+	_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider(fsprovider.FlockLinux)}, func(k *Kernel) {
 		done := simrt.NewChan[bool](0)
 		var control contracts.FSControl
 		var ref contracts.MachineRef
@@ -185,7 +185,7 @@ func TestFilesystemLatencyDelaysCompletionAndClearsBorrowedInput(t *testing.T) {
 
 func TestFilesystemDelayedCompletionCanceledOnStop(t *testing.T) {
 	var canceled, resumed atomic.Bool
-	k, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider()}, func(k *Kernel) {
+	k, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider(fsprovider.FlockLinux)}, func(k *Kernel) {
 		var ref contracts.MachineRef
 		ref = createFor(t, k, "cancel-delayed-file", func() {
 			fd := fsCall(t, k, OpenatRequest{DirFD: -100, Path: "file", Flags: 0x40 | 2, Mode: 0o600}, DecodeOpenatResult).FD
@@ -233,7 +233,7 @@ func TestSyscallWritevDelayedObservation(t *testing.T) {
 			var observed, resumed atomic.Bool
 			var ref contracts.MachineRef
 			var rows []contracts.SyscallRecord
-			_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider()}, func(k *Kernel) {
+			_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider(fsprovider.FlockLinux)}, func(k *Kernel) {
 				ref = createFor(t, k, "writev-delay", func() {
 					fd := fsCall(t, k, OpenatRequest{DirFD: -100, Path: "file", Flags: 0x40 | 2, Mode: 0o600}, DecodeOpenatResult).FD
 					fsCall(t, k, SetSyscallCountingRequest{Machine: ref, Enabled: true}, DecodeSetSyscallCountingResult)
@@ -312,7 +312,7 @@ func TestSyncFaultCancelsRealCallerBeforeOrAfterDurability(t *testing.T) {
 	for _, before := range []float64{0, 1} {
 		t.Run(map[bool]string{true: "before", false: "after"}[before == 1], func(t *testing.T) {
 			var returned, deferred atomic.Bool
-			_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider()}, func(k *Kernel) {
+			_, err := fixture(t, contracts.FeatureSet(contracts.RT|contracts.FS), []contracts.Provider{fsprovider.NewProvider(fsprovider.FlockLinux)}, func(k *Kernel) {
 				ready := simrt.NewChan[int](0)
 				ref := createFor(t, k, "sync-fault", func() {
 					defer deferred.Store(true)
@@ -421,7 +421,7 @@ func TestRootSyncFaultTerminatesRunWithoutResuming(t *testing.T) {
 	e := engineFor(t)
 	var returned, deferred atomic.Bool
 	err := e.Run(func() {
-		k, err := New(configFor(contracts.FeatureSet(contracts.RT|contracts.FS)), e, []contracts.Provider{faultOnPrepareProvider{fsprovider.NewProvider()}})
+		k, err := New(configFor(contracts.FeatureSet(contracts.RT|contracts.FS)), e, []contracts.Provider{faultOnPrepareProvider{fsprovider.NewProvider(fsprovider.FlockLinux)}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -463,7 +463,7 @@ func TestFilesystemMalformedPayloadsAndDisabledFeature(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var providers []contracts.Provider
 			if test.features.Has(contracts.FS) {
-				providers = []contracts.Provider{fsprovider.NewProvider()}
+				providers = []contracts.Provider{fsprovider.NewProvider(fsprovider.FlockLinux)}
 			}
 			_, err := fixture(t, test.features, providers, func(k *Kernel) {
 				ref := createFor(t, k, "malformed", idleMain)

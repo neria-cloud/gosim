@@ -82,7 +82,14 @@ func render(selection buildspec.Selection) ([]byte, []string, error) {
 		}
 		alias := feature + "provider"
 		imports[gosimtool.Module+"/internal/"+feature] = alias
-		data.Constructors = append(data.Constructors, alias+".NewProvider()")
+		constructor := alias + ".NewProvider()"
+		if feature == "fs" {
+			constructor, err = filesystemConstructor(id.HostOS)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		data.Constructors = append(data.Constructors, constructor)
 		data.Features += " | contracts." + name
 	}
 	var paths []string
@@ -99,6 +106,17 @@ func render(selection buildspec.Selection) ([]byte, []string, error) {
 	}
 	source, err := format.Source(output.Bytes())
 	return source, paths, err
+}
+
+func filesystemConstructor(hostOS string) (string, error) {
+	switch hostOS {
+	case "linux":
+		return "fsprovider.NewProvider(fsprovider.FlockLinux)", nil
+	case "darwin":
+		return "fsprovider.NewProvider(fsprovider.FlockDarwin)", nil
+	default:
+		return "", fmt.Errorf("unsupported flock host %q", hostOS)
+	}
 }
 
 // Runtime packages are already checked against the selected descriptor. Resolve
